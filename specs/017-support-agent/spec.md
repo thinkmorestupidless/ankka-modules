@@ -566,3 +566,7 @@ version "2"; the configuration change is an audit record naming the operator.
   The agent stays the casino's own chat beside Chatwoot (Clarifications, 2026-11-09).
 - Languages other than English.
 - The frontend widget itself (constitution, scope).
+
+## Amended by 030
+
+- E1 (spec 030 contracts/amendments.md, T024): every operator route requires one permission (`Routes.operatorMay`) in place of `operatorHolding(brand_admin, resource_admin, platform_admin)`, decided from the brand's roles support-agent reads from `players` every 10 seconds: `config.agent` for the configuration, its versions, its status (which also says when the roles were last read) and every change of it, the prompt and the personal fields included, so no field is held to a role by name any more; `player.read` for the conversations (`features/support-agent/operator-roles.feature`).

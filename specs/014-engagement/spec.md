@@ -877,3 +877,7 @@ FR-029 to FR-032):
 - Answered 2026-11-03: a suppressed player's marketing-class events are withheld from Customer.io
   too; the service-class events still reach it (Clarifications).
 - Answered 2026-11-03: the agent's "player is online" alert (FR-024) is kept (Clarifications).
+
+## Amended by 030
+
+- E1 (spec 030 contracts/amendments.md, T024): every operator route requires one permission (`Routes.operatorMay`) in place of `Routes.operator` and `operatorHolding(brand_admin, resource_admin, platform_admin)`, decided from the brand's roles engagement reads from `players` every 10 seconds: `presence.read` for who is online and the agent stream's ticket (the online notice), `send.release` for the parked sends (list, retry, discard), `player.read` for a player's sends, `config.crm` for the CRM configuration (read, change, seed) and `GET …/engagement/status`, which also says when the roles were last read; the agent stream itself stays under its ticket (`features/engagement/operator-roles.feature`).

@@ -84,7 +84,7 @@ Each task: replace `Routes.operator`/`operatorHolding` and handler role sets wit
 - [ ] T021 [P] M in `svc/responsible-gambling/` (G1): `protection.read`, `protection.change`, `config.brand` in `api/Endpoints.scala`; amends spec 010
 - [X] T022 [P] M in `svc/rewards/` (RW1): `reward.read` (list and one reward), `reward.grant`, `reward.revoke`, `offer.manage` in `api/RewardAdminEndpoint.scala`, `OffersEndpoint.scala`; amends spec 011
 - [ ] T023 [P] M in `svc/game-provider/` (GP1): `player.read` on rounds, `config.games`, `callback.resolve` in `api/Endpoints.scala`; amends spec 003
-- [ ] T024 [P] M in `svc/engagement/` and `svc/support-agent/` (E1): `presence.read`, `send.release`, `config.crm`, `config.agent`; amends specs 014, 017
+- [X] T024 [P] M in `svc/engagement/` and `svc/support-agent/` (E1): `presence.read`, `send.release`, `config.crm`, `config.agent`; amends specs 014, 017
 - [ ] T025 [P] M in `svc/reporting/`, `svc/attribution/`, `svc/public-api/` (E1, E3): `api/Access.scala` reads the matrix (`dashboard.read`, `report.*`, `export.player`, `config.brand`); `config.attribution`, `fact.redeliver`; the status route under `config.brand`; amends specs 015, 012, 016
 - [X] T026 Amend `specs/001-brands-and-projects/` (the realm role `brand_support`, the brand's `backoffice-<slug>` client, the module `backoffice`, `contracts/routes.md`'s operator class now by permission) and `specs/008-players/` (the brand's roles), each with one line under *Amended by 030*
 

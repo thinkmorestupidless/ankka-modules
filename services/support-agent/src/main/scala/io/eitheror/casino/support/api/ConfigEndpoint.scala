@@ -3,7 +3,6 @@ package io.eitheror.casino.support.api
 import com.fasterxml.jackson.databind.JsonNode
 import com.github.plokhotnyuk.jsoniter_scala.core.{JsonValueCodec, writeToString}
 import com.thinkmorestupidless.ankka.http.*
-import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.support.{Json, SupportCodecs}
 import io.eitheror.casino.support.config.{AgentConfiguration, ConfigBody, ConfigNote, ConfigVersion}
 import io.eitheror.casino.support.domain.ConfigRules
@@ -14,30 +13,38 @@ import java.nio.charset.StandardCharsets.UTF_8
 
 /**
  * The operator's routes (contracts/routes.md), under `/v1/casino/agent-config/<slug>`: the brand's configuration, a
- * version of it, a change of it, its status, and its conversations. Changing the prompt or the personal fields is the
- * brand admin's (or a platform admin's); the other roles the ACL admits change the rest.
+ * version of it, a change of it, its status, and its conversations. Each route requires one permission (spec 030
+ * amendment E1): `config.agent` for the configuration, its versions, its status and a change of any of its fields;
+ * `player.read` for the conversations.
  */
 final class ConfigEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/agent-config/${ctx.slug}"):
-  val acl: Acl = Routes.operatorHolding(ctx.slug, "brand_admin", "resource_admin", "platform_admin")(ctx.authenticate())
+  // every route names its own permission; this is never reached
+  val acl: Acl = Acl.DenyAll
 
+  withAcl(ctx.may("config.agent")) {
   get("/") { () => Operators.shown(ctx) }
+  }
 
-  putBody("/") { (text: String) => Operators.put(ctx, text, principal.subject, principal.roles) }
+  withAcl(ctx.may("config.agent")) {
+  putBody("/") { (text: String) => Operators.put(ctx, text, principal.subject) }
+  }
 
+  withAcl(ctx.may("config.agent")) {
   get("/versions/{version}") { (version: String) => Operators.version(ctx, version) }
+  }
 
+  withAcl(ctx.may("config.agent")) {
   get("/status") { () => Operators.status(ctx) }
+  }
 
+  withAcl(ctx.may("player.read")) {
   get("/conversations") { () =>
     Operators.conversations(ctx, request.query.raw("player").filter(_.nonEmpty), request.query.raw("offset"))
+  }
   }
 
 object Operators:
   type Answer = Respond[Bytes]
-
-  /** The fields only a brand admin changes. */
-  val AdminFields: Set[String] = Set("prompt", "personalFields")
-  private val AdminRoles       = Set("brand_admin", "platform_admin")
 
   private given JsonValueCodec[ConfigBody]      = SupportCodecs.shown[ConfigBody]
   private given JsonValueCodec[ConfigNote]      = SupportCodecs.shown[ConfigNote]
@@ -55,17 +62,14 @@ object Operators:
     val c = ctx.configuration
     ok(Json.obj("version" -> c.version, "config" -> node(c.current), "recentChanges" -> Json.arr(c.recentChanges.map(node(_))*)))
 
-  /** `PUT /`: the body read over the current one and checked, the admin's fields held to the admin, then the next version. */
-  def put(ctx: Ctx, text: String, operator: String, roles: Set[String]): Answer =
+  /** `PUT /`: the body read over the current one and checked, then the next version. */
+  def put(ctx: Ctx, text: String, operator: String): Answer =
     val sent = Json.parse(text).orNull
     // Read and checked over the current body on each attempt, so a put read again after another keeps the other's.
     def next(current: ConfigBody): Either[Answer, ConfigBody] =
       ConfigRules.read(sent, current, ctx.settings.realMoney, ctx.settings.judge.isDefined) match
         case Left(r) => Left(refusal(r.status, r.code, (r.field.map("field" -> _).toVector :+ ("message" -> r.message))*))
-        case Right(body) =>
-          ConfigRules.changes(current, body)._1.find(f => AdminFields(f) && !roles.exists(AdminRoles)) match
-            case Some(f) => Left(refusal(403, Routes.Forbidden, "field" -> f, "message" -> s"Changing $f needs the brand_admin permission"))
-            case None    => Right(body)
+        case Right(body) => Right(body)
     AgentConfiguration.put(ctx.components, ctx.slug, operator, ctx.now())(next).fold(identity, p => ok(Json.obj("version" -> p.version)))
 
   /** `GET /versions/{version}`: that version's body; version 0 is the defaults. */
@@ -74,7 +78,7 @@ object Operators:
       case None    => refusal(404, "not_found")
       case Some(v) => ok(node(ConfigVersion.body(ctx.components, ctx.slug, v)))
 
-  /** `GET /status` (FR-024): whether the agent is on, which guardrails run, the day's budget and the conversations. */
+  /** `GET /status` (FR-024): whether the agent is on, which guardrails run, the day's budget, the conversations, and when the brand's roles were last read. */
   def status(ctx: Ctx): Answer =
     val c      = ctx.configuration.current
     val s      = ctx.settings
@@ -88,7 +92,8 @@ object Operators:
       "safeguarding"  -> on(s.judge.isDefined && c.safeguarding(s.realMoney)),
       "judged"        -> on(s.judge.isDefined),
       "budget"        -> Json.obj("used" -> used, "limit" -> c.dailyTokens, "spent" -> (used >= c.dailyTokens)),
-      "conversations" -> Json.obj("open" -> counts.open, "awaiting" -> counts.awaiting, "lastDay" -> counts.lastDay)
+      "conversations" -> Json.obj("open" -> counts.open, "awaiting" -> counts.awaiting, "lastDay" -> counts.lastDay),
+      "roles"         -> ctx.bags.status
     ))
 
   /** `GET /conversations?player=&offset=`: 50 rows, newest activity first. */

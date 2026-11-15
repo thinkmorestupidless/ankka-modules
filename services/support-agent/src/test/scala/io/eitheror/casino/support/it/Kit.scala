@@ -59,7 +59,11 @@ final class Kit(base: Settings = Kit.Base):
 
   private val timers = TimerRuntime(pollInterval = 200.millis, clock = clock)
   SupportRuntime.timers = () => timers.timerScheduler
-  private val server = HttpServer.at("127.0.0.1", 0)(SupportService.endpoints(() => Kit.authenticate)*)
+  /** The brand's roles the operator routes decide from: the role matrix, as a new brand starts. */
+  val roles: io.eitheror.casino.contract.access.RoleBags =
+    io.eitheror.casino.contract.access.RoleBags.fixed(io.eitheror.casino.contract.access.OperatorPermissions.DefaultRoles)
+
+  private val server = HttpServer.at("127.0.0.1", 0)(SupportService.endpoints(() => Kit.authenticate, bags = Some(_ => roles))*)
   private val agents = SupportService.agents(settings, compactor, Some(judge))
 
   val testKit: AnkkaTestKit = AnkkaTestKit.start(

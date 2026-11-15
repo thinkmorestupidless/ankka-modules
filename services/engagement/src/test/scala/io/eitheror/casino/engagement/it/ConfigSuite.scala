@@ -73,17 +73,22 @@ class ConfigSuite extends munit.FunSuite:
   }
 
   test("a change is an audit record naming the keys and fields changed, never a value") {
-    put(Json.render(Json.obj("trackApiKey" -> "track-audit-9", "fromEmail" -> s"audit@${kit.slug}.example"))): Unit
-    val r = kit.eventually("the change audited")(kit.facts(f.PlatformAudit).collect {
+    def changed = kit.facts(f.PlatformAudit).collect {
       case a: f.AuditRecord if a.action == "engagement.config.changed" && a.actorId == "op-1" => a
-    }.lastOption)
+    }
+    // this test's record, not an earlier test's by the same operator that was already published
+    val before = changed.map(_.recordId).toSet
+    assertEquals(put(Json.render(Json.obj("trackApiKey" -> "track-audit-9", "fromEmail" -> s"audit@${kit.slug}.example"))).status, 200)
+    val r = kit.eventually("the change audited")(changed.filterNot(a => before(a.recordId)).lastOption)
     assertEquals(r.changes.map(_.field).toSet, Set("fromEmail", "trackApiKey"))
     assert(!r.toString.contains("track-audit-9") && !r.toString.contains("audit@"), r.toString)
   }
 
-  test("another brand is wrong_brand; an operator without the role is refused") {
+  test("another brand is wrong_brand; an operator whose roles do not carry config.crm is refused naming it") {
     assertEquals(kit.request("GET", "/v1/casino/crm-config/another", None, kit.asOperator()).status, 404)
-    assertEquals(kit.request("GET", path(), None, kit.asOperator(roles = "brand_viewer")).status, 403)
+    val refused = kit.request("GET", path(), None, kit.asOperator(roles = "brand_support"))
+    assertEquals(refused.status, 403)
+    assert(refused.text.contains("the config.crm permission is needed"), refused.text)
   }
 
   test("the seed: thirty-two identifies and tracks at _seed_<slug>, counted; seeding twice updates the same person") {

@@ -77,8 +77,8 @@ records it in the encrypted memory, and is never put in an audit record.
 
 ## Operator: prefix `/v1/casino/agent-config/<slug>` (`ConfigEndpoint`)
 
-ACL `Routes.operatorHolding(slug, "brand_admin", "resource_admin", "platform_admin")`. Changing the prompt or the
-fields is the brand admin's.
+ACL `Routes.operatorMay(slug, "config.agent", …)` on every route but `/conversations` (`player.read`), as amended
+by spec 030 (E1); changing the prompt or the fields is whoever's roles carry `config.agent` (by default `brand_admin`).
 
 | Route | Answer |
 |---|---|
