@@ -282,6 +282,15 @@ export const en = {
   "action.player.endSessions.effect": "Every session the player has open ends now; they must sign in again.",
   "action.protection.liftBreak.label": "Lift break",
   "action.protection.liftBreak.effect": "The player's break ends now, before its end date, and they can play again.",
+
+  // US7: areas/identity, players/identity, players/protection, protection, fraud, configuration (identity policy, protection settings)
+  "identity.player.title": "Identity",
+  "protection.limit.value": "New limit",
+  "action.protection.setLimit.label": "Change limit",
+  "action.fraud.dismiss.label": "Dismiss",
+  "fraud.flagged": "Flagged as a suspected duplicate",
+  "fraud.notFlagged": "Not flagged",
+  // end of US7
 } as const satisfies Record<string, string>;
 
 export type MessageKey = keyof typeof en;
