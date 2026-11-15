@@ -115,7 +115,8 @@ object Layout:
 
   /**
    * The grants a brand holds from `payments`, the principal naming the brand's own service: the
-   * payout initiate, its status read and the withdrawal terminal listing (spec 005 research R12).
+   * payout initiate, its status read and the withdrawal terminal listing (spec 005 research R12), and
+   * the brand's `players` setting an operator's roles for the brand at merchant (spec 030 H6, P13).
    * Not read from a module manifest: the vendor's `received[].from` names a module and `payments` is
    * a shared project, so `shared/payments/manifest.json` makes these per brand (spec 021 E2) until
    * `payments` is a vendor shared module.
@@ -124,6 +125,7 @@ object Layout:
     Grant(s"service:$slug/payouts", GrantTarget.Route("psp-gateway", "POST", "/v1/payments/withdrawals")),
     Grant(s"service:$slug/payouts", GrantTarget.Route("psp-gateway", "GET", "/v1/payments/withdrawals/{requestId}")),
     Grant(s"service:$slug/payouts", GrantTarget.Route("psp-gateway", "GET", "/v1/payments/withdrawal-terminals")),
+    Grant(s"service:$slug/players", GrantTarget.Route("merchant", "PUT", "/v1/operators/{id}/brand-roles/{brand}")),
     Grant(s"service:$slug/players", GrantTarget.Erasure)
   )
 
