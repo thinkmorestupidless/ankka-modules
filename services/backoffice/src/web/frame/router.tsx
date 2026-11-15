@@ -15,6 +15,9 @@ import { ReportPage } from "../areas/reports/ReportsPage.tsx";
 import { IdentityQueuePage } from "../areas/identity/queue.tsx";
 import { IdentityTab, ProtectionTab } from "../areas/players/tabs.tsx";
 import { ProtectionCasesPage } from "../areas/protection/cases.tsx";
+import { FraudCasesPage } from "../areas/fraud/cases.tsx";
+import { IdentityPolicyPage } from "../areas/configuration/identity-policy.tsx";
+import { ProtectionSettingsPage } from "../areas/configuration/protection-settings.tsx";
 
 const page = (label: MessageKey): Page => () => <Placeholder label={label} />;
 
@@ -34,12 +37,14 @@ export const Pages: [string, Page][] = [
   ["/offers", page("area.offers")],
   ["/identity", () => <IdentityQueuePage />],
   ["/protection", () => <ProtectionCasesPage />],
-  ["/fraud", page("area.fraud")],
+  ["/fraud", () => <FraudCasesPage />],
   ["/dashboard", () => <DashboardPage />],
   ["/reports", () => <ReportPage />],
   ["/reports/$report", () => <ReportPage />],
   ["/configuration", page("area.configuration")],
   ["/configuration/modules", ModulesPage],
+  ["/configuration/identity-policy", () => <IdentityPolicyPage />],
+  ["/configuration/protection-settings", () => <ProtectionSettingsPage />],
   ["/configuration/$area", page("area.configuration")],
   ["/payments", page("area.payments")],
   ["/payments/$area", page("area.payments")],
