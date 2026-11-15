@@ -158,7 +158,7 @@ object Parity:
               .tapEach(x => if x._2.nonEmpty && System.nanoTime() < deadline then Thread.sleep(500))
               .find(x => x._2.isEmpty || System.nanoTime() >= deadline).get
         if sys.env.contains("PARITY_TRACE") then println(s"TRACE ${r.name} ${r.method} ${fill(r.path)} -> ${reply.status} ${reply.text.take(600)}")
-        parse(reply).foreach(body => r.capture.foreach((name, at) => JsonPath.get(body, at).map(Translate.scalar).foreach(v => values(name) = v)))
+        parse(reply).map(listed(r, _)).foreach(body => r.capture.foreach((name, at) => JsonPath.get(body, at).map(Translate.scalar).foreach(v => values(name) = v)))
         differences
       case Publish(fact) =>
         kit.publish(fact)
@@ -179,6 +179,11 @@ object Parity:
       case e: ExpectGgr => expectGgr(recording, kit, e)
       case Skip(_, _)   => Vector.empty
     }.toVector
+
+  /** O7's answer is a page, `{items, total, page, pageSize}` (spec 030 A1); the original's was the rows: compared as its rows. */
+  private def listed(r: Request, body: JsonNode): JsonNode =
+    if r.method == "GET" && r.path.matches("""/v1/affiliates/[^/]+/accounts(\?.*)?""") && body.isObject && body.has("items") then body.get("items")
+    else body
 
   private def parse(reply: Reply): Option[JsonNode] =
     scala.util.Try(FakeServer.mapper.readTree(reply.text)).toOption.filter(n => n != null && !n.isMissingNode)
@@ -206,7 +211,7 @@ object Parity:
     def diff(at: String, expected: String, observed: String) = Difference(recording.path, r.name, at, expected, observed)
     val status   = Option.when(reply.status != r.status)(diff(".status", r.status.toString, s"${reply.status} ${reply.text.take(200)}"))
     // A text answer (the original's ACL refusal) is compared as the one string it is.
-    val observed = parse(reply).orElse(Option(reply.text).filter(_.nonEmpty).map(t => FakeServer.mapper.getNodeFactory.textNode(t)))
+    val observed = parse(reply).map(listed(r, _)).orElse(Option(reply.text).filter(_.nonEmpty).map(t => FakeServer.mapper.getNodeFactory.textNode(t)))
     // A varied path covers what is under it: `$` varied is a brand-wide list whose rows earlier runs fill.
     // A captured field is bound from this answer, so it is present, not compared.
     val varied = (r.vary ++ recording.vary.keySet ++ r.capture.values).toSet

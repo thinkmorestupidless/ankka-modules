@@ -152,9 +152,11 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
       attempt(withBody[RecordAnswers.NoteBody](body)(b => member(brand, aff)(_ => records.note(aff, brand, b, principal.subject))))
     }
     get("/{brand}/accounts/{affiliate}/audit") { (brand: String, aff: String) => attempt(member(brand, aff)(_ => records.auditOf(aff, brand))) }
-    for page <- OperatorEndpoint.ViewPages do
-      get(s"/{brand}/accounts/{affiliate}/view/$page") { (brand: String, aff: String) =>
-        attempt(member(brand, aff)(_ => view(page, brand, aff)))
+    // `portal/{view}` is the backoffice's (spec 030 A2), `view/{page}` the original's path: the same read, each audited
+    // `VIEWED_AS`. Reads only: no write is routed under either, and no token of the affiliate's is made.
+    for page <- OperatorEndpoint.ViewPages; under <- Seq("portal", "view") do
+      get(s"/{brand}/accounts/{affiliate}/$under/$page") { (brand: String, aff: String) =>
+        attempt(member(brand, aff)(_ => viewedAs(page, brand, aff)))
       }
     postBody("/{brand}/messages") { (brand: String, body: String) =>
       attempt(withBody[BackofficeAnswers.MessageBody](body)(backoffice.message(brand, _, principal.subject)))
@@ -179,6 +181,12 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
     post("/{brand}/managers/{user}/reset-password") { (brand: String, user: String) => attempt(managers.reset(brand, user, principal.subject)) }
     delete("/{brand}/managers/{user}") { (brand: String, user: String) => attempt(managers.revoke(brand, user, principal.subject)) }
   }
+
+  /** A view page as the manager reads it, audited `VIEWED_AS` (the manager, the account, the brand and the page) when answered. */
+  private def viewedAs(page: String, brand: String, aff: String): Respond[Bytes] =
+    val answered = view(page, brand, aff)
+    if answered.status / 100 == 2 then networks.audit(aff, Some(brand), OperatorEndpoint.ViewedAs, principal.subject, Map("view" -> page))
+    answered
 
   /** O29 to O34: what the portal answers the affiliate, at this brand only. */
   private def view(page: String, brand: String, aff: String): Respond[Bytes] = page match
@@ -291,3 +299,5 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
 object OperatorEndpoint:
   val ViewPages    = Vector("dashboard", "stats", "commission", "links", "payouts", "notifications", "postbacks")
   val BrandRetired = "brand_retired"
+  /** The audit of a manager's read of an affiliate's portal view (spec 030 A2). */
+  val ViewedAs     = "VIEWED_AS"
