@@ -24,11 +24,13 @@ export interface ActionProps {
   /** Takes the action with the reason given; the owner's answer as it came. */
   run(reason: string | undefined): Promise<Response>;
   onDone?(answer: Response): void;
+  /** Whether what the subject asks for (an amount, a choice) is given; confirming waits for it. */
+  ready?: boolean;
 }
 
 type Shown = { message: Message; next?: Message };
 
-export function Action({ action, me, bags, state, subject, run, onDone }: ActionProps) {
+export function Action({ action, me, bags, state, subject, run, onDone, ready }: ActionProps) {
   const needsId = useId();
   if (!offeredIn(action, state)) return null;
 
@@ -47,7 +49,7 @@ export function Action({ action, me, bags, state, subject, run, onDone }: Action
       </span>
     );
   }
-  return <ActionDialog action={action} bags={bags} subject={subject} run={run} onDone={onDone} />;
+  return <ActionDialog action={action} bags={bags} subject={subject} run={run} onDone={onDone} ready={ready} />;
 }
 
 export interface ActionDialogProps {
@@ -56,10 +58,11 @@ export interface ActionDialogProps {
   subject?: ReactNode;
   run(reason: string | undefined): Promise<Response>;
   onDone?(answer: Response): void;
+  ready?: boolean;
 }
 
 /** The button that opens the confirmation, and the confirmation. */
-export function ActionDialog({ action, bags, subject, run, onDone }: ActionDialogProps) {
+export function ActionDialog({ action, bags, subject, run, onDone, ready = true }: ActionDialogProps) {
   const reasonId = useId();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
@@ -92,7 +95,7 @@ export function ActionDialog({ action, bags, subject, run, onDone }: ActionDialo
     }
   };
 
-  const canConfirm = !pending && reasonGiven(action, reason);
+  const canConfirm = !pending && ready && reasonGiven(action, reason);
 
   return (
     <Dialog.Root open={open} onOpenChange={(next) => !pending && reset(next)}>

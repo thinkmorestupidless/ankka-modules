@@ -36,6 +36,8 @@ export interface ListProps<Row> {
   zone: string;
   list: ListControl;
   onOpen?(row: Row): void;
+  /** The row the operator last opened, by its key: marked current and focused on return (FR-010). */
+  current?: string;
 }
 
 const counts = new Intl.NumberFormat("en-GB");
@@ -89,6 +91,15 @@ export function List<Row>(props: ListProps<Row>) {
     clearTimeout(timer.current);
     timer.current = setTimeout(() => scroller.current && list.setScroll(scroller.current.scrollTop), 200);
   };
+  // The row last opened, focused once its row is there, so the operator is back where they were.
+  const focused = useRef(false);
+  useEffect(() => {
+    if (focused.current || props.current === undefined || !hasRows || !scroller.current) return;
+    const tr = [...scroller.current.querySelectorAll<HTMLElement>("tr[data-row]")].find((r) => r.dataset.row === props.current);
+    if (!tr) return;
+    focused.current = true;
+    tr.focus({ preventScroll: state.scroll > 0 });
+  }, [hasRows, props.current, state.scroll]);
   const open = (row: Row) => {
     if (!onOpen) return;
     clearTimeout(timer.current);
@@ -154,6 +165,7 @@ export function List<Row>(props: ListProps<Row>) {
                   key={k}
                   data-row={k}
                   data-changed={isChanged || undefined}
+                  aria-current={props.current === k ? "true" : undefined}
                   data-openable={onOpen ? true : undefined}
                   tabIndex={onOpen ? 0 : undefined}
                   onClick={onOpen ? () => open(row) : undefined}

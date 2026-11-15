@@ -110,6 +110,50 @@ export const Actions = {
     permission: "protection.change",
     reason: "required",
   },
+  // US7 (T095 to T097)
+  // kyc: a document's review (KycRecord.review: a document not yet reviewed; a rejection needs one of
+  // the reason codes, which is not free text, so it is chosen in the dialog and no reason is typed)
+  "identity.approveDocument": { label: "action.identity.approveDocument.label", effect: "action.identity.approveDocument.effect", permission: "identity.review", reason: "none", offeredIn: ["pending"] },
+  "identity.rejectDocument": { label: "action.identity.rejectDocument.label", effect: "action.identity.rejectDocument.effect", permission: "identity.review", reason: "none", offeredIn: ["pending"] },
+  // kyc: the player's record (OperatorEndpoint: mode, required documents, status, override, source of funds, flags)
+  "identity.setManual": { label: "action.identity.setManual.label", effect: "action.identity.setManual.effect", permission: "identity.review", reason: "none", offeredIn: ["automatic"] },
+  "identity.setAutomatic": { label: "action.identity.setAutomatic.label", effect: "action.identity.setAutomatic.effect", permission: "identity.review", reason: "none", offeredIn: ["manual"] },
+  "identity.setRequired": { label: "action.identity.setRequired.label", effect: "action.identity.setRequired.effect", permission: "identity.review", reason: "none" },
+  "identity.markPending": { label: "action.identity.markPending.label", effect: "action.identity.markPending.effect", permission: "identity.review", reason: "none", offeredIn: ["unverified", "verified", "rejected"] },
+  "identity.verify": { label: "action.identity.verify.label", effect: "action.identity.verify.effect", permission: "identity.review", reason: "none", offeredIn: ["unverified", "pending", "rejected"] },
+  // the original's approve and reject: regardless of the documents and the profile, with an optional note (KycRecord.overrideStatus)
+  "identity.overrideVerify": { label: "action.identity.overrideVerify.label", effect: "action.identity.overrideVerify.effect", permission: "identity.review", reason: "optional", offeredIn: ["unverified", "pending", "rejected"] },
+  "identity.overrideReject": { label: "action.identity.overrideReject.label", effect: "action.identity.overrideReject.effect", permission: "identity.review", reason: "optional", offeredIn: ["unverified", "pending", "verified"] },
+  "identity.clearSof": { label: "action.identity.clearSof.label", effect: "action.identity.clearSof.effect", permission: "identity.review", reason: "none", offeredIn: ["unverified"] },
+  "identity.resetSof": { label: "action.identity.resetSof.label", effect: "action.identity.resetSof.effect", permission: "identity.review", reason: "none", offeredIn: ["cleared"] },
+  // an open flag dismissed with a note, which kyc requires (KycRecord.dismissFlag: note_required)
+  "identity.dismissFlag": { label: "action.identity.dismissFlag.label", effect: "action.identity.dismissFlag.effect", permission: "identity.review", reason: "required", reasonField: "note", offeredIn: ["open"] },
+
+  // responsible-gambling: an operator's change applies at once (ProfileEntity.setLimit, removeLimit), and
+  // a change responsible-gambling stages is shown with when it takes effect
+  "protection.setLimit": { label: "action.protection.setLimit.label", effect: "action.protection.setLimit.effect", permission: "protection.change", reason: "none" },
+  "protection.newLimit": { label: "action.protection.newLimit.label", effect: "action.protection.setLimit.effect", permission: "protection.change", reason: "none" },
+  "protection.removeLimit": { label: "action.protection.removeLimit.label", effect: "action.protection.removeLimit.effect", permission: "protection.change", reason: "none" },
+  "protection.startBreak": { label: "action.protection.startBreak.label", effect: "action.protection.startBreak.effect", permission: "protection.change", reason: "none", offeredIn: ["none"] },
+  "protection.changeBreak": { label: "action.protection.changeBreak.label", effect: "action.protection.changeBreak.effect", permission: "protection.change", reason: "none", offeredIn: ["on_break"] },
+  "protection.selfExclude": { label: "action.protection.selfExclude.label", effect: "action.protection.selfExclude.effect", permission: "protection.change", reason: "none", offeredIn: ["not_excluded"] },
+  // a return only once a time-limited exclusion has ended, and once (ProfileEntity.requestReturn)
+  "protection.requestReturn": { label: "action.protection.requestReturn.label", effect: "action.protection.requestReturn.effect", permission: "protection.change", reason: "none", offeredIn: ["ended"] },
+  "protection.openCase": { label: "action.protection.openCase.label", effect: "action.protection.openCase.effect", permission: "protection.change", reason: "optional", reasonField: "note" },
+  "protection.noteCase": { label: "action.protection.noteCase.label", effect: "action.protection.noteCase.effect", permission: "protection.change", reason: "required", reasonField: "note", offeredIn: ["open", "closed"] },
+  // the close's note is the `reason` field, kept if given (ProfileEntity.closeCase)
+  "protection.closeCase": { label: "action.protection.closeCase.label", effect: "action.protection.closeCase.effect", permission: "protection.change", reason: "optional", reasonField: "reason", offeredIn: ["open"] },
+
+  // players: a fraud case (FraudCaseEntity: reviewed while open; dismissed while not dismissed, with
+  // optional notes, clearing the flag on every player it links)
+  "fraud.review": { label: "action.fraud.review.label", effect: "action.fraud.review.effect", permission: "fraud.review", reason: "none", offeredIn: ["open"] },
+  "fraud.dismiss": { label: "action.fraud.dismiss.label", effect: "action.fraud.dismiss.effect", permission: "fraud.review", reason: "optional", reasonField: "notes", offeredIn: ["open", "reviewed"] },
+
+  // the brand's configuration: kyc's policy and licence profile, responsible-gambling's settings
+  "config.identityPolicy": { label: "action.config.identityPolicy.label", effect: "action.config.identityPolicy.effect", permission: "config.brand", reason: "none" },
+  "config.identityProfile": { label: "action.config.identityProfile.label", effect: "action.config.identityProfile.effect", permission: "config.brand", reason: "none" },
+  "config.protectionSettings": { label: "action.config.protectionSettings.label", effect: "action.config.protectionSettings.effect", permission: "config.brand", reason: "none" },
+
   // players: the brand's roles (RolesRoutes.scala records the change and who made it, and no reason)
   "role.create": { label: "action.role.create.label", effect: "action.role.create.effect", permission: "roles.change", reason: "none" },
   "role.change": { label: "action.role.change.label", effect: "action.role.change.effect", permission: "roles.change", reason: "none" },

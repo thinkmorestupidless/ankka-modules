@@ -9,6 +9,9 @@ import { Shell } from "./Frame.tsx";
 import { ModulesPage, NotFound, Placeholder } from "./pages.tsx";
 import { PreferencesPage } from "../areas/preferences/PreferencesPage.tsx";
 import { TeamPage } from "../areas/team/TeamPage.tsx";
+import { IdentityQueuePage } from "../areas/identity/queue.tsx";
+import { IdentityTab, ProtectionTab } from "../areas/players/tabs.tsx";
+import { ProtectionCasesPage } from "../areas/protection/cases.tsx";
 
 const page = (label: MessageKey): Page => () => <Placeholder label={label} />;
 
@@ -18,13 +21,16 @@ export const Pages: [string, Page][] = [
   ["/search", page("area.search")],
   ["/players", page("area.players")],
   ["/players/$player", page("area.players")],
+  // until the player's page (T075) puts them in its tabs
+  ["/players/$player/identity", IdentityTab],
+  ["/players/$player/protection", ProtectionTab],
   ["/withdrawals", page("area.withdrawals")],
   ["/withdrawals/$request", page("area.withdrawals")],
   ["/adjustments/batch", page("area.adjustments")],
   ["/rewards", page("area.rewards")],
   ["/offers", page("area.offers")],
-  ["/identity", page("area.identity")],
-  ["/protection", page("area.protection")],
+  ["/identity", () => <IdentityQueuePage />],
+  ["/protection", () => <ProtectionCasesPage />],
   ["/fraud", page("area.fraud")],
   ["/dashboard", page("area.dashboard")],
   ["/reports", page("area.reports")],
