@@ -532,3 +532,21 @@ matches the payment id, the cashier's transaction id or the provider's transacti
 `00a1d35a` carries the header of T099 and T100 but holds US7's 17 files: two agents committed through
 the shared index at once. Nothing was lost; history is not rewritten. Agents now commit through a
 private index (`commit-own.sh`).
+
+### Identity and protection, 2026-11-15 (T093–T097)
+
+- `00a1d35a` holds T095 and T096 (the identity queue, a player's identity and protection, the
+  protection cases), under T099/T100's header (above).
+- The document route (FR-031) follows kyc's signed link only under `BACKOFFICE_DOCUMENT_STORE`: same
+  scheme, host and port, under the store's path, no credentials, no redirect. Nothing in a page's or
+  another owner's body is ever fetched. No module value sets the variable yet, so until one does the
+  route answers `503 document_store_unconfigured`.
+- The brand's time zone is not readable by every operator (`/api/me` has none; `brand-config` needs
+  `config.brand`). Times show in the browser's zone with a note naming it, as the frame does.
+- Lists the owners do not page yet (K2, P11, G2) are paged on the page from what the owner answers;
+  T057–T060 replace that.
+- FR-034: kyc says only whether the whole policy is the default and which licence profile it follows,
+  and responsible-gambling gives no defaults. So the policy page marks the policy as a whole, and an
+  edited field is marked "changed, not saved".
+- A player's tabs are components taking the player id (`PlayerIdentity`, `PlayerProtection`), routed
+  through `tabs.tsx` until T075's player page takes them.
