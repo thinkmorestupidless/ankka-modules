@@ -540,6 +540,8 @@ original refuses a capture it cannot trust rather than credit it.
   per currency in minor units, a daily series and a per-provider series, counting captured rows with
   no amount separately. Both MUST serve only sub-brands the operator's scope covers and MUST serve a
   sub-brand with no parent to platform scope only.
+- **FR-029a** *(amended by spec 030, H1)*: `GET /v1/payments/cashier`, `/cashier/summary` and `/v1/payments/{id}` MUST also admit an operator holding `brand_<slug>` (and `platform_admin` without a payments level, who holds every brand) to the sub-brands whose brand is that slug and no other, refusing another's, a sub-brand naming no brand and an unknown one `403 scope_violation`; a payments operator's access is unchanged, and merchant reads no brand's roles.
+- **FR-029b** *(amended by spec 030, H2)*: `GET /v1/payments/cashier?reference=` MUST list the payment whose id, cashier transaction id or provider transaction id is exactly the reference, within the sub-brands the reader may read.
 - **FR-030**: *Struck in planning (2026-10-12): it contradicted FR-036, written in a later
   reconciliation, which drops the risk routes as a stub. FR-036 stands.*
 
