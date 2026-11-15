@@ -79,14 +79,16 @@ object ViewFollower:
         ComponentId(s"$view${if tag.isEmpty then "" else s"-$tag"}-view-follower"), source):
     def create(ctx: ConsumerContext) = new ViewFollower[Src](view, ctx.componentClient, clock)
 
-  /**
-   * The views behind the operator lists, in the order `status` answers them: none yet. A player's limits, breaks,
-   * cases and history are read from the player's profile, not a view; G2's brand-wide `cases` list (T059) adds
-   * its view here with a follower of its source, `private object CasesFollower extends Of(<view>.componentId, <source>)`.
-   */
-  val views: Vector[String] = Vector.empty
+  private object CasesFollower
+      extends Of(io.eitheror.casino.rg.cases.CasesView.componentId, ChangeSource.eventsOf(io.eitheror.casino.rg.profile.ProfileEntity))
 
-  val descriptors: Seq[com.thinkmorestupidless.ankka.core.ComponentDescriptor] = Seq(ViewMark.descriptor)
+  /**
+   * The views behind the operator lists, in the order `status` answers them: the brand's cases (G2). A player's
+   * limits, breaks, cases and history are read from the player's profile, not a view.
+   */
+  val views: Vector[String] = Vector[String](io.eitheror.casino.rg.cases.CasesView.componentId)
+
+  val descriptors: Seq[com.thinkmorestupidless.ankka.core.ComponentDescriptor] = Seq(ViewMark.descriptor, CasesFollower.descriptor)
 
 /** `GET …/status`'s answer, `{views: [{name, asOf, rebuilding}]}`; `asOf` is null for a view that has applied nothing. */
 object Freshness:

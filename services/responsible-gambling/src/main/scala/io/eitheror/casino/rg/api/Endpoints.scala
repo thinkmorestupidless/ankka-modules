@@ -75,6 +75,14 @@ final class OperatorEndpoint(ctx: Ctx, bags: RoleBags) extends HttpEndpoint(s"/v
     }
   }
 
+  /**
+   * The brand's cases (spec 030 G2): `status` `open` or `closed` (none, or `all`, for every one), oldest opened
+   * first; `page` from 1 and `pageSize` from 1 to 200 (50 by default); a value out of range is a 400 naming it.
+   */
+  withAcl(may("protection.read")) {
+    get("/cases") { () => OperatorEndpoint.cases(ctx, query.raw) }
+  }
+
   withAcl(may("protection.read")) {
     get("/{player}") { (p: String) =>
       Try(ctx.state(p)).fold(_ => refusal(503, "service_unavailable", "The profile cannot be read"),
@@ -106,6 +114,33 @@ final class OperatorEndpoint(ctx: Ctx, bags: RoleBags) extends HttpEndpoint(s"/v
       body(text)(b => caseReply(200)(ctx.profile(p).call(ProfileEntity.closeCase).invoke(CloseCase(c, b.textOr("reason", ""), principal.subject, ctx.now()))))
     }
   }
+
+object OperatorEndpoint:
+  /** The query as a status, a page and a page size, or the first parameter that is not valid. */
+  def casesQuery(q: String => Option[String]): Either[String, (Option[String], Int, Int)] =
+    def opt(name: String) = q(name).map(_.trim).filter(_.nonEmpty)
+    def number(name: String, default: Int, max: Int) =
+      opt(name).fold[Either[String, Int]](Right(default))(v => v.toIntOption.filter(n => n >= 1 && n <= max).toRight(name))
+    for
+      status <- opt("status").map(_.toLowerCase) match
+        case None | Some("all")                           => Right(None)
+        case Some(s) if io.eitheror.casino.rg.cases.CasesView.Statuses(s) => Right(Some(s))
+        case Some(_)                                      => Left("status")
+      page <- number("page", 1, 1_000_000)
+      size <- number("pageSize", 50, io.eitheror.casino.rg.cases.CasesView.MaxPageSize)
+    yield (status, page, size)
+
+  def cases(ctx: Ctx, q: String => Option[String]): Reply =
+    import io.eitheror.casino.rg.cases.CasesView
+    casesQuery(q) match
+      case Left(field) => refusal(400, "invalid_request", s"$field is not a valid value", "field" -> field)
+      case Right((status, page, size)) =>
+        val p = CasesView.page(ctx.clients.viewClient, status, page, size)
+        ok(Json.obj("cases" -> Json.arr(p.rows.map { r =>
+          Json.obj("caseId" -> r.caseId, "playerId" -> r.playerId, "caseType" -> r.caseType, "trigger" -> r.trigger, "status" -> r.status,
+            "openedAt" -> CasesView.instant(r.openedAt), "closesAt" -> r.closesAt.map(CasesView.instant),
+            "closedAt" -> r.closedAt.map(CasesView.instant), "closeReason" -> r.closeReason)
+        }*), "total" -> p.total, "page" -> p.page, "pageSize" -> p.pageSize))
 
 /**
  * `/v1/casino/brands/<slug>/rg`: the checks the brand's services ask (FR-007 to FR-011), the GAMSTOP
