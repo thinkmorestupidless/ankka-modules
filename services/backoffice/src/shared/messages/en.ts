@@ -19,12 +19,37 @@ export const en = {
   "frame.modulesWhy": "An area is shown only when the brand runs its module. This brand runs: {modules}.",
   "frame.modulesUnknown": "The brand's modules could not be read, so every area is shown.",
   "frame.skip": "Skip to the page",
+
   // areas/access: an operator whose roles do not name the brand
   "access.needRole": "To work in {brand} you need the role {role}.",
   "access.askAdmin": "Ask an admin of {brand} to give it to you, then sign in again.",
   "access.lost": "Your roles no longer name {brand}, so you have been signed out of it.",
   "access.signIn": "Sign in again",
   "access.otherOperator": "Sign in as someone else",
+
+  // the worklist's kinds (shared/worklist.ts)
+  "kind.withdrawals_pending": "Withdrawal requests pending review",
+  "kind.payouts_needing_review": "Withdrawal payments needing review",
+  "kind.documents_awaiting": "Identity documents awaiting review",
+  "kind.players_flagged": "Players flagged for review",
+  "kind.protection_cases": "Open protection cases",
+  "kind.fraud_cases": "Open fraud cases",
+  "kind.unacknowledged_calls": "Unacknowledged game-provider calls",
+  "kind.undelivered_facts": "Undelivered affiliate facts",
+  "kind.parked_sends": "Parked sends",
+  "kind.undelivered_outcomes": "Undelivered payment outcomes",
+
+  // areas/preferences
+  "preferences.theme": "Theme",
+  "preferences.dark": "Dark",
+  "preferences.light": "Light",
+  "preferences.kinds": "Worklist",
+  "preferences.kindsHint": "The kinds of work your worklist shows. Only kinds your roles admit are listed.",
+  "preferences.kindsAll": "Every kind my roles admit, including ones I am given later",
+  "preferences.notices": "Tell me when a player I have open comes online",
+  "preferences.save": "Save",
+  "preferences.saving": "Saving…",
+  "preferences.saved": "Saved.",
 
   // the areas, as the rail and each page's heading name them
   "area.worklist": "Worklist",

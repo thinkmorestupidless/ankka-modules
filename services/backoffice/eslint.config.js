@@ -9,6 +9,8 @@ const allowedStrings = ["·", "—", "–", "/", "(", ")", ":", "%", "×", "…"
 export default tseslint.config(
   { ignores: ["dist/**", "node_modules/**", ".features-gen/**", "src/shared/generated/**"] },
   ...tseslint.configs.recommended,
+  // a parameter named with a leading underscore is there for its signature
+  { rules: { "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }] } },
   {
     files: ["src/web/**/*.tsx"],
     plugins: { react },

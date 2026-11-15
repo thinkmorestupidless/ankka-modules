@@ -29,6 +29,8 @@ export interface StateClient {
   end(session: string): Promise<void>;
   /** The operator's preferences (data-model.md), as the state service keeps them. */
   preferences(subject: string): Promise<Preferences>;
+  /** A write of some preferences; the state service's answer as it gave it (200 with them all, or 400 with its refusal). */
+  writePreferences(subject: string, body: string): Promise<{ status: number; body: string }>;
 }
 
 export interface Preferences {
@@ -82,6 +84,16 @@ export function stateClient(servicesUrl: string, fetchFn: typeof fetch, timeoutM
       const r = await call("GET", `/preferences/${encodeURIComponent(subject)}`);
       if (!r.ok) throw new StateUnavailable(r.status);
       return (await r.json()) as Preferences;
+    },
+    async writePreferences(subject, body) {
+      const r = await fetchFn(`${base}/preferences/${encodeURIComponent(subject)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body,
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (r.status !== 200 && r.status !== 400) throw new StateUnavailable(r.status);
+      return { status: r.status, body: await r.text() };
     },
   };
 }
