@@ -8,8 +8,8 @@ import { DateTime } from "../date.tsx";
 import { Glyph } from "../glyph.tsx";
 
 export interface Freshness {
-  /** When the views last caught up with what they read. */
-  at: string | number;
+  /** When the views last applied a change; null while they have applied none. */
+  at: string | number | null;
   provisional: boolean;
 }
 
@@ -17,10 +17,14 @@ export function FreshnessNote({ freshness, zone }: { freshness: Freshness; zone:
   return (
     <span className="bo-status" data-freshness={freshness.provisional ? "provisional" : "current"}>
       <Glyph name={freshness.provisional ? "alert" : "clock"} />
-      <span>{t("list.updated")}</span> <DateTime instant={freshness.at} zone={zone} />
+      {freshness.at !== null && (
+        <>
+          <span>{t("list.updated")}</span> <DateTime instant={freshness.at} zone={zone} />
+        </>
+      )}
       {freshness.provisional && (
         <>
-          {" · "}
+          {freshness.at !== null && " · "}
           <span className="bo-provisional">{t("list.provisional")}</span>
         </>
       )}

@@ -13,6 +13,7 @@ import { pass, unavailable } from "./proxy.ts";
 import { authRoutes, type Realm } from "./auth.ts";
 import { eventRoutes } from "./events.ts";
 import { search } from "./composite/search.ts";
+import { freshness, named } from "./composite/freshness.ts";
 import { brandReads, inBrand, permissionsOf, PlatformAdmin, type BrandReads } from "./roles.ts";
 
 export interface Deps {
@@ -160,6 +161,14 @@ export function createApp(deps: Deps): Hono<Env> {
     const bags = await reads.bags.get();
     const held = new Set(permissionsOf(token.roles, bags ?? {}));
     return c.json(await search({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 3_000) }, q, token.accessToken, (p) => held.has(p)));
+  });
+
+  // Each named service's views' freshness, as the operator (FR-011).
+  app.get("/api/freshness", async (c) => {
+    c.set("logPath", "/api/freshness");
+    const services = named(c.req.query("services"), deps.table);
+    if (services === undefined) return c.json({ error: "invalid_services", message: "services is a list of up to 12 service names" }, 400);
+    return c.json({ services: await freshness({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 3_000) }, services, c.get("token").accessToken) });
   });
 
   eventRoutes(app, { brand: deps.brand, tokens, reads, everyMs: deps.eventsEveryMs ?? 5_000 });

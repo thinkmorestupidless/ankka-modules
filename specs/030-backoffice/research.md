@@ -483,3 +483,14 @@ contracts/routes.md had no route for the page to write preferences, and the page
 `onlineNotices`, the subject taken from the operator's token; `jobs` stay the server's own, written
 only by `/api/jobs`. The row is added to contracts/routes.md. The worklist's kind ids
 (`shared/worklist.ts`) are what `worklistKinds` holds.
+
+### What "provisional" can mean after V2, 2026-11-15 (T052)
+
+V2 failed (above), so a service's `asOf` is when its view's follower last handled a change, not how
+far the view is behind its facts, and only reporting can say it is rebuilding. `/api/freshness` marks
+a list provisional when a view says it is rebuilding or its service's status cannot be read, and
+never by the age of `asOf`: on a quiet brand that is old and right. FR-011's "catching up" is
+therefore shown only for reporting's views until ankka lets a service read a projection's lag; the
+freshness scenario (`features/backoffice/freshness.feature`) seeds `rebuilding: true` and holds.
+`Freshness.at` may be null: a view that has applied nothing shows no time, only *provisional* when it
+is.
