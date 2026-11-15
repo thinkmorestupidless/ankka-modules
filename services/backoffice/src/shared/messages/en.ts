@@ -125,6 +125,23 @@ export const en = {
   // components/date-input.tsx
   "dateInput.hint": "Type it as DD/MM/YYYY or YYYY-MM-DD.",
   "dateInput.invalid": "That is not a day that exists and has passed.",
+
+  // components/list/
+  "list.total": "Total",
+  "list.totalUnknown": "not given",
+  "list.complete": "Complete",
+  "list.more": "More on later pages",
+  "list.refreshing": "Refreshing…",
+  "list.changed": "Changed since the last refresh",
+  "list.loading": "Loading…",
+  "list.empty": "Nothing matches.",
+  "list.pages": "Pages",
+  "list.page": "Page",
+  "list.previous": "Previous",
+  "list.next": "Next",
+  "list.updated": "Updated",
+  "list.provisional": "Provisional: the views are catching up",
+  "list.provisionalMark": "(provisional)",
 } as const satisfies Record<string, string>;
 
 export type MessageKey = keyof typeof en;
