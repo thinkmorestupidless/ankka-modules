@@ -437,6 +437,25 @@ flag; engagement, reporting, public-api and support-agent are in the same positi
 the installation's erasure notices reach a personal service applied through ankka-vendor is the
 vendor's to say: an ankka-vendor question, recorded here, not worked around in the manifest.
 
+### V2: a view's last applied time, 2026-11-15 (T051)
+
+Fails. ankka 0.16.3 gives a service no reading of its views' progress: the view client queries rows
+only, a change's context carries its subject, sequence number and origin but no time, and the
+projections' offsets live on the management port and in the runtime's own tables, which a service
+does not reach. R13's fallback is built: in each service, every view behind an operator list has its
+source followed by a consumer of its own (`freshness.ViewFollower`, one per source, so a keyed view
+with two sources has two) that records the time it handled a change in a key value entity named by
+the view (`ViewMark`), at most once a second per instance. `asOf` reads it: when the view applied its
+last change, to within the two projections' lag and that second; null until the source has a
+change. `rebuilding` is false everywhere: a view rebuilt by raising its version replays where the
+service cannot see and the follower is not rebuilt with it, so nothing honest can be inferred
+(reporting infers it from its day consumers, which no other service has). The route is
+`GET /v1/casino/brands/<slug>/<service>/status` on each service's service endpoint, admitting an
+operator holding the permission that opens the service's lists, or a service of the project. The
+paths are `players/status`, `wallet/status`, `payouts/status`, `kyc/status`, `rg/status` and
+`rewards/status` under `/v1/casino/brands/<slug>/`; responsible-gambling answers no view until G2's
+brand-wide cases list (T059) brings one, which adds its follower beside the others.
+
 ## Design finished
 
 2026-11-15: reworked after the first finish, on three decisions made in review: one backoffice per

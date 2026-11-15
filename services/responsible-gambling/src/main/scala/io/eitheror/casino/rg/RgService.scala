@@ -31,7 +31,7 @@ object RgService:
     BreakTimer.descriptor,
     ReturnTimer.descriptor,
     SyncTimer.descriptor
-  )
+  ) ++ io.eitheror.casino.rg.freshness.ViewFollower.descriptors
 
   /**
    * One endpoint per prefix (contracts/routes.md), none sharing one. `bags` is the brand's roles the operator
@@ -39,10 +39,11 @@ object RgService:
    */
   def endpoints(authenticate: () => Acl, bags: Option[EndpointClients => RoleBags] = None): Seq[EndpointClients => HttpEndpoint] =
     def ctx(c: EndpointClients) = Ctx(authenticate, c)
+    def roles(c: EndpointClients) = bags.fold(BrandRoles.of(c.services, ctx(c).slug))(_(c))
     Seq[EndpointClients => HttpEndpoint](
       c => PlayerEndpoint(ctx(c)),
-      c => OperatorEndpoint(ctx(c), bags.fold(BrandRoles.of(c.services, ctx(c).slug))(_(c))),
-      c => ServiceEndpoint(ctx(c)),
+      c => OperatorEndpoint(ctx(c), roles(c)),
+      c => ServiceEndpoint(ctx(c), roles(c)),
       c => SupportEndpoint(ctx(c))
     )
 

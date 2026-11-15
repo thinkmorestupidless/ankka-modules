@@ -37,6 +37,14 @@ class CallersSuite extends munit.FunSuite with LogCapturing:
   private def limit(p: String, t: String, v: String, c: Option[String] = Some("EUR")) =
     assertEquals(kit.json("PUT", kit.playerPath(s"/$p/limits/$t"), Json.obj("value" -> v, "currency" -> c), kit.asPlayer(p)).status, 200)
 
+  test("status (G4, F): no view backs an operator list yet, so no entry; for protection.read and the project's services"):
+    val status = kit.servicePath("/status")
+    val r = kit.request("GET", status, None, kit.asOperator())
+    assertEquals((r.status, r.text), (200, """{"views":[]}"""))
+    assertEquals(kit.request("GET", status, None, kit.asService("backoffice")).status, 200)
+    assertEquals(kit.request("GET", status, None, kit.asOperator(roles = s"brand_${kit.slug},resource_finance")).status, 403)
+    assertEquals(kit.request("GET", status, None, kit.asPlayer(player())).status, 403)
+
   test("spec 023: exchange asks may-bet with an order's cost, and a service the route does not name is refused"):
     val p = player()
     val body = Json.obj("playerId" -> p, "currency" -> "EUR", "amount" -> 600)
