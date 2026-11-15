@@ -283,6 +283,12 @@ final class ServiceEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/$
   get("/roles") { () => RolesRoutes(ctx).list }
   // spec 030 P14: the brand's enabled modules, for the backoffice's frame whatever the operator's roles
   get("/modules") { () => OperatorStatusRoutes(ctx).modules }
+  // spec 030 P2 (F): the freshness of the views behind the operator lists, for an operator who may read the
+  // players, or for the project's services (the backoffice's server)
+  withAcl(Acl.anyOf(Routes.operatorMay(ctx.slug, "player.read", PlayersRuntime.bags, ctx.authenticate()), Routes.service())) {
+    get("/status") { () => io.eitheror.casino.players.freshness.Freshness.answer(
+      io.eitheror.casino.players.freshness.Freshness.of(ctx.clients.componentClient)) }
+  }
   withAcl(Routes.serviceOf("players")) {
     post("/erasure/players/{playerId}") { (id: String) => ErasureRoutes(ctx).eraseOwn(id) }
     get("/exports/players/{playerId}") { (id: String) => ErasureRoutes(ctx).ownPart(id) }

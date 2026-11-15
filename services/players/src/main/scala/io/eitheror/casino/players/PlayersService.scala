@@ -73,7 +73,7 @@ object PlayersService:
     RewardsConsumer.descriptor,
     SessionLimits.descriptor,
     RealmReconcile.descriptor
-  )
+  ) ++ io.eitheror.casino.players.freshness.ViewFollower.descriptors
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one. */
   def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] =

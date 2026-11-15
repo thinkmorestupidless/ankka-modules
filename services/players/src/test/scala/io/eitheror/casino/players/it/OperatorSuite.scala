@@ -278,6 +278,23 @@ class OperatorSuite extends munit.FunSuite with LogCapturing:
     assert(Set(401, 403)(kit.request("GET", path, None, kit.asOperator()).status))
   }
 
+  test("status (P2, F): each list's view with when it last applied a change, for player.read and the project's services") {
+    val path = kit.servicePath("/status")
+    val (_, id) = kit.activePlayer()
+    val players = kit.eventually("the players view marked")(
+      Option(kit.request("GET", path, None, kit.asOperator())).filter(_.status == 200).flatMap { r =>
+        val views = r.json.get("views")
+        (0 until views.size).map(views.get).find(_.get("name").asText == "players").filterNot(_.get("asOf").isNull)
+      })
+    assert(!java.time.Instant.parse(players.get("asOf").asText).isAfter(java.time.Instant.now()), players.toString)
+    assertEquals(players.get("rebuilding").asBoolean, false)
+    val names = kit.request("GET", path, None, kit.asService("backoffice")).json.get("views")
+    assertEquals((0 until names.size).map(names.get(_).get("name").asText).toVector,
+      Vector("players", "sessions", "activity", "notes", "messages", "fraud-cases", "roles"))
+    assertEquals(kit.request("GET", path, None, kit.asOperator(roles = "brand_other")).status, 403)
+    assertEquals(kit.request("GET", path, None, kit.asPlayer(id)).status, 403)
+  }
+
   test("the reads: the list finds the player, wallet, activity, bets with 400 invalid_date_range, sessions") {
     val (_, id, _, _) = playing()
     kit.eventually("the player listed")(Option(op("GET", s"/players?search=$id")).filter(_.json.get("total").asInt == 1))
