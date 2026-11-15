@@ -192,6 +192,11 @@ abstract class WalletFeatures(file: String, dir: String = "wallet") extends Gher
 
   Given("a player with a wallet in {string}") { (c: String) => currency = c }
 
+  Given("a player with no wallet in {string}") { (c: String) =>
+    currency = c
+    noWallet = true
+  }
+
   Given("a real balance of {string}") { (r: String) => seeding(_.copy(real = long(r))) }
 
   Given("the wallet has a real balance of {string}") { (r: String) => seeding(_.copy(real = long(r))) }

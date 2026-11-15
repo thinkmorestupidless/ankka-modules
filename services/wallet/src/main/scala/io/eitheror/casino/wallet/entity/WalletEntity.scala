@@ -117,7 +117,12 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
           .remember(e.key, e.digest, e.outcome)
 
       case e: AdminAdjusted =>
-        s.withUpdates(e.recordUpdates).copy(realBalance = e.realAfter).withPools(e.depositAfter, e.convertedAfter)
+        // An operator's credit to real balance creates the wallet (spec 002 FR-001), so money an operator
+        // put there can be bet, reserved and withdrawn like any other. Nothing else an adjustment does can
+        // reach a wallet that is not created: a debit exceeds its balance and it has no record to adjust.
+        val opens = e.target != "restricted" && e.amount > 0
+        s.withUpdates(e.recordUpdates).copy(created = s.created || opens, realBalance = e.realAfter)
+          .withPools(e.depositAfter, e.convertedAfter)
           .closingTurnover(e.turnoverClosed).remember(e.key, e.digest, e.outcome)
 
       case e: ProviderCredited =>

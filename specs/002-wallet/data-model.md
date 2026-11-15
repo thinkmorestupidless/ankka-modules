@@ -14,7 +14,7 @@ protocol once a journal holds them.
 | Field | Type | Notes |
 |---|---|---|
 | `playerId`, `currency` | String, Currency | from the id; `currency` is ISO 4217 |
-| `created` | Boolean | false until the first deposit or award; a bet on an uncreated wallet is `WALLET_NOT_FOUND` |
+| `created` | Boolean | false until the first deposit, award or operator's credit to real balance; a bet on an uncreated wallet is `WALLET_NOT_FOUND` |
 | `realBalance` | SignedMinorUnits | FR-003; negative only after a correction debit |
 | `depositTurnoverPending` | MinorUnits | FR-010, FR-022, FR-023 |
 | `turnoverOverride` | Option[TurnoverTerms] | the player's override, FR-004a |

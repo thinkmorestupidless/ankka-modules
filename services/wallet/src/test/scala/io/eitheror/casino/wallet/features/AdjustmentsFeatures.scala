@@ -15,6 +15,13 @@ class AdjustmentsFeatures extends WalletFeatures("adjustments.feature"):
     act(adjust("real", long(a), reason)): Unit
   }
 
+  Then("the player has a wallet in {string} with a real balance of {string} and no deposit") { (c: String, b: String) =>
+    assert(!before.created, "the wallet existed before the adjustment")
+    assertEquals((state.currency, state.created, state.realBalance, state.depositOrdinal, state.totalDeposits), (c, true, long(b), 0, 0L))
+    // What the adjustment opened can be reserved against, which an uncreated wallet refuses.
+    assert(reserve(long(b), "o1").outcome.accepted)
+  }
+
   Then("an {string} transaction carries the reason and the actor") { (kind: String) =>
     val row = rowsWritten.find(_.`type` == kind).getOrElse(fail(rowsWritten.toString))
     assertEquals((row.reason.map(_.reveal), row.actorId), (Some("goodwill"), Some("op-7")))

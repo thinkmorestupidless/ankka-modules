@@ -12,6 +12,11 @@ Feature: An operator corrects a balance or a game provider credits one
     Then the real balance is "1500"
     And an "admin_adjust" transaction carries the reason and the actor
 
+  Scenario: an operator's credit to real balance creates the wallet for a player with none in that currency
+    Given a player with no wallet in "USD"
+    When an operator credits "500" to real balance with reason "goodwill"
+    Then the player has a wallet in "USD" with a real balance of "500" and no deposit
+
   Scenario: an operator's debit above real balance is refused naming both amounts
     Given a real balance of "1000"
     When an operator debits "1500" from real balance with reason "correction"
