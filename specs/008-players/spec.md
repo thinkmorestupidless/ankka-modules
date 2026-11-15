@@ -789,3 +789,8 @@ Raised by spec 012 on 2026-10-25; each is one line, and [spec 012 research](../0
 - FR-003: the tag grammar is 012 R2's; `players` drops a tag over 1,024 characters or outside `[A-Za-z0-9_.-]` and verifies nothing (012 finding 2).
 - FR-032a: `player_reopened` is in neither 001 FR-011 nor the contract; `attribution` emits nothing for it (012 finding 6).
 - FR-041: the reporting zone is the core key `reporting-zone`, rendered to every core service (012 finding 8).
+
+## Amended by 030
+
+- P1 (spec 030 contracts/amendments.md, T019): every backoffice route requires one permission (`Routes.operatorMay`), decided from the brand's roles `players` keeps: `player.read` for the reads, `profile.change` (profile, date of birth, consents, password reset, verification link), `standing.change`, `session.end`, `note.write`, `message.send`, `flag.clear` (the suspect flag and the no-deposit block; `BlockRoles` is gone), `fraud.review`, `export.player`, `erasure.request`, `tier.change`, `config.brand` (brand, currency and allow-list settings), `modules.read` and `modules.request` (`features/players/operator-roles.feature`).
+- P12, P13 (spec 030 T012–T016): `players` keeps the brand's roles (`Role`, the `Roles` view; the role matrix seeded at start), changed, reset, deleted and given through `roles`, `roles/{name}`, `roles/{name}/reset` and `role-assignments/{operator}` (`roles.read`, `roles.change`, `roles.give`), giving asking merchant to set them in the realm; every service of the brand reads them from `GET /v1/casino/brands/<slug>/players/roles` (`features/players/roles.feature`).
