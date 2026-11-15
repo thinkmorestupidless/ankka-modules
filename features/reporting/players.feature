@@ -1,6 +1,6 @@
-Feature: Compliance reviews players and a support agent finds a transaction
+Feature: Compliance reviews players and an operator finds a transaction
   A compliance officer runs the player report for a registration period, filters by country and
-  status, sorts by lifetime GGR, and opens a player. A support agent runs the transaction report
+  status, sorts by lifetime GGR, and opens a player. An operator runs the transaction report
   for a period and a type, searches by a player's email address, and exports every matching row.
 
   Background:

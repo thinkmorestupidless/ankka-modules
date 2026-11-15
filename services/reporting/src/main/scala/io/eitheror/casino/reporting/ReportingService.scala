@@ -56,10 +56,13 @@ object ReportingService:
 
   /**
    * The one endpoint (research R13). Its prefix names the brand of the settings `wire` set, so `wire` comes first;
-   * `now` is the clock "today" and a document's times are read from.
+   * `now` is the clock "today" and a document's times are read from. `bags` is the brand's roles the operator routes
+   * decide from: by default read from the brand's `players` (spec 030 E3).
    */
-  def endpoints(authenticate: () => Acl, now: () => Instant = () => Instant.now()): Seq[EndpointClients => HttpEndpoint] = Seq(
-    clients => api.ReportingEndpoint(api.Ctx(clients, authenticate, now))
+  def endpoints(authenticate: () => Acl, now: () => Instant = () => Instant.now(),
+      bags: Option[EndpointClients => io.eitheror.casino.contract.access.RoleBags] = None): Seq[EndpointClients => HttpEndpoint] = Seq(
+    clients => bags.fold(api.ReportingEndpoint(api.Ctx(clients, authenticate, now)))(b =>
+      api.ReportingEndpoint(api.Ctx(clients, authenticate, now, b)))
   )
 
   /** What the timed actions and the endpoint are constructed without (see `ReportingRuntime`), before the service starts. */

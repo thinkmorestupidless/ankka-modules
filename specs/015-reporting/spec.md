@@ -784,3 +784,7 @@ mode. The oracle meanwhile is the Playwright suite (spec 001 FR-033) and the ori
 - Regulator-shaped returns per licence profile: a later spec.
 - Reconciling the provider's monthly statement itself: finance's, outside the platform; this service
   gives the day-end it is reconciled against.
+
+## Amended by 030
+
+- E3 (spec 030 contracts/amendments.md, T025): no route changes; `api/Access.scala` decides every operator route by one permission (`Routes.operatorMay`) from the brand's roles reporting reads from `players` every 10 seconds, and names no role: `dashboard.read` for the dashboard and the status, `report.read` for the Reports tab's reports with their exports and the prediction markets' summary and market report, `report.compliance` for the compliance exports and the traders report, `report.dayEnd` for the day-end and its export, `export.player` for the dispute report, `config.brand` for the reporting settings; a document is served for its kind's permission, the same (`features/reporting/operator-roles.feature`).

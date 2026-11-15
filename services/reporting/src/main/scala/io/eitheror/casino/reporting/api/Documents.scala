@@ -28,25 +28,31 @@ object Documents:
   val Forbidden = "forbidden"
 
   /**
-   * The roles a document is admitted by, its kind's (contracts/routes.md, *Admission*), and the traders report's export
-   * its report's, as compliance (decided 2026-11-09); `None` for every operator of the brand.
+   * The permission a document is admitted by, its kind's (contracts/routes.md, *Admission*, as spec 030 E3 amends it):
+   * a dispute report `export.player`, a compliance export `report.compliance`, a day-end export `report.dayEnd`, the
+   * traders report's export its report's, `report.compliance` (decided 2026-11-09), every other export `report.read`.
    */
-  def rolesOf(d: DocumentState): Option[Seq[String]] =
-    val reports = Seq("brand_admin", "resource_admin", "platform_admin")
+  def permissionOf(d: DocumentState): String =
     d.kind match
-      case Document.DisputeReport    => None
-      case Document.ComplianceExport => Some(reports :+ "brand_compliance")
-      case Document.DayEndExport     => Some(reports :+ "brand_finance")
-      case Document.ReportExport if d.parameters.get("report").contains(Exports.TradersReport) => Some(reports :+ "brand_compliance")
-      case _                         => Some(reports)
+      case Document.DisputeReport    => "export.player"
+      case Document.ComplianceExport => "report.compliance"
+      case Document.DayEndExport     => "report.dayEnd"
+      case Document.ReportExport if d.parameters.get("report").contains(Exports.TradersReport) => "report.compliance"
+      case _                         => "report.read"
 
-  /** Whether the operator (already admitted as one of the brand's) may have the document. */
-  def admitted(p: Principal, d: DocumentState): Boolean = rolesOf(d).forall(_.exists(p.roles.contains))
+  /**
+   * The operator's permissions (already admitted as one of the brand's), from the brand's roles as `ctx.bags` last read
+   * them; `None` until they are first read.
+   */
+  private def held(ctx: Ctx, p: Principal): Option[Set[String]] = ctx.bags.permissionsOf(p.roles)
 
-  /** A refusal's words: every role that admits, as `the a, b or c permission is needed`. */
-  def needed(roles: Seq[String]): String =
-    val named = if roles.size == 1 then roles.head else s"${roles.init.mkString(", ")} or ${roles.last}"
-    s"the $named permission is needed"
+  /** Whether an operator holding `permissions` may have the document. */
+  def admitted(permissions: Set[String], d: DocumentState): Boolean = permissions(permissionOf(d))
+
+  /** A refusal's words, as `Routes.operatorMay`'s. */
+  def needed(permission: String): String = s"the $permission permission is needed"
+
+  private val unread = refuse(503, Refusal("unavailable", message = Some("the brand's roles have not been read yet")))
 
   /**
    * An export is not found when its report is: one of the Reports tab while the tab is hidden (FR-024), a prediction
@@ -64,18 +70,20 @@ object Documents:
 
   /** The records generated in the period (the month to date by default) of `kind` (every kind for none), newest first. */
   def list(ctx: Ctx, p: Principal, kind: Option[String], from: Option[String], to: Option[String]): Answer =
-    answered(Wire.period(from, to, ctx.today).map { period =>
+    held(ctx, p).fold(unread) { permissions => answered(Wire.period(from, to, ctx.today).map { period =>
       val r = ctx.reads
       val k = kind.map(_.trim).filter(_.nonEmpty).getOrElse("all")
       val rows = DocumentsView.listed(ctx.views, k, r.startOf(period.from), r.startOf(period.to.plusDays(1)))
-        .filter(d => admitted(p, d) && !hidden(ctx, d))
+        .filter(d => admitted(permissions, d) && !hidden(ctx, d))
       ok(DocumentList(rows.map(line)))
-    })
+    }) }
 
   def get(ctx: Ctx, p: Principal, reference: String): Answer =
     val d = Keeping.document(ctx.components, reference).call(Document.get).invoke()
+    lazy val permissions = held(ctx, p)
     if !d.recorded || hidden(ctx, d) then notFound
-    else if !admitted(p, d) then refuse(403, Refusal(Forbidden, message = Some(needed(rolesOf(d).get))))
+    else if permissions.isEmpty then unread
+    else if !admitted(permissions.get, d) then refuse(403, Refusal(Forbidden, message = Some(needed(permissionOf(d)))))
     else
       val at = ctx.now()
       d.status match

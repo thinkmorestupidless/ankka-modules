@@ -106,7 +106,7 @@ final class Disputed(val kit: Kit, val day: LocalDate):
   def money(v: Long): String = java.math.BigDecimal.valueOf(v, 2).toPlainString
 
   /** The report as asked, by an operator of the brand. */
-  def report(query: String, as: Seq[(String, String)] = kit.asOperator): Reply =
+  def report(query: String, as: Seq[(String, String)] = kit.asExporter): Reply =
     kit.get(s"/players/$player/dispute-report?$query", as)
 
   def bySession(l: Login = logins0.head, format: String = ""): Reply =

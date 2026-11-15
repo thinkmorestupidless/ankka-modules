@@ -644,3 +644,7 @@ into this repository, amended only as FR-002 says, and is the parity test for FR
 - A second contract version.
 - Filtering, search, brand-wide feeds and arbitrary statistics periods (the original's follow-ups).
 - Reading across brands with one key.
+
+## Amended by 030
+
+- E1 (spec 030 contracts/amendments.md, T025): the operator status route (`GET /public-api/{brand}/status`) requires `config.brand` (`Routes.operatorMay`), decided from the brand's roles public-api reads from `players` every 10 seconds, and says when they were last read; the access-key routes keep `Routes.accessKeys` (`api_keys`), outside the role matrix.

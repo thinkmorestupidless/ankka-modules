@@ -7,10 +7,10 @@ import scala.concurrent.duration.*
 import scala.jdk.CollectionConverters.*
 
 /**
- * The admission table of contracts/routes.md (FR-023, FR-024): each route built so far, for each audience, admitted
- * or refused with the route class's own code; an operator of another brand refused; another brand's path served by
- * no route; the Reports tab's flag answering `404 not_found` for the reports and nothing else. Each story's routes
- * join `routes` as they are built.
+ * The admission table of contracts/routes.md (FR-023, FR-024) as spec 030 amends it (E3): each route built so far, for
+ * each audience, admitted when the bag of one of its roles (the role matrix, as the kit's `roles`) holds the route's
+ * permission, or refused with the route class's own code; an operator of another brand refused; another brand's path
+ * served by no route; the Reports tab's flag answering `404 not_found` for the reports and nothing else.
  */
 class AccessSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout = 300.seconds
@@ -19,44 +19,49 @@ class AccessSuite extends munit.FunSuite with LogCapturing:
   /** The audiences of the table, by name: an operator holding a role, another brand's, a player, nobody. */
   private def audiences: Vector[(String, Seq[(String, String)])] = Vector(
     "brand_admin"      -> kit.asStaff(Seq("brand_admin")),
-    "resource_admin"   -> kit.asStaff(Seq("resource_admin")),
-    "platform_admin"   -> kit.asStaff(Seq("platform_admin"), brandRole = false),
-    "brand_compliance" -> kit.asStaff(Seq("brand_compliance")),
+    "brand_support"    -> kit.asStaff(Seq("brand_support")),
     "brand_finance"    -> kit.asStaff(Seq("brand_finance")),
+    "brand_compliance" -> kit.asStaff(Seq("brand_compliance")),
+    "resource_admin"   -> kit.asStaff(Seq("resource_admin")),
     "markets"          -> kit.asStaff(Seq("markets")),
-    "operator"         -> kit.asOperator,
+    "platform_admin"   -> kit.asStaff(Seq("platform_admin"), brandRole = false),
+    "operator"         -> kit.asStaff(Nil),
     "another brand"    -> kit.fromInternet.:+("Authorization" -> "Bearer staff|op-9|brand_silvervibe,brand_admin"),
     "player"           -> kit.asPlayer(),
     "nobody"           -> kit.fromInternet
   )
 
-  private val reportRoles = Set("brand_admin", "resource_admin", "platform_admin")
-  private val everyOperator = Set("brand_admin", "resource_admin", "platform_admin", "brand_compliance", "brand_finance", "markets", "operator")
+  /** Who holds each permission under the role matrix. */
+  private val reportRead    = Set("brand_admin", "platform_admin", "brand_finance")
+  private val compliance    = Set("brand_admin", "platform_admin", "brand_compliance")
+  private val dayEnd        = Set("brand_admin", "platform_admin", "brand_finance")
+  private val dashboardRead = Set("brand_admin", "platform_admin", "brand_support", "brand_finance", "brand_compliance")
+  private val configBrand   = Set("brand_admin", "platform_admin")
 
   /** Each GET route built so far and who it admits. */
   private val routes: Vector[(String, Set[String])] = Vector(
-    "/reports/ggr" -> reportRoles,
-    "/reports/players" -> reportRoles,
-    "/reports/transactions" -> reportRoles,
-    "/reports/transactions/export" -> reportRoles,
-    "/reports/bonus" -> reportRoles,
-    "/reports/psp" -> reportRoles,
-    "/compliance/rg-cases" -> (reportRoles + "brand_compliance"),
-    "/compliance/kyc-decisions" -> (reportRoles + "brand_compliance"),
-    "/predictions/summary" -> reportRoles,
-    "/predictions/traders" -> (reportRoles + "brand_compliance"),
-    "/predictions/markets" -> (reportRoles + "markets"),
-    "/status"      -> everyOperator,
-    "/settings"    -> Set("brand_admin", "platform_admin")
+    "/reports/ggr" -> reportRead,
+    "/reports/players" -> reportRead,
+    "/reports/transactions" -> reportRead,
+    "/reports/transactions/export" -> reportRead,
+    "/reports/bonus" -> reportRead,
+    "/reports/psp" -> reportRead,
+    "/compliance/rg-cases" -> compliance,
+    "/compliance/kyc-decisions" -> compliance,
+    "/predictions/summary" -> reportRead,
+    "/predictions/traders" -> compliance,
+    "/predictions/markets" -> reportRead,
+    "/status"      -> dashboardRead,
+    "/settings"    -> configBrand
   ) ++ Vector("kpis", "trend", "kpi-history", "geo", "rankings", "activity", "bonus-summary", "payment-health", "predictions")
-    .map(r => s"/dashboard/$r" -> everyOperator)
+    .map(r => s"/dashboard/$r" -> dashboardRead)
 
   /** The refusal each audience a route does not admit gets, with its route class's code. */
   private def refused(who: String, r: Reply): Unit = who match
     case "nobody"        => assertEquals(r.status, 401, s"$who: ${r.text}")
     case "player"        => assertEquals((r.status, r.text.contains("wrong_issuer")), (403, true), s"$who: ${r.text}")
     case "another brand" => assertEquals((r.status, r.text.contains("brand_not_in_roles")), (403, true), s"$who: ${r.text}")
-    case _               => assertEquals((r.status, r.text.contains("forbidden")), (403, true), s"$who: ${r.text}")
+    case _               => assertEquals((r.status, r.text.contains("permission is needed")), (403, true), s"$who: ${r.text}")
 
   for (route, admitted) <- routes do
     test(s"GET $route admits ${admitted.toVector.sorted.mkString(", ")} and refuses everyone else with the class's code") {
@@ -66,12 +71,12 @@ class AccessSuite extends munit.FunSuite with LogCapturing:
         else refused(who, r)
     }
 
-  test("the traders report's export is admitted as the report is: the three and brand_compliance (decided 2026-11-09)") {
+  test("the traders report's export is admitted as the report is: report.compliance (decided 2026-11-09)") {
     val csv = kit.get("/predictions/traders?format=csv", kit.asStaff(Seq("brand_compliance")))
     assertEquals(csv.status, 200, csv.text)
     val reference = csv.header("Content-Disposition").flatMap("predictions-traders-report-([0-9a-f-]+)\\.csv".r.findFirstMatchIn(_))
       .map(_.group(1)).getOrElse(fail(s"no reference in ${csv.headers}"))
-    val admitted = reportRoles + "brand_compliance"
+    val admitted = compliance
     for (who, as) <- audiences do
       val r = kit.get(s"/documents/$reference", as)
       if admitted(who) then assertEquals(r.status, 200, s"$who: ${r.text}")
@@ -89,8 +94,8 @@ class AccessSuite extends munit.FunSuite with LogCapturing:
 
   /** Routes whose admitted answer is not a 200 here (a day not closed): admitted is anything but the refusals. */
   private val refusedOnly: Vector[(String, Set[String])] = Vector(
-    "/day-end/2099-01-01" -> (reportRoles + "brand_finance"),
-    "/day-end/2099-01-01/export" -> (reportRoles + "brand_finance"))
+    "/day-end/2099-01-01" -> dayEnd,
+    "/day-end/2099-01-01/export" -> dayEnd)
 
   for (route, admitted) <- refusedOnly do
     test(s"GET $route admits ${admitted.toVector.sorted.mkString(", ")} and refuses everyone else") {
@@ -100,10 +105,10 @@ class AccessSuite extends munit.FunSuite with LogCapturing:
         else assert(Set(401, 403)(r.status), s"$who: ${r.status} ${r.text}")
     }
 
-  test("PUT /settings admits brand_admin and platform_admin only") {
+  test("PUT /settings admits config.brand only: brand_admin and platform_admin") {
     for (who, as) <- audiences do
       val r = kit.request("PUT", kit.path("/settings"), Some("{}"), as)
-      assertEquals(r.status == 200, Set("brand_admin", "platform_admin")(who), s"$who: ${r.status} ${r.text}")
+      assertEquals(r.status == 200, configBrand(who), s"$who: ${r.status} ${r.text}")
   }
 
   test("another brand's path is served by no route of this brand's service") {

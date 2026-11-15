@@ -15,14 +15,14 @@ Feature: Finance and the trading desk read the brand's prediction markets
 
   Scenario: the market report holds one row per market with its status and times, volume, trades, traders, open interest, fees and what was paid on resolution
     Given a market that opened, traded "40" contracts at "0.60" in "4" trades between "3" players and resolved
-    When an operator with the markets permission reads the market report
+    When an operator who may read the brand's reports reads the market report
     Then the market's row shows its status, its opened, closed and resolved times and its resolution
     And notional volume "24.00", "4" trades, "3" traders, its taker fees and its resolution payments
     And an open market's row shows its open interest at the time of reading
 
   Scenario Outline: a voided or corrected market shows what its resolution paid and what its correction changed
     Given a market that was <ending>
-    When an operator with the markets permission reads the market report
+    When an operator who may read the brand's reports reads the market report
     Then the market's row shows <shown>
 
     Examples:

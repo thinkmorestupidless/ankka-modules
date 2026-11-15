@@ -37,7 +37,12 @@ final class Kit(val brand: String = "goldvibe"):
   val contract = PublicApiService.contract(settings)
 
   val timers = TimerRuntime(200.millis, probe, clock)
-  private val server = HttpServer.at("127.0.0.1", 0)(PublicApiService.endpoints(settings, contract, () => Kit.authenticate, () => clock.instant())*)
+  /** The brand's roles the status route decides from: the role matrix, as a new brand starts (spec 030 E1). */
+  val roles: io.eitheror.casino.contract.access.RoleBags =
+    io.eitheror.casino.contract.access.RoleBags.fixed(io.eitheror.casino.contract.access.OperatorPermissions.DefaultRoles)
+
+  private val server = HttpServer.at("127.0.0.1", 0)(PublicApiService.endpoints(settings, contract, () => Kit.authenticate, () => clock.instant(),
+    bags = Some(_ => roles))*)
 
   /** `game-provider`'s games route for this brand (T015), as the service calls it. */
   val provider = FakeGameProvider(brand)
@@ -112,7 +117,7 @@ final class Kit(val brand: String = "goldvibe"):
 
   /** A second instance of the service, joined to this one's cluster and database, answering on its own port. */
   def peer(endpoints: Seq[EndpointClients => HttpEndpoint] = PublicApiService.endpoints(settings, contract, () => Kit.authenticate,
-      () => clock.instant())): (AnkkaTestKit.Peer, String) =
+      () => clock.instant(), bags = Some(_ => roles))): (AnkkaTestKit.Peer, String) =
     val http = HttpServer.at("127.0.0.1", 0)(endpoints*)
     val p    = testKit.startPeer(Seq(ProjectionRuntime.withBroker(broker, broker), TimerRuntime(200.millis, TimerProbe(), clock), http))
     (p, s"http://127.0.0.1:${http.boundPort.get}")

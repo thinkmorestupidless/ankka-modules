@@ -6,7 +6,6 @@ import com.thinkmorestupidless.ankka.sdk.NoArgHandle
 import io.eitheror.casino.attribution.api.Wire.{*, given}
 import io.eitheror.casino.attribution.carriers.{Subscriptions as SubscriptionRows, *}
 import io.eitheror.casino.attribution.networks.Network
-import io.eitheror.casino.contract.access.Routes
 
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets.UTF_8
@@ -15,17 +14,22 @@ import java.util.UUID
 /**
  * The operator's webhooks (contracts/routes.md; research R15): subscriptions and the undelivered facts. A
  * subscription's secret goes to the store and is never read back. A delivery id is `<subscription>/<factId>`,
- * so the client sends it percent-encoded as one path segment.
+ * so the client sends it percent-encoded as one path segment. Each route requires one permission (spec 030 E1):
+ * the subscriptions `config.attribution`, the undelivered facts `fact.redeliver`.
  */
 final class WebhooksEndpoint(api: Api) extends HttpEndpoint(s"/v1/casino/backoffice/${api.brand}/attribution-webhooks"):
+  // every route names its own permission; this is never reached
   val acl: Acl = Acl.DenyAll
 
-  withAcl(Routes.operator(api.brand, api.authenticate())) {
-    get("") { () => list() }
-    postBody("") { (body: String) => create(body) }
+  withAcl(api.may("fact.redeliver")) {
     get("/undelivered") { () => undelivered() }
     post("/undelivered/{delivery}/resend") { (delivery: String) => act(delivery, Delivery.resend) }
     post("/undelivered/{delivery}/discard") { (delivery: String) => act(delivery, Delivery.discard) }
+  }
+
+  withAcl(api.may("config.attribution")) {
+    get("") { () => list() }
+    postBody("") { (body: String) => create(body) }
     get("/{id}") { (id: String) => read(id) }
     putBody("/{id}") { (id: String, body: String) => update(id, body) }
     delete("/{id}") { (id: String) => remove(id) }

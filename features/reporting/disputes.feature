@@ -1,5 +1,5 @@
-Feature: A support agent generates a dispute report
-  A player disputes a win. A support agent generates a dispute report for one player session, or
+Feature: An operator generates a dispute report
+  A player disputes a win. An operator who may export a player's record generates a dispute report for one player session, or
   for a date range, and receives a document with a reference number to quote: the player sessions
   with their start, end, close reason, device and address, each game session with its rounds,
   stakes, wins, net result and status, and the period's totals.

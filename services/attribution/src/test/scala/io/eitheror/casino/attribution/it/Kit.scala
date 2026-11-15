@@ -44,7 +44,12 @@ final class Kit(val brand: String = "goldvibe", modules: Set[String] = Set("casi
     webhookTimeout = Duration.ofSeconds(2), webhookPlainHttp = true)
 
   val timers = TimerRuntime(200.millis, probe, clock)
-  private val server = HttpServer.at("127.0.0.1", 0)(AttributionService.endpoints(settings, () => Kit.authenticate, () => clock.instant())*)
+  /** The brand's roles the operator routes decide from: the role matrix, as a new brand starts (spec 030 E1). */
+  val roles: io.eitheror.casino.contract.access.RoleBags =
+    io.eitheror.casino.contract.access.RoleBags.fixed(io.eitheror.casino.contract.access.OperatorPermissions.DefaultRoles)
+
+  private val server = HttpServer.at("127.0.0.1", 0)(AttributionService.endpoints(settings, () => Kit.authenticate, () => clock.instant(),
+    bags = Some(_ => roles))*)
     .withGrants(grants)
 
   wire()
@@ -106,8 +111,8 @@ final class Kit(val brand: String = "goldvibe", modules: Set[String] = Set("casi
   /** A request from the internet, through the gateway, with no token. */
   def fromInternet: Seq[(String, String)] = Seq(LocalCallers.header(Caller.Gateway))
 
-  /** An operator of this brand, through the gateway. */
-  def asOperator(op: String = "op-1", roles: String = s"brand_$brand"): Seq[(String, String)] =
+  /** An operator of this brand holding `brand_admin`, whose bag holds every permission, through the gateway. */
+  def asOperator(op: String = "op-1", roles: String = s"brand_$brand,brand_admin"): Seq[(String, String)] =
     fromInternet :+ ("Authorization" -> s"Bearer staff|$op|$roles")
 
   /** A player of the brand's realm, through the gateway: what an operator route refuses `wrong_issuer`. */
