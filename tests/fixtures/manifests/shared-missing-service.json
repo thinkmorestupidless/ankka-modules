@@ -68,6 +68,16 @@
       {
         "principal": "service:{brand}/players",
         "target": {
+          "route": {
+            "service": "merchant",
+            "method": "PUT",
+            "path": "/v1/operators/{id}/brand-roles/{brand}"
+          }
+        }
+      },
+      {
+        "principal": "service:{brand}/players",
+        "target": {
           "erasure": true
         }
       }

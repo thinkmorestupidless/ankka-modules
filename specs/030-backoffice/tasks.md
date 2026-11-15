@@ -90,8 +90,8 @@ Each task: replace `Routes.operator`/`operatorHolding` and handler role sets wit
 
 ### Deployment
 
-- [ ] T027 Make `tools/modules/src/main/scala/io/eitheror/casino/modules/Render.scala` pass a module service's `hosting: "web"` through to the descriptor (D1), with a test in `tools/modules/src/test/`
-- [ ] T028 Teach `tools/modules/src/main/scala/io/eitheror/casino/modules/Realm.scala` to upsert `brand_support` and the brand's confidential client `backoffice-<slug>` (standard flow, PKCE, audience `eitheror-casino`, the brand's backoffice address) into an existing realm, its secret into the brand's secrets (D3), with its test; verify V4 (the token's audience and roles) and add a mapper if it fails
+- [X] T027 Make `tools/modules/src/main/scala/io/eitheror/casino/modules/Render.scala` pass a module service's `hosting: "web"` through to the descriptor (D1), with a test in `tools/modules/src/test/`
+- [X] T028 Teach `tools/modules/src/main/scala/io/eitheror/casino/modules/Realm.scala` to upsert `brand_support` and the brand's confidential client `backoffice-<slug>` (standard flow, PKCE, audience `eitheror-casino`, the brand's backoffice address) into an existing realm, its secret into the brand's secrets (D3), with its test; verify V4 (the token's audience and roles) and add a mapper if it fails
 - [ ] T029 Write `modules/backoffice/module.json` (depends on `core`; `backoffice` with `hosting: "web"`, exposed at the brand's backoffice host; `backoffice-state`, not exposed), add the backoffice host and the shared projects' addresses to the brand's values schema and `brands/goldvibe/values.json`, and its section in `modules/README.md` (D2, R8, R17)
 
 ### `backoffice-state`
