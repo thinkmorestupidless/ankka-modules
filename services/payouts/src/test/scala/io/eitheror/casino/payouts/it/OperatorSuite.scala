@@ -40,6 +40,19 @@ class OperatorSuite extends munit.FunSuite with LogCapturing:
 
   private val brand = s"brand_${kit.slug}"
 
+  test("status (Y5, F): the queue's view with when it last applied a change, for withdrawal.read and the project's services"):
+    val status = s"/v1/casino/brands/${kit.slug}/payouts/status"
+    pending(): Unit
+    val queue = kit.eventually("the queue marked")(
+      Option(kit.request("GET", status, None, kit.asOperator())).filter(_.status == 200)
+        .flatMap(_.json.objects("views").find(_.text("name").contains("withdrawal-queue"))).filter(_.text("asOf").nonEmpty))
+    assert(!java.time.Instant.parse(queue.text("asOf").get).isAfter(java.time.Instant.now()), queue.toString)
+    assertEquals(queue.get("rebuilding").asBoolean, false)
+    assertEquals(kit.request("GET", status, None, kit.asService("backoffice")).json.objects("views").flatMap(_.text("name")),
+      Vector("withdrawal-queue"))
+    assertEquals(kit.request("GET", status, None, kit.asOperator(roles = s"$brand,resource_finance")).status, 403)
+    assertEquals(kit.request("GET", status, None, kit.asPlayer("p-1")).status, 403)
+
   test("the roles whose bags hold withdrawal.read are admitted to the queue; any other role is refused naming it"):
     Vector("brand_admin", "brand_finance", "brand_support", "brand_compliance").foreach { role =>
       assertEquals(call("GET", "/", s"$brand,$role").status, 200, role)
