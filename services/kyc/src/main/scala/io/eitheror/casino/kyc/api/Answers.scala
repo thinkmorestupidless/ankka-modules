@@ -50,6 +50,7 @@ object Answers:
     "flag_not_found"            -> (404, "No open flag of that reason"),
     "note_required"             -> (400, "A note is required"),
     "invalid_filter"            -> (400, "Unknown filter"),
+    "invalid_page"              -> (400, "page is a whole number from 1, pageSize one from 1 to 200"),
     "player_not_found"          -> (404, "No such player"),
     "invalid_policy"            -> (400, "A policy field is not valid"),
     "currency_required"         -> (400, "A threshold needs the KYC currency"),
