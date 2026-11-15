@@ -25,6 +25,8 @@ object Routes:
     val NotPaymentsOperator = "not_payments_operator"
     /** A caller admitted by a grant that is not a registered machine, on a machine's route (spec 012 FR-020). */
     val NotMachine      = "not_machine"
+    /** A service that has not yet read its brand's roles from `players` (spec 030 contracts/roles.md). */
+    val RolesUnread     = "roles_unread"
 
   /** The issuer names the brands tool renders into `ANKKA_AUTH_ISSUERS`. */
   val PlayerIssuer = "player"
@@ -78,6 +80,28 @@ object Routes:
     refine(authenticate) { p =>
       if p.issuer.contains(StaffIssuer) then None else Some(s"${Refusal.WrongIssuer}: operators sign in at the eitheror realm")
     }
+
+  /**
+   * Spec 030 FR-008: an operator of this brand whose roles carry `permission`, as the brand's roles
+   * stand in `bags` (contracts/roles.md). The refusals are [[operator]]'s, then `forbidden` naming the
+   * permission; until `bags` has first read the brand's roles the decision is unavailable (503 with
+   * `Retry-After`), never a guess. `platform_admin` is admitted to every permission. No role is named.
+   */
+  def operatorMay(slug: String, permission: String, bags: RoleBags, authenticate: => Acl = Oidc.authenticate()): Acl =
+    require(OperatorPermissions.known(permission), s"$permission is not a permission of contract.access.OperatorPermissions")
+    val base = operator(slug, authenticate)
+    base match
+      case Acl.Authenticate(decide) =>
+        Acl.Authenticate { (context: RequestContext) =>
+          decide(context) match
+            case allowed @ AuthDecision.Allow(principal) =>
+              bags.permissionsOf(principal.roles) match
+                case None                               => AuthDecision.Unavailable(s"${Refusal.RolesUnread}: the brand's roles have not been read yet")
+                case Some(held) if held(permission)     => allowed
+                case Some(_)                            => AuthDecision.Forbidden(s"$Forbidden: the $permission permission is needed")
+            case other => other
+        }
+      case other => other
 
   /** A brand operator without the role a route needs (spec 023 FR-004). */
   val Forbidden = "forbidden"
