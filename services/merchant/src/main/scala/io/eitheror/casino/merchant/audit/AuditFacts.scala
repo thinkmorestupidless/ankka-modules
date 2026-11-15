@@ -75,6 +75,9 @@ object AuditFacts:
     case OperatorEvent.ScopeChanged(level, id, _, actor, at) => Some(Audited("operator scope changed", actor, at, change("scopeLevel", level) ++ change("scopeId", id)))
     case OperatorEvent.EnabledMirrored(enabled, at)         => Some(Audited("operator enabled mirrored", Actor("system", "operator-sync"), at, change("enabled", enabled.toString)))
     case OperatorEvent.Removed(actor, at)                   => Some(Audited("operator removed", actor, at))
+    case OperatorEvent.BrandRolesSet(brand, before, after, at) =>
+      Some(Audited("operator brand roles set", Actor("service", s"$brand/players"), at,
+        Vector(AuditChange("roles", Some(before.toVector.sorted.mkString(",")), Some(after.toVector.sorted.mkString(","))))))
 
   def payment(e: PaymentEvent, brand: Option[String]): Option[Audited] =
     val flow = Actor.workflow

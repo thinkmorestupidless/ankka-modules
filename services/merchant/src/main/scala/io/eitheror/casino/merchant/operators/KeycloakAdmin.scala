@@ -33,6 +33,11 @@ final case class RealmUser(id: String, email: String, enabled: Boolean)
 trait KeycloakAdmin:
   def createUser(email: String, firstName: Option[String], lastName: Option[String]): Either[RealmError, String]
   def assignRole(userId: String, role: String): Either[RealmError, Unit]
+  /** The realm roles the user holds directly (spec 030 H6). */
+  def realmRoles(userId: String): Either[RealmError, Set[String]]
+  /** Creates the realm role when the realm has none of that name. */
+  def ensureRole(role: String): Either[RealmError, Unit]
+  def removeRole(userId: String, role: String): Either[RealmError, Unit]
   def setScope(userId: String, scopeId: String, scopeLevel: String, ancestors: Vector[String]): Either[RealmError, Unit]
   def resetPassword(userId: String, password: String): Either[RealmError, Unit]
   def setEmailVerified(userId: String): Either[RealmError, Unit]
@@ -97,6 +102,30 @@ private final class HttpKeycloak(base: String, realm: String, credentials: () =>
   def assignRole(userId: String, role: String): Either[RealmError, Unit] =
     call("GET", s"/roles/${enc(role)}").flatMap {
       case (200, body) => call("POST", s"/users/$userId/role-mappings/realm", Some(Json.arr(Json.parse(body).get))).flatMap(ok(userId))
+      case (s, b)      => Left(RealmError.Failed(s"role $role: $s ${b.take(200)}"))
+    }
+
+  def realmRoles(userId: String): Either[RealmError, Set[String]] =
+    call("GET", s"/users/$userId/role-mappings/realm").flatMap {
+      case (200, body) => Right(Json.parse(body).filter(_.isArray).map(_.elements.asScala.map(_.textOr("name", "")).toSet).getOrElse(Set.empty))
+      case (404, _)    => Left(RealmError.NotFound(userId))
+      case (s, b)      => Left(RealmError.Failed(s"roles of $userId: $s ${b.take(200)}"))
+    }
+
+  def ensureRole(role: String): Either[RealmError, Unit] =
+    call("GET", s"/roles/${enc(role)}").flatMap {
+      case (200, _) => Right(())
+      case (404, _) => call("POST", "/roles", Some(Json.obj("name" -> role))).flatMap {
+          case (s, _) if s / 100 == 2 || s == 409 => Right(())
+          case (s, b)                             => Left(RealmError.Failed(s"create role $role: $s ${b.take(200)}"))
+        }
+      case (s, b) => Left(RealmError.Failed(s"role $role: $s ${b.take(200)}"))
+    }
+
+  def removeRole(userId: String, role: String): Either[RealmError, Unit] =
+    call("GET", s"/roles/${enc(role)}").flatMap {
+      case (200, body) => call("DELETE", s"/users/$userId/role-mappings/realm", Some(Json.arr(Json.parse(body).get))).flatMap(ok(userId))
+      case (404, _)    => Right(())
       case (s, b)      => Left(RealmError.Failed(s"role $role: $s ${b.take(200)}"))
     }
 
