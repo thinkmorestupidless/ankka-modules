@@ -177,9 +177,10 @@ services/backoffice/
 ├── package.json, tsconfig.json, vite.config.ts, service.json, Dockerfile, README.md
 ├── src/server/
 │   ├── main.ts, session.ts, auth.ts, proxy.ts, routes.ts, events.ts
-│   ├── composite/       # worklist, search, standing, timeline, batch, document, freshness, jobs
-│   └── owners/          # one typed client per owning service, made from routes.ts
-├── src/shared/          # access.ts, money.ts, dates.ts, messages/en.ts, refusals.ts, generated/
+│   └── composite/       # worklist, search, standing, timeline, batch, document, freshness, jobs
+├── src/shared/          # access.ts, money.ts, dates.ts, messages/en.ts, refusals.ts, generated/,
+│                        # owners/ (one typed client per owning service, made from routes.ts by
+│                        # `npm run owners`; shared so the page imports no server code)
 ├── src/web/
 │   ├── tokens.css, frame/, components/ (table, list state, money, action dialog, freshness)
 │   ├── actions/         # one description per action
