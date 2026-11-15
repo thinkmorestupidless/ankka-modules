@@ -45,11 +45,10 @@ final class PlayerEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${
   }
   delete("/{playerId}/payout-destinations/{id}") { (p: String, id: String) => mine(p)(Accounts.delete(ctx, p, id)) }
 
-  // The operator's view of one player's requests (FR-014): the brand's operators, with a finance or admin role.
-  withAcl(Routes.operator(ctx.slug, ctx.authenticate())) {
+  // The operator's view of one player's requests (FR-014): the brand's operators holding `withdrawal.read` (spec 030 Y1).
+  withAcl(ctx.may("withdrawal.read")) {
     get("/{playerId}/withdrawal-history") { (p: String) =>
-      if !principal.roles.exists(FinanceRoles) then forbidden
-      else ok(Json.obj("requests" -> Json.arr(ctx.byPlayer(p).map(Operator.row)*)))
+      ok(Json.obj("requests" -> Json.arr(ctx.byPlayer(p).map(Operator.row)*)))
     }
   }
 

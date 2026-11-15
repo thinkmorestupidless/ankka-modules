@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.http.*
-import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.payouts.Json
 import io.eitheror.casino.payouts.limits.{LimitsState, Pair, SetLimits, WithdrawalLimits}
 
@@ -14,32 +13,32 @@ import Answers.*
 
 /**
  * `/v1/casino/brands/<slug>/withdrawal-config` (contracts/routes.md; R10): the brand's weekly and monthly
- * withdrawal limits per currency. The ACL admits an operator of the brand; the routes ask for an admin
- * role, as the original's did, and any other is `forbidden`.
+ * withdrawal limits per currency. Each route admits an operator of the brand whose roles' bags hold its
+ * permission (spec 030 amendment Y1): `withdrawal.read` to read the limits, `config.brand` to set them.
  */
 final class ConfigEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${ctx.slug}/withdrawal-config"):
-  val acl: Acl = Routes.operator(ctx.slug, ctx.authenticate())
-
-  private def admin(f: => Reply): Reply = if principal.roles.exists(ConfigEndpoint.AdminRoles) then f else forbidden
+  // every route names its own permission; this is never reached
+  val acl: Acl = Acl.DenyAll
 
   private def limits = ctx.components.forEventSourcedEntity(EntityId(ctx.slug))
 
-  get("/") { () => admin(ok(ConfigEndpoint.render(ctx.limits))) }
+  withAcl(ctx.may("withdrawal.read")) {
+    get("/") { () => ok(ConfigEndpoint.render(ctx.limits)) }
+  }
 
-  putBody("/") { (text: String) =>
-    admin(Json.parseObject(text).fold(badBody) { b =>
-      ConfigEndpoint.parse(b) match
-        case Left(field) => ConfigEndpoint.invalid(field)
-        case Right(pairs) =>
-          val a = limits.call(WithdrawalLimits.set).invoke(SetLimits(pairs, principal.subject, ctx.now()))
-          a.refusal.fold(ok(ConfigEndpoint.render(a.state)))(ConfigEndpoint.invalid)
-    })
+  withAcl(ctx.may("config.brand")) {
+    putBody("/") { (text: String) =>
+      Json.parseObject(text).fold(badBody) { b =>
+        ConfigEndpoint.parse(b) match
+          case Left(field) => ConfigEndpoint.invalid(field)
+          case Right(pairs) =>
+            val a = limits.call(WithdrawalLimits.set).invoke(SetLimits(pairs, principal.subject, ctx.now()))
+            a.refusal.fold(ok(ConfigEndpoint.render(a.state)))(ConfigEndpoint.invalid)
+      }
+    }
   }
 
 object ConfigEndpoint:
-  /** The roles the original admits to `withdrawal-config` (R6). */
-  val AdminRoles: Set[String] = Set("brand_admin", "resource_admin", "platform_admin")
-
   def invalid(field: String): Reply = refusal(400, "INVALID_REQUEST", s"$field is not a valid limit", "field" -> field)
 
   /** `{limits: {<currency>: {weekly, monthly}}}`, an unset limit `null`. */

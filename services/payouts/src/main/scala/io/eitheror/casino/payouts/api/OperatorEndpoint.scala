@@ -2,7 +2,6 @@ package io.eitheror.casino.payouts.api
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.http.*
-import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.contract.personal.Personal
 import io.eitheror.casino.payouts.Json
 import io.eitheror.casino.payouts.Json.*
@@ -17,32 +16,36 @@ import Answers.*
 
 /**
  * `/v1/casino/brands/<slug>/withdrawal-requests` (contracts/routes.md; R6): the brand's queue, a request, and
- * the operator's decisions and settlements. The ACL admits an operator of the brand; each route asks for a
- * finance or admin role, and any other is `forbidden`.
+ * the operator's decisions and settlements. Each route admits an operator of the brand whose roles' bags hold
+ * its permission (spec 030 amendment Y1): `withdrawal.read` for the queue and a request, `withdrawal.review`
+ * for a decision and a settlement by hand.
  */
 final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${ctx.slug}/withdrawal-requests"):
-  val acl: Acl = Routes.operator(ctx.slug, ctx.authenticate())
-
-  private def finance(f: => Reply): Reply = if principal.roles.exists(FinanceRoles) then f else forbidden
+  // every route names its own permission; this is never reached
+  val acl: Acl = Acl.DenyAll
   private def by(reason: Option[String]) = ByOperator(principal.subject, reason.map(Personal(_)))
   private def reason(text: String, field: String): Option[String] =
     Json.parseObject(text).flatMap(_.text(field)).map(_.trim).filter(_.nonEmpty)
 
-  get("/") { () => finance(Operator.queue(ctx, request.query.raw)) }
-  get("/{requestId}") { (id: String) => finance(Operator.detail(ctx, id)) }
+  withAcl(ctx.may("withdrawal.read")) {
+    get("/") { () => Operator.queue(ctx, request.query.raw) }
+    get("/{requestId}") { (id: String) => Operator.detail(ctx, id) }
+  }
 
-  postBody("/{requestId}/approve") { (id: String, _: String) =>
-    finance(Operator.decide(ctx, id)(ctx.workflow(id).call(WithdrawalWorkflow.approve).invoke(by(None))))
-  }
-  postBody("/{requestId}/reject") { (id: String, text: String) =>
-    finance(Operator.decide(ctx, id)(ctx.workflow(id).call(WithdrawalWorkflow.reject).invoke(by(reason(text, "reason")))))
-  }
-  postBody("/{requestId}/confirm-payout") { (id: String, text: String) =>
-    finance(Operator.settle(ctx, id)(ctx.workflow(id).call(WithdrawalWorkflow.confirmPayout).invoke(by(reason(text, "note")))))
-  }
-  postBody("/{requestId}/mark-payout-failed") { (id: String, text: String) =>
-    val why = reason(text, "reason").orElse(Some(Operator.DefaultFailure))
-    finance(Operator.settle(ctx, id)(ctx.workflow(id).call(WithdrawalWorkflow.markFailed).invoke(by(why))))
+  withAcl(ctx.may("withdrawal.review")) {
+    postBody("/{requestId}/approve") { (id: String, _: String) =>
+      Operator.decide(ctx, id)(ctx.workflow(id).call(WithdrawalWorkflow.approve).invoke(by(None)))
+    }
+    postBody("/{requestId}/reject") { (id: String, text: String) =>
+      Operator.decide(ctx, id)(ctx.workflow(id).call(WithdrawalWorkflow.reject).invoke(by(reason(text, "reason"))))
+    }
+    postBody("/{requestId}/confirm-payout") { (id: String, text: String) =>
+      Operator.settle(ctx, id)(ctx.workflow(id).call(WithdrawalWorkflow.confirmPayout).invoke(by(reason(text, "note"))))
+    }
+    postBody("/{requestId}/mark-payout-failed") { (id: String, text: String) =>
+      val why = reason(text, "reason").orElse(Some(Operator.DefaultFailure))
+      Operator.settle(ctx, id)(ctx.workflow(id).call(WithdrawalWorkflow.markFailed).invoke(by(why)))
+    }
   }
 
 /** The operator routes' work, apart from the endpoint so a suite can read it. */
