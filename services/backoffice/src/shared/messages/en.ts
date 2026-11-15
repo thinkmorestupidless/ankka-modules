@@ -77,6 +77,48 @@ export const en = {
   "money.unknownCurrency": "{minor} minor units of {currency}",
   "date.zone": "Times are in {zone}.",
 
+  // components/status.tsx: the word for each status an owner answers
+  "status.pending_review": "Pending review",
+  "status.approved": "Approved",
+  "status.awaiting_manual_payout": "Awaiting manual payout",
+  "status.completed": "Completed",
+  "status.rejected": "Rejected",
+  "status.cancelled": "Cancelled",
+  "status.failed": "Failed",
+  "status.reversed": "Reversed",
+  "status.initiated": "Payout started",
+  "status.needs_review": "Needs review",
+  "status.resolved": "Resolved",
+  "status.pending_email_verification": "Email not verified",
+  "status.active": "Active",
+  "status.suspended": "Suspended",
+  "status.self_excluded": "Self-excluded",
+  "status.blocked": "Blocked",
+  "status.closed": "Closed",
+  "status.erasure_pending": "Erasure pending",
+  "status.erased": "Erased",
+  "status.settled": "Settled",
+  "status.unsettled": "Unsettled",
+  "status.open": "Open",
+  "status.pending": "Pending",
+  "status.verified": "Verified",
+
+  // components/links.tsx
+  "record.names": "Records it names",
+  "record.player": "Player",
+  "record.withdrawal": "Withdrawal",
+  "record.round": "Round",
+  "record.gameSession": "Game session",
+  "record.payment": "Payment",
+  "record.adjustment": "Adjustment",
+  "record.reward": "Reward",
+  "record.document": "Document",
+  "record.case": "Case",
+  "record.fraudCase": "Fraud case",
+
+  // components/date-input.tsx
+  "dateInput.hint": "Type it as DD/MM/YYYY or YYYY-MM-DD.",
+  "dateInput.invalid": "That is not a day that exists and has passed.",
 } as const satisfies Record<string, string>;
 
 export type MessageKey = keyof typeof en;
