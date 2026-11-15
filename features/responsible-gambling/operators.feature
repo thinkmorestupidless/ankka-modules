@@ -39,3 +39,8 @@ Feature: An operator sees and changes a player's protections
     When an operator changes it
     Then it binds the next player change
     And no existing limit is altered
+
+  Scenario: an operator lists the brand's open cases, oldest first, with their total
+    Given three open cases and one closed case for players of the brand
+    When an operator with a compliance or admin role lists the brand's open cases
+    Then the three open cases are listed, oldest first, with the total "3"

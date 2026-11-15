@@ -125,7 +125,7 @@ or *moved*. The two rows once marked *decide* were settled on 2026-11-15: both k
 | Currency and zone | players `currency-config` | kept |
 | Withdrawal settings | payouts `withdrawal-config` | kept |
 | Wagering settings and game contribution | wallet `wallet-config` | kept; writing the reward settings beyond turnover is a gap |
-| Deposit minimum and maximum per method | merchant (per sub-brand, enforced where a deposit starts) | gap (built, decided 2026-11-15) |
+| Deposit bounds (minimum and maximum per method) | merchant (per sub-brand, enforced where a deposit starts) | gap (built, decided 2026-11-15) |
 | Terminal capabilities | merchant `terminals`, gateway capability | kept |
 | CRM configuration | engagement `/v1/casino/crm-config` | kept (the original page had no link; decided 2026-11-15) |
 | Support agent configuration | support-agent (spec 017) | kept when merged |

@@ -80,9 +80,9 @@ p95; a proxied read within 30 ms of its owner.
 | Operator routes in the table | about 300, over 17 services |
 | Composite routes | 12 |
 | Services amended | 17, plus the contract, the modules tool, the realm, CI |
-| New stored data in owners | 5: manager tags, devices, deposit limits, an adjustment's cause, balances at a request |
+| New stored data in owners | 5: manager tags, seen devices, deposit bounds, an adjustment's cause, balances at a request |
 | Entities in `backoffice-state` | 2 (`Session`, `Preferences`), 1 view |
-| Feature files | 12 under `features/backoffice/` (41 scenarios), plus role scenarios in 11 services |
+| Feature files | 12 under `features/backoffice/` (41 scenarios); 17 new files and 8 added scenarios in the owners' features (the spec's *Amendments to the owning services*) |
 | Seed for SC-005 | 10,000 players, 1,000 rewards, 5,000 withdrawal requests |
 
 ## Constitution Check
@@ -97,8 +97,8 @@ p95; a proxied read within 30 ms of its owner.
 | IV. Commands over HTTP, facts over topics | no store read across services | Pass. Every read is an owner's route; the timeline reads owners, not topics (R10). |
 | V. Personal data marked, erasure honoured | `Personal`; handler | Pass. An operator's subject, name and email are `Personal` under `operator/<subject>` with an erasure route. Players' devices (P8) are `Personal` under the player's subject in `players`. |
 | VI. Scala by default | reason for anything else | Pass. TypeScript for the web-hosted program only, for the reason the spec and amendment 1.3.0 give; everything that keeps state is Scala. |
-| VII. Specs in the domain's words | `just features` passes | Pass: 0 findings in 1,341 scenarios and 26 specs. |
-| Workflow: clarify before plan | | Pass: clarified 2026-11-15, seven answers. |
+| VII. Specs in the domain's words | `just features` passes | Pass: 0 findings in 1,456 scenarios and 26 specs. |
+| Workflow: clarify before plan | | Pass: clarified 2026-11-15, eight answers. |
 | Scope: ankka gaps are ankka specs | | Pass. V1 is the one platform assumption; if it fails it is an ankka request and the build stops. |
 
 No violations; Complexity Tracking is empty.

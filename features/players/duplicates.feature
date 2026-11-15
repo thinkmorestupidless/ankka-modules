@@ -77,6 +77,6 @@ Feature: A duplicate account is detected and reviewed
 
   Scenario: an operator clearing a player's no-deposit block lifts it and records who and when
     Given a player whose no-deposit offers are blocked
-    When an operator with a fraud or compliance role clears the block
+    When an operator with a compliance or admin role clears the block
     Then the block is lifted with the operator and the time recorded
     And a fact says so

@@ -1480,7 +1480,7 @@ The step the session behaviour stands at thirty seconds before it signs out a pl
 ## The backoffice
 
 ### worklist
-An operator's open items in one brand that their roles let them act on: withdrawal requests pending review, withdrawal payments needing review, identity documents awaiting review, players flagged for review, open cases and fraud cases, unacknowledged provider callbacks, undelivered facts and parked sends; oldest first, read from the owning services and never stored.
+An operator's open items in one brand that their roles let them act on: withdrawal requests pending review, withdrawal payments needing review, identity documents awaiting review, players flagged for review, open cases and fraud cases, unacknowledged calls, undelivered facts, undelivered outcomes and parked sends; oldest first, read from the owning services and never stored.
 
 Avoid: task list, to-do list
 
@@ -1496,3 +1496,32 @@ Avoid: bulk adjustment, compensation run
 
 ### merge tag
 A placeholder in an operator's send, such as the player's first name, that the brand fills from the player's record when the inbox item is previewed and when it is sent.
+
+### role matrix
+The one table of which operator roles admit which action on a brand: held by the contract, checked by each owning part on its own routes, and read by the backoffice to decide what to offer. Only `brand_support`, `brand_finance`, `brand_compliance`, `brand_admin` and `platform_admin` appear in it.
+
+Avoid: permission table, access matrix
+
+### payments role
+A role of the shared payments' hierarchy (`resource_admin`, `resource_finance` and the rest, each with an operator level): it admits payments administration at that level and no action on a brand's players, wallets, withdrawals or rewards.
+
+### manager tag
+An operator's own short label on a player, such as who looks after them; read with the player, at most forty characters, and changing nothing about what the player may do. Not a tag, which is an affiliate's.
+
+Avoid: player label, account tag
+
+### seen device
+One device a player has logged in from, kept as personal data under the player: when it was first and last seen, its platform, its browser and the country it logged in from. Not the device fingerprint, which is compared at registration for duplicates.
+
+Avoid: device record, login device
+
+### deposit bounds
+The least and the most one deposit by one method may be at a sub-brand, in one currency; a deposit outside them is refused before any payment provider is asked. Not a deposit limit, which is a player's own cap over a period.
+
+Avoid: deposit minimum and maximum, method limits
+
+### test payment
+One payment a payments operator makes with a sub-brand's credential in the payment provider's test mode, to see the provider answer; it credits no wallet and records no deposit.
+
+Avoid: test deposit, test charge
+
