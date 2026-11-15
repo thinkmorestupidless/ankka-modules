@@ -107,7 +107,7 @@ A test of a rebuilt part that replays one recording and fails when the part answ
 The description of one change to the system, naming the scenarios in the living features that hold it to account, and for every requirement what established it.
 
 ### wallet
-One player's ledger in one currency: real balance, restricted funds, open rounds, deposit turnover, the pending withdrawal request, and every transaction. A player with two currencies has two wallets. Created by its first deposit or award and never deleted.
+One player's ledger in one currency: real balance, restricted funds, open rounds, deposit turnover, the pending withdrawal request, and every transaction. A player with two currencies has two wallets. Created by its first deposit or award, or by an operator's first credit to its real balance, and never deleted.
 
 ### real balance
 The money in a wallet that is the player's own: deposited, won on real-funded bets, or converted from restricted funds. Only real balance can be withdrawn. Held as two pools, the deposit pool and the converted pool, which always sum to it.

@@ -151,6 +151,16 @@ Settled with specs 008–011 once they existed.
 - FR-007a says a bet's `responsible-gambling` refusal is not recorded under its key; FR-004 says
   service route, not operator route.
 
+### Session 2026-11-15
+
+- Q: An operator's credit to a player with no wallet in that currency was accepted and shown in the
+  balance, yet the wallet stayed uncreated, so a reservation or a bet against that money was
+  `WALLET_NOT_FOUND` (found on dev-kind, where no payment provider runs and an adjustment is the only
+  way to fund a player). Refuse the credit or create the wallet? → A: Create it (Trevor, 2026-11-15).
+  The credit is still an `admin_adjust` transaction and never a deposit: the deposit ordinal and
+  lifetime deposits do not move. FR-001, FR-026 and the adjustments feature. A wallet whose journal
+  already holds such a credit is created when it is next read.
+
 ### Session 2026-10-10
 
 - Q: The key store kept every key for the wallet's life, with its outcome; `ScaleItSuite` measured a
@@ -366,6 +376,7 @@ and `TestScenario15_St8Wallet_StandaloneCredit`.
 **Acceptance Scenarios**:
 
 - added `features/wallet/adjustments.feature`: an operator's credit to real balance carries its reason and actor
+- added `features/wallet/adjustments.feature`: an operator's credit to real balance creates the wallet for a player with none in that currency
 - added `features/wallet/adjustments.feature`: an operator's debit above real balance is refused naming both amounts
 - added `features/wallet/adjustments.feature`: an adjustment without a reason is refused
 - added `features/wallet/adjustments.feature`: an operator's debit that leaves a record at zero with no open round forfeits it
@@ -403,7 +414,8 @@ in `TestScenario7_CasinoGate3_FullPlayerJourney`, and the reporting routes' sums
   "cancel everything within a round" recording proves the pair restores the starting balance.
 - A hold larger than real balance but smaller than real plus restricted: refused; restricted funds
   never fund a withdrawal.
-- A bet in a currency the player has no wallet for: `WALLET_NOT_FOUND`; only a deposit creates one.
+- A bet in a currency the player has no wallet for: `WALLET_NOT_FOUND`; a deposit, an
+  award or an operator's credit to real balance creates one.
 - An amount that is not a whole number of minor units, or negative where a positive is required:
   refused as `INVALID_REQUEST`, naming the amount, before any state is read (spec 001 FR-026).
 - Real balance negative after a correction debit: a normal bet is refused, a deposit is credited
@@ -423,7 +435,8 @@ in `TestScenario7_CasinoGate3_FullPlayerJourney`, and the reporting routes' sums
 - **FR-001**: A wallet MUST be one event sourced entity keyed by player id and ISO 4217 currency
   within the brand's project (spec 001 FR-001: one project per brand, named by its slug, the wallet a
   service in it); the brand is the project, never part of the key. A wallet is
-  created by its first deposit or award, or by the migration's opening command (`open-migrated`,
+  created by its first deposit or award, by an operator's first credit to its real balance (FR-026),
+  or by the migration's opening command (`open-migrated`,
   spec 019: the opening balances, records, deposit turnover pending and lifetime deposits of a
   wallet the original holds, accepted once and refused as `WALLET_ALREADY_OPEN` after), and never
   deleted.
@@ -604,7 +617,8 @@ in `TestScenario7_CasinoGate3_FullPlayerJourney`, and the reporting routes' sums
 - **FR-026**: An operator adjustment MUST require a reason (`REASON_REQUIRED`), carry the actor,
   refuse a debit above the chosen balance as `DEBIT_EXCEEDS_BALANCE` naming both amounts, treat a
   zero as a no-op returning balances, and write an `admin_adjust` transaction, never a deposit.
-  On real it credits or debits real; on restricted it adjusts the primary active record
+  On real it credits or debits real, and a credit creates the wallet when the player has none in
+  that currency (FR-001); on restricted it adjusts the primary active record
   (`NO_OPEN_RESTRICTED_FUNDS` when none), closing it as `FORFEITED` when a debit leaves it at zero
   with no open round.
 - **FR-027**: A provider credit MUST land on the primary active record when one exists, else on

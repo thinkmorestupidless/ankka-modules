@@ -81,11 +81,6 @@ class DepositsFeatures extends WalletFeatures("deposits.feature"):
 
   Then("the record's deposits since conversion is {string}") { (d: String) => assertEquals(focused.depositsSinceRelease, long(d)) }
 
-  Given("a player with no wallet in {string}") { (c: String) =>
-    currency = c
-    noWallet = true
-  }
-
   When("a deposit of {string} in {string} under payment reference {string} is confirmed") { (a: String, c: String, ref: String) =>
     assertEquals(c, currency)
     assert(!walletKit.currentState.created, "the wallet existed before the deposit")
