@@ -2,7 +2,7 @@ package io.eitheror.casino.rewards.api
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.http.*
-import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.access.{RoleBags, Routes}
 import io.eitheror.casino.contract.money.Amounts as MoneyAmounts
 import io.eitheror.casino.rewards.Json
 import io.eitheror.casino.rewards.Json.*
@@ -14,14 +14,14 @@ import java.util.UUID
 import Answers.*
 
 /**
- * `/v1/casino/brands/<slug>/offers` (contracts/routes.md): the brand's offers for its operators holding one of the
- * three admin roles (FR-031). Every amount is a whole number of minor units (FR-032). A create is checked in the
+ * `/v1/casino/brands/<slug>/offers` (contracts/routes.md): the brand's offers for its operators whose roles hold
+ * `offer.manage`, every route (FR-031 as spec 030 amendment RW1 amends it: `Routes.operatorMay` over `bags`). Every amount is a whole number of minor units (FR-032). A create is checked in the
  * original's order (`BR:1880-2110`): the offer's own fields first, then the provider's spin values and the game's
  * eligibility for free rounds, then the book's (codes in use); an edit's spin values are asked only for what it changed
  * (research R1). Each change is audited with the operator (`OfferAuditPublisher`).
  */
-final class OffersEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${ctx.slug}/offers"):
-  val acl: Acl = Routes.operatorHolding(ctx.slug, Answers.AdminRoles.toVector.sorted*)(ctx.authenticate())
+final class OffersEndpoint(ctx: Ctx, bags: RoleBags) extends HttpEndpoint(s"/v1/casino/brands/${ctx.slug}/offers"):
+  val acl: Acl = Routes.operatorMay(ctx.slug, "offer.manage", bags, ctx.authenticate())
 
   private def body(text: String)(f: JsonNode => Reply): Reply = Json.parseObject(text).fold(badBody)(f)
   private def by: String = principal.subject

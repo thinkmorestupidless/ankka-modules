@@ -8,7 +8,7 @@ import com.thinkmorestupidless.ankka.core.Metadata
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, HttpServer, Principal}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.AnkkaTestKit
-import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.access.{OperatorPermissions, RoleBags, Routes}
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.rewards.{Json, RewardsRuntime, RewardsService, Settings}
 import io.eitheror.casino.rewards.clients.{GameProvider, Players, Programme, Wallet}
@@ -66,9 +66,13 @@ final class Kit(base: Settings = Kit.Base):
   LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).asInstanceOf[Logger].addAppender(log)
 
   private val timers = TimerRuntime(200.millis)
+  /** The brand's roles the operator routes decide from: the role matrix, as a new brand starts. */
+  val roles: RoleBags = RoleBags.fixed(OperatorPermissions.DefaultRoles)
+
   /** The player routes held to the kept description (spec 031 FR-015); `Held` asserts it after each test. */
   val held = io.eitheror.casino.contract.port.HeldToPlayerRoutes(Kit.description, slug)
-  private val server = held.hold(HttpServer.at("127.0.0.1", 0)(RewardsService.endpoints(() => Kit.authenticate, project = "local")*))
+  private val server = held.hold(HttpServer.at("127.0.0.1", 0)(RewardsService.endpoints(() => Kit.authenticate, project = "local",
+    bags = Some(_ => roles))*))
   Kit.started.add(this): Unit
 
   val testKit: AnkkaTestKit = AnkkaTestKit.start(
@@ -123,9 +127,12 @@ final class Kit(base: Settings = Kit.Base):
 
   private def gatewayCaller = testKit.asCaller(Caller.Gateway)
   def asPlayer(playerId: String): Seq[(String, String)] = Seq(gatewayCaller, "Authorization" -> s"Bearer player|$playerId")
-  /** An operator of the brand holding `roles` beside the brand's own role (research R7's admin roles). */
+  /** An operator of the brand holding `roles` beside the brand's own role; `brand_admin` holds every permission. */
   def asOperator(roles: String = "brand_admin", subject: String = "op-1"): Seq[(String, String)] =
     Seq(gatewayCaller, "Authorization" -> s"Bearer staff|$subject|brand_$slug,$roles")
+  /** An operator holding exactly `roles`, no brand role added (`platform_admin`, say). */
+  def asStaff(roles: String, subject: String = "op-1"): Seq[(String, String)] =
+    Seq(gatewayCaller, "Authorization" -> s"Bearer staff|$subject|$roles")
   def asService(name: String, project: String = "local"): Seq[(String, String)] = Seq(testKit.asCaller(Caller.Service(project, name)))
 
   /** The four prefixes (research R7). */

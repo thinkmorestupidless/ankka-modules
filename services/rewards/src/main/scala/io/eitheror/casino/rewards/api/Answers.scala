@@ -43,11 +43,7 @@ object Answers:
   val badBody: Reply     = refusal(400, "invalid_body", "message" -> "The body is not a JSON object")
   val wrongBrand: Reply  = refusal(404, "wrong_brand", "message" -> "This service serves another brand")
   val notYours: Reply    = refusal(403, "player_id_mismatch", "message" -> "The player id is not the caller's")
-  val forbidden: Reply   = refusal(403, "forbidden", "message" -> "The caller's role may not do this")
   val unavailable: Reply = refusal(503, "service_unavailable", "message" -> "A neighbour did not answer in time; try again")
-
-  /** The roles that may act on offers and rewards as an operator (FR-031). */
-  val AdminRoles: Set[String] = Set("brand_admin", "resource_admin", "platform_admin")
 
   // ── amounts (FR-032) ──────────────────────────────────────────────────────
 
