@@ -626,3 +626,45 @@ descriptions:
 backoffice-spike brand="goldvibe":
     cd tests/spikes/backoffice-v1 && docker build -q -t backoffice-probe:v1 . && kind load docker-image backoffice-probe:v1 --name ankka
     cd tests/spikes/backoffice-v1 && ankka services apply -f service.json --project {{brand}} && ankka services expose backoffice-probe --project {{brand}}
+
+# The backoffice's page and server (spec 030): typecheck and unit tests.
+backoffice-test:
+    cd services/backoffice && npm ci && npm run typecheck && npm test
+
+# The backoffice's scenarios, features/backoffice/, over the service doubles (playwright-bdd).
+backoffice-features:
+    cd services/backoffice && npm run features
+
+# axe on every screen of the backoffice, dark and light (SC-008).
+backoffice-a11y:
+    cd services/backoffice && npm run a11y
+
+# The backoffice on this machine behind ankka's own proxy; the brand's services are found as the local
+# console finds them, or named: `just backoffice-run --service players=http://127.0.0.1:9002`.
+backoffice-run +args="":
+    cd services/backoffice && ankka local web {{args}} -- npm run dev
+
+# Copy the contract's published files the page and its server read (the permissions, the role matrix,
+# the currency table) into src/shared/generated; CI fails when the copy differs.
+backoffice-contract:
+    mkdir -p services/backoffice/src/shared/generated
+    cp contract/schemas/access/operator-permissions.v1.json contract/schemas/money/currencies.v1.json services/backoffice/src/shared/generated/
+
+# backoffice-state's integration kit over Postgres and a Keycloak container (Docker).
+backoffice-state-it:
+    sbt contract/publishLocal
+    cd services/backoffice-state && sbt -Dit=true "testOnly io.eitheror.casino.backoffice.it.*"
+
+# Seed a brand on dev-kind through its own routes: 10,000 players, 1,000 rewards, 5,000 withdrawal
+# requests, amounts in JPY, EUR and KWD (SC-005, SC-007).
+backoffice-seed brand="goldvibe":
+    cd services/backoffice && node tests/it/seed.ts {{brand}}
+
+# The backoffice's checks against a seeded brand on dev-kind (quickstart §6).
+backoffice-it brand="goldvibe":
+    cd services/backoffice && BACKOFFICE_BRAND={{brand}} npx vitest run --dir tests/it
+
+# Record the original's backoffice screens, one capture per screen per role (research R19). The
+# original runs on its own kind cluster; see tests/original/backoffice-screens/README.md.
+backoffice-record-original:
+    cd tests/original/backoffice-screens && npx playwright test
