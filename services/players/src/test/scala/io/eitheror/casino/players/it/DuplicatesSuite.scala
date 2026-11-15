@@ -77,6 +77,33 @@ class DuplicatesSuite extends munit.FunSuite with LogCapturing with io.eitheror.
     assert(Seq(c, d).forall(id => player(id).fraud.nonEmpty))
   }
 
+  test("the open cases oldest first, paged with page and pageSize, each answer with its total (spec 030 P11)") {
+    import io.eitheror.casino.players.fraud.OpenCase
+    val n = unique
+    // Opened long before any other test's case, so they are the first open ones.
+    val at = (d: Int) => java.time.Instant.parse(s"2000-01-0${d}T00:00:00Z")
+    val ids = Vector(3, 1, 2).map { d =>
+      val id = s"fc-$n-$d"
+      kit.components.forEventSourcedEntity(EntityId(id)).call(FraudCaseEntity.open).invoke(OpenCase(Set(s"p-$n-$d"), Set("device"), at(d))): Unit
+      d -> id
+    }.toMap
+    def cases(query: String) = op("GET", s"/fraud-cases?$query").json
+    def idsOf(j: com.fasterxml.jackson.databind.JsonNode) = (0 until j.get("cases").size).map(i => j.get("cases").get(i).get("caseId").asText).toVector
+    val first = kit.eventually("the three open", 10.seconds)(Some(cases("status=OPEN&page=1&pageSize=3")).filter(j => idsOf(j) == Vector(ids(1), ids(2), ids(3))))
+    assertEquals((first.get("page").asInt, first.get("pageSize").asInt), (1, 3))
+    val total = first.get("total").asLong
+    assert(total >= 3L, first.toString)
+    assertEquals(idsOf(cases("status=OPEN&page=2&pageSize=1")), Vector(ids(2)))
+    val whole = cases("status=OPEN")
+    assertEquals((idsOf(whole).take(3), whole.get("total").asLong, whole.has("page")), (Vector(ids(1), ids(2), ids(3)), idsOf(whole).size.toLong, false))
+    assertEquals(cases("status=OPEN&pageSize=500").get("pageSize").asInt, 25)
+    assertEquals(idsOf(cases(s"status=OPEN&page=${total + 1}&pageSize=1")), Vector.empty)
+    // Every status at once stays newest first, so these, the oldest of all, are not on its first page of three.
+    val all = cases("page=1&pageSize=3")
+    assert(all.get("total").asLong >= total, all.toString)
+    if all.get("total").asLong > 3 then assert(!idsOf(all).contains(ids(1)), all.toString)
+  }
+
   test("detection off, or no names, date of birth or fingerprint: nothing compared, no case") {
     config(_.copy(multiAccountDetection = false))
     try
@@ -168,8 +195,13 @@ class DuplicatesSuite extends munit.FunSuite with LogCapturing with io.eitheror.
     val a = registered(identity(s"Di$n", "Rae")*)
     val b = registered(identity(s"Di$n", "Rae")*)
     val caseId = RegistrationWorkflow.caseOf(b)
-    kit.eventually("open listed", 10.seconds)(Option(op("GET", "/fraud-cases?status=OPEN").json.get("cases")).filter(cs =>
-      (0 until cs.size).exists(i => cs.get(i).get("caseId").asText == caseId)))
+    // The open cases are oldest first (spec 030 P11), so the newest is on the last page.
+    kit.eventually("open listed", 10.seconds) {
+      val total = op("GET", "/fraud-cases?status=OPEN&pageSize=1").json.get("total").asLong
+      val last  = math.max(1L, (total + 199) / 200)
+      Option(op("GET", s"/fraud-cases?status=OPEN&pageSize=200&page=$last").json.get("cases")).filter(cs =>
+        (0 until cs.size).exists(i => cs.get(i).get("caseId").asText == caseId))
+    }
     val r = op("PATCH", s"/fraud-cases/$caseId/review")
     assertEquals((r.status, r.str("status"), r.str("reviewedBy")), (200, "REVIEWED", "op-4"))
     assert(r.str("reviewedAt").nonEmpty)

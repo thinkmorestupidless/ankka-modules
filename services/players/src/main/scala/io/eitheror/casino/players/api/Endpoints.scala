@@ -269,7 +269,7 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
   post(s"$P/clear-no-deposit-block") { (id: String) => status.clearNoDepositBlock(principal, id) }
   }
   withAcl(may("fraud.review")) {
-  get("/fraud-cases") { () => FraudRoutes(ctx).cases(query.raw("status")) }
+  get("/fraud-cases") { () => FraudRoutes(ctx).cases(query.raw("status"), query.raw("page"), query.raw("pageSize")) }
   }
   withAcl(may("fraud.review")) {
   patch("/fraud-cases/{caseId}/review") { (id: String) => FraudRoutes(ctx).review(principal, id) }
