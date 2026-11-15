@@ -6,7 +6,7 @@ import com.thinkmorestupidless.ankka.core.Codecs
 import com.thinkmorestupidless.ankka.http.*
 import com.thinkmorestupidless.ankka.runtime.ViewClient
 import com.thinkmorestupidless.ankka.sdk.ComponentClient
-import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.access.{RoleBags, Routes}
 import io.eitheror.casino.contract.money.{Currency, Key}
 import io.eitheror.casino.wallet.config.{BrandConfig, BrandConfigEntity, SetTurnoverTerms}
 import io.eitheror.casino.wallet.entity.*
@@ -80,17 +80,21 @@ private[api] object Major:
       case _ => Left(s"the amount '$text' is not an amount of ${currency.code}")
 
 /**
- * The backoffice (`Routes.operator(slug)`: a staff token whose realm roles name this brand): the
- * adjustment with its personal reason (FR-026, FR-033), the turnover terms and override (FR-004a),
- * and the reads, in major units.
+ * The backoffice: a staff token of this brand whose roles' bags hold the route's permission (spec 030
+ * amendment W1, `Routes.operatorMay` over the brand's roles as `bags` last read them): the adjustment
+ * with its personal reason (FR-026, FR-033), the turnover terms and override (FR-004a), and the reads,
+ * in major units.
  */
 final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: String,
-    authenticate: => Acl = Oidc.authenticate(), clock: () => Instant = () => Instant.now())
+    authenticate: => Acl = Oidc.authenticate(), clock: () => Instant = () => Instant.now(), bags: RoleBags)
     extends HttpEndpoint(s"/v1/casino/backoffice/$brand"):
   import Major.given
   import ServiceEndpoint.given
 
-  val acl: Acl = Routes.operator(brand, authenticate)
+  private def may(permission: String): Acl = Routes.operatorMay(brand, permission, bags, authenticate)
+
+  // every route names its own permission; this is never reached
+  val acl: Acl = Acl.DenyAll
 
   private val transactions = views.forView(TransactionsView)
   private val lifetime     = views.forView(LifetimeTotalsView)
@@ -99,6 +103,7 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
   private def checked(currency: String)(answer: Currency => Respond[Bytes]): Respond[Bytes] =
     Currency.from(currency).fold(m => Wire.refusal("INVALID_REQUEST", m), answer)
 
+  withAcl(may("adjustment.make")) {
   postBody("/wallets/{player}/{currency}/adjustments") { (player: String, currency: String, r: OperatorAdjustRequest) =>
     checked(currency) { c =>
       (Key.from(r.key), Major.parse(r.amount, c)) match
@@ -111,7 +116,9 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
           else Wire.outcome(o, currency)
     }
   }
+  }
 
+  withAcl(may("turnover.override")) {
   putBody("/wallets/{player}/{currency}/turnover-override") { (player: String, currency: String, r: TurnoverOverrideRequest) =>
     checked(currency) { c =>
       val terms = r.multiplier.map(m => TurnoverTerms(m, r.definition.getOrElse("gross_wagered")))
@@ -121,24 +128,33 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
         Wire.json(200, Major.balance(wallet(player, currency).call(WalletEntity.balance).invoke(), c))
     }
   }
+  }
 
+  withAcl(may("wallet.read")) {
   get("/wallets/{player}/{currency}/balance") { (player: String, currency: String) =>
     checked(currency)(c => Wire.json(200, Major.balance(wallet(player, currency).call(WalletEntity.balance).invoke(), c)))
   }
+  }
 
+  withAcl(may("wallet.read")) {
   get("/wallets/{player}/{currency}/restricted-funds") { (player: String, currency: String) =>
     checked(currency)(_ => Wire.json(200, wallet(player, currency).call(WalletEntity.restrictedFundsStatus).invoke()))
   }
+  }
 
+  withAcl(may("wallet.read")) {
   get("/wallets/{player}/{currency}/transactions") { (player: String, currency: String) =>
     checked(currency)(c => Wire.json(200, Major.transactions(TransactionsQuery.page(transactions, s"$player/$currency",
       query.optional[String]("type"), query.optional[String]("walletType"), query.optional[Long]("from"), query.optional[Long]("to"),
       query.optional[Int]("page").getOrElse(0), query.optional[Int]("pageSize").getOrElse(50)), c)))
   }
+  }
 
+  withAcl(may("wallet.read")) {
   get("/wallets/{player}/{currency}/lifetime-totals") { (player: String, currency: String) =>
     val t = lifetime.get(s"$player/$currency").getOrElse(LifetimeTotals(s"$player/$currency", 0L, 0L, 0L))
     checked(currency)(c => Wire.json(200, MajorLifetime(Wire.major(t.deposited, c), Wire.major(t.wagered, c), Wire.major(t.won, c))))
+  }
   }
 
   // ── spec 022: non-player accounts (FR-009, FR-012) ────────────────────────
@@ -150,6 +166,7 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
     if !io.eitheror.casino.wallet.accounts.AccountState.Kinds(kind) then Wire.refusal("INVALID_REQUEST", s"an account is pool or clearing, not '$kind'")
     else checked(currency)(answer)
 
+  withAcl(may("adjustment.make")) {
   postBody("/accounts/{kind}/{name}/adjustments") { (kind: String, name: String, r: OperatorAccountAdjustRequest) =>
     accountChecked(kind, r.currency) { c =>
       (Key.from(r.key), Major.parse(r.amount, c)) match
@@ -163,7 +180,9 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
           else Wire.json(200, Major.accountBalance(acc.call(io.eitheror.casino.wallet.accounts.AccountEntity.balance).invoke(), c, o.transactionId))
     }
   }
+  }
 
+  withAcl(may("wallet.read")) {
   get("/accounts/{kind}/{name}/balance") { (kind: String, name: String) =>
     val currency = query.required[String]("currency")
     accountChecked(kind, currency) { c =>
@@ -172,15 +191,20 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
       else Wire.json(200, Major.accountBalance(b, c))
     }
   }
+  }
 
+  withAcl(may("config.brand")) {
   putBody("/wallet-config/turnover") { (r: TurnoverTermsRequest) =>
     if r.multiplier < 0 then Wire.refusal("INVALID_REQUEST", "a turnover multiplier is a whole, non-negative number")
     else Wire.json(200, client.forKeyValueEntity(BrandConfigEntity.Id).call(BrandConfigEntity.setTurnoverTerms)
       .invoke(SetTurnoverTerms(TurnoverTerms(r.multiplier, r.definition), principal.subject, clock())))
   }
+  }
 
+  withAcl(may("wallet.read")) {
   get("/wallet-config") { () =>
     Wire.json(200, client.forKeyValueEntity(BrandConfigEntity.Id).call(BrandConfigEntity.get).invoke())
+  }
   }
 
 /**

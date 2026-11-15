@@ -77,7 +77,7 @@ Each task: replace `Routes.operator`/`operatorHolding` and handler role sets wit
 `Routes.operatorMay(slug, permission)` per route (FR-008), so that no role name is left in the service (`withAcl` where an endpoint mixes actions); start `RoleBags` with the service's own client of `players`' `roles` route and show in the service's status when the roles were last read; bind the service's
 `features/<area>/operator-roles.feature` in its `GherkinSuite`, failing first; one line in its spec.
 
-- [ ] T017 [P] M in `svc/wallet/` (W1): `adjustment.make`, `turnover.override`, `wallet.read`, `config.brand` in `api/AudienceEndpoints.scala`; amends spec 002
+- [X] T017 [P] M in `svc/wallet/` (W1): `adjustment.make`, `turnover.override`, `wallet.read`, `config.brand` in `api/AudienceEndpoints.scala`; amends spec 002
 - [ ] T018 [P] M in `svc/payouts/` (Y1): `withdrawal.read`, `withdrawal.review`, `config.brand` in the ACLs of `api/OperatorEndpoint.scala`, `PlayerEndpoint.scala`, `ConfigEndpoint.scala`; remove `FinanceRoles` from `api/Answers.scala`; amends spec 007
 - [ ] T019 [P] M in `svc/players/` (P1): the players rows of contracts/roles.md per route in `api/Endpoints.scala` and the `Operator*Routes`; remove `BlockRoles`; amends spec 008
 - [ ] T020 [P] M in `svc/kyc/` (K1): `identity.read` on `GET /{p}` without documents, `identity.review` elsewhere, `config.brand` on policy, in `api/OperatorEndpoint.scala`; remove `ComplianceRoles`; amends spec 009

@@ -872,3 +872,7 @@ amount only, that is a divergence of this spec to raise.
   keeps no loss sums yet. It should keep them as it keeps `recentDeposits`, from settled rounds, and answer
   them to spec 003's bet workflow. Until it does, a player with a loss limit is refused every bet
   (`unavailable`, failing closed).
+
+## Amended by 030
+
+- W1 (spec 030 contracts/amendments.md, T017): every backoffice route requires one permission (`Routes.operatorMay`), decided from the brand's roles the wallet reads from `players` every 10 seconds: `wallet.read` for the reads and the brand's wagering settings, `adjustment.make` for an adjustment (a player's or an account's), `turnover.override` for a player's turnover, `config.brand` for changing the wagering settings (`features/wallet/operator-roles.feature`).
