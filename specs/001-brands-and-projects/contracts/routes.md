@@ -31,7 +31,7 @@
 |---|---|---|---|
 | public | `Routes.public` = `Acl.AllowAll`; the handler verifies the provider's signature or the merchant key and refuses otherwise | the internet | `401 signature_invalid` / `401 merchant_key_invalid` |
 | player | `Routes.player(slug)` = `Oidc.authenticate()` on issuer `player`; principal's issuer must be `.../realms/casino-<slug>` | a player of this brand | `401 unauthenticated`; `403 wrong_brand` naming the slug when the realm is another brand's |
-| operator | `Routes.operator(slug)` = issuer `staff`; realm role `brand_<slug>` or `platform_admin`; roles only, never a client-stamped claim (decision 0045) | an operator whose roles name the brand | `403 brand_not_in_roles` |
+| operator | `Routes.operatorMay(slug, permission)` = `Routes.operator(slug)` (issuer `staff`; realm role `brand_<slug>` or `platform_admin`; roles only, never a client-stamped claim, decision 0045) and then one permission per route, held by the bag of one of the token's roles as the brand's `players` keeps them (amended by spec 030 contracts/roles.md) | an operator whose roles name the brand and carry the permission | `403 brand_not_in_roles`; `403 forbidden: the <permission> permission is needed`; `503` until the roles are first read |
 | affiliate | `Routes.affiliate` = issuer `staff`, realm role `affiliate` | an affiliate (programme routes only) | `403 not_affiliate` |
 | partner | `Routes.partner(slug)` = issuer `staff`, realm role `partner_<slug>` (spec 016 FR-015) | a partner's client for this brand | `403 not_partner` |
 | service | `Routes.service(route)` = `Acl.allowCallers(Callers.anyInProject, <the route's grantees>)` | a service of this project; for a granted route, the shared services `contracts/grants.md` names for it | `403` |
