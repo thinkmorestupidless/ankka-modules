@@ -5,7 +5,6 @@ import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.facts.{AuditRecord, PlatformAudit}
 import io.eitheror.casino.contract.personal.Personal
 import io.eitheror.casino.kyc.Json
-import io.eitheror.casino.kyc.api.OperatorEndpoint
 import io.eitheror.casino.kyc.record.{KycRecord, ProfileChanged, ProfileField}
 
 import java.time.LocalDate
@@ -40,15 +39,23 @@ class OperatorSuite extends munit.FunSuite with LogCapturing with io.eitheror.ca
 
   private def changed(r: AuditRecord, field: String) = r.changes.find(_.field == field).flatMap(_.after)
 
-  test("each compliance role is admitted; any other role of the brand is forbidden; a player's token is refused"):
+  test("identity.review is shown the documents, identity.read alone the status without them; a payments role and a player are refused"):
     submit("identity_front")
-    OperatorEndpoint.ComplianceRoles.foreach { role =>
-      val r = kit.request("GET", kit.operatorPath(s"/$player"), None, kit.asOperator(s"op-$role", s"brand_${kit.slug},$role"))
+    def read(role: String) = kit.request("GET", kit.operatorPath(s"/$player"), None, kit.asOperator(s"op-$role", s"brand_${kit.slug},$role"))
+    Seq("brand_compliance", "brand_admin", "platform_admin").foreach { role =>
+      val r = read(role)
       assertEquals(r.status, 200, s"$role: ${r.text}")
+      assert(r.text.contains("\"documentId\""), s"$role: ${r.text}")
     }
-    Seq("support_agent", "fraud_analyst", "").foreach { role =>
-      val r = kit.request("GET", kit.operatorPath(s"/$player"), None, kit.asOperator("op-x", s"brand_${kit.slug},$role"))
-      assertEquals((r.status, r.str("error")), (403, "forbidden"), role)
+    Seq("brand_support", "brand_finance").foreach { role =>
+      val r = read(role)
+      assertEquals(r.status, 200, s"$role: ${r.text}")
+      assert(r.json.has("status") && r.json.has("flags"), r.text)
+      assert(!r.text.contains("documentId") && r.json.get("other") == null, s"$role: ${r.text}")
+    }
+    Seq("compliance_officer", "resource_admin", "").foreach { role =>
+      val r = read(role)
+      assert(r.status == 403 && r.text.contains("the identity.read permission is needed"), s"$role: $r")
     }
     assertEquals(kit.request("GET", kit.operatorPath(s"/$player"), None, kit.asPlayer(player)).status, 403)
 

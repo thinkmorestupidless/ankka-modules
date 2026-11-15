@@ -16,6 +16,10 @@ import java.time.Instant
  */
 class ReadsFeatures extends KycFeatures("reads.feature"):
 
+  // spec 030 K3: bound by T070, with the decisions read
+  override protected def ranElsewhere: Map[String, String] = Map(
+    "an operator reads a player's decisions in order, each with who made it" -> "T070 (pending)")
+
   /** The brand's players, one per state, named by the state. */
   private var players: Map[String, String] = Map.empty
   private var read: JsonNode               = null

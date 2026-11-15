@@ -9,7 +9,7 @@ import com.thinkmorestupidless.ankka.core.{EntityId, Metadata}
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, HttpServer, Principal}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.AnkkaTestKit
-import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.access.{OperatorPermissions, RoleBags, Routes}
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.kyc.{Json, KycRuntime, KycService, Settings}
 import io.eitheror.casino.kyc.documents.{S3Store, Store}
@@ -87,9 +87,12 @@ final class Kit(base: Settings = Kit.Base):
   LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).asInstanceOf[Logger].addAppender(log)
 
   private val timers = TimerRuntime(200.millis)
+  /** The brand's roles the operator routes decide from: the role matrix, as a new brand starts. */
+  val roles: RoleBags = RoleBags.fixed(OperatorPermissions.DefaultRoles)
+
   /** The player's routes held to the kept description (spec 031 FR-015); `Held` asserts it after each test. */
   val held = io.eitheror.casino.contract.port.HeldToPlayerRoutes(Kit.description, slug)
-  private val server = held.hold(HttpServer.at("127.0.0.1", 0)(KycService.endpoints(() => Kit.authenticate)*))
+  private val server = held.hold(HttpServer.at("127.0.0.1", 0)(KycService.endpoints(() => Kit.authenticate, bags = Some(_ => roles))*))
   Kit.started.add(this): Unit
 
   val testKit: AnkkaTestKit = AnkkaTestKit.start(
@@ -150,7 +153,7 @@ final class Kit(base: Settings = Kit.Base):
 
   private def gateway = testKit.asCaller(Caller.Gateway)
   def asPlayer(playerId: String): Seq[(String, String)] = Seq(gateway, "Authorization" -> s"Bearer player|$playerId")
-  def asOperator(subject: String = "op-1", roles: String = s"brand_$slug,brand_compliance"): Seq[(String, String)] =
+  def asOperator(subject: String = "op-1", roles: String = s"brand_$slug,brand_admin"): Seq[(String, String)] =
     Seq(gateway, "Authorization" -> s"Bearer staff|$subject|$roles")
   def asService(name: String): Seq[(String, String)] = Seq(testKit.asCaller(Caller.Service("local", name)))
   def asPublic: Seq[(String, String)]                = Seq(gateway)

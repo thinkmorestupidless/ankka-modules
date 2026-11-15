@@ -717,3 +717,7 @@ Every requirement above names its source: the routes and Go capability cited in 
 - The player site's and backoffice's pages: they change base URLs only (spec 001 FR-033).
 - The emails and pushes a review triggers (spec 014); the audit store (spec 018); the player's
   profile fields (spec 008).
+
+## Amended by 030
+
+- K1 (spec 030 contracts/amendments.md, T020): every backoffice route requires one permission (`Routes.operatorMay`), decided from the brand's roles kyc reads from `players` every 10 seconds; no role name is left in kyc (`ComplianceRoles` is gone): `identity.read` for a player's identity status (`GET /{p}`, answered without the documents unless the caller also holds `identity.review`), `identity.review` for the queue, the operator's uploads and confirmations, a document's view, a review, the mode, the status, the required categories, the override, the source of funds and dismissing a flag, `config.brand` for the brand's policy (read, change, licence profile) (`features/kyc/operator-roles.feature`).
