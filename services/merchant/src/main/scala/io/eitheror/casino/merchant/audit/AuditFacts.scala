@@ -49,6 +49,9 @@ object AuditFacts:
     case SubBrandEvent.CredentialSecretsChanged(id, _, actor, at) => Some(Audited("credential secrets changed", actor, at, change("credentialId", id)))
     case SubBrandEvent.CredentialStatusChanged(id, s, actor, at)  => Some(Audited("credential status changed", actor, at, change("credentialId", id) ++ change("status", s)))
     case SubBrandEvent.CredentialDeleted(id, actor, at)       => Some(Audited("credential deleted", actor, at, change("credentialId", id)))
+    case SubBrandEvent.DepositBoundsSet(bounds, actor, at) =>
+      val described = bounds.map(b => s"${b.method}/${b.currency}:${b.minimum.fold("")(_.toString)}..${b.maximum.fold("")(_.toString)}")
+      Some(Audited("deposit bounds set", actor, at, change("depositBounds", described.mkString(","))))
 
   def terminal(e: TerminalEvent): Option[Audited] = e match
     case TerminalEvent.Created(_, gw, scheme, name, _, _, _, _, actor, at) =>

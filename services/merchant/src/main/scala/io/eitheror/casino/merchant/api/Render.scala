@@ -23,6 +23,15 @@ object Render:
     Json.obj("subBrandId" -> r.id, "companyId" -> r.companyId, "holdingId" -> r.holdingId, "name" -> r.name, "type" -> r.subBrandType,
       "status" -> r.status, "brand" -> r.brand, "createdAt" -> r.createdAt.toString)
 
+  /** A sub-brand's deposit bounds (spec 030 H3): each in minor units and as a decimal, and the methods the catalogue knows. */
+  def depositBounds(s: SubBrandState): ObjectNode =
+    def decimal(minor: Long, currency: String) =
+      io.eitheror.casino.contract.money.Currency.from(currency).toOption.map(io.eitheror.casino.contract.money.Amounts.render(minor, _)).getOrElse(minor.toString)
+    Json.obj("subBrandId" -> s.id, "bounds" -> Json.arr(s.depositBounds.map { b =>
+      Json.obj("method" -> b.method, "currency" -> b.currency, "minimumAmountCents" -> b.minimum, "minimumAmount" -> b.minimum.map(decimal(_, b.currency)),
+        "maximumAmountCents" -> b.maximum, "maximumAmount" -> b.maximum.map(decimal(_, b.currency)))
+    }*), "methods" -> io.eitheror.casino.merchant.deposits.DepositBounds.methods)
+
   def orgRow(r: OrgRow, kind: String): ObjectNode =
     val o = Json.obj(s"${kind}Id" -> r.id, "name" -> r.name, "status" -> r.status, "createdAt" -> r.createdAt.toString)
     r.parentId.foreach(p => o.put("holdingId", p))
