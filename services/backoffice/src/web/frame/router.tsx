@@ -11,6 +11,7 @@ import { PreferencesPage } from "../areas/preferences/PreferencesPage.tsx";
 import { TeamPage } from "../areas/team/TeamPage.tsx";
 import { JobsPage } from "../areas/jobs/JobsPage.tsx";
 import { DashboardPage } from "../areas/dashboard/DashboardPage.tsx";
+import { ReportPage } from "../areas/reports/ReportsPage.tsx";
 import { IdentityQueuePage } from "../areas/identity/queue.tsx";
 import { IdentityTab, ProtectionTab } from "../areas/players/tabs.tsx";
 import { ProtectionCasesPage } from "../areas/protection/cases.tsx";
@@ -35,8 +36,8 @@ export const Pages: [string, Page][] = [
   ["/protection", () => <ProtectionCasesPage />],
   ["/fraud", page("area.fraud")],
   ["/dashboard", () => <DashboardPage />],
-  ["/reports", page("area.reports")],
-  ["/reports/$report", page("area.reports")],
+  ["/reports", () => <ReportPage />],
+  ["/reports/$report", () => <ReportPage />],
   ["/configuration", page("area.configuration")],
   ["/configuration/modules", ModulesPage],
   ["/configuration/$area", page("area.configuration")],
