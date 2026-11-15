@@ -49,6 +49,8 @@ jobs:
       exchange: ${{ steps.filter.outputs.exchange }}
       player-sdk: ${{ steps.filter.outputs.player-sdk }}
       player-site: ${{ steps.filter.outputs.player-site }}
+      backoffice: ${{ steps.filter.outputs.backoffice }}
+      backoffice-state: ${{ steps.filter.outputs.backoffice-state }}
     steps:
       - uses: dorny/paths-filter@v3
         if: github.event_name == 'pull_request'
@@ -188,6 +190,15 @@ jobs:
             player-site:
               - *player-sdk
               - services/player-site/**
+            backoffice:
+              - contract/schemas/**
+              - services/backoffice/**
+              - features/backoffice/**
+              - GLOSSARY.md
+              - .github/workflows/ci.yml
+            backoffice-state:
+              - *build
+              - services/backoffice-state/**
 
   check:
     runs-on: ubuntu-latest
@@ -739,3 +750,52 @@ jobs:
       - name: reference-site.feature and the second appearance
         run: npm run features -w services/player-site
 
+  # The backoffice's page and server (spec 030): Node 24, no sbt. It reads the contract only through
+  # the files the contract publishes, copied into src/shared/generated; the copy must be the contract's.
+  backoffice:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.backoffice == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/backoffice
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: services/backoffice/package-lock.json
+      - run: npm ci
+      - name: The contract's files, as the contract publishes them
+        run: |
+          mkdir -p src/shared/generated
+          cp ../../contract/schemas/access/operator-permissions.v1.json ../../contract/schemas/money/currencies.v1.json src/shared/generated/
+          git diff --exit-code -- src/shared/generated
+      - run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - run: npx playwright install --with-deps chromium
+      - name: The scenarios of features/backoffice over the service doubles
+        run: npm run features
+      - name: axe on every screen, dark and light (SC-008)
+        run: npm run a11y
+
+  # backoffice-state (spec 030): its own sbt build against the contract published from this commit.
+  backoffice-state:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.backoffice-state == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - name: Publish the contract locally
+        run: sbt contract/publishLocal
+      - name: backoffice-state's suites
+        working-directory: services/backoffice-state
+        run: sbt test

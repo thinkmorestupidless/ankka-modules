@@ -46,7 +46,7 @@ every story's access depends on it.
 - [X] T003 [P] Create `services/backoffice-state/` with `ankka init` (Scala): `build.sbt` on ankka 0.16.3 with `ankka-auth-oidc` and the contract, `service.json`, `README.md`, `st/BackofficeStateService.scala`, `st/Settings.scala`
 - [X] T004 [P] Add the dependencies of research R7 to `services/backoffice/package.json` and lock them: hono, @tanstack/react-router, @tanstack/react-query, tailwindcss 4, radix-ui, recharts, d3-geo, intl-messageformat, zod; dev: vitest, @testing-library/react, playwright-bdd, @axe-core/playwright
 - [X] T005 [P] Add recipes to `Justfile`: `backoffice-test`, `backoffice-features`, `backoffice-a11y`, `backoffice-run` (`ankka local web`), `backoffice-contract` (copy the published files), `backoffice-state-it`, `backoffice-seed`, `backoffice-it`, `backoffice-record-original`
-- [ ] T006 [P] Add to `.github/workflows/ci.yml` a `backoffice` paths filter and a Node 24 job (typecheck, unit, features, a11y, the contract-copy diff), and a `backoffice-state` sbt job like the other services'; make `.github/workflows/release.yml` build an image for a service directory with a `package.json` (amendment D4)
+- [X] T006 [P] Add to `.github/workflows/ci.yml` a `backoffice` paths filter and a Node 24 job (typecheck, unit, features, a11y, the contract-copy diff), and a `backoffice-state` sbt job like the other services'; make `.github/workflows/release.yml` build an image for a service directory with a `package.json` (amendment D4)
 
 ---
 
