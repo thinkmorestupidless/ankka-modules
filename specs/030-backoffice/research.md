@@ -124,3 +124,235 @@ online; configure the brand; run the affiliate programme.
 
 Four images supplied by the product owner on 2026-11-15 (dark wallet and trading dashboards; kept
 outside the repository). *Visual direction* in the spec states what was taken from them.
+
+---
+
+# Plan research: decisions
+
+Made by `/speckit-plan` on 2026-11-15, on `origin/main` at `c07af6d6`, ankka 0.16.3. Each is a
+decision, its reason, and the alternative that was close. The route check behind R9 to R14 read the
+endpoint code of all 17 services with an operator route; its results are in
+[contracts/amendments.md](contracts/amendments.md) and [parity.md](parity.md).
+
+## R1. Two services in the `backoffice` project
+
+- **Decision**: `backoffice` (web-hosted, TypeScript: the page and its server) and
+  `backoffice-state` (Scala: operator sessions and preferences).
+- **Why**: a web-hosted service has no database and nothing it holds survives its instances
+  (ankka web hosting). FR-003 needs the sign-in held on the server across instances and rollouts,
+  and FR-038 needs preferences kept; constitution VI puts anything that keeps state in Scala.
+- **Alternative**: the sign-in sealed into a cookie, no session store. Rejected: a Keycloak access
+  and refresh token with a brand operator's roles is over one cookie's 4 KB, refresh-token rotation
+  races between instances, and "sign out ends both" (FR-003) cannot be enforced for a stolen cookie.
+
+## R2. The sign-in is exchanged and refreshed by `backoffice-state`
+
+- **Decision**: `backoffice-state` holds the realm's confidential client secret. It makes the
+  authorisation-code exchange (with PKCE), keeps the tokens in a `Session` entity, and answers
+  `POST /sessions/{id}/token` with an access token that has at least 30 seconds left, refreshing it
+  itself, one refresh at a time per session. The page's server holds only the session id it reads
+  from an `HttpOnly`, `Secure`, `SameSite=Lax`, `__Host-` cookie, and caches a token for no longer
+  than its remaining life.
+- **Why**: one writer per session makes rotation safe; the secret and the tokens never reach the
+  TypeScript process's disk or the browser.
+- **Alternative**: the page's server does the exchange and stores tokens through a plain key value
+  route. Rejected: two instances refreshing at once lose the session.
+- **Session entity**: tokens are credentials, not player data; the operator's subject, name and
+  email are `Personal` under `operator/<subject>` (constitution V) and erased by the handler.
+
+## R3. Calls are made by the page's server at the calling address, never under a mount
+
+- **Decision**: the descriptor has no mounts. Every call goes
+  `$ANKKA_SERVICES_URL/<service>.<project>/<path>` with `Authorization: Bearer <operator's token>`.
+- **Why**: a mount is honoured only within its project and arrives as the internet; the services
+  are in other projects (ankka web hosting reference). The proxy passes `Authorization` as given
+  (it removes only `X-Ankka-*` and hop-by-hop headers).
+- **To verify first (V1)**: that a brand service's `Oidc.authenticate()` route answers a call from
+  `Service(backoffice, backoffice)` carrying a valid operator token, with no grant. The contract's
+  `Routes.operator` refines only the token, and ankka's cross-project rule is written for
+  `Callers.granted` routes, so it should; the documentation does not say so in terms. If the
+  runtime refuses the connection, it is an ankka request (spec *Assumptions*) and the build stops
+  at T001. No grant is made: constitution III.
+
+## R4. One route table admits what the browser may ask for
+
+- **Decision**: the page's server serves `/api/s/<service>/<brand or scope>/…` only for the method
+  and path templates in one table, `routes.ts`, from which the typed client is also made. Composite
+  routes exist only where the backoffice combines sources: worklist, timeline, search, adjustment
+  batch, document view, events.
+- **Why**: about 300 operator routes; a hand-written handler each would be the drift the original
+  had. The table keeps the browser from naming a service or path the backoffice never meant to
+  reach (FR-031's "fetches no address it is given", generalised), while each owning service still
+  decides admission.
+- **Alternative**: a GraphQL layer. Rejected: a second schema to keep true to seventeen services.
+
+## R5. The role matrix is data the contract publishes
+
+- **Decision**: `contract.access.OperatorActions`: every operator action, the roles that admit it,
+  and the service and route it guards. `Routes.operatorMay(slug, action)` builds the ACL from it;
+  `sbt contract/schemas` also writes `contract/schemas/access/operator-actions.v1.json` and
+  `contract/schemas/money/currencies.v1.json`. The page's build copies both; CI fails when the
+  copies differ.
+- **Why**: FR-005 (read, not written again) and SC-006. Today each service holds its own role set
+  (`payouts` `FinanceRoles`, `kyc` `ComplianceRoles`, reporting's `Access`), checked partly in ACLs
+  and partly in handlers.
+- **Matrix**: [contracts/roles.md](contracts/roles.md). Where FR-008 is silent the rule used is: an
+  action that moves money needs `brand_finance`; one that changes a player's standing, identity or
+  protection needs `brand_compliance`; one that changes what the brand is needs `brand_admin`;
+  `brand_support` reads and writes notes and messages only.
+- **Payments roles**: no longer admitted to a casino action (clarified 2026-11-15). They keep
+  `Routes.paymentsOperator` and nothing else.
+
+## R6. The currency table is the contract's, published
+
+- **Decision**: minor-unit counts come from `currencies.v1.json`, written from the same
+  `Amounts.exponent` the services use. The page formats with `Intl.NumberFormat` given those
+  digits explicitly.
+- **Why**: Node's ICU and the JDK disagree on some currencies' digits; FR-013 and SC-007 need one
+  rule.
+
+## R7. Stack
+
+- **Decision**: Node 24; TypeScript 5; the template of `ankka init --language web` (React 19,
+  Vite); Hono for the server's routes; TanStack Router and Query; Tailwind 4 with design tokens as
+  CSS variables; Radix primitives; Recharts; `d3-geo` with a bundled world map; `intl-messageformat`
+  over one typed catalogue (FR-040a); Zod at the server's edge; vitest, Testing Library,
+  `playwright-bdd` and `@axe-core/playwright`.
+- **Why**: the template is ankka's; React, Vite, Tailwind, Radix and Recharts are what the
+  original's operators' screens are built in, so the recorded *before* is comparable. Query keeps
+  the rows already shown while it refetches (FR-012) and keeps list state for return (FR-010).
+- **Alternative**: a server-rendered framework. Rejected: the process must stay a thin HTTP program
+  beside ankka's proxy, and Next's server would become a second place for rules.
+
+## R8. Deploying a web-hosted service through the modules tool
+
+- **Decision**: `Layout.SharedProjects` gains `backoffice -> (backoffice, backoffice-state)`; a
+  shared manifest's service may carry `hosting: "web"`, `processPort` and `callers`, rendered into
+  the descriptor as given; `backoffice` is exposed, `backoffice-state` admits only
+  `Callers.service("backoffice")`. `Realm.ensure` gains an upsert for one confidential client
+  (`backoffice`, audience `eitheror-casino`) and the role `brand_support`. `release.yml` builds an
+  image for a service directory with a `package.json` as well as a `build.sbt`.
+- **Why**: the tool renders `Embedded` or `Process` only, imports the realm only when it is
+  missing, and CI enumerates `services/*/build.sbt`.
+
+## R9. Worklist sources
+
+- **Decision**: the worklist is the page's server asking each source's own queue, in parallel,
+  with a 3 second bound each; a source that fails or is late is `unavailable` (FR-017). Kinds and
+  sources are in [contracts/sources.md](contracts/sources.md). Counts come from each source's
+  `total`.
+- **Gaps closed by amendment**: a count for "payments needing review" (payouts), a brand-wide list
+  of open cases (responsible-gambling), paging and totals on the identity queue, the fraud cases
+  and the unacknowledged calls.
+- **"Undelivered facts"** is the glossary's term: attribution's `attribution-webhooks/undelivered`.
+  The payments project's undelivered outcomes are their own kind (FR-016).
+
+## R10. Timeline sources
+
+- **Decision**: the page's server merges, by time, the player's lines from `players` (activity:
+  money, rounds, rewards, account, sessions; notes and messages), `payouts` (withdrawal history
+  with states), `kyc` (decisions), `responsible-gambling` (the player's history) and `wallet`
+  (adjustments with their reason and cause). Each source is read by period and cursor; the merge
+  is a k-way merge that never emits past the earliest unread source's cursor. A source that cannot
+  be read is named with the period missing (FR-022).
+- **Why**: `players` `activity` merges five topics and has no identity, limits or withdrawal state
+  lines; one more consumer in `players` would hide which source is late. Reading the owners keeps
+  the gap visible and each owner's admission in force.
+- **Gaps closed by amendment**: period and cursor on `activity`; an operator route for a player's
+  responsible-gambling history; a decisions list in kyc; actor names (R12).
+
+## R11. One search
+
+- **Decision**: the server classifies what was pasted by shape (a UUID, an email, a provider
+  round or transaction id, a payment reference, a document reference, free text) and asks only the
+  resolvers that shape can match, in parallel; every match is listed by kind (FR-019). Free text
+  goes only to `players` `search`.
+- **Gaps closed by amendment**: game-provider resolves a round id without its provider, and a
+  transaction id; merchant resolves a payment reference; rewards' reward read is admitted to
+  readers.
+
+## R12. Actors by name
+
+- **Decision**: services answer the operator's subject id; the server resolves names through
+  merchant's `/v1/operators` list (cached five minutes) and shows the id where the reader may not
+  list operators.
+- **Why**: FR-021 ("operator by name") without a second copy of operators.
+
+## R13. Freshness
+
+- **Decision**: every service with a view-backed operator list answers `GET …/status` in
+  reporting's shape, `{views: [{name, asOf, rebuilding}]}`; the page asks it beside each list and
+  shows "as of" and *provisional* (FR-011). `asOf` is the time of the last change the view applied.
+- **To verify (V2)**: that ankka 0.16.3 lets a service read a view's last applied time. If not, the
+  view's own consumer records it in a key value entity; the route shape does not change.
+
+## R14. Lists
+
+- **Decision**: every operator list is paged by its owner with `page`, `pageSize` (max 200) and
+  `total`, in the order FR-009 names; the in-memory paging over at most 10,000 rows in `players`
+  becomes a view query. Amended lists are named in contracts/amendments.md.
+- **Why**: SC-005 seeds 10,000 players and 5,000 withdrawal requests; six lists are capped or
+  unpaged today.
+
+## R15. Adjustment batch
+
+- **Decision**: the page sends the rows; the server makes one wallet adjustment per row with the
+  key `batch/<batch id>/<row number>`, eight at a time, streaming each row's outcome. The batch id
+  is the SHA-256 of the reason, the cause and the rows, so the same list repeated is the same batch
+  and the wallet answers each row's first outcome (constitution II). At most 500 rows.
+- **Why**: FR-028 and the spec's assumption (no state beyond the session).
+
+## R16. Jobs and notices
+
+- **Decision**: exports stay the owners' jobs (reporting's documents, players' exports). The page
+  keeps the references it started in the operator's preferences (`jobs`, at most 20, no player
+  data: a reference and a kind), polls them, and shows the result wherever the operator is. Online
+  notices are engagement's `agent-stream`, relayed by the server as server-sent events on
+  `/api/events` (the proxy streams event by event).
+
+## R17. Brands and modules
+
+- **Decision**: the brands the installation runs are an environment value of `backoffice`,
+  rendered by the modules tool from `brands/*/values.json`; an operator sees those their roles name.
+  A brand's enabled modules come from `players`' `modules` route; a screen whose module is off is
+  absent.
+
+## R18. Tests
+
+- **Decision**: three levels, as the services have. Unit (vitest): money, dates, the matrix, the
+  merge, the classifier, the route table. Bound features (`playwright-bdd` over
+  `features/backoffice/`): the page and its server against a scripted services double at
+  `ANKKA_SERVICES_URL`, one double per owner, answering from fixtures recorded from the real
+  services' suites. Integration (`just backoffice-it`): a brand on the local installation
+  (`dev-kind`), seeded, with the real services, running the quickstart's scenarios and SC-005 to
+  SC-008.
+- **Role scenarios** in `access.feature` that state what a service admits are also bound in that
+  service's own `GherkinSuite`: the service is where the rule holds.
+
+## R19. Recording the original (constitution, *Workflow*)
+
+- **Decision**: no ankka-port recording is replayed: this spec replaces a frontend, and each
+  owning service's recordings already hold its routes. What is recorded is the original's screens,
+  one capture per screen per role, by a Playwright script against the original on kind, kept under
+  `tests/original/backoffice-screens/` (images outside git; the index and script in it), as the
+  *before* for the design review at the end of each phase.
+
+## R20. Performance
+
+| Measure | Target | How |
+|---|---|---|
+| Worklist | 2 s p95, never more than 3.5 s | parallel sources, 3 s bound each |
+| Player page, first standing | 1.5 s p95 | five reads in parallel; the timeline loads after |
+| Search | 2 s p95 | resolvers in parallel, 3 s bound |
+| A proxied read | the owner's time plus 30 ms p95 | no body parsing on pass-through |
+| Token for a request | under 5 ms p95 when cached | in-process cache to the token's expiry |
+
+## To verify at task time
+
+| | What | If it does not hold |
+|---|---|---|
+| V1 | an operator route answers the backoffice's call with the operator's token, across projects | an ankka request; the build stops |
+| V2 | a view's last applied time is readable | the view's consumer records it |
+| V3 | `ankka local web` accepts `--service name.project=url` for another project's service | the double listens under the dotted name |
+| V4 | Keycloak issues the `backoffice` client's token with audience `eitheror-casino` and the realm roles | a mapper is added in `Realm` |
+| V5 | the proxy streams server-sent events from the process unbuffered through the gateway | long polling on `/api/events` |
