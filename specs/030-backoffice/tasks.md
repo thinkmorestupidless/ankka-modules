@@ -96,7 +96,7 @@ Each task: replace `Routes.operator`/`operatorHolding` and handler role sets wit
 
 ### `backoffice-state`
 
-- [ ] T030 Write `st-test/session/SessionSuite.scala` and `st-test/preferences/PreferencesSuite.scala` first, from data-model.md: one refresh for two concurrent `token` calls near expiry; a refused refresh ends the session; tokens cleared on `Ended`; a preference naming a player or an unknown key is refused; at most 20 jobs
+- [X] T030 Write `st-test/session/SessionSuite.scala` and `st-test/preferences/PreferencesSuite.scala` first, from data-model.md: one refresh for two concurrent `token` calls near expiry; a refused refresh ends the session; tokens cleared on `Ended`; a preference naming a player or an unknown key is refused; at most 20 jobs
 - [ ] T031 Implement `st/session/Session.scala` (event sourced), `st/session/RealmClient.scala` (code exchange with PKCE, refresh, revoke), `st/session/SessionsBySubject.scala` and the expiry timer
 - [ ] T032 Implement `st/preferences/Preferences.scala` (key value; FR-038) and `st/Erasure.scala` (the `operator/<subject>` handler)
 - [ ] T033 Implement `st/session/SessionEndpoint.scala` and `st/preferences/PreferencesEndpoint.scala` as contracts/routes.md, each admitting only `Callers.service("backoffice")`; no token in any log or trace
