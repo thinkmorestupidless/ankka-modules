@@ -1,0 +1,7 @@
+{
+  "name": "backoffice",
+  "service": {
+    "image": "backoffice:latest",
+    "hosting": "web"
+  }
+}
