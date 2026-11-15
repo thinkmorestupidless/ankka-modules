@@ -1,8 +1,8 @@
 Feature: Which operators may read and change a player
-  An operator's roles decide each action on a player, from the role matrix the contract holds.
+  An operator's roles decide each action on a player, from the permissions the brand's roles carry; these are the default roles.
 
-  Scenario Outline: each action on a player is admitted to the roles the role matrix names and refused to the others
-    Given operators of the brand holding each of the roles "brand_support", "brand_finance", "brand_compliance" and "brand_admin"
+  Scenario Outline: each action on a player is admitted to the default roles that carry its permission and refused to the others
+    Given operators of the brand holding each of the roles "brand_support", "brand_finance", "brand_compliance" and "brand_admin", each carrying its default permissions
     When each asks for the action "<action>" on a player
     Then the support operator is "<brand_support>"
     And the finance operator is "<brand_finance>"
@@ -26,7 +26,7 @@ Feature: Which operators may read and change a player
   Scenario: an operator holding only a payments role is refused every action on a player
     Given an operator of the brand holding only the payments role "fraud_analyst"
     When they ask for any action on a player
-    Then they are refused, naming a role that would admit them
+    Then they are refused, naming the permission they lack
 
   Scenario: a platform administrator is admitted to every action on a player
     Given an operator holding the role "platform_admin"

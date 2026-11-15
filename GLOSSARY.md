@@ -1497,8 +1497,14 @@ Avoid: bulk adjustment, compensation run
 ### merge tag
 A placeholder in an operator's send, such as the player's first name, that the brand fills from the player's record when the inbox item is previewed and when it is sent.
 
+### permission
+What one operator action on a brand requires: making an adjustment, reviewing a withdrawal request, reading a player. Every operator route of a brand requires exactly one, named by the contract. A sign-in never carries one; it carries roles.
+
+### operator role
+A bag of permissions that a brand keeps and its administrators change while the brand runs; what an operator's sign-in carries. A brand starts with the default roles (`brand_support`, `brand_finance`, `brand_compliance`, `brand_admin`) and may create its own. `platform_admin` carries every permission and is not the brand's to change.
+
 ### role matrix
-The one table of the permissions an operator may hold on a brand, one per action, and of each operator role as a bag of them: held by the contract, opened by each owning part on its own routes, and by the backoffice to decide what to offer. A sign-in carries roles, never permissions. Only `brand_support`, `brand_finance`, `brand_compliance`, `brand_admin` and `platform_admin` appear in it.
+The default roles and the permissions each carries when a brand is first applied: held by the contract, and the starting point a default role is reset to. What a role carries afterwards is the brand's own.
 
 Avoid: permission table, access matrix
 

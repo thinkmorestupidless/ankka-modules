@@ -57,7 +57,7 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
 | 023 | brand | the predictions module: `markets` and `exchange` on ankka-predictions' libraries (built) | Scala |
 | 026 | shared `games` | provider: eitheror's own game provider, ST8's protocol, on the `provider-core` library it shares with 020 (amends 001, 003, 009, 020) | Scala |
 | 027 | brand | the player SDK (`sdk/player`) and the reference player site, the module `player-site` (web-hosted; amends 002, 003, 008, 021) | TypeScript |
-| 030 | shared `backoffice` | the backoffice: every operator capability of the original, reworked from its use; calls the owning services as the signed-in operator (amends the constitution) | TypeScript (web), Scala (preferences) |
+| 030 | brand (the `backoffice` module) | the backoffice, one per brand: every operator capability of the original, reworked from its use; calls the owning services as the signed-in operator; permissions, and roles as bags of them kept by the brand (amends the constitution) | TypeScript (web), Scala (sign-in, preferences) |
 
 ## Working here
 
