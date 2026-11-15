@@ -1,6 +1,7 @@
 package io.eitheror.casino.wallet.entity
 
 import com.thinkmorestupidless.ankka.core.Codecs
+import com.thinkmorestupidless.ankka.core.Serializer
 import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import io.eitheror.casino.wallet.entity.WalletEvent.*
 import io.eitheror.casino.wallet.funding.{Clawback, Record, Status}
@@ -228,6 +229,53 @@ class EntityRulesSuite extends munit.FunSuite with LogCapturing:
     val event  = result.eventOfType[AdminAdjusted]
     assertEquals(io.eitheror.casino.contract.personal.Personal.reveal(event.reason), "refund after the outage, per ticket 4411")
     assertEquals((event.category, event.actorId), ("correction", "op-9"))
+  }
+
+  // ── an adjustment's cause, before and after (spec 030 W2) ───────────────────
+
+  test("W2: an adjustment records its cause, and a repeat under its key answers the first outcome and moves nothing") {
+    val kit = EventSourcedTestKit.of(WalletEntity, "cause/EUR")
+    kit.call(WalletEntity.deposit)(deposit("d-1", 1000, t0))
+    val cause = Some(Cause("round", "r-77"))
+    val first = kit.call(WalletEntity.adjust)(Adjust("a-1", "real", 500, "provider win not paid", "correction", "op-9", t0, cause))
+    assertEquals((first.replyValue.balanceBefore, first.replyValue.balanceAfter, first.replyValue.amount, first.replyValue.cause),
+      (Some(1000L), Some(1500L), Some(500L), cause))
+    assertEquals(first.eventOfType[AdminAdjusted].cause, cause)
+    kit.call(WalletEntity.adjust)(Adjust("a-2", "real", -200, "fix", "correction", "op-9", t0)): Unit
+    val repeat = kit.call(WalletEntity.adjust)(Adjust("a-1", "real", 500, "provider win not paid", "correction", "op-9", t0, cause))
+    assertEquals(repeat.replyValue, first.replyValue)
+    assertEquals(repeat.events, Vector.empty)
+    assertEquals(kit.currentState.realBalance, 1300L)
+    // The same key with another cause is another command: refused, not answered.
+    val reused = kit.call(WalletEntity.adjust)(Adjust("a-1", "real", 500, "provider win not paid", "correction", "op-9", t0, Some(Cause("incident", "inc-1"))))
+    assertEquals(reused.replyValue.code, Some(Refusals.KeyReused))
+  }
+
+  test("W2: an adjustment without a cause keeps the digest it had before W2, so its repeat is still a repeat") {
+    final case class AdjustBeforeW2(key: String, target: String, amount: Long, reason: String, category: String, actorId: String, at: Instant)
+    val before = MoneyCommand.digestOf("adjust", AdjustBeforeW2("a-1", "real", 5, "r", "c", "op", t0))
+    assertEquals(MoneyCommand.digestOf("adjust", Adjust("a-1", "real", 5, "r", "c", "op", t0), Set("cause" -> "None")), before)
+    assertNotEquals(MoneyCommand.digestOf("adjust", Adjust("a-1", "real", 5, "r", "c", "op", t0, Some(Cause("round", "r1"))),
+      Set("cause" -> "None")), before)
+  }
+
+  test("W2: a zero adjustment answers its balance as both before and after, and its cause") {
+    val kit = EventSourcedTestKit.of(WalletEntity, "zero/EUR")
+    kit.call(WalletEntity.deposit)(deposit("d-1", 1000, t0))
+    val o = kit.call(WalletEntity.adjust)(Adjust("a-1", "real", 0, "nothing", "correction", "op", t0, Some(Cause("payment", "pay-1")))).replyValue
+    assertEquals((o.balanceBefore, o.balanceAfter, o.cause), (Some(1000L), Some(1000L), Some(Cause("payment", "pay-1"))))
+  }
+
+  test("W2: an adjustment journalled before W2, with no cause, reads back with none") {
+    val serializer = Serializer.json[WalletEvent]("wallet.event")(using io.eitheror.casino.wallet.WalletCodecs.stored[WalletEvent])
+    val kit = EventSourcedTestKit.of(WalletEntity, "old/EUR")
+    kit.call(WalletEntity.deposit)(deposit("d-1", 1000, t0))
+    val withCause = kit.call(WalletEntity.adjust)(Adjust("a-1", "real", 5, "r", "c", "op", t0, Some(Cause("round", "r1")))).eventOfType[AdminAdjusted]
+    val older     = withCause.copy(cause = None, outcome = withCause.outcome.copy(cause = None))
+    val text      = new String(serializer.toBytes(older), java.nio.charset.StandardCharsets.UTF_8)
+    assert(!text.contains("\"cause\""), text)
+    assertEquals(serializer.fromBytes(serializer.toBytes(older)), older)
+    assertEquals(serializer.fromBytes(serializer.toBytes(withCause)), withCause)
   }
 
   // ── stored types ────────────────────────────────────────────────────────────

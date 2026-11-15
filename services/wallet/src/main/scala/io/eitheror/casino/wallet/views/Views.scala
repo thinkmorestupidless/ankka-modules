@@ -5,7 +5,7 @@ import com.thinkmorestupidless.ankka.sdk.*
 import io.eitheror.casino.contract.personal.Personal
 import io.eitheror.casino.contract.personal.Personal.given
 import io.eitheror.casino.wallet.Ids
-import io.eitheror.casino.wallet.entity.{Purpose, WalletEntity, WalletEvent}
+import io.eitheror.casino.wallet.entity.{Cause, Purpose, WalletEntity, WalletEvent}
 import io.eitheror.casino.wallet.entity.WalletEvent.*
 import io.eitheror.casino.wallet.funding.Parts
 
@@ -46,7 +46,10 @@ final case class TransactionRow(
     depositPoolAfter: Long = 0L,
     convertedPoolAfter: Long = 0L,
     /** Spec 022: the order, trade, account or position a ledger move is about. */
-    reference: Option[String] = None
+    reference: Option[String] = None,
+    /** Spec 030 W2: an adjustment's cause and category; absent on rows written before W2. */
+    cause: Option[Cause] = None,
+    category: Option[String] = None
 )
 
 /** The original's transaction types. */
@@ -165,7 +168,7 @@ object TransactionRows:
       case e: AdminAdjusted =>
         val (before, after) = if e.target == "restricted" then (e.restrictedAfter - e.amount, e.restrictedAfter) else (e.realAfter - e.amount, e.realAfter)
         Vector(row(e.transactionId, TransactionType.AdminAdjust, if e.target == "restricted" then "bonus" else "real", e.amount, before, after,
-          "completed", e.at).copy(reason = Some(e.reason), actorId = Some(e.actorId)))
+          "completed", e.at).copy(reason = Some(e.reason), actorId = Some(e.actorId), cause = e.cause, category = Some(e.category)))
       case e: ProviderCredited =>
         val (before, after) = if e.landedOn == "restricted" then (e.restrictedAfter - e.amount, e.restrictedAfter) else (e.realAfter - e.amount, e.realAfter)
         Vector(row(e.transactionId, TransactionType.GameProviderCredit, if e.landedOn == "restricted" then "bonus" else "real", e.amount,

@@ -111,6 +111,13 @@ final case class BetSwitches(
 )
 
 /**
+ * What an operator's adjustment corrects (spec 030 W2): `kind` is round | provider_transaction |
+ * payment | incident (`contract.facts.AdjustmentCause.Kinds`), `ref` its reference. Stored on the
+ * adjustment, its outcome and its row; absent on an adjustment made before W2.
+ */
+final case class Cause(kind: String, ref: String)
+
+/**
  * What a key remembers and what every money command replies (FR-002): accepted (no code) or
  * refused (a code and the original's message), with the fields the routes return. One shape for
  * every command keeps the key store uniform; the endpoint renders the parts its route names.
@@ -158,7 +165,9 @@ final case class Outcome(
     /** A two-entity move's other side: the seller's or the buyer's wallet, or the account. */
     counterpartyTransactionId: Option[String] = None,
     counterpartyRealBalance: Option[Long] = None,
-    accountBalance: Option[Long] = None
+    accountBalance: Option[Long] = None,
+    /** Spec 030 W2: an adjustment's cause, so a repeat under its key answers it as the first did. */
+    cause: Option[Cause] = None
 ):
   def accepted: Boolean = code.isEmpty
 

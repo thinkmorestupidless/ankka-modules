@@ -134,9 +134,12 @@ final case class Confirm(key: String, requestId: String, at: Instant) extends Mo
 
 final case class Reverse(key: String, requestId: String, at: Instant) extends MoneyCommand
 
-/** `target`: real | restricted; `amount` signed (FR-026). */
+/**
+ * `target`: real | restricted; `amount` signed (FR-026). `cause` (spec 030 W2) is digested only when
+ * set, so an adjustment sent before W2 keeps its digest.
+ */
 final case class Adjust(key: String, target: String, amount: Long, reason: String, category: String, actorId: String,
-    at: Instant) extends MoneyCommand
+    at: Instant, cause: Option[Cause] = None) extends MoneyCommand
 
 /** Not a money command: an operator's override of the brand's turnover terms for this player (FR-004a). */
 final case class SetTurnoverOverride(terms: Option[TurnoverTerms], actorId: String, at: Instant)

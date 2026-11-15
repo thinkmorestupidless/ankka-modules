@@ -144,7 +144,7 @@ object Facts:
         // The reason on the fact is the adjustment's category, never the operator's text (FR-033, contracts/facts.md).
         one(f.AdminAdjusted(playerId, currency, e.transactionId, SignedMinorUnits(e.amount), e.target, e.category, e.actorId,
           real(e.realAfter), units(e.restrictedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter), part(e.parts.deposit),
-          part(e.parts.converted), progress(e.recordUpdates)), e.transactionId) ++
+          part(e.parts.converted), progress(e.recordUpdates), e.cause.map(c => f.AdjustmentCause(c.kind, c.ref))), e.transactionId) ++
           forfeited(e.transactionId, e.forfeited.toVector, "adjustment", 0L, Parts.zero, e.recordUpdates, e.realAfter,
             e.restrictedAfter, e.depositAfter, e.convertedAfter, e.at)
 
