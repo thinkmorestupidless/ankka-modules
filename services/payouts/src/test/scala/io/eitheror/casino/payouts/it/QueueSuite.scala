@@ -71,13 +71,17 @@ class QueueSuite extends munit.FunSuite with LogCapturing:
       "status=ALL&amountRange=gt5000"      -> Vector(pending),
       "status=ALL&method=CARD"             -> Vector(pending),
       "status=ALL&method=EUBANKING"        -> Vector(completed, rejected, cancelled),
-      "status=ALL&stale=true"              -> Vector.empty)
+      "status=ALL&stale=true"              -> Vector.empty,
+      "status=ALL&sort=oldest"             -> newest.reverse,
+      "status=ALL&sort=newest"             -> newest)
     cases.foreach { (query, expected) =>
       val q = s"playerSearch=$p" + (if query.isEmpty then "" else s"&$query")
       val a = kit.eventually(query)(Some(queue(q)).filter(a => a.status == 200 && ids(a) == expected))
       assertEquals(a.json.long("total"), Some(expected.size.toLong), query)
     }
 
+    val oldestSecond = queue(s"playerSearch=$p&status=ALL&sort=oldest&pageSize=3&page=2")
+    assertEquals((ids(oldestSecond), oldestSecond.json.long("total")), (Vector(pending), Some(4L)))
     val second = queue(s"playerSearch=$p&status=ALL&pageSize=2&page=2")
     assertEquals((ids(second), second.json.long("total"), second.json.long("page")), (Vector(rejected, cancelled), Some(4L), Some(2L)))
     val row = queue(s"playerSearch=$p").json.objects("requests").head
@@ -89,9 +93,23 @@ class QueueSuite extends munit.FunSuite with LogCapturing:
     assertEquals(a.status, 200, a.text)
     assert(a.json.objects("requests").forall(_.text("status").contains("PENDING_REVIEW")), a.text)
 
+  test("every answer counts the brand's requests pending review and its payments needing review, whatever its filter (spec 030 Y2)"):
+    val p = scene.player("c", balance = 1000000L)
+    scene.request(p, amount = 1000L): Unit
+    def counts(a: Reply) = Option(a.json.get("counts")).map(c => (c.long("pendingReview"), c.long("needsReview")))
+    val a = kit.eventually("counted")(Some(queue(s"playerSearch=$p")).filter(_.json.long("total").contains(1L)))
+    assert(counts(a).flatMap(_._1).exists(_ >= 1L), a.text)
+    // The counts are the brand's, so they are the totals of the two filters asked for themselves.
+    kit.eventually("the brand's totals") {
+      val brand = queue("pageSize=1")
+      val doubt = queue("status=APPROVED&payoutStatus=NEEDS_REVIEW&pageSize=1")
+      Option.when(counts(brand) == Some((brand.json.long("total"), doubt.json.long("total"))) && counts(doubt) == counts(brand))(())
+    }
+
   test("a filter value the queue does not know is refused, naming it"):
     Vector("status=SHIPPED" -> "status", "payoutStatus=LOST" -> "payoutStatus", "kyc=maybe" -> "kyc",
-      "amountRange=huge" -> "amountRange", "stale=often" -> "stale", "page=0" -> "page", "pageSize=201" -> "pageSize")
+      "amountRange=huge" -> "amountRange", "stale=often" -> "stale", "page=0" -> "page", "pageSize=201" -> "pageSize",
+      "sort=sideways" -> "sort")
       .foreach { (query, field) =>
         val a = queue(query)
         assertEquals((a.status, a.str("field")), (400, field), a.text)
