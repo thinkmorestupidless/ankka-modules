@@ -42,7 +42,9 @@ final class ServiceEndpoint(
      * This service's project, which `Routes.serviceNamed` admits by name (an authenticating ACL is not
      * told its own): the brand's project is its slug; the integration kit's is `local`.
      */
-    project: String = ""
+    project: String = "",
+    /** Who may read `wallet/status` (spec 030 W4): the project's services, and the operators `WalletService` names. */
+    statusAcl: Acl = Routes.service()
 ) extends HttpEndpoint(s"/v1/casino/brands/$brand"):
   import ServiceEndpoint.{*, given}
 
@@ -66,6 +68,14 @@ final class ServiceEndpoint(
 
   /** A label for the facts (spec 016 G4); an empty one is none. */
   private def label(value: Option[String]): Option[String] = value.map(_.trim).filter(_.nonEmpty)
+
+  // ── freshness (spec 030 W4) ──────────────────────────────────────────────
+
+  withAcl(statusAcl) {
+    get("/wallet/status") { () =>
+      io.eitheror.casino.wallet.freshness.Freshness.answer(io.eitheror.casino.wallet.freshness.Freshness.of(client))
+    }
+  }
 
   // ── bets (game-provider) ──────────────────────────────────────────────────
 

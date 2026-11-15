@@ -77,6 +77,18 @@ class WalletItSuite extends Harness:
     assertEquals(field(send("POST", s"${wallet("bad")}/bets", Some("""{"roundId":"r1","gameId":"g","amount":100}"""))._2, "error"), Some("MISSING_KEY"))
   }
 
+  test("status (W4, F): the transactions view with when it last applied a change, for wallet.read and the project's services") {
+    val status = s"/v1/casino/brands/$brand/wallet/status"
+    deposit("st-1", "pay-st-1", 500): Unit
+    val (code, body) = eventually(sendWithToken("GET", status, TestTokens.operator("op-1"), as = Some(Caller.Gateway)))(r =>
+      r._1 == 200 && r._2.contains("\"name\":\"transactions\"") && !r._2.contains("\"asOf\":null"))
+    assertEquals(code, 200, body)
+    assert(body.matches("""\{"views":\[\{"name":"transactions","asOf":"[0-9T:.\-]+Z","rebuilding":false\}\]\}"""), body)
+    assertEquals(send("GET", status)._1, 200)
+    assertEquals(sendWithToken("GET", status, TestTokens.operator("op-2", "brand_other"), as = Some(Caller.Gateway))._1, 403)
+    assertEquals(sendWithToken("GET", status, TestTokens.player("p-1"), as = Some(Caller.Gateway))._1, 403)
+  }
+
   test("another brand's path is not this project's route") {
     assertEquals(send("GET", "/v1/casino/brands/otherbrand/wallets/q5/EUR/balance")._1, 404)
   }

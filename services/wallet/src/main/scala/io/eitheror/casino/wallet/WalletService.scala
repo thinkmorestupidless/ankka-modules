@@ -46,7 +46,7 @@ object WalletService:
     AccountMoveWorkflow.descriptor,
     AccountAuditPublisher.descriptor,
     AccountTransactionsPublisher.descriptor
-  )
+  ) ++ io.eitheror.casino.wallet.freshness.ViewFollower.descriptors
 
   /**
    * The four audiences' endpoints, for a brand, with `responsible-gambling` as given. `bags` is the
@@ -54,9 +54,13 @@ object WalletService:
    */
   def endpoints(brand: String, authenticate: () => Acl = () => Oidc.authenticate(), project: String = "",
       bags: Option[EndpointClients => RoleBags] = None)
-      : Seq[EndpointClients => HttpEndpoint] = Seq(
-    clients => ServiceEndpoint(clients.componentClient, clients.viewClient, brand, project = project),
-    clients => OperatorEndpoint(clients.componentClient, clients.viewClient, brand, authenticate(), bags = bags.fold(BrandRoles.of(clients.services, brand))(_(clients))),
+      : Seq[EndpointClients => HttpEndpoint] =
+    def roles(clients: EndpointClients) = bags.fold(BrandRoles.of(clients.services, brand))(_(clients))
+    Seq(
+    // spec 030 W4 (F): the views' freshness for an operator who may read the wallet, or for the project's services
+    clients => ServiceEndpoint(clients.componentClient, clients.viewClient, brand, project = project,
+      statusAcl = Acl.anyOf(Routes.operatorMay(brand, "wallet.read", roles(clients), authenticate()), Routes.service())),
+    clients => OperatorEndpoint(clients.componentClient, clients.viewClient, brand, authenticate(), bags = roles(clients)),
     clients => PlayerEndpoint(clients.componentClient, clients.viewClient, brand, authenticate())
   )
 
