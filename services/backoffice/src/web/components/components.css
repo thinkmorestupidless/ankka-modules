@@ -166,3 +166,16 @@
 
 .bo-link { color: var(--primary); text-underline-offset: 2px; }
 .bo-links { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; list-style: none; margin: 0; padding: 0; }
+
+/* read by a screen reader, not shown */
+.bo-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

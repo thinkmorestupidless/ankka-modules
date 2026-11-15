@@ -1,7 +1,7 @@
 // The small marks beside a word (FR-040: a state is a word and an icon, never colour alone). Strokes in
 // currentColor, hidden from screen readers: the word beside them is what is read.
 
-export type GlyphName = "check" | "cross" | "clock" | "alert" | "pause" | "lock" | "dot" | "changed" | "minus";
+export type GlyphName = "check" | "cross" | "clock" | "alert" | "pause" | "lock" | "dot" | "changed" | "minus" | "up" | "down";
 
 const paths: Record<GlyphName, string> = {
   check: "M5 12l5 5 9-10",
@@ -13,6 +13,8 @@ const paths: Record<GlyphName, string> = {
   dot: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
   changed: "M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5",
   minus: "M5 12h14",
+  up: "M12 19V5M6 11l6-6 6 6",
+  down: "M12 5v14M6 13l6 6 6-6",
 };
 
 export function Glyph({ name, size = 14 }: { name: GlyphName; size?: number }) {
