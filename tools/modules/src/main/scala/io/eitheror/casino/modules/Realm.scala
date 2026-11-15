@@ -17,6 +17,8 @@ trait RealmAdmin:
   def importRealm(json: String): Unit
   def roleExists(realm: String, role: String): Boolean
   def createRole(realm: String, role: String, description: String): Unit
+  def clientExists(realm: String, clientId: String): Boolean
+  def createClient(realm: String, json: String): Unit
   def calls: Vector[String]
 
 object Realm:
@@ -131,6 +133,42 @@ object Realm:
   def template(root: Path): String =
     Files.readString(root.resolve("brands").resolve("_realm").resolve("casino-template.json"))
 
+  /** The brand's backoffice client in `eitheror` (spec 030 D3): `backoffice-<slug>`. */
+  def backofficeClientId(slug: String): String = s"backoffice-$slug"
+
+  /** The default roles' descriptions, as `brands/_realm/eitheror-operators.json` gives them none. */
+  private val DefaultRoleDescriptions = Map(
+    "brand_support"    -> "Reads a player's account and writes notes and messages (spec 030 role matrix)",
+    "brand_finance"    -> "Money: adjustments, withdrawals, rewards and the finance reports (spec 030 role matrix)",
+    "brand_compliance" -> "A player's standing, identity, protection and fraud (spec 030 role matrix)",
+    "brand_admin"      -> "Everything, the brand's configuration and its roles (spec 030 role matrix)"
+  )
+
+  /**
+   * The confidential client the brand's backoffice signs its operators in with (spec 030 D3, research R8):
+   * the standard flow with PKCE (S256), redirected only to `<address>/auth/callback`, signed out back to
+   * the address, and the realm's default scopes, so its access token carries the `eitheror-casino`
+   * audience every casino service checks and the operator's realm roles (V4). `secret` is the brand's
+   * `<slug>-backoffice` `CLIENT_SECRET`; without it Keycloak mints one, which `backoffice-client-secret`
+   * must then be set to.
+   */
+  def backofficeClient(slug: String, address: String, secret: Option[String]): String =
+    val mapper = ObjectMapper()
+    val base   = address.stripSuffix("/")
+    val c      = mapper.createObjectNode()
+    c.put("clientId", backofficeClientId(slug)).put("name", s"Backoffice of brand $slug").put("enabled", true)
+      .put("protocol", "openid-connect").put("publicClient", false).put("clientAuthenticatorType", "client-secret")
+      .put("standardFlowEnabled", true).put("directAccessGrantsEnabled", false).put("implicitFlowEnabled", false)
+      .put("serviceAccountsEnabled", false).put("frontchannelLogout", false).put("rootUrl", base).put("baseUrl", base)
+    secret.foreach(c.put("secret", _))
+    c.putArray("redirectUris").add(s"$base/auth/callback")
+    c.putArray("webOrigins").add(base)
+    val attributes = c.putObject("attributes")
+    attributes.put("pkce.code.challenge.method", "S256").put("post.logout.redirect.uris", s"$base/*")
+    val scopes = c.putArray("defaultClientScopes")
+    Seq("roles", "profile", "eitheror-casino-audience").foreach(scopes.add)
+    mapper.writeValueAsString(c)
+
   /** The operators' realm an installation must hold before a brand's role is added to it. */
   def operators(root: Path): String =
     Files.readString(root.resolve("brands").resolve("_realm").resolve("eitheror-operators.json"))
@@ -139,7 +177,8 @@ object Realm:
    * Creates what is missing; changes nothing that exists. Returns one line per change. The operators' realm is
    * imported first when the installation lacks it and one is given, so the brand's role has a realm to go in.
    */
-  def ensure(admin: RealmAdmin, slug: String, realmJson: => String, operators: Option[String] = None): Vector[String] =
+  def ensure(admin: RealmAdmin, slug: String, realmJson: => String, operators: Option[String] = None,
+      backoffice: Option[(String, Option[String])] = None): Vector[String] =
     val realm = s"casino-$slug"
     val role  = s"brand_$slug"
     val made = mutable.ArrayBuffer.empty[String]
@@ -163,6 +202,19 @@ object Realm:
       if !admin.roleExists(OperatorsRealm, name) then
         admin.createRole(OperatorsRealm, name, description)
         made += s"role $name added to realm $OperatorsRealm"
+    }
+    // spec 030 D3: the default roles (brand_support is new to a realm imported before it), and the brand's
+    // backoffice client once the brand has a backoffice address
+    io.eitheror.casino.contract.access.OperatorPermissions.DefaultRoles.keys.toVector.sorted.foreach { name =>
+      if !admin.roleExists(OperatorsRealm, name) then
+        admin.createRole(OperatorsRealm, name, DefaultRoleDescriptions.getOrElse(name, name))
+        made += s"role $name added to realm $OperatorsRealm"
+    }
+    backoffice.foreach { (address, secret) =>
+      val id = backofficeClientId(slug)
+      if !admin.clientExists(OperatorsRealm, id) then
+        admin.createClient(OperatorsRealm, backofficeClient(slug, address, secret))
+        made += s"client $id added to realm $OperatorsRealm" + (if secret.isEmpty then " (its secret minted: set backoffice-client-secret to it)" else "")
     }
     made.toVector
 
@@ -205,6 +257,13 @@ final class KeycloakAdmin(base: String, username: String, password: String, ca: 
   def roleExists(realm: String, role: String) = send("GET", s"/realms/$realm/roles/$role", None) == 200
   def createRole(realm: String, role: String, description: String) =
     created(send("POST", s"/realms/$realm/roles", Some(mapper.writeValueAsString(java.util.Map.of("name", role, "description", description)))), s"role $role")
+  def clientExists(realm: String, clientId: String): Boolean =
+    log += s"GET /realms/$realm/clients?clientId=$clientId"
+    val request = HttpRequest.newBuilder(URI.create(s"${base.stripSuffix("/")}/admin/realms/$realm/clients?clientId=${enc(clientId)}"))
+      .header("Authorization", s"Bearer $token").GET().build()
+    val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+    response.statusCode == 200 && mapper.readTree(response.body).elements().asScala.exists(_.path("clientId").asText() == clientId)
+  def createClient(realm: String, json: String) = created(send("POST", s"/realms/$realm/clients", Some(json)), "the client")
 
 object KeycloakAdmin:
   /**
@@ -238,3 +297,8 @@ final class InMemoryRealms extends RealmAdmin:
   def createRole(realm: String, role: String, description: String) =
     log += s"POST /realms/$realm/roles"
     roles.getOrElseUpdate(realm, mutable.Set.empty) += role
+  val clients = mutable.Map.empty[(String, String), String]
+  def clientExists(realm: String, clientId: String) = { log += s"GET /realms/$realm/clients?clientId=$clientId"; clients.contains(realm -> clientId) }
+  def createClient(realm: String, json: String) =
+    log += s"POST /realms/$realm/clients"
+    clients((realm, mapper.readTree(json).get("clientId").asText())) = json

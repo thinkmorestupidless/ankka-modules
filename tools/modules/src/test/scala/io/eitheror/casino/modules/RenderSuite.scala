@@ -163,7 +163,8 @@ class RenderSuite extends munit.FunSuite:
     assertEquals(p.modules.flatMap(_.grantsReceived), Vector.empty)
     val received = fixture.path("grantsReceived").elements().asScala.toVector.map(_.path("target").asText())
     assertEquals(received, Vector("route:psp-gateway POST /v1/payments/withdrawals", "route:psp-gateway GET /v1/payments/withdrawals/{requestId}",
-      "route:psp-gateway GET /v1/payments/withdrawal-terminals", "erasure"), "what shared payments now makes per brand")
+      "route:psp-gateway GET /v1/payments/withdrawal-terminals", "route:merchant PUT /v1/operators/{id}/brand-roles/{brand}", "erasure"),
+      "what shared payments now makes per brand (the brand-roles grant: spec 030 H6)")
   }
 
   test("all five modules render spec 001's eleven services, the support switch gone, once the brand names the support secret") {
@@ -289,3 +290,16 @@ class RenderSuite extends munit.FunSuite:
     assertEquals(readFromString[ServiceDescriptor](wire).service.hosting, "web")
   }
 
+  test("a web-hosted module service renders hosting web with no protocol, and the descriptor carries it on the wire (spec 030 D1)") {
+    val node = ObjectMapper().readTree(
+      """{"image":"ghcr.io/eitheror/backoffice:0.0.0","hosting":"web","expose":true,"env":[{"name":"CASINO_BRAND","key":"brand.slug"}]}""")
+      .asInstanceOf[com.fasterxml.jackson.databind.node.ObjectNode]
+    val service = ModuleManifest.Service("backoffice", node, None)
+    val d = BrandRender.descriptor(service, Set.empty, Map("brand.slug" -> "goldvibe"), Some("1.2.3"))
+    assertEquals(d.service.hosting, "web")
+    assertEquals(d.service.protocol, None)
+    assertEquals(d.service.image, "ghcr.io/eitheror/backoffice:1.2.3")
+    val wire = com.github.plokhotnyuk.jsoniter_scala.core.writeToString(d)
+    assert(wire.contains("\"hosting\":\"web\""), wire)
+    assertEquals(readFromString[ServiceDescriptor](wire).service.hosting, "web")
+  }

@@ -141,10 +141,14 @@ object BrandCommands:
           case Some(admin) =>
             val own  = supplied.getOrElse(s"${v.slug}-players", Map.empty)
             val json = Realm.withPlayers(Realm.render(Realm.template(root), v.slug, frontend(v, inst)), playersUrl(v, inst), own)
-            Realm.ensure(admin, v.slug, json, Some(Realm.operators(root))).foreach(c => out.line(s"changed $c"))
+            Realm.ensure(admin, v.slug, json, Some(Realm.operators(root)), backoffice(v, supplied)).foreach(c => out.line(s"changed $c"))
             Seq("REALM_ADMIN", "REALM_SECRET", "WEBHOOK_SECRET").filterNot(own.contains)
               .foreach(k => out.line(s"note ${v.slug}-players/$k is not in the secrets file: a realm created now lacks it"))
             0
+
+  /** The brand's backoffice address (`backoffice-host`) and its client's secret (`<slug>-backoffice` `CLIENT_SECRET`), when it has one. */
+  def backoffice(v: Values, supplied: Map[String, Map[String, String]]): Option[(String, Option[String])] =
+    v.values.get("backoffice-host").filter(_.nonEmpty).map(_ -> supplied.get(s"${v.slug}-backoffice").flatMap(_.get("CLIENT_SECRET")))
 
   /**
    * Where the realm's plugins reach the brand's `players`: the installation's gateway name for it,

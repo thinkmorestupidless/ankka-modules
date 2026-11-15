@@ -22,7 +22,9 @@ object LocalApply:
       /** Waits for one service to settle; the tests' control plane is Ready at once. */
       ready: (ControlPlane, String, String) => Either[String, Waited] = LocalApply.poll(),
       /** Services applied only because of `--allow-unbuilt`: they have no image of this tree, so none is waited for. */
-      unwaited: Set[String] = Set.empty
+      unwaited: Set[String] = Set.empty,
+      /** spec 030 D3: the brand's backoffice address and its client's secret, when the brand has one. */
+      backoffice: Option[(String, Option[String])] = None
   )
 
   /** How a wait that did not fail ended: the service Ready, or paused by someone, which no wait outlasts. */
@@ -107,7 +109,7 @@ object LocalApply:
       ))
       _ <- step("realm") {
         options.realm match
-          case Some((admin, json)) => changes ++= Realm.ensure(admin, values.slug, json(), options.operatorsRealm())
+          case Some((admin, json)) => changes ++= Realm.ensure(admin, values.slug, json(), options.operatorsRealm(), options.backoffice)
           case None => notes += s"realm casino-${values.slug} not checked: no Keycloak administrator (CASINO_KEYCLOAK_ADMIN_USERNAME, _PASSWORD)"
       }
     yield ()

@@ -217,6 +217,16 @@
       {
         "principal": "service:goldvibe/players",
         "target": {
+          "route": {
+            "service": "merchant",
+            "method": "PUT",
+            "path": "/v1/operators/{id}/brand-roles/{brand}"
+          }
+        }
+      },
+      {
+        "principal": "service:goldvibe/players",
+        "target": {
           "erasure": true
         }
       }

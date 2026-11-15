@@ -530,6 +530,9 @@
     "target" : "route:psp-gateway GET /v1/payments/withdrawal-terminals"
   }, {
     "principal" : "service:goldvibe/players",
+    "target" : "route:merchant PUT /v1/operators/{id}/brand-roles/{brand}"
+  }, {
+    "principal" : "service:goldvibe/players",
     "target" : "erasure"
   } ]
 }
