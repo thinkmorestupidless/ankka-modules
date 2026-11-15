@@ -84,8 +84,9 @@ trait Harness extends munit.FunSuite with LogCapturing:
     (response.statusCode, response.body)
 
   /** A request with a token: `TestTokens.player` or `TestTokens.operator`. */
-  def sendWithToken(method: String, path: String, token: String, body: Option[String] = None): (Int, String) =
+  def sendWithToken(method: String, path: String, token: String, body: Option[String] = None, as: Option[Caller] = None): (Int, String) =
     val builder = JdkRequest.newBuilder(URI.create(base + path)).timeout(Duration.ofSeconds(30)).header(TestTokens.Header, token)
+    as.foreach { c => val (header, value) = kit.asCaller(c); builder.header(header, value): Unit }
     body match
       case Some(json) => builder.header("Content-Type", "application/json").method(method, JdkRequest.BodyPublishers.ofString(json)): Unit
       case None       => builder.method(method, JdkRequest.BodyPublishers.noBody()): Unit
