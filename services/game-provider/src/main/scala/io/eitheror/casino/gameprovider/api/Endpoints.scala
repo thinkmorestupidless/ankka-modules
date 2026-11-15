@@ -41,7 +41,7 @@ object CallbackRoute:
 
 /**
  * `/v1/casino/brands/...`: the brand-segmented callbacks (public, signed), the brand's catalogue
- * configuration and operator catalogue (operator), the free-rounds routes `rewards` calls (service),
+ * configuration and operator catalogue (an operator holding `config.games`, spec 030 GP1), the free-rounds routes `rewards` calls (service),
  * a game's bonus types (`rewards` alone), and the brand's listed games (`rewards` and `public-api`, spec 016 G8).
  * One endpoint per prefix, since two may not share one; each route's audience is its own ACL (FR-027).
  */
@@ -59,7 +59,7 @@ final class BrandsEndpoint(ctx: Context) extends HttpEndpoint("/v1/casino/brands
     }
   }
 
-  withAcl(Routes.operator(brand, ctx.settings.authenticate())) {
+  withAcl(ctx.operatorMay("config.games")) {
     get("/{brand}/game-catalog-config") { (segment: String) =>
       ctx.ownBrand(segment)
       ok(CatalogueRoutes.configurationJson(brand, ctx.catalogue.configuration()))
@@ -257,7 +257,10 @@ final class CatalogEndpoint(ctx: Context) extends HttpEndpoint("/v1/casino/catal
 
 /**
  * `/v1/casino/backoffice/{brand}/game-provider/...` (FR-020, FR-021, FR-026, FR-029): an operator's
- * provider configuration, catalogue refresh, unacknowledged callbacks, rounds and metrics.
+ * provider configuration, catalogue refresh, unacknowledged callbacks, rounds and metrics. Each route
+ * requires one permission (spec 030 amendment GP1, `Routes.operatorMay` over the brand's roles):
+ * `config.games` for the providers and the catalogue refresh, `callback.resolve` for the unacknowledged
+ * calls and the metrics (whose gauge is their count), `player.read` for the rounds.
  */
 final class BackofficeEndpoint(ctx: Context) extends HttpEndpoint("/v1/casino/backoffice"):
   val acl: Acl = Acl.DenyAll
@@ -267,7 +270,7 @@ final class BackofficeEndpoint(ctx: Context) extends HttpEndpoint("/v1/casino/ba
     if ctx.settings.adapter(provider).isEmpty then
       throw HttpProblem.notFound(s"provider_unknown: $provider is not among the brand's casino-providers (${ctx.settings.adapters.map(_.name).mkString(", ")})")
 
-  withAcl(Routes.operator(brand, ctx.settings.authenticate())) {
+  withAcl(ctx.operatorMay("config.games")) {
     get("/{brand}/game-provider/providers") { (segment: String) =>
       ctx.ownBrand(segment)
       ok(Json.obj("providers" -> Json.arr(ctx.configs.providers.flatMap(p => ctx.configs.get(p).map(c => Json.parse(writeToString(c.view(p))).get))*)))
@@ -316,7 +319,9 @@ final class BackofficeEndpoint(ctx: Context) extends HttpEndpoint("/v1/casino/ba
       val s = ctx.components.forKeyValueEntity(EntityId(provider)).call(RefreshStatus.get).invoke()
       ok(Json.parse(writeToString(s)(using Codecs.make[RefreshState])).get)
     }
+  }
 
+  withAcl(ctx.operatorMay("callback.resolve")) {
     get("/{brand}/game-provider/unacknowledged") { (segment: String) =>
       ctx.ownBrand(segment)
       val entries = Unacknowledgements.open(ctx).map { (row, e) =>
@@ -357,6 +362,13 @@ final class BackofficeEndpoint(ctx: Context) extends HttpEndpoint("/v1/casino/ba
           if cleared then noContent else refuse(404, "not_unacknowledged", "transactionId" -> transactionId)
     }
 
+    get("/{brand}/game-provider/metrics") { (segment: String) =>
+      ctx.ownBrand(segment)
+      Respond(Bytes("text/plain; version=0.0.4", Metrics.render(brand, Unacknowledgements.openCount(ctx)).getBytes(UTF_8)), 200)
+    }
+  }
+
+  withAcl(ctx.operatorMay("player.read")) {
     get("/{brand}/game-provider/rounds") { (segment: String) =>
       ctx.ownBrand(segment)
       val limit  = query.optional[Int]("limit").getOrElse(100).max(1).min(1000)
@@ -375,11 +387,6 @@ final class BackofficeEndpoint(ctx: Context) extends HttpEndpoint("/v1/casino/ba
         val state = ctx.components.forEventSourcedEntity(EntityId(Round.entityId(a.name, roundId))).call(Round.get).invoke()
         if state.isNew then refuse(404, "round_not_found") else ok(Json.parse(writeToString(state)(using Codecs.make[RoundState])).get)
       }
-    }
-
-    get("/{brand}/game-provider/metrics") { (segment: String) =>
-      ctx.ownBrand(segment)
-      Respond(Bytes("text/plain; version=0.0.4", Metrics.render(brand, Unacknowledgements.openCount(ctx)).getBytes(UTF_8)), 200)
     }
   }
 

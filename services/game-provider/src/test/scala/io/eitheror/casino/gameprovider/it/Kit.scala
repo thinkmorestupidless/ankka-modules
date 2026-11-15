@@ -5,7 +5,7 @@ import com.thinkmorestupidless.ankka.core.{EntityId, Metadata}
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, HttpServer, Principal}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.AnkkaTestKit
-import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.access.{OperatorPermissions, RoleBags, Routes}
 import io.eitheror.casino.contract.facts.{CasinoPlayers, CasinoPlayersFact, CasinoRounds, RoundOpened, RoundSettled}
 import io.eitheror.casino.gameprovider.{GameProviderService, Json, TestKeys, api, players}
 import io.eitheror.casino.gameprovider.Json.*
@@ -48,7 +48,10 @@ final class Kit(val brand: String = "goldvibe", realMoney: Boolean = false, befo
     keyDocuments = KeyDocuments.http(), now = () => clock)
 
   private val timers = TimerRuntime(200.millis)
-  private val server = HttpServer.at("127.0.0.1", 0)(GameProviderService.endpoints(settings)*)
+  /** The brand's roles the operator routes decide from: the role matrix, as a new brand starts. */
+  val roles: RoleBags = RoleBags.fixed(OperatorPermissions.DefaultRoles)
+
+  private val server = HttpServer.at("127.0.0.1", 0)(GameProviderService.endpoints(settings, bags = Some(_ => roles))*)
 
   GameProviderService.wire(settings, timers)
   RefreshRuntime.sleep = _ => ()
@@ -93,7 +96,9 @@ final class Kit(val brand: String = "goldvibe", realMoney: Boolean = false, befo
     Reply(r.statusCode, r.body)
 
   def asPlayer(player: String): Seq[(String, String)]  = Seq("Authorization" -> s"Bearer player|$player")
-  def asOperator(op: String = "op-1"): Seq[(String, String)] = Seq("Authorization" -> s"Bearer staff|$op|brand_$brand")
+  /** An operator of this brand; `brand_admin` by default, whose default bag holds every permission (spec 030 GP1). */
+  def asOperator(op: String = "op-1", roles: String = "brand_admin"): Seq[(String, String)] =
+    Seq("Authorization" -> s"Bearer staff|$op|brand_$brand,$roles")
 
   // ── The provider ────────────────────────────────────────────────────────────────────────────────
 
@@ -103,12 +108,12 @@ final class Kit(val brand: String = "goldvibe", realMoney: Boolean = false, befo
 
   def configureAcme(): Reply = configure("acme", acme, keyDocument = false)
 
-  def configure(provider: String, stub: St8Stub, keyDocument: Boolean): Reply =
+  def configure(provider: String, stub: St8Stub, keyDocument: Boolean, as: Seq[(String, String)] = asOperator()): Reply =
     val keyField = if keyDocument then "providerKeyDocumentUrl" -> s"${stub.address}/keys" else "providerPublicKey" -> TestKeys.testPublicPem
     request("PUT", s"/v1/casino/backoffice/$brand/game-provider/providers/$provider",
       Some(Json.render(Json.obj("apiUrl" -> stub.address, "site" -> brand, "operatorPrivateKey" -> TestKeys.testPrivatePem, keyField,
         "jurisdiction" -> "MT", "lobbyUrl" -> "https://goldvibe.example/casino", "depositUrl" -> "https://goldvibe.example/cashier"))),
-      asOperator())
+      as)
 
   /** A callback as the provider sends it, signed with the test key unless told otherwise. */
   def callback(name: String, body: JsonNode | String, key: PrivateKey = TestKeys.testPrivate, path: Option[String] = None,

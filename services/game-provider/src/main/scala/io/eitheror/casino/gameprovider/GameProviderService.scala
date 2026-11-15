@@ -4,6 +4,7 @@ import com.thinkmorestupidless.ankka.auth.oidc.Oidc
 import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{EndpointClients, HttpEndpoint, HttpServer}
 import com.thinkmorestupidless.ankka.runtime.{Ankka, ProjectionRuntime, TimerRuntime}
+import io.eitheror.casino.contract.access.RoleBags
 import io.eitheror.casino.gameprovider.api.*
 import io.eitheror.casino.gameprovider.catalogue.*
 import io.eitheror.casino.gameprovider.facts.RoundFacts
@@ -36,9 +37,13 @@ object GameProviderService:
     CatalogueRefresh.descriptor
   )
 
-  /** The endpoints, one per prefix (FR-002, FR-027): the root form only for ST8, as only ST8 strips the path. */
-  def endpoints(settings: Settings): Seq[EndpointClients => HttpEndpoint] =
-    def ctx(clients: EndpointClients) = Context(settings, clients)
+  /**
+   * The endpoints, one per prefix (FR-002, FR-027): the root form only for ST8, as only ST8 strips the path.
+   * `bags` is the brand's roles the operator routes decide from: by default read from the brand's `players`.
+   */
+  def endpoints(settings: Settings, bags: Option[EndpointClients => RoleBags] = None): Seq[EndpointClients => HttpEndpoint] =
+    def ctx(clients: EndpointClients) =
+      Context(settings, clients, bags.fold(BrandRoles.of(clients.services, settings.brand))(_(clients)))
     val providerPaths = settings.adapters.map(a => (clients: EndpointClients) => ProviderPathEndpoint(ctx(clients), a.name): HttpEndpoint)
     val root          = settings.adapter("st8").toVector.map(_ => (clients: EndpointClients) => RootCallbackEndpoint(ctx(clients), "st8"): HttpEndpoint)
     Seq[EndpointClients => HttpEndpoint](

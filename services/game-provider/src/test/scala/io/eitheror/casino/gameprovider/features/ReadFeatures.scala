@@ -7,6 +7,11 @@ import io.eitheror.casino.gameprovider.players.PlayerStatus
 /** features/game-provider/reads.feature (US6, FR-016 to FR-018). */
 class ReadFeatures extends ProviderFeatures("reads.feature"):
 
+  // spec 030 GP2: bound by T069, with rounds by round and by transaction
+  override protected def ranElsewhere: Map[String, String] = Map(
+    "a round is found by its id whatever its game provider"   -> "T069 (pending)",
+    "a round is found by the id of one of its transactions" -> "T069 (pending)")
+
   sessionTicketSteps()
 
   Given("a player with a session ticket for a wallet in {string} and a real balance of {string}") { (cur: String, amount: String) =>

@@ -795,3 +795,7 @@ and describe the dropped generic API.
 - The game sessions themselves and their ending (`players`, spec 008).
 - Free-rounds grant lifecycle, eligibility and winnings settlement (`rewards`, spec 011).
 - The frontends and the lobby's presentation of the catalogue.
+
+## Amended by 030
+
+- GP1 (spec 030 contracts/amendments.md, T023): every backoffice route requires one permission (`Routes.operatorMay`), decided from the brand's roles the service reads from `players` every 10 seconds: `player.read` for the rounds (a player's or a session's, and one round), `config.games` for the providers (read, write, the catalogue refresh and its status) and the brand's catalogue (`game-catalog-config` read and write, `game-catalog`), `callback.resolve` for the unacknowledged calls (list, replay, resolve) and the metrics, whose gauge is their count (`features/game-provider/operator-roles.feature`).
