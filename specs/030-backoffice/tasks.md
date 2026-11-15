@@ -238,11 +238,11 @@ explanations; a grant to a suspected duplicate shows why; a forfeit closes the r
 limit with its pending change; a break started and lifted; a fraud case dismissed and its flags
 cleared.
 
-- [ ] T093 [US7] Bind `features/backoffice/compliance.feature` (4 scenarios) in `t/features/steps/compliance.steps.ts`, failing first
-- [ ] T094 [US7] Implement `s/composite/document.ts` (kyc's `views/{d}` streamed for this operator; the document id the only input: FR-031) with a unit test that no address in a request is ever fetched
-- [ ] T095 [US7] Implement `w/areas/identity/queue.tsx` (first-in first-out, place kept) and `w/areas/players/identity.tsx` (documents viewed, approved or rejected with a reason, mode, required documents, override, source of funds, flags, the final decision)
-- [ ] T096 [US7] Implement `w/areas/players/protection.tsx` and `w/areas/protection/cases.tsx` (limits set and removed with the pending change and when it takes effect; breaks; self-exclusion; return; cases with notes and closing), each action stating what it changes for the player
-- [ ] T097 [US7] Implement `w/areas/fraud/cases.tsx` (list, review, dismiss with the flags it clears) and `w/areas/configuration/identity-policy.tsx`, `protection-settings.tsx`
+- [X] T093 [US7] Bind `features/backoffice/compliance.feature` (4 scenarios) in `t/features/steps/compliance.steps.ts`, failing first
+- [X] T094 [US7] Implement `s/composite/document.ts` (kyc's `views/{d}` streamed for this operator; the document id the only input: FR-031) with a unit test that no address in a request is ever fetched
+- [X] T095 [US7] Implement `w/areas/identity/queue.tsx` (first-in first-out, place kept) and `w/areas/players/identity.tsx` (documents viewed, approved or rejected with a reason, mode, required documents, override, source of funds, flags, the final decision)
+- [X] T096 [US7] Implement `w/areas/players/protection.tsx` and `w/areas/protection/cases.tsx` (limits set and removed with the pending change and when it takes effect; breaks; self-exclusion; return; cases with notes and closing), each action stating what it changes for the player
+- [X] T097 [US7] Implement `w/areas/fraud/cases.tsx` (list, review, dismiss with the flags it clears) and `w/areas/configuration/identity-policy.tsx`, `protection-settings.tsx`
 
 **Checkpoint**: phase 3 of FR-045.
 
