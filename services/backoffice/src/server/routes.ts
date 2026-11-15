@@ -57,5 +57,145 @@ export function upstreamPath(m: Matched, brand: string): string {
   );
 }
 
-/** Filled by T038, owner by owner. */
-export const table: readonly Row[] = [];
+const r = (method: Method, service: string, path: string, upstream: string, permission: string, where: Where = "brand"): Row =>
+  ({ method, service, path, upstream, where, permission });
+
+// Each owner's operator routes, as its code admits them (`Routes.operatorMay`). A literal path comes
+// before a parameter in the same place, as `match` takes the first row that fits.
+const P = "/v1/casino/backoffice/{brand}";
+const B = "/v1/casino/brands/{brand}";
+
+/** The route table; `npm run owners` makes the typed clients in src/shared/owners/ from it. */
+export const table: readonly Row[] = [
+  // players: OperatorEndpoint at /v1/casino/backoffice/<slug>, ModulesEndpoint at /v1/casino/brands/<slug>/modules
+  r("GET", "players", "/players", `${P}/players`, "player.read"),
+  r("GET", "players", "/players/{playerId}/profile", `${P}/players/{playerId}/profile`, "player.read"),
+  r("PATCH", "players", "/players/{playerId}/profile", `${P}/players/{playerId}/profile`, "profile.change"),
+  r("PATCH", "players", "/players/{playerId}/date-of-birth", `${P}/players/{playerId}/date-of-birth`, "profile.change"),
+  r("GET", "players", "/players/{playerId}/wallet", `${P}/players/{playerId}/wallet`, "player.read"),
+  r("GET", "players", "/players/{playerId}/activity", `${P}/players/{playerId}/activity`, "player.read"),
+  r("GET", "players", "/players/{playerId}/bets", `${P}/players/{playerId}/bets`, "player.read"),
+  r("GET", "players", "/players/{playerId}/sessions/{sessionId}/bets", `${P}/players/{playerId}/sessions/{sessionId}/bets`, "player.read"),
+  r("GET", "players", "/players/{playerId}/sessions", `${P}/players/{playerId}/sessions`, "player.read"),
+  r("GET", "players", "/players/{playerId}/crm", `${P}/players/{playerId}/crm`, "player.read"),
+  r("PATCH", "players", "/players/{playerId}/crm", `${P}/players/{playerId}/crm`, "profile.change"),
+  r("PATCH", "players", "/players/{playerId}/suspend", `${P}/players/{playerId}/suspend`, "standing.change"),
+  r("PATCH", "players", "/players/{playerId}/reinstate", `${P}/players/{playerId}/reinstate`, "standing.change"),
+  r("POST", "players", "/players/{playerId}/close", `${P}/players/{playerId}/close`, "standing.change"),
+  r("POST", "players", "/players/{playerId}/reopen", `${P}/players/{playerId}/reopen`, "standing.change"),
+  r("PUT", "players", "/players/{playerId}/vip-tier", `${P}/players/{playerId}/vip-tier`, "tier.change"),
+  r("PUT", "players", "/players/{playerId}/pot-vip", `${P}/players/{playerId}/pot-vip`, "tier.change"),
+  r("POST", "players", "/players/{playerId}/reset-password", `${P}/players/{playerId}/reset-password`, "profile.change"),
+  r("POST", "players", "/players/{playerId}/sessions/force-end-all", `${P}/players/{playerId}/sessions/force-end-all`, "session.end"),
+  r("POST", "players", "/players/{playerId}/sessions/{sessionId}/force-end", `${P}/players/{playerId}/sessions/{sessionId}/force-end`, "session.end"),
+  r("POST", "players", "/players/{playerId}/notes", `${P}/players/{playerId}/notes`, "note.write"),
+  r("PATCH", "players", "/players/{playerId}/notes/{noteId}/pin", `${P}/players/{playerId}/notes/{noteId}/pin`, "note.write"),
+  r("PATCH", "players", "/players/{playerId}/notes/{noteId}/unpin", `${P}/players/{playerId}/notes/{noteId}/unpin`, "note.write"),
+  r("GET", "players", "/players/{playerId}/messages", `${P}/players/{playerId}/messages`, "player.read"),
+  r("POST", "players", "/players/{playerId}/messages", `${P}/players/{playerId}/messages`, "message.send"),
+  r("GET", "players", "/merge-tags", `${P}/merge-tags`, "message.send"),
+  r("POST", "players", "/messages/preview", `${P}/messages/preview`, "message.send"),
+  r("POST", "players", "/players/{playerId}/clear-suspect-flag", `${P}/players/{playerId}/clear-suspect-flag`, "flag.clear"),
+  r("POST", "players", "/players/{playerId}/clear-no-deposit-block", `${P}/players/{playerId}/clear-no-deposit-block`, "flag.clear"),
+  r("GET", "players", "/fraud-cases", `${P}/fraud-cases`, "fraud.review"),
+  r("PATCH", "players", "/fraud-cases/{caseId}/review", `${P}/fraud-cases/{caseId}/review`, "fraud.review"),
+  r("PATCH", "players", "/fraud-cases/{caseId}/dismiss", `${P}/fraud-cases/{caseId}/dismiss`, "fraud.review"),
+  r("POST", "players", "/players/{playerId}/activity-export", `${P}/players/{playerId}/activity-export`, "export.player"),
+  r("GET", "players", "/exports/{exportId}", `${P}/exports/{exportId}`, "export.player"),
+  r("POST", "players", "/players/{playerId}/erasure", `${P}/players/{playerId}/erasure`, "erasure.request"),
+  r("GET", "players", "/players/{playerId}/erasure", `${P}/players/{playerId}/erasure`, "erasure.request"),
+  r("GET", "players", "/players/{playerId}/verification-link", `${P}/players/{playerId}/verification-link`, "profile.change"),
+  r("GET", "players", "/brand-config", `${P}/brand-config`, "config.brand"),
+  r("PUT", "players", "/brand-config", `${P}/brand-config`, "config.brand"),
+  r("GET", "players", "/currency-config", `${P}/currency-config`, "config.brand"),
+  r("PUT", "players", "/currency-config", `${P}/currency-config`, "config.brand"),
+  r("GET", "players", "/allow-list", `${P}/allow-list`, "config.brand"),
+  r("PUT", "players", "/allow-list", `${P}/allow-list`, "config.brand"),
+  r("GET", "players", "/roles", `${P}/roles`, "roles.read"),
+  r("PUT", "players", "/roles/{name}", `${P}/roles/{name}`, "roles.change"),
+  r("DELETE", "players", "/roles/{name}", `${P}/roles/{name}`, "roles.change"),
+  r("POST", "players", "/roles/{name}/reset", `${P}/roles/{name}/reset`, "roles.change"),
+  r("PUT", "players", "/role-assignments/{operator}", `${P}/role-assignments/{operator}`, "roles.give"),
+  r("GET", "players", "/modules", `${B}/modules`, "modules.read"),
+  r("POST", "players", "/modules/requests", `${B}/modules/requests`, "modules.request"),
+
+  // wallet: OperatorEndpoint at /v1/casino/backoffice/<slug>
+  r("POST", "wallet", "/wallets/{player}/{currency}/adjustments", `${P}/wallets/{player}/{currency}/adjustments`, "adjustment.make"),
+  r("PUT", "wallet", "/wallets/{player}/{currency}/turnover-override", `${P}/wallets/{player}/{currency}/turnover-override`, "turnover.override"),
+  r("GET", "wallet", "/wallets/{player}/{currency}/balance", `${P}/wallets/{player}/{currency}/balance`, "wallet.read"),
+  r("GET", "wallet", "/wallets/{player}/{currency}/restricted-funds", `${P}/wallets/{player}/{currency}/restricted-funds`, "wallet.read"),
+  r("GET", "wallet", "/wallets/{player}/{currency}/transactions", `${P}/wallets/{player}/{currency}/transactions`, "wallet.read"),
+  r("GET", "wallet", "/wallets/{player}/{currency}/lifetime-totals", `${P}/wallets/{player}/{currency}/lifetime-totals`, "wallet.read"),
+  r("POST", "wallet", "/accounts/{kind}/{name}/adjustments", `${P}/accounts/{kind}/{name}/adjustments`, "adjustment.make"),
+  r("GET", "wallet", "/accounts/{kind}/{name}/balance", `${P}/accounts/{kind}/{name}/balance`, "wallet.read"),
+  r("PUT", "wallet", "/wallet-config/turnover", `${P}/wallet-config/turnover`, "config.brand"),
+  r("GET", "wallet", "/wallet-config", `${P}/wallet-config`, "wallet.read"),
+
+  // payouts: OperatorEndpoint, PlayerEndpoint's operator read and ConfigEndpoint, under /v1/casino/brands/<slug>
+  r("GET", "payouts", "/withdrawal-requests", `${B}/withdrawal-requests`, "withdrawal.read"),
+  r("GET", "payouts", "/withdrawal-requests/{requestId}", `${B}/withdrawal-requests/{requestId}`, "withdrawal.read"),
+  r("POST", "payouts", "/withdrawal-requests/{requestId}/approve", `${B}/withdrawal-requests/{requestId}/approve`, "withdrawal.review"),
+  r("POST", "payouts", "/withdrawal-requests/{requestId}/reject", `${B}/withdrawal-requests/{requestId}/reject`, "withdrawal.review"),
+  r("POST", "payouts", "/withdrawal-requests/{requestId}/confirm-payout", `${B}/withdrawal-requests/{requestId}/confirm-payout`, "withdrawal.review"),
+  r("POST", "payouts", "/withdrawal-requests/{requestId}/mark-payout-failed", `${B}/withdrawal-requests/{requestId}/mark-payout-failed`, "withdrawal.review"),
+  r("GET", "payouts", "/players/{playerId}/withdrawal-history", `${B}/players/{playerId}/withdrawal-history`, "withdrawal.read"),
+  r("GET", "payouts", "/withdrawal-config", `${B}/withdrawal-config`, "withdrawal.read"),
+  r("PUT", "payouts", "/withdrawal-config", `${B}/withdrawal-config`, "config.brand"),
+
+  // kyc: OperatorEndpoint at /v1/casino/backoffice/<slug>/kyc
+  r("GET", "kyc", "/policy", `${P}/kyc/policy`, "config.brand"),
+  r("PUT", "kyc", "/policy", `${P}/kyc/policy`, "config.brand"),
+  r("POST", "kyc", "/policy/profile", `${P}/kyc/policy/profile`, "config.brand"),
+  r("GET", "kyc", "/queue", `${P}/kyc/queue`, "identity.review"),
+  r("GET", "kyc", "/{playerId}", `${P}/kyc/{playerId}`, "identity.read"),
+  r("POST", "kyc", "/{playerId}/uploads", `${P}/kyc/{playerId}/uploads`, "identity.review"),
+  r("POST", "kyc", "/{playerId}/documents", `${P}/kyc/{playerId}/documents`, "identity.review"),
+  r("GET", "kyc", "/{playerId}/views/{documentId}", `${P}/kyc/{playerId}/views/{documentId}`, "identity.review"),
+  r("POST", "kyc", "/{playerId}/reviews/{documentId}", `${P}/kyc/{playerId}/reviews/{documentId}`, "identity.review"),
+  r("PUT", "kyc", "/{playerId}/mode", `${P}/kyc/{playerId}/mode`, "identity.review"),
+  r("PUT", "kyc", "/{playerId}/status", `${P}/kyc/{playerId}/status`, "identity.review"),
+  r("PUT", "kyc", "/{playerId}/required", `${P}/kyc/{playerId}/required`, "identity.review"),
+  r("POST", "kyc", "/{playerId}/override", `${P}/kyc/{playerId}/override`, "identity.review"),
+  r("POST", "kyc", "/{playerId}/sof", `${P}/kyc/{playerId}/sof`, "identity.review"),
+  r("POST", "kyc", "/{playerId}/flags/{reason}/dismiss", `${P}/kyc/{playerId}/flags/{reason}/dismiss`, "identity.review"),
+
+  // responsible-gambling: OperatorEndpoint at /v1/casino/backoffice/<slug>/rg
+  r("GET", "responsible-gambling", "/settings", `${P}/rg/settings`, "protection.read"),
+  r("PUT", "responsible-gambling", "/settings", `${P}/rg/settings`, "config.brand"),
+  r("GET", "responsible-gambling", "/{player}", `${P}/rg/{player}`, "protection.read"),
+  r("PUT", "responsible-gambling", "/{player}/limits/{type}", `${P}/rg/{player}/limits/{type}`, "protection.change"),
+  r("DELETE", "responsible-gambling", "/{player}/limits/{type}", `${P}/rg/{player}/limits/{type}`, "protection.change"),
+  r("PUT", "responsible-gambling", "/{player}/cooling-off", `${P}/rg/{player}/cooling-off`, "protection.change"),
+  r("POST", "responsible-gambling", "/{player}/cooling-off/lift", `${P}/rg/{player}/cooling-off/lift`, "protection.change"),
+  r("POST", "responsible-gambling", "/{player}/self-exclude", `${P}/rg/{player}/self-exclude`, "protection.change"),
+  r("POST", "responsible-gambling", "/{player}/return", `${P}/rg/{player}/return`, "protection.change"),
+  r("POST", "responsible-gambling", "/{player}/cases", `${P}/rg/{player}/cases`, "protection.change"),
+  r("POST", "responsible-gambling", "/{player}/cases/{caseId}/notes", `${P}/rg/{player}/cases/{caseId}/notes`, "protection.change"),
+  r("POST", "responsible-gambling", "/{player}/cases/{caseId}/close", `${P}/rg/{player}/cases/{caseId}/close`, "protection.change"),
+
+  // game-provider: BrandsEndpoint's catalogue at /v1/casino/brands/<slug>, BackofficeEndpoint at /v1/casino/backoffice/<slug>/game-provider
+  r("GET", "game-provider", "/game-catalog-config", `${B}/game-catalog-config`, "config.games"),
+  r("PUT", "game-provider", "/game-catalog-config", `${B}/game-catalog-config`, "config.games"),
+  r("GET", "game-provider", "/game-catalog", `${B}/game-catalog`, "config.games"),
+  r("GET", "game-provider", "/providers", `${P}/game-provider/providers`, "config.games"),
+  r("GET", "game-provider", "/providers/{provider}", `${P}/game-provider/providers/{provider}`, "config.games"),
+  r("PUT", "game-provider", "/providers/{provider}", `${P}/game-provider/providers/{provider}`, "config.games"),
+  r("POST", "game-provider", "/providers/{provider}/catalogue/refresh", `${P}/game-provider/providers/{provider}/catalogue/refresh`, "config.games"),
+  r("GET", "game-provider", "/providers/{provider}/catalogue/refresh", `${P}/game-provider/providers/{provider}/catalogue/refresh`, "config.games"),
+  r("GET", "game-provider", "/unacknowledged", `${P}/game-provider/unacknowledged`, "callback.resolve"),
+  r("POST", "game-provider", "/unacknowledged/{transactionId}/replay", `${P}/game-provider/unacknowledged/{transactionId}/replay`, "callback.resolve"),
+  r("POST", "game-provider", "/unacknowledged/{transactionId}/resolve", `${P}/game-provider/unacknowledged/{transactionId}/resolve`, "callback.resolve"),
+  r("GET", "game-provider", "/metrics", `${P}/game-provider/metrics`, "callback.resolve"),
+  r("GET", "game-provider", "/rounds", `${P}/game-provider/rounds`, "player.read"),
+  // one route per configured adapter (`rounds/<adapter>/{roundId}`); the adapter's name is the parameter here
+  r("GET", "game-provider", "/rounds/{provider}/{roundId}", `${P}/game-provider/rounds/{provider}/{roundId}`, "player.read"),
+
+  // rewards (reads only): RewardAdminEndpoint at /v1/casino/brands/<slug>/reward-grants
+  r("GET", "rewards", "/reward-grants", `${B}/reward-grants`, "reward.read"),
+  r("GET", "rewards", "/reward-grants/{rewardId}", `${B}/reward-grants/{rewardId}`, "reward.read"),
+
+  // merchant (shared `payments`): PaymentsEndpoint at /v1/payments; admits a brand's operator once amendment H1, H2 (T071) lands
+  r("GET", "merchant", "/cashier", "/v1/payments/cashier", "wallet.read", "payments"),
+  r("GET", "merchant", "/cashier/summary", "/v1/payments/cashier/summary", "wallet.read", "payments"),
+  r("GET", "merchant", "/{paymentId}", "/v1/payments/{paymentId}", "wallet.read", "payments"),
+];
