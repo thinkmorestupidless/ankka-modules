@@ -51,6 +51,8 @@ object BackofficeAnswers:
       minimumPayout: Option[Map[String, Long]] = None)
   /** O7's row: the account at the brand, and its figures this month in the brand's zone, per currency. */
   final case class AccountRow(account: AccountAnswer, currentMonth: Vector[Figure])
+  /** O7's answer (spec 030 A1, L): a page of rows, newest first unless sorted otherwise, and how many match in all. */
+  final case class AccountsPage(items: Vector[AccountRow], total: Int, page: Int, pageSize: Int)
 
   /** The settings, and whether a Customer.io key is held: the key itself is never answered. */
   def settings(b: BrandState, keySet: Boolean): SettingsAnswer =
@@ -69,7 +71,7 @@ object BackofficeAnswers:
   given messageBody: JsonValueCodec[MessageBody]     = ProgrammeCodecs.wire[MessageBody]
   given sent: JsonValueCodec[Sent]                   = ProgrammeCodecs.wire[Sent]
   given createBody: JsonValueCodec[CreateBody]       = ProgrammeCodecs.wire[CreateBody]
-  given accountRows: JsonValueCodec[Vector[AccountRow]] = ProgrammeCodecs.wire[Vector[AccountRow]]
+  given accountsPage: JsonValueCodec[AccountsPage] = ProgrammeCodecs.wire[AccountsPage]
 
 import BackofficeAnswers.{*, given}
 
@@ -193,17 +195,22 @@ final class Backoffice(api: Api):
    * O7 (research R9): the brand's memberships, filtered by status, manager, group and tags (the
    * membership's own) before any account is read, then by search with the accounts opened, since the
    * sealed fields cannot be searched in the view; with each
-   * account's figures this month, read once for the brand. A page of `limit` (100, at most 500) from
-   * `offset`: the view's and the account's own fields are filtered first, and an identity is opened only
-   * for the page, or for every candidate when a search or a sort by name or email needs it.
+   * account's figures this month, read once for the brand. Page `page` (from 1) of `pageSize` (100, at
+   * most 200; spec 030 A1, L) and the `total` that match: the view's and the account's own fields are
+   * filtered first, and an identity is opened only for the page, or for every candidate when a search or
+   * a sort by name or email needs it. A page or size that is not a number in range is `400 invalid_request`.
    */
   def accounts(brand: String, q: String => Option[String]): Respond[Bytes] =
+    Backoffice.paging(q) match
+      case Left(parameter)       => invalid(s"$parameter is not a valid value")
+      case Right((page, size)) => accountsPage(brand, q, page, size)
+
+  private def accountsPage(brand: String, q: String => Option[String], pageNo: Int, size: Int): Respond[Bytes] =
     val b      = api.brand(brand)
     val month  = Periods.Range.parse(Periods.periodOf(api.now(), b.zone)).get
     val tags   = q("tags").fold(Set.empty[String])(_.split(',').map(_.trim).filter(_.nonEmpty).toSet)
     val needle = q("search").map(_.trim.toLowerCase).filter(_.nonEmpty)
-    val limit  = q("limit").flatMap(_.toIntOption).fold(Backoffice.PageSize)(l => math.max(1, math.min(l, Backoffice.MaxPage)))
-    val offset = q("offset").flatMap(_.toIntOption).fold(0)(math.max(0, _))
+    val offset = (pageNo - 1) * size
     val sortBy = q("sortBy").getOrElse("createdAt")
     val desc   = q("sortDir").forall(_.equalsIgnoreCase("desc"))
     val candidates = api.views.forView(Memberships).ask(Memberships.byBrand, "brand" -> brand)
@@ -216,7 +223,7 @@ final class Backoffice(api: Api):
     def ordered[K: Ordering](rows: Vector[(MembershipState, AffiliateState, Option[Identity])])(k: ((MembershipState, AffiliateState, Option[Identity])) => K) =
       val up = rows.sortBy(k)
       if desc then up.reverse else up
-    val page =
+    val (page, total) =
       if needle.isDefined || sortBy == "name" || sortBy == "email" then
         val found = opened(candidates).filter { (_, a, id) =>
           needle.forall(n => (Vector(a.id) ++ id.toVector.flatMap(i => Vector(i.name, i.email) ++ i.displayName ++ i.companyName))
@@ -227,18 +234,18 @@ final class Backoffice(api: Api):
           case "email"  => ordered(found)(_._3.fold("")(_.email).toLowerCase)
           case "status" => ordered(found)(_._1.status.getOrElse(""))
           case _        => ordered(found)(_._2.createdAt.getOrElse(Instant.EPOCH))
-        sorted.slice(offset, offset + limit)
+        (sorted.slice(offset, offset + size), sorted.size)
       else
         val cheap = candidates.map((m, a) => (m, a, Option.empty[Identity]))
         val sorted = if sortBy == "status" then ordered(cheap)(_._1.status.getOrElse("")) else ordered(cheap)(_._2.createdAt.getOrElse(Instant.EPOCH))
-        opened(sorted.slice(offset, offset + limit).map((m, a, _) => (m, a)))
+        (opened(sorted.slice(offset, offset + size).map((m, a, _) => (m, a))), sorted.size)
     val (ledger, players) = Reading(api).rows(None, Vector(brand), month)
     val ledgerOf  = ledger.groupBy(_.affiliate)
     val playersOf = players.groupBy(_.affiliate)
-    ok(page.map { (m, a, id) =>
+    ok(AccountsPage(page.map { (m, a, id) =>
       AccountRow(Answers.account(a, id, Vector(m), Some(m)),
         Revenue.figures(ledgerOf.getOrElse(a.id, Vector.empty), playersOf.getOrElse(a.id, Vector.empty)))
-    })
+    }, total, pageNo, size))
 
   /**
    * O8: an account made active at the brand by a manager, on the plan named or the brand's default, and
@@ -290,6 +297,16 @@ object Backoffice:
   /** The email inviting another brand's affiliate to apply at this one (O8). */
   val BrandInvite = "AffiliateBrandInvite"
 
-  /** O7's page: 100 rows unless the caller asks for fewer, or more up to 500. */
+  /** O7's page: 100 rows unless the caller asks for another size, from 1 up to 200 (spec 030 L). */
   val PageSize = 100
-  val MaxPage  = 500
+  val MaxPage  = 200
+
+  /** `page` (from 1) and `pageSize` (1 to [[MaxPage]]), or the first of them that is not valid. */
+  def paging(q: String => Option[String]): Either[String, (Int, Int)] =
+    def number(name: String, default: Int) = q(name).fold[Either[String, Int]](Right(default))(_.toIntOption.toRight(name))
+    for
+      page <- number("page", 1)
+      size <- number("pageSize", PageSize)
+      _    <- Either.cond(page >= 1, (), "page")
+      _    <- Either.cond(size >= 1 && size <= MaxPage, (), "pageSize")
+    yield (page, size)

@@ -57,15 +57,15 @@ class ManagerSteps extends ProgrammeFeatures("managers.feature"):
   When("they list accounts, revenue, payouts or fraud flags") { () =>
     Seq(slug("A"), slug("B")).foreach(b => scene(b))
     val gold = slug("A")
-    kit.eventually("listed")(Option(get(s"/$gold/accounts")).filter(r => items(r).exists(_.get("account").get("affiliateId").asText == scene(gold).affiliate))): Unit
+    kit.eventually("listed")(Option(get(s"/$gold/accounts")).filter(r => items(r, Some("items")).exists(_.get("account").get("affiliateId").asText == scene(gold).affiliate))): Unit
     replies = Map("accounts" -> get(s"/$gold/accounts"), "revenue" -> get(s"/$gold/revenue?period=all"), "payouts" -> get(s"/$gold/payouts?period=2026-10"),
       "flags" -> get(s"/$gold/fraud-flags"))
   }
   Then("only the memberships and facts of brand {string} are listed") { (b: String) =>
     val brand = slug(b)
     val other = scene(slug("B")).affiliate
-    assert(!items(replies("accounts")).exists(_.get("account").get("affiliateId").asText == other))
-    assert(items(replies("accounts")).forall(_.get("account").get("memberships").elements().asScala.forall(_.get("brandId").asText == brand)))
+    assert(!items(replies("accounts"), Some("items")).exists(_.get("account").get("affiliateId").asText == other))
+    assert(items(replies("accounts"), Some("items")).forall(_.get("account").get("memberships").elements().asScala.forall(_.get("brandId").asText == brand)))
     assert(items(replies("revenue"), Some("figures")).forall(_.get("brandId").asText == brand))
     assert(items(replies("payouts")).forall(_.get("brandId").asText == brand))
     assert(items(replies("flags")).forall(_.get("brandId").asText == brand))
@@ -188,21 +188,26 @@ class ManagerSteps extends ProgrammeFeatures("managers.feature"):
     val s = scene("goldvibe")
     kit.request("POST", s"/v1/my/${s.affiliate}/tracking-links", Some("""{"brandId":"goldvibe"}"""), kit.asAffiliate(s.affiliate)): Unit
     replies = Map("dashboard" -> "dashboard?period=all", "stats" -> "stats?period=all", "commission" -> "commission?period=all", "links" -> "links",
-      "payouts" -> "payouts", "notifications" -> "notifications").map((k, p) => k -> get(s"/goldvibe/accounts/${s.affiliate}/view/$p"))
+      "payouts" -> "payouts", "notifications" -> "notifications").map((k, p) => k -> get(s"/goldvibe/accounts/${s.affiliate}/portal/$p"))
   }
   Then("they see the dashboard, stats, commission, links, payouts and notifications the affiliate would see") { () =>
     val aff = scene("goldvibe").affiliate
     replies.foreach((page, r) => assertEquals(r.status, 200, s"$page: ${r.text}"))
     def portal(path: String) = kit.request("GET", s"/v1/my/$aff/$path", headers = kit.asAffiliate(aff)).json
     assertEquals(replies("dashboard").json, portal("revenue?brand=goldvibe&period=all"))
-    kit.eventually("the same links")(Option(get(s"/goldvibe/accounts/$aff/view/links").json).filter(_ == portal("tracking-links?brand=goldvibe"))): Unit
+    kit.eventually("the same links")(Option(get(s"/goldvibe/accounts/$aff/portal/links").json).filter(_ == portal("tracking-links?brand=goldvibe"))): Unit
     assertEquals(replies("payouts").json, portal("payouts?brand=goldvibe"))
+    // Each read is audited as the manager's, of this account at this brand, naming the page (spec 030 A2).
+    val seen = kit.eventually("audited VIEWED_AS")(Option(kit.views.forView(Activity).ask(Activity.byAction, "action" -> "VIEWED_AS")
+      .filter(r => r.affiliate == aff && r.brand.contains("goldvibe"))).filter(_.flatMap(_.details.get("view")).toSet == replies.keySet))
+    assert(seen.forall(_.actor == "mgr-1"), seen.toString)
   }
   Then("they can change nothing from there") { () =>
     val aff = scene("goldvibe").affiliate
     for method <- Seq("POST", "PUT", "PATCH", "DELETE"); page <- Seq("links", "payouts", "notifications") do
-      val r = send(method, s"/goldvibe/accounts/$aff/view/$page", "{}")
-      assert(r.status / 100 == 4, s"$method $page: ${r.status} ${r.text}")
+      for under <- Seq("portal", "view") do
+        val r = send(method, s"/goldvibe/accounts/$aff/$under/$page", "{}")
+        assert(r.status / 100 == 4, s"$method $under/$page: ${r.status} ${r.text}")
   }
 
   // ── managers ────────────────────────────────────────────────────────────────────────────────────
