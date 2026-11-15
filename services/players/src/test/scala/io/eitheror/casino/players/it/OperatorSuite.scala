@@ -270,6 +270,14 @@ class OperatorSuite extends munit.FunSuite with LogCapturing with io.eitheror.ca
     finally kit.agent.silent = false
   }
 
+  test("modules for the project's services (P14): the agent's answer, whatever an operator's roles; no operator") {
+    val path = s"/v1/casino/brands/${kit.slug}/players/modules"
+    val m = kit.request("GET", path, None, kit.asService("backoffice"))
+    assertEquals(m.status, 200, m.text)
+    assertEquals(m.json.get("modules").get(0).get("module").asText, "casino")
+    assert(Set(401, 403)(kit.request("GET", path, None, kit.asOperator()).status))
+  }
+
   test("the reads: the list finds the player, wallet, activity, bets with 400 invalid_date_range, sessions") {
     val (_, id, _, _) = playing()
     kit.eventually("the player listed")(Option(op("GET", s"/players?search=$id")).filter(_.json.get("total").asInt == 1))
