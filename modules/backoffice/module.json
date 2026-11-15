@@ -28,6 +28,10 @@
             "key": "casino-project"
           },
           {
+            "name": "ANKKA_AUTH_STAFF_ISSUER",
+            "key": "auth-staff-issuer"
+          },
+          {
             "name": "BACKOFFICE_HOST",
             "key": "backoffice-host"
           },

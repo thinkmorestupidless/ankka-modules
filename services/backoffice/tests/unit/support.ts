@@ -1,7 +1,9 @@
 // What the server's unit tests share: an app over a scripted state service and scripted owners, and a
 // record of every log line, so a test can say no line carried a token.
 import { createApp, type Deps } from "../../src/server/main.ts";
-import type { StateClient, Token } from "../../src/server/session.ts";
+import type { Preferences, StateClient, Token } from "../../src/server/session.ts";
+import { Kept, type Bags } from "../../src/server/roles.ts";
+import { OperatorBags } from "./bags.ts";
 import type { Row } from "../../src/server/routes.ts";
 
 export const Brand = "goldvibe";
@@ -23,7 +25,7 @@ export class FakeState implements StateClient {
   sessions = new Map<string, Token>();
   tokenCalls = 0;
   ended: string[] = [];
-  async open(): Promise<{ session: string; subject: string; expiresAt: number }> {
+  async open(_code: string, _verifier: string, _redirectUri: string): Promise<{ session: string; subject: string; expiresAt: number }> {
     throw new Error("not scripted");
   }
   async token(session: string): Promise<Token | undefined> {
@@ -34,6 +36,10 @@ export class FakeState implements StateClient {
     this.ended.push(session);
     this.sessions.delete(session);
   }
+  prefs: Preferences = { theme: "dark", worklistKinds: null, onlineNotices: false, jobs: [] };
+  async preferences(): Promise<Preferences> {
+    return this.prefs;
+  }
 }
 
 export function harness(over: Partial<Deps> = {}) {
@@ -42,6 +48,8 @@ export function harness(over: Partial<Deps> = {}) {
   const state = new FakeState();
   state.sessions.set("s-1", { accessToken: SecretToken, expiresAt: Date.now() + 5 * 60_000, roles: [`brand_${Brand}`, "brand_admin"] });
   let answer: (call: Call) => Response | Promise<Response> = () => Response.json({ ok: true });
+  let bags: () => Bags = () => OperatorBags;
+  let modules: () => string[] = () => ["casino", "core"];
   const fetchFn: typeof fetch = async (input, init) => {
     const req = new Request(input, init);
     const call = { url: req.url, method: req.method, headers: req.headers, body: req.body ? await req.text() : "" };
@@ -63,6 +71,12 @@ export function harness(over: Partial<Deps> = {}) {
     now: () => Date.now(),
     table: rows,
     timeoutMs: 15_000,
+    realm: { issuer: "https://realm.example.test/realms/eitheror", clientId: `backoffice-${Brand}` },
+    address: Origin,
+    reads: {
+      bags: new Kept<Bags>(async () => bags(), 10_000, () => Date.now()),
+      modules: new Kept<string[]>(async () => modules(), 60_000, () => Date.now()),
+    },
     ...over,
   };
   const app = createApp(deps);
@@ -72,6 +86,8 @@ export function harness(over: Partial<Deps> = {}) {
     logs,
     calls,
     answer: (f: typeof answer) => void (answer = f),
+    bagsAre: (f: () => Bags) => void (bags = f),
+    modulesAre: (f: () => string[]) => void (modules = f),
     /** A request as the platform's proxy passes it: its host stated, the session's cookie when given. */
     ask: (method: string, path: string, opts: { session?: string; headers?: Record<string, string>; body?: string } = {}) => {
       const headers: Record<string, string> = { "X-Forwarded-Host": Host, "X-Forwarded-Proto": "https", ...opts.headers };

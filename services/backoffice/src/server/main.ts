@@ -10,6 +10,8 @@ import { getRequestListener } from "@hono/node-server";
 import { dropSession, sessionOf, stateClient, TokenCache, type StateClient, type Token } from "./session.ts";
 import { match, table as routeTable, type Row } from "./routes.ts";
 import { pass, unavailable } from "./proxy.ts";
+import { authRoutes, type Realm } from "./auth.ts";
+import { brandReads, inBrand, permissionsOf, PlatformAdmin, type BrandReads } from "./roles.ts";
 
 export interface Deps {
   /** The brand this backoffice is, from `CASINO_BRAND`; the browser never names one. */
@@ -27,6 +29,20 @@ export interface Deps {
   timeoutMs: number;
   /** The built page; served only when given (production). */
   dist?: string;
+  realm: Realm;
+  /** `BACKOFFICE_HOST`: this backoffice's own address, the realm client's redirect base. */
+  address: string;
+  /** The brand's roles and modules from players; made from the calling address when not given. */
+  reads?: BrandReads;
+}
+
+/** The claims of the realm's token, read without checking it: it came from `backoffice-state`. */
+export function claimsOf(token: string): { sub?: string; name?: string; preferred_username?: string } {
+  try {
+    return JSON.parse(Buffer.from(token.split(".")[1] ?? "", "base64url").toString("utf8")) as Record<string, string>;
+  } catch {
+    return {};
+  }
 }
 
 export type Env = { Variables: { session: string; token: Token; logPath: string; why: string } };
@@ -42,6 +58,7 @@ function selfOrigin(c: Context): string | undefined {
 export function createApp(deps: Deps): Hono<Env> {
   const app = new Hono<Env>();
   const tokens = new TokenCache(deps.state, deps.now);
+  const reads = deps.reads ?? brandReads(deps.servicesUrl, deps.brand, deps.fetch, deps.now);
 
   // One line a request: the route's template, never its parameters, never a token.
   app.use("*", async (c, next) => {
@@ -61,6 +78,7 @@ export function createApp(deps: Deps): Hono<Env> {
   });
 
   app.get("/healthz", (c) => c.text("ok"));
+  authRoutes(app, { realm: deps.realm, address: deps.address, state: deps.state, tokens, now: deps.now });
 
   // Every /api route needs a session the state service still holds.
   app.use("/api/*", async (c, next) => {
@@ -80,6 +98,32 @@ export function createApp(deps: Deps): Hono<Env> {
     c.set("session", session);
     c.set("token", token);
     return next();
+  });
+
+  // The operator as this brand knows them; the permissions opened here from their roles and the brand's bags.
+  app.get("/api/me", async (c) => {
+    c.set("logPath", "/api/me");
+    const token = c.get("token");
+    if (!inBrand(token.roles, deps.brand)) return c.json({ error: "brand_not_in_roles", brand: deps.brand }, 403);
+    const [bags, modules] = await Promise.all([reads.bags.get(), reads.modules.get()]);
+    if (bags === undefined && !token.roles.includes(PlatformAdmin)) return unavailable("players");
+    const claims = claimsOf(token.accessToken);
+    const preferences = claims.sub ? await deps.state.preferences(claims.sub).catch(() => null) : null;
+    return c.json({
+      subject: claims.sub ?? null,
+      name: claims.name ?? claims.preferred_username ?? null,
+      roles: [...token.roles].sort(),
+      brand: { slug: deps.brand, name: deps.brand, modules: modules ?? null },
+      preferences,
+      permissions: permissionsOf(token.roles, bags ?? {}),
+    });
+  });
+
+  // The brand's roles as players holds them now, so the page can name a role that would give a permission.
+  app.get("/api/permissions", async (c) => {
+    c.set("logPath", "/api/permissions");
+    const bags = await reads.bags.get();
+    return bags === undefined ? unavailable("players") : c.json({ roles: bags });
   });
 
   app.all("/api/s/:service/*", async (c) => {
@@ -173,6 +217,8 @@ async function main(): Promise<void> {
     table: routeTable,
     timeoutMs: 15_000,
     dist: production ? path.join(root, "dist") : undefined,
+    realm: { issuer: required("ANKKA_AUTH_STAFF_ISSUER").replace(/\/$/, ""), clientId: `backoffice-${required("CASINO_BRAND")}` },
+    address: required("BACKOFFICE_HOST").replace(/\/$/, ""),
   });
   const serve = getRequestListener(app.fetch);
   let page: ((req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void) | undefined;
