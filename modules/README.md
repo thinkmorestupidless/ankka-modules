@@ -15,12 +15,24 @@ manifest format (vendor spec 004 `contracts/manifest.md`; the schema is vendored
 | `predictions` | product | markets, exchange | `core` |
 | `public-api` | product | public-api | `core`, `casino` |
 | `player-site` | product | player-site (web-hosted: the reference site on the player SDK, spec 027) | `core` |
+| `backoffice` | product | backoffice, backoffice-state | `core` |
 
 `pool` is written by spec 024.
 
 The shared projects are not modules: `payments`, `programme`, `reasoner`, `games` (eitheror's own game
 provider, spec 026) and `tools` (the simulator, spec 020) are each one `shared/<project>/manifest.json`, applied
 with `just modules apply shared/<project>/manifest.json --installation <name>` (`shared/README.md`).
+
+## The backoffice
+
+`backoffice` (spec 030) is the brand's operators' console: `backoffice`, a web-hosted service
+(`hosting: "web"`, any program on `PORT`; ankka's proxy beside it) exposed at the brand's
+`backoffice-host`, and `backoffice-state`, not exposed, holding the operators' sessions and
+preferences and admitting only `backoffice`. The page calls every owning service as the signed-in
+operator through `ANKKA_SERVICES_URL`; a shared project at the address `backoffice-shared-projects`
+names. A brand entitled to it writes `backoffice-host` and a `<slug>-backoffice/CLIENT_SECRET` in its
+secrets file; the realm step then adds the brand's `backoffice-<slug>` client to `eitheror`
+(`brands/_realm/README.md`).
 
 ## What a manifest carries
 

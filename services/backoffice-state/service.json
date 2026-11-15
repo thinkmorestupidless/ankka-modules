@@ -7,9 +7,9 @@
       "ANKKA_HTTP_PORT": "9030",
       "CASINO_BRAND": "goldvibe",
       "CASINO_PROJECT": "goldvibe",
-      "BACKOFFICE_REALM": "https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror",
+      "ANKKA_AUTH_STAFF_ISSUER": "https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror",
       "BACKOFFICE_CLIENT": "backoffice-goldvibe",
-      "BACKOFFICE_ADDRESS": "https://backoffice-goldvibe.127.0.0.1.sslip.io:8443"
+      "BACKOFFICE_HOST": "https://backoffice-goldvibe.127.0.0.1.sslip.io:8443"
     }
   }
 }

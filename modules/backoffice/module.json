@@ -1,0 +1,111 @@
+{
+  "name": "backoffice",
+  "kind": "product",
+  "description": "The brand's backoffice: the operators' console, signed in at the operators' realm, calling each service as the signed-in operator (spec 030)",
+  "dependencies": [
+    {
+      "module": "core",
+      "range": ">=0.4.0 <1.0.0"
+    }
+  ],
+  "services": [
+    {
+      "name": "backoffice",
+      "descriptor": {
+        "image": "europe-west1-docker.pkg.dev/eitheror/casino/backoffice:0.0.0",
+        "hosting": "web",
+        "expose": true,
+        "resources": {
+          "instanceType": "small"
+        },
+        "env": [
+          {
+            "name": "CASINO_BRAND",
+            "key": "casino-brand"
+          },
+          {
+            "name": "CASINO_PROJECT",
+            "key": "casino-project"
+          },
+          {
+            "name": "BACKOFFICE_HOST",
+            "key": "backoffice-host"
+          },
+          {
+            "name": "BACKOFFICE_SHARED_PROJECTS",
+            "key": "backoffice-shared-projects"
+          },
+          {
+            "name": "NODE_ENV",
+            "value": "production"
+          }
+        ]
+      }
+    },
+    {
+      "name": "backoffice-state",
+      "descriptor": {
+        "image": "europe-west1-docker.pkg.dev/eitheror/casino/backoffice-state:0.0.0",
+        "runtime": "0.16.3",
+        "resources": {
+          "instanceType": "small"
+        },
+        "env": [
+          {
+            "name": "CASINO_BRAND",
+            "key": "casino-brand"
+          },
+          {
+            "name": "CASINO_PROJECT",
+            "key": "casino-project"
+          },
+          {
+            "name": "ANKKA_AUTH_STAFF_ISSUER",
+            "key": "auth-staff-issuer"
+          },
+          {
+            "name": "BACKOFFICE_HOST",
+            "key": "backoffice-host"
+          },
+          {
+            "name": "BACKOFFICE_CLIENT_SECRET",
+            "key": "backoffice-client-secret"
+          }
+        ]
+      }
+    }
+  ],
+  "configuration": [
+    {
+      "key": "casino-brand",
+      "type": "string",
+      "secret": false
+    },
+    {
+      "key": "casino-project",
+      "type": "string",
+      "secret": false
+    },
+    {
+      "key": "auth-staff-issuer",
+      "type": "url",
+      "secret": false
+    },
+    {
+      "key": "backoffice-host",
+      "type": "url",
+      "secret": false
+    },
+    {
+      "key": "backoffice-shared-projects",
+      "type": "string",
+      "secret": false
+    },
+    {
+      "key": "backoffice-client-secret",
+      "type": "string",
+      "secret": true
+    }
+  ],
+  "retention": "30d"
+}

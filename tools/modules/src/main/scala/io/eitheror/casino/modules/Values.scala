@@ -92,7 +92,9 @@ object Values:
     // spec 011 R13: no programme code document until spec 013 publishes one
     "rewards-code-document-url" -> "none",
     // spec 017 R8: no judgment provider, so the judged guardrails are off and the status says so
-    "judgment-provider" -> "none")
+    "judgment-provider" -> "none",
+    // spec 030 R17: the shared projects the backoffice reads, as the installation names them
+    "backoffice-shared-projects" -> "payments=payments,programme=programme,reasoner=reasoner")
 
   /** Every non-secret value a module may read: the defaults, the brand's own and the derived. */
   def all(v: Values, project: String, installation: Option[Installation]): Map[String, String] =
