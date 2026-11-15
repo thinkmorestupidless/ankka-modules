@@ -17,7 +17,7 @@ function deps(answer: (url: string) => Response | Promise<Response>) {
 
 describe("the services named", () => {
   test("are those the table holds a status row for, each once", () => {
-    expect(named("players,wallet,players,reporting", table)).toEqual(["players", "wallet"]);
+    expect(named("players,wallet,players,audit", table)).toEqual(["players", "wallet"]);
   });
   test("are refused when empty, malformed or too many", () => {
     expect(named("", table)).toBeUndefined();
@@ -39,6 +39,16 @@ describe("a service's freshness", () => {
   test("is not provisional for an old asOf alone: a quiet brand's views are old and right", async () => {
     const { deps: d } = deps(() => Response.json({ views: [{ name: "players", asOf: "2020-01-01T00:00:00Z", rebuilding: false }] }));
     expect((await freshness(d, ["players"], "tok"))[0]).toMatchObject({ state: "ok", provisional: false });
+  });
+
+  test("is reporting's in its own shape: no asOf, the latest day its views are complete from, provisional while rebuilding (T101)", async () => {
+    const { calls, deps: d } = deps(() =>
+      Response.json({ generation: 2, views: [{ name: "days", completeFrom: "2026-10-03", rebuilding: true }, { name: "players", completeFrom: "2026-10-12", rebuilding: true }, { name: "grants", completeFrom: null, rebuilding: true }], roles: "2026-11-15T10:00:00Z" }),
+    );
+    const [r] = await freshness(d, ["reporting"], "tok");
+    expect(r).toMatchObject({ service: "reporting", state: "ok", asOf: null, completeFrom: "2026-10-12", provisional: true });
+    expect(r!.state === "ok" && r!.views[2]).toEqual({ name: "grants", asOf: null, rebuilding: true, completeFrom: null });
+    expect(calls[0]!.url).toBe("http://s/reporting/v1/casino/brands/goldvibe/reporting/status");
   });
 
   test("is unavailable, and so provisional, when the status cannot be read", async () => {

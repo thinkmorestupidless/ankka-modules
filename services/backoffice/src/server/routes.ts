@@ -199,6 +199,33 @@ export const table: readonly Row[] = [
   r("GET", "merchant", "/cashier/summary", "/v1/payments/cashier/summary", "wallet.read", "payments"),
   r("GET", "merchant", "/{paymentId}", "/v1/payments/{paymentId}", "wallet.read", "payments"),
 
+  // reporting: ReportingEndpoint at /v1/casino/brands/<slug>/reporting, each route's permission its `Access`'s.
+  // A `format=csv` read is an export (a document, `202 {reference}` over the synchronous limit); the page
+  // starts those through `/api/jobs`. The documents are admitted by their kind's permission, which reporting
+  // names in its refusal; `report.read` is the most of them.
+  r("GET", "reporting", "/dashboard/kpis", `${B}/reporting/dashboard/kpis`, "dashboard.read"),
+  r("GET", "reporting", "/dashboard/trend", `${B}/reporting/dashboard/trend`, "dashboard.read"),
+  r("GET", "reporting", "/dashboard/kpi-history", `${B}/reporting/dashboard/kpi-history`, "dashboard.read"),
+  r("GET", "reporting", "/dashboard/geo", `${B}/reporting/dashboard/geo`, "dashboard.read"),
+  r("GET", "reporting", "/dashboard/rankings", `${B}/reporting/dashboard/rankings`, "dashboard.read"),
+  r("GET", "reporting", "/dashboard/activity", `${B}/reporting/dashboard/activity`, "dashboard.read"),
+  r("GET", "reporting", "/dashboard/bonus-summary", `${B}/reporting/dashboard/bonus-summary`, "dashboard.read"),
+  r("GET", "reporting", "/dashboard/payment-health", `${B}/reporting/dashboard/payment-health`, "dashboard.read"),
+  r("GET", "reporting", "/dashboard/predictions", `${B}/reporting/dashboard/predictions`, "dashboard.read"),
+  r("GET", "reporting", "/reports/ggr", `${B}/reporting/reports/ggr`, "report.read"),
+  r("GET", "reporting", "/reports/players", `${B}/reporting/reports/players`, "report.read"),
+  r("GET", "reporting", "/reports/transactions", `${B}/reporting/reports/transactions`, "report.read"),
+  r("GET", "reporting", "/reports/transactions/export", `${B}/reporting/reports/transactions/export`, "report.read"),
+  r("GET", "reporting", "/reports/bonus", `${B}/reporting/reports/bonus`, "report.read"),
+  r("GET", "reporting", "/reports/psp", `${B}/reporting/reports/psp`, "report.read"),
+  r("GET", "reporting", "/compliance/rg-cases", `${B}/reporting/compliance/rg-cases`, "report.compliance"),
+  r("GET", "reporting", "/compliance/kyc-decisions", `${B}/reporting/compliance/kyc-decisions`, "report.compliance"),
+  r("GET", "reporting", "/day-end/{day}", `${B}/reporting/day-end/{day}`, "report.dayEnd"),
+  r("GET", "reporting", "/day-end/{day}/export", `${B}/reporting/day-end/{day}/export`, "report.dayEnd"),
+  r("GET", "reporting", "/players/{playerId}/dispute-report", `${B}/reporting/players/{playerId}/dispute-report`, "export.player"),
+  r("GET", "reporting", "/documents", `${B}/reporting/documents`, "report.read"),
+  r("GET", "reporting", "/documents/{reference}", `${B}/reporting/documents/{reference}`, "report.read"),
+
   // each service's views' freshness (amendment F, T051): its service endpoint, the permission that opens its lists
   r("GET", "players", "/status", `${B}/players/status`, "player.read"),
   r("GET", "wallet", "/status", `${B}/wallet/status`, "wallet.read"),
@@ -206,4 +233,5 @@ export const table: readonly Row[] = [
   r("GET", "kyc", "/status", `${B}/kyc/status`, "identity.review"),
   r("GET", "responsible-gambling", "/status", `${B}/rg/status`, "protection.read"),
   r("GET", "rewards", "/status", `${B}/rewards/status`, "reward.read"),
+  r("GET", "reporting", "/status", `${B}/reporting/status`, "dashboard.read"),
 ];

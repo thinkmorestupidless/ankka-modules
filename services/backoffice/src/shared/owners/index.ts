@@ -8,3 +8,4 @@ export * as responsibleGambling from "./responsible-gambling.ts";
 export * as gameProvider from "./game-provider.ts";
 export * as rewards from "./rewards.ts";
 export * as merchant from "./merchant.ts";
+export * as reporting from "./reporting.ts";

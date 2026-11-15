@@ -1,12 +1,14 @@
 // The page's side of `/api/events`: `permissions_changed` re-reads `/api/me`, so what is offered follows
 // the operator's roles without signing in again (FR-008b); `signed_out` goes to the sign-in, coming
-// back to the same place. EventSource reconnects by itself when the stream drops.
+// back to the same place; `job_done` re-reads the jobs and leaves a notice wherever the operator is
+// (FR-029). EventSource reconnects by itself when the stream drops.
 import { useEffect } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { signInHref } from "./session.ts";
+import { announce, noticeOf } from "../areas/jobs/notices.tsx";
 
 export interface Source {
-  addEventListener(type: string, listener: () => void): void;
+  addEventListener(type: string, listener: (e?: { data?: unknown }) => void): void;
   close(): void;
 }
 
@@ -17,6 +19,11 @@ export function listen(
 ): () => void {
   const source = open();
   source.addEventListener("permissions_changed", () => void client.invalidateQueries({ queryKey: ["me"] }));
+  source.addEventListener("job_done", (e) => {
+    void client.invalidateQueries({ queryKey: ["jobs"] });
+    const n = noticeOf(e?.data);
+    if (n) announce(n);
+  });
   source.addEventListener("signed_out", () => {
     source.close();
     go(signInHref(window.location));
