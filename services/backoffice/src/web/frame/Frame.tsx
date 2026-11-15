@@ -7,6 +7,7 @@ import { render } from "../../shared/messages/index.ts";
 import { NotInBrand } from "../areas/access/NotInBrand.tsx";
 import { areaOf, areasFor } from "./areas.ts";
 import { MeContext, ReadOnlyContext } from "./context.ts";
+import { useEvents } from "./events.ts";
 import { Rail } from "./Rail.tsx";
 import { TopBar } from "./TopBar.tsx";
 import { useMe, useReadOnly, useTheme, type MeState } from "./session.ts";
@@ -56,6 +57,7 @@ export function Shell() {
   const state = useMe();
   const readOnly = useReadOnly();
   useTheme(state.state === "signedIn" ? state.me : undefined);
+  useEvents(state.state === "signedIn");
   if (state.state !== "signedIn") return <Outside state={state} />;
   return <Frame me={state.me} readOnly={readOnly} />;
 }
