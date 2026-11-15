@@ -5,7 +5,7 @@ import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.http.*
 import com.thinkmorestupidless.ankka.http.openapi.Description
 import io.eitheror.casino.contract.http.Json as JsonBody
-import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.access.{RoleBags, Routes}
 import io.eitheror.casino.rg.Json
 import io.eitheror.casino.rg.Json.*
 import io.eitheror.casino.rg.profile.*
@@ -84,9 +84,17 @@ final class PlayerEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/rg/${ctx.
     postBody("/{player}/reality-check/acknowledge") { (p: String, body: JsonBody) => mine(p)(profileRoutes.acknowledge(p, body.text)) }
   }
 
-/** `/v1/casino/backoffice/<slug>/rg`: the brand's operators (FR-004, FR-016, FR-019, FR-025, FR-026, FR-029). */
-final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoffice/${ctx.slug}/rg"):
-  val acl: Acl = Routes.operator(ctx.slug, ctx.authenticate())
+/**
+ * `/v1/casino/backoffice/<slug>/rg`: the brand's operators (FR-004, FR-016, FR-019, FR-025, FR-026, FR-029),
+ * each route requiring one permission of the brand's roles as `bags` last read them (spec 030 amendment G1,
+ * `Routes.operatorMay`): `protection.read` for the reads, `protection.change` for limits, breaks,
+ * self-exclusion, the return and cases, `config.brand` for changing the brand's protection settings.
+ */
+final class OperatorEndpoint(ctx: Ctx, bags: RoleBags) extends HttpEndpoint(s"/v1/casino/backoffice/${ctx.slug}/rg"):
+  private def may(permission: String): Acl = Routes.operatorMay(ctx.slug, permission, bags, ctx.authenticate())
+
+  // every route names its own permission; this is never reached
+  val acl: Acl = Acl.DenyAll
 
   private val profileRoutes = ProfileRoutes(ctx)
   private def operator = Actor.operator(principal.subject)
@@ -95,44 +103,53 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
   private def settingsBody(s: io.eitheror.casino.rg.settings.BrandSettings) =
     Json.obj("minSessionMinutes" -> s.minSessionMinutes, "maxBreakDays" -> s.maxBreakDays)
 
-  get("/settings") { () => ok(settingsBody(ctx.brandSettings)) }
-  putBody("/settings") { (text: String) =>
-    body(text) { b =>
-      def int(f: String): Either[String, Option[Int]] =
-        if b.text(f).isEmpty then Right(None) else b.long(f).filter(_.isValidInt).map(v => Some(v.toInt)).toRight(f)
-      (for m <- int("minSessionMinutes"); d <- int("maxBreakDays") yield ChangeSettings(m, d, principal.subject, ctx.now())) match
-        case Left(field) => refusal(400, "invalid_setting", s"$field is not a whole number", "field" -> field)
-        case Right(c) =>
-          val a = ctx.clients.componentClient.forEventSourcedEntity(EntityId(ctx.slug)).call(BrandSettingsEntity.change).invoke(c)
-          a.refusal.fold(ok(settingsBody(a.settings)))(code => refusal(400, code, s"${a.field.getOrElse("")} is out of range", "field" -> a.field))
+  withAcl(may("protection.read")) {
+    get("/settings") { () => ok(settingsBody(ctx.brandSettings)) }
+  }
+  withAcl(may("config.brand")) {
+    putBody("/settings") { (text: String) =>
+      body(text) { b =>
+        def int(f: String): Either[String, Option[Int]] =
+          if b.text(f).isEmpty then Right(None) else b.long(f).filter(_.isValidInt).map(v => Some(v.toInt)).toRight(f)
+        (for m <- int("minSessionMinutes"); d <- int("maxBreakDays") yield ChangeSettings(m, d, principal.subject, ctx.now())) match
+          case Left(field) => refusal(400, "invalid_setting", s"$field is not a whole number", "field" -> field)
+          case Right(c) =>
+            val a = ctx.clients.componentClient.forEventSourcedEntity(EntityId(ctx.slug)).call(BrandSettingsEntity.change).invoke(c)
+            a.refusal.fold(ok(settingsBody(a.settings)))(code => refusal(400, code, s"${a.field.getOrElse("")} is out of range", "field" -> a.field))
+      }
     }
   }
 
-  get("/{player}") { (p: String) =>
-    Try(ctx.state(p)).fold(_ => refusal(503, "service_unavailable", "The profile cannot be read"),
-      s => ok(Render.full(ctx, s.copy(playerId = p), query.raw("currency"))))
+  withAcl(may("protection.read")) {
+    get("/{player}") { (p: String) =>
+      Try(ctx.state(p)).fold(_ => refusal(503, "service_unavailable", "The profile cannot be read"),
+        s => ok(Render.full(ctx, s.copy(playerId = p), query.raw("currency"))))
+    }
   }
-  putBody("/{player}/limits/{type}") { (p: String, t: String, text: String) => profileRoutes.setLimit(p, t, text, operator) }
-  delete("/{player}/limits/{type}") { (p: String, t: String) => profileRoutes.removeLimit(p, t, query.raw("currency"), operator) }
-  putBody("/{player}/cooling-off") { (p: String, text: String) => profileRoutes.setBreak(p, text, operator) }
-  postBody("/{player}/cooling-off/lift") { (p: String, text: String) => profileRoutes.liftBreak(p, text, principal.subject) }
-  postBody("/{player}/self-exclude") { (p: String, text: String) =>
-    body(text)(b => profileRoutes.exclude(p, b.textOr("period", ""), operator))
-  }
-  post("/{player}/return") { (p: String) => profileRoutes.requestReturn(p, operator) }
 
   private def caseReply(status: Int)(a: ProfileAnswer): Reply =
     a.refusal.fold(a.caseId.flatMap(a.state.caseOf).fold(refusal(404, "case_not_found", "No such case"))(c => json(status, Render.rgCase(c))))(refused)
 
-  postBody("/{player}/cases") { (p: String, text: String) =>
-    body(text)(b => caseReply(201)(ctx.profile(p).call(ProfileEntity.openCase)
-      .invoke(OpenCase(p, b.textOr("caseType", ""), b.textOr("note", ""), principal.subject, ctx.now()))))
-  }
-  postBody("/{player}/cases/{caseId}/notes") { (p: String, c: String, text: String) =>
-    body(text)(b => caseReply(200)(ctx.profile(p).call(ProfileEntity.noteCase).invoke(NoteCase(c, b.textOr("note", ""), principal.subject, ctx.now()))))
-  }
-  postBody("/{player}/cases/{caseId}/close") { (p: String, c: String, text: String) =>
-    body(text)(b => caseReply(200)(ctx.profile(p).call(ProfileEntity.closeCase).invoke(CloseCase(c, b.textOr("reason", ""), principal.subject, ctx.now()))))
+  withAcl(may("protection.change")) {
+    putBody("/{player}/limits/{type}") { (p: String, t: String, text: String) => profileRoutes.setLimit(p, t, text, operator) }
+    delete("/{player}/limits/{type}") { (p: String, t: String) => profileRoutes.removeLimit(p, t, query.raw("currency"), operator) }
+    putBody("/{player}/cooling-off") { (p: String, text: String) => profileRoutes.setBreak(p, text, operator) }
+    postBody("/{player}/cooling-off/lift") { (p: String, text: String) => profileRoutes.liftBreak(p, text, principal.subject) }
+    postBody("/{player}/self-exclude") { (p: String, text: String) =>
+      body(text)(b => profileRoutes.exclude(p, b.textOr("period", ""), operator))
+    }
+    post("/{player}/return") { (p: String) => profileRoutes.requestReturn(p, operator) }
+
+    postBody("/{player}/cases") { (p: String, text: String) =>
+      body(text)(b => caseReply(201)(ctx.profile(p).call(ProfileEntity.openCase)
+        .invoke(OpenCase(p, b.textOr("caseType", ""), b.textOr("note", ""), principal.subject, ctx.now()))))
+    }
+    postBody("/{player}/cases/{caseId}/notes") { (p: String, c: String, text: String) =>
+      body(text)(b => caseReply(200)(ctx.profile(p).call(ProfileEntity.noteCase).invoke(NoteCase(c, b.textOr("note", ""), principal.subject, ctx.now()))))
+    }
+    postBody("/{player}/cases/{caseId}/close") { (p: String, c: String, text: String) =>
+      body(text)(b => caseReply(200)(ctx.profile(p).call(ProfileEntity.closeCase).invoke(CloseCase(c, b.textOr("reason", ""), principal.subject, ctx.now()))))
+    }
   }
 
 /**

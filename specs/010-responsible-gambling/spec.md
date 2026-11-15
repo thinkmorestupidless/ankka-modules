@@ -648,3 +648,7 @@ shape, the full-aggregate usage) are reproduced as parity tests.
 - Account closure by the player: `players`' (spec 008).
 - KYC and source-of-funds gates at deposit: `kyc`'s (spec 009), asked by the wallet beside this
   service's check.
+
+## Amended by 030
+
+- G1 (spec 030 contracts/amendments.md, T021): every backoffice route requires one permission (`Routes.operatorMay`), decided from the brand's roles the service reads from `players` every 10 seconds: `protection.read` for a player's profile (limits, breaks, cases and history) and the brand's protection settings, `protection.change` for setting or removing a limit, starting or lifting a break, a self-exclusion, the return and a case (opening, noting, closing), `config.brand` for changing the brand's protection settings (`features/responsible-gambling/operator-roles.feature`).
