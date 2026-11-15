@@ -46,7 +46,7 @@ limit holds because `{id}` and `{kid}` are each the second.
 |---|---|
 | `GET …`, `POST …` | list; create (`network`, `address` https, `secret` written to the store and never read back) |
 | `GET …/{id}`, `PUT …/{id}`, `DELETE …/{id}` | read (no secret), update address or `active`, delete |
-| `GET …/undelivered?network=` | the undelivered facts (`Deliveries.undelivered`) |
+| `GET …/undelivered?network=&page=&pageSize=` | the undelivered facts (`Deliveries.undelivered`), oldest first attempt first, `{undelivered, total, page?, pageSize?}`; `pageSize` 1–200 (spec 030 E2) |
 | `POST …/undelivered/{deliveryId}/resend`, `POST …/undelivered/{deliveryId}/discard` | `Delivery.resend`, `Delivery.discard`; `409` unless undelivered |
 
 ## Not served

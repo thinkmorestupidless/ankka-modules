@@ -194,6 +194,25 @@ class CarriersSuite extends munit.FunSuite with LogCapturing:
     }
     assertEquals(undelivered.status, 200)
 
+    // Oldest first attempt first, paged by page and pageSize, with the total (spec 030 E2).
+    def list(paging: String) = kit.request("GET", s"$webhooks/undelivered?network=programme$paging", headers = kit.asOperator())
+    def listed(r: Reply)     = r.json.get("undelivered").elements.asScala.toVector
+    val whole = listed(undelivered)
+    val total = undelivered.json.get("total").asLong
+    assertEquals(total, whole.size.toLong, undelivered.text)
+    assert(undelivered.json.get("page") == null, "no paging asked, none answered")
+    val firsts = whole.map(d => java.time.Instant.parse(d.get("firstAttemptAt").asText))
+    assertEquals(firsts, firsts.sorted, "oldest first")
+    val first = list("&page=1&pageSize=1")
+    assertEquals((first.status, first.json.get("page").asInt, first.json.get("pageSize").asInt, first.json.get("total").asLong),
+      (200, 1, 1, total), first.text)
+    assertEquals(listed(first).map(_.get("delivery").asText), whole.take(1).map(_.get("delivery").asText))
+    assertEquals(listed(list("&page=2&pageSize=1")).map(_.get("delivery").asText), whole.slice(1, 2).map(_.get("delivery").asText))
+    val past = list(s"&page=${total + 1}&pageSize=1")
+    assertEquals((past.status, listed(past), past.json.get("total").asLong), (200, Vector.empty, total), past.text)
+    val tooMany = list("&pageSize=201")
+    assertEquals((tooMany.status, tooMany.json.get("field").asText), (400, "pageSize"), tooMany.text)
+
     kit.receiver.default = Some(200)
     val resent = kit.request("POST", s"$webhooks/undelivered/${encoded(sub, a)}/resend", headers = kit.asOperator())
     assertEquals(resent.status, 200, resent.text)
