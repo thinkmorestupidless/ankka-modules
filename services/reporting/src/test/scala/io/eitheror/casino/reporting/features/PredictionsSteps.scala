@@ -118,9 +118,10 @@ class PredictionsFeatures extends ReportingFeatures("predictions.feature"):
       p.publish().settled()
   }
 
-  private def desk = kit.asStaff(Seq("markets"), "desk-1")
+  /** The trading desk: an operator whose roles carry `report.read` (spec 030 E3; the `markets` role is no longer named). */
+  private def desk = kit.asStaff(Seq("brand_finance"), "desk-1")
 
-  When("an operator with the markets permission reads the market report") { () =>
+  When("an operator who may read the brand's reports reads the market report") { () =>
     answer = kit.eventually("the market report", 60.seconds)(Some(kit.get(s"/predictions/markets?from=$from&to=$to", desk).json)
       .filter(j => p.marketRow(j, mk).exists(r => r.path("trades").asLong == p.trades.count(_.marketId == mk) &&
         r.path("status").asText == "final")))

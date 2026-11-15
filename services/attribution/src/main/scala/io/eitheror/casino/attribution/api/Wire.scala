@@ -116,8 +116,9 @@ object Wire:
   final case class Transition(firstDay: Option[String], endsAt: Option[String], endedOn: Option[String], endedBy: Option[String],
       legacyTagsLast30Days: Long)
   final case class NetworkStatus(id: String, reachable: Boolean, lastFetch: Option[Instant], boundPlayers: Long, undelivered: Long)
+  /** `roles`: when the brand's roles were last read from `players` (spec 030 E1). */
   final case class Status(networks: Vector[NetworkStatus], transition: Transition, openDays: Long,
-      legacyPerDay: Map[String, Long] = Map.empty)
+      legacyPerDay: Map[String, Long] = Map.empty, roles: String = "")
 
   final case class TouchAnswer(kind: String, value: String, at: Instant, outcome: String)
   final case class BindingAnswer(network: String, affiliate: String, link: String, campaign: Option[String], subIds: Vector[String],

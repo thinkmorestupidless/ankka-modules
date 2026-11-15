@@ -75,8 +75,8 @@ class AuditSuite extends munit.FunSuite with LogCapturing:
     held(generated, "report.generated", "op-1", Document.DisputeReport, s"${d.minusDays(7)}/$d")
     assertEquals(records(ref).size, 1, "not served until it is asked for")
     // Served twice, by two operators: a record for each.
-    assertEquals(Disputed.served(kit, ref, kit.asOperator).status, 200)
-    assertEquals(kit.get(s"/documents/$ref", kit.asStaff(Nil, "op-2")).status, 200)
+    assertEquals(Disputed.served(kit, ref, kit.asExporter).status, 200)
+    assertEquals(kit.get(s"/documents/$ref", kit.asStaff(Seq("brand_compliance"), "op-2")).status, 200)
     val after = awaited(ref, 3)
     assertEquals(after.drop(1).map(r => (r.action, r.actorId)), Vector("report.served" -> "op-1", "report.served" -> "op-2"))
   }

@@ -4,11 +4,14 @@ import io.eitheror.casino.publicapi.wire.Times
 
 import scala.concurrent.duration.*
 
-/** T084: `GET /public-api/{brand}/status` for the brand's operators, on `SharedKit.ranked`. */
+/**
+ * T084: `GET /public-api/{brand}/status` for the brand's operators whose roles carry `config.brand` (spec 030 E1), on
+ * `SharedKit.ranked`.
+ */
 class StatusSuite extends munit.FunSuite:
   override val munitTimeout = 120.seconds
   private lazy val kit = Ranking.kit
-  private def status(headers: Seq[(String, String)] = kit.asStaff(Nil), brand: String = kit.brand) =
+  private def status(headers: Seq[(String, String)] = kit.asStaff(Seq("brand_admin")), brand: String = kit.brand) =
     kit.request("GET", s"/public-api/$brand/status", headers = headers)
 
   test("after a run: when it was computed, the snapshot, not stale, and each view's latest record") {
@@ -24,6 +27,17 @@ class StatusSuite extends munit.FunSuite:
     Vector("players", "sessions", "rounds", "bets", "transactions", "bonusAwards").foreach(v => assert(n.path("views").has(v), s"$v in $n"))
     assert(n.path("views").path("players").path("lastAppliedAt").asText().nonEmpty)
     assert(n.path("views").path("rounds").path("lastAppliedAt").asText().nonEmpty)
+    assert(n.path("roles").asText().contains("roles read at"), n.toString)
+  }
+
+  test("config.brand is needed: brand_admin and platform_admin read it, the other default roles and a payments role are refused naming it") {
+    assertEquals(status(kit.asStaff(Seq("brand_admin"))).status, 200)
+    assertEquals(status(kit.asStaff(Seq("platform_admin"), brandRole = false)).status, 200)
+    for role <- Vector("brand_support", "brand_finance", "brand_compliance", "resource_admin") do
+      val r = status(kit.asStaff(Seq(role)))
+      assertEquals(r.status, 403, s"$role: ${r.text}")
+      assert(r.text.contains("the config.brand permission is needed"), s"$role: ${r.text}")
+    assertEquals(status(kit.asStaff(Nil)).status, 403)
   }
 
   test("stale once the last run is more than three hours old") {

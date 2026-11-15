@@ -79,6 +79,25 @@ class OperatorSuite extends munit.FunSuite with LogCapturing:
     assertEquals(kit.request("GET", s"$Backoffice/settings", headers = kit.asOperator(roles = "platform_admin")).status, 200)
   }
 
+  /** The permission each operator route requires (spec 030 E1). */
+  private def permissionOf(path: String): String =
+    if path.contains("/records/") then "player.read"
+    else if path.contains("/undelivered") then "fact.redeliver"
+    else "config.attribution"
+
+  test("each operator route requires its one permission: refused to the roles whose bags lack it, naming it (spec 030 E1)") {
+    val sub = as("POST", Webhooks, Some(Json.render(Json.obj("network" -> "programme", "address" -> kit.receiver.hookUrl,
+      "secret" -> "whsec-operator-permissions")))).json.get("id").asText
+    for (method, path, body) <- routes(sub); role <- Vector("brand_support", "brand_finance", "brand_compliance", "resource_admin") do
+      val permission = permissionOf(path)
+      val r = kit.request(method, path, body, kit.asOperator(roles = s"brand_goldvibe,$role"))
+      if kit.roles.permissionsOf(Set(role)).exists(_(permission)) then
+        assert(!Set(401, 403, 405).contains(r.status), s"$role: $method $path answered ${r.status}: ${r.text}")
+      else
+        assertEquals(r.status, 403, s"$role: $method $path")
+        assert(r.text.contains(s"the $permission permission is needed"), s"$role: $method $path: ${r.text}")
+  }
+
   test("networks are added, changed and removed; the pseudonym key is made once and no answer holds a key or a secret") {
     val added = as("POST", s"$Backoffice/networks", Some(Json.render(Json.obj("id" -> "second", "keyDocument" -> second.keyDocumentUrl,
       "revocationList" -> second.revocationsUrl, "machine" -> "acme/second"))))
@@ -146,7 +165,8 @@ class OperatorSuite extends munit.FunSuite with LogCapturing:
       Option(s).filter(s => s.get("networks").elements.asScala.exists(n => n.get("id").asText == "programme" && n.get("boundPlayers").asLong == 3)
         && s.get("openDays").asLong == 1L)
     }
-    assertEquals(status.fieldNames.asScala.toSet, Set("networks", "transition", "openDays", "legacyPerDay"))
+    assertEquals(status.fieldNames.asScala.toSet, Set("networks", "transition", "openDays", "legacyPerDay", "roles"))
+    assert(status.get("roles").asText.contains("roles read at"), status.get("roles").toString)
     val programme = status.get("networks").elements.asScala.find(_.get("id").asText == "programme").get
     assertEquals((programme.get("reachable").asBoolean, programme.get("undelivered").asLong), (true, 0L))
     assert(programme.hasNonNull("lastFetch"), programme.toString)

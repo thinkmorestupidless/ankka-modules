@@ -132,7 +132,7 @@ class DisputesFeatures extends ReportingFeatures("disputes.feature"):
   }
 
   When("it is generated") { () =>
-    bytes = kit.getBytes(s"/players/${p.player}/dispute-report?sessionId=${p.logins.head.id}&format=$format", kit.asOperator)
+    bytes = kit.getBytes(s"/players/${p.player}/dispute-report?sessionId=${p.logins.head.id}&format=$format", kit.asExporter)
   }
 
   Then("it is served as an attachment under a file name carrying the reference number") { () =>
@@ -166,7 +166,7 @@ class DisputesFeatures extends ReportingFeatures("disputes.feature"):
   }
 
   Then("the agent can read its progress") { () =>
-    val r = kit.get(s"/documents/$reference", kit.asOperator)
+    val r = kit.get(s"/documents/$reference", kit.asExporter)
     assert(r.status == 200 || r.status == 202, r.text)
     if r.status == 202 then
       assertEquals(r.json.path("reference").asText, reference)
@@ -174,7 +174,7 @@ class DisputesFeatures extends ReportingFeatures("disputes.feature"):
   }
 
   Then("the document is served once ready") { () =>
-    val r = Disputed.served(kit, reference, kit.asOperator)
+    val r = Disputed.served(kit, reference, kit.asExporter)
     assertEquals(r.status, 200, r.text)
     assertEquals(lines(r)(1)(0), reference)
     assertEquals(rows(r).size, p.rounds.size)
@@ -195,12 +195,12 @@ class DisputesFeatures extends ReportingFeatures("disputes.feature"):
   }
 
   Then("the document is no longer served") { () =>
-    val r = kit.get(s"/documents/$reference", kit.asOperator)
+    val r = kit.get(s"/documents/$reference", kit.asExporter)
     assertEquals((r.status, r.error), (410, "document_expired"), r.text)
   }
 
   Then("the record of the report, its reference number, who asked, the period and when, remains") { () =>
-    def listed = kit.get(s"/documents?kind=${Document.DisputeReport}&from=${kit.today.minusDays(3)}&to=${kit.today}", kit.asOperator)
+    def listed = kit.get(s"/documents?kind=${Document.DisputeReport}&from=${kit.today.minusDays(3)}&to=${kit.today}", kit.asExporter)
     // The list is a view: the record shows once the sweep's expiry reaches it.
     val (r, mine) = kit.eventually(s"$reference listed expired") {
       val r = listed

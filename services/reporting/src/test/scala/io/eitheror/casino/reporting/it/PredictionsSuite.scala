@@ -114,15 +114,18 @@ class PredictionsSuite extends munit.FunSuite with LogCapturing:
       (p.money(want.bets), p.money(want.ggr), p.money(want.deposits), p.money(want.withdrawals)))
   }
 
-  test("the market report admits the markets permission, the traders report compliance; the summary neither") {
-    val desk       = kit.asStaff(Seq("markets"))
+  test("the summary and the market report admit report.read, the traders report report.compliance (spec 030 E3)") {
+    val finance    = kit.asStaff(Seq("brand_finance"))
     val compliance = kit.asStaff(Seq("brand_compliance"))
-    assertEquals(kit.get(s"/predictions/markets?from=${p.day}&to=${p.day}", desk).status, 200)
-    assertEquals(kit.get(s"/predictions/summary?$period", desk).status, 403)
-    assertEquals(kit.get(s"/predictions/traders?$period", desk).status, 403)
+    assertEquals(kit.get(s"/predictions/markets?from=${p.day}&to=${p.day}", finance).status, 200)
+    assertEquals(kit.get(s"/predictions/summary?$period", finance).status, 200)
+    assertEquals(kit.get(s"/predictions/traders?$period", finance).status, 403)
     assertEquals(kit.get(s"/predictions/traders?$period", compliance).status, 200)
     assertEquals(kit.get(s"/predictions/summary?$period", compliance).status, 403)
+    assertEquals(kit.get(s"/predictions/markets?from=${p.day}&to=${p.day}", compliance).status, 403)
     assertEquals(kit.get(s"/predictions/summary?$period", kit.asOperator).status, 403)
+    // The module's `markets` role is no route's: it carries nothing in the brand's bags.
+    assertEquals(kit.get(s"/predictions/markets?from=${p.day}&to=${p.day}", kit.asStaff(Seq("markets"))).status, 403)
   }
 
   test("the dashboard holds today's prediction figures against yesterday's to the same hour, in the KPIs' shape (FR-028)") {
