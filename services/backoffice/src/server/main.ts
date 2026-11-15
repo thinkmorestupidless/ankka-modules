@@ -13,6 +13,7 @@ import { pass, unavailable } from "./proxy.ts";
 import { authRoutes, type Realm } from "./auth.ts";
 import { eventRoutes } from "./events.ts";
 import { search } from "./composite/search.ts";
+import { viewDocument } from "./composite/document.ts";
 import { freshness, named } from "./composite/freshness.ts";
 import { brandReads, inBrand, permissionsOf, PlatformAdmin, type BrandReads } from "./roles.ts";
 
@@ -39,6 +40,8 @@ export interface Deps {
   reads?: BrandReads;
   /** How often `/api/events` compares the operator's permissions; 5 s when not given. */
   eventsEveryMs?: number;
+  /** `BACKOFFICE_DOCUMENT_STORE`: the store's address and path that kyc's signed links name (FR-031). */
+  documentStore?: string;
 }
 
 /** The claims of the realm's token, read without checking it: it came from `backoffice-state`. */
@@ -149,6 +152,16 @@ export function createApp(deps: Deps): Hono<Env> {
       c.set("why", e instanceof Error ? e.name : "unknown");
       return unavailable("backoffice-state");
     }
+  });
+
+  // An identity document, streamed for this operator from kyc's view of it; the two ids the only inputs (FR-031).
+  app.get("/api/kyc/:player/documents/:document/view", async (c) => {
+    c.set("logPath", "/api/kyc/{p}/documents/{d}/view");
+    const token = c.get("token");
+    if (!inBrand(token.roles, deps.brand)) return c.json({ error: "brand_not_in_roles", brand: deps.brand }, 403);
+    // the ids as the page sent them, undecoded, so `match` refuses an encoded separator
+    const [, , player = "", , document = ""] = new URL(c.req.url).pathname.split("/").slice(1);
+    return viewDocument(deps, player, document, token.accessToken);
   });
 
   // The one search (contracts/sources.md): asked only of the resolvers its shape can match, as the operator.
@@ -273,6 +286,7 @@ async function main(): Promise<void> {
     dist: production ? path.join(root, "dist") : undefined,
     realm: { issuer: required("ANKKA_AUTH_STAFF_ISSUER").replace(/\/$/, ""), clientId: `backoffice-${required("CASINO_BRAND")}` },
     address: required("BACKOFFICE_HOST").replace(/\/$/, ""),
+    documentStore: process.env.BACKOFFICE_DOCUMENT_STORE,
   });
   const serve = getRequestListener(app.fetch);
   let page: ((req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void) | undefined;
