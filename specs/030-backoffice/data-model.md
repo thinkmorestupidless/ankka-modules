@@ -99,6 +99,6 @@ two keys (the spec's edge case), and the result says so.
 
 ## What each owning service gains
 
-New stored data in the owners (manager tags, devices, deposit limits, the adjustment's cause, the
+New stored data in the owners (manager tags, seen devices, deposit bounds, the adjustment's cause, the
 balances at a withdrawal request) is described where it is specified:
 [contracts/amendments.md](contracts/amendments.md) P7, P8, H3, W2, Y3.

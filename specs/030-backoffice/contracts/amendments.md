@@ -5,7 +5,8 @@ Each is made with its own tests in that service and one line under *Amended by 0
 Three kinds recur and are named by letter:
 
 - **M** the role matrix: operator routes take `Routes.operatorMay(slug, action)` from
-  [roles.md](roles.md); role sets in handlers go; the service's features state the roles per route.
+  [roles.md](roles.md); role sets in handlers go; the service binds its
+  `features/<area>/operator-roles.feature`.
 - **L** lists: `page`, `pageSize` (max 200), `total`, the order FR-009 names.
 - **F** freshness: `GET …/status` answering `{views: [{name, asOf, rebuilding}]}` (research R13).
 
@@ -16,7 +17,7 @@ Three kinds recur and are named by letter:
 | C1 | `access/OperatorActions.scala`: the matrix; `Routes.operatorMay`; `Routes.operator` kept for `player.read`-class routes only through it |
 | C2 | `WriteSchemas` writes `schemas/access/operator-actions.v1.json` and `schemas/money/currencies.v1.json` |
 | C3 | `Layout.SharedProjects` gains `backoffice -> Seq("backoffice", "backoffice-state")`; `ReservedSlugs` follows |
-| C4 | `facts`: `adjustment` gains optional `cause {kind, ref}`; device and tag facts for players (P7, P8) |
+| C4 | `facts`: `adjustment` gains optional `cause {kind, ref}` |
 | C5 | `brands/_realm/eitheror-operators.json`: role `brand_support`; confidential client `backoffice` (audience `eitheror-casino`, standard flow, PKCE) |
 
 ## players (spec 008)
@@ -49,7 +50,7 @@ Three kinds recur and are named by letter:
 | # | Change |
 |---|---|
 | Y1 | M, in the ACL |
-| Y2 | queue: `sort=oldest`; `counts {pendingReview, needsReview}`; `playerSearch` matches email and name through the request's own stored player fields |
+| Y2 | queue: `sort=oldest`; `counts {pendingReview, needsReview}`. `playerSearch` stays an exact player id: the backoffice resolves a name or an email to player ids through players' search first, so payouts holds no name |
 | Y3 | request detail: `outcomes[].operatorId` for a confirmed or failed payment; `balancesAtRequest` and `restrictedAtRequest` (recorded when the request was made) |
 | Y4 | `players/{p}/withdrawal-history`: L |
 | Y5 | F |
@@ -76,17 +77,17 @@ Three kinds recur and are named by letter:
 
 | # | Change |
 |---|---|
-| R1 | M; `GET reward-grants/{rewardId}` admits `reward.read` |
-| R2 | the ineligible answer gains `allowedBy` (what would allow the grant) beside `reason` |
-| R3 | F |
+| RW1 | M; `GET reward-grants/{rewardId}` admits `reward.read` |
+| RW2 | the ineligible answer gains `allowedBy` (what would allow the grant) beside `reason` |
+| RW3 | F |
 
 ## game-provider (spec 003)
 
 | # | Change |
 |---|---|
-| V1 | M |
-| V2 | `rounds`: `total`; `rounds/by-round/{roundId}` (any provider); `rounds/by-transaction/{txId}` |
-| V3 | `unacknowledged`: L |
+| GP1 | M |
+| GP2 | `rounds`: `total`; `rounds/by-round/{roundId}` (any provider); `rounds/by-transaction/{txId}` |
+| GP3 | `unacknowledged`: L |
 
 ## engagement (spec 014), support-agent (017), attribution (012), reporting (015), public-api (016)
 
@@ -100,9 +101,9 @@ Three kinds recur and are named by letter:
 
 | # | Change |
 |---|---|
-| H1 | `deposit.read`: a brand operator reads `/v1/payments/cashier`, `/cashier/summary` and `/v1/payments/{id}` for the brand's own sub-brand |
+| H1 | `deposit.read`: a brand operator reads `/v1/payments/cashier`, `/cashier/summary` and `/v1/payments/{id}` for the sub-brand that names the brand (glossary, *sub-brand*) and no other |
 | H2 | `/v1/payments/cashier?reference=` (exact payment reference) |
-| H3 | `/v1/sub-brands/{id}/deposit-limits` GET, PUT: minimum and maximum per method and currency, in minor units; enforced by the deposit workflow before a provider is asked, refused as `DEPOSIT_BELOW_MINIMUM` or `DEPOSIT_ABOVE_MAXIMUM` |
+| H3 | `/v1/sub-brands/{id}/deposit-bounds` GET, PUT: the deposit bounds per method and currency, in minor units; enforced by the deposit workflow before a provider is asked, refused as `DEPOSIT_BELOW_MINIMUM` or `DEPOSIT_ABOVE_MAXIMUM` |
 | H4 | `/v1/sub-brands/{id}/psp-credentials/{provider}/test-payment` POST: one payment of the provider's smallest amount on the provider's test mode, through psp-gateway; answers the provider's outcome; never credits a wallet |
 | H5 | `/v1/operators`: L |
 

@@ -97,11 +97,15 @@ operator's preferences) is a Scala service.
   in the matrix? → A: No. Only the five casino roles confer casino actions; the payments roles
   confer payments administration only (FR-008, FR-008a).
 - Q: Six capabilities need new behaviour or stored data in an owning service (manager tags, the
-  games panel, the devices tab, deposit minimum and maximum per method, a test payment, viewing the
+  games panel, the devices tab, deposit bounds per method, a test payment, viewing the
   portal as an affiliate). Which are built? → A: All six, each as an amendment to its owning
   service's spec ([parity.md](parity.md)).
+- Q: Are the scenarios for the amendments to the owning services written in design, and the one
+  scenario that named a fraud role corrected? → A: Yes (*Amendments to the owning services*).
 - Q: Do the proposed glossary terms worklist, timeline, adjustment batch and merge tag stand? → A:
   All four, as defined.
+- Q: Do the proposed glossary terms role matrix, payments role, manager tag, seen device, deposit
+  bounds and test payment stand? → A: All six, as defined.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -144,7 +148,7 @@ An operator's first screen is their worklist: the open work their roles let them
 current brand, one row per item, oldest first, with each kind's count. A finance operator sees
 withdrawal requests pending review and withdrawal payments that need review; a compliance operator
 sees identity documents awaiting review, players flagged for review, open cases and fraud cases; an
-administrator sees undelivered facts, unacknowledged provider callbacks and parked sends. Opening
+administrator sees undelivered facts, unacknowledged calls and parked sends. Opening
 an item opens its investigation; acting on it returns the operator to the worklist at the same
 place, with the item gone or moved.
 
@@ -320,7 +324,7 @@ A brand administrator sets the brand's configuration (sites, countries, currenci
 deposit and wagering settings, the game catalogue, the support agent, the modules page of spec
 021) and sees which values differ from the brand's defaults. A payments administrator, at their
 operator level, manages holdings, companies and sub-brands, payment provider configurations and
-terminals, routing rules (draft, simulate, deploy, roll back) and deposit limits per method.
+terminals, routing rules (draft, simulate, deploy, roll back) and deposit bounds per method.
 Administrators
 invite operators with a role at or below their own, resend, reset and revoke.
 
@@ -372,6 +376,82 @@ previewed message.
 
 - added `features/backoffice/outreach.feature`: an operator who asked is told when a player of their brand comes online
 - added `features/backoffice/outreach.feature`: an inbox item is previewed with its merge tags filled before it is sent
+
+### Amendments to the owning services
+
+What this spec changes in the services it calls ([contracts/amendments.md](contracts/amendments.md)):
+who may take each action there, by the role matrix (FR-008), and the routes and stored data
+[parity.md](parity.md) marks as gaps. Each scenario lives in its owner's features.
+
+**Acceptance Scenarios**:
+
+- added `features/attribution/operator-roles.feature`: each action on attribution is admitted to the roles the role matrix names and refused to the others
+- added `features/attribution/operator-roles.feature`: an operator holding only a payments role is refused every action on attribution
+- added `features/attribution/operator-roles.feature`: a platform administrator is admitted to every action on attribution
+- added `features/engagement/operator-roles.feature`: each action on engagement is admitted to the roles the role matrix names and refused to the others
+- added `features/engagement/operator-roles.feature`: an operator holding only a payments role is refused every action on engagement
+- added `features/engagement/operator-roles.feature`: a platform administrator is admitted to every action on engagement
+- added `features/game-provider/operator-roles.feature`: each action on the game provider part is admitted to the roles the role matrix names and refused to the others
+- added `features/game-provider/operator-roles.feature`: an operator holding only a payments role is refused every action on the game provider part
+- added `features/game-provider/operator-roles.feature`: a platform administrator is admitted to every action on the game provider part
+- added `features/kyc/operator-roles.feature`: each action on a player's identity is admitted to the roles the role matrix names and refused to the others
+- added `features/kyc/operator-roles.feature`: an operator holding only a payments role is refused every action on a player's identity
+- added `features/kyc/operator-roles.feature`: a platform administrator is admitted to every action on a player's identity
+- added `features/payments/deposit-bounds.feature`: a payments operator sets a method's deposit bounds and they are read back
+- added `features/payments/deposit-bounds.feature`: a deposit below the method's deposit bounds is refused before a provider is asked
+- added `features/payments/deposit-bounds.feature`: a deposit above the method's deposit bounds is refused before a provider is asked
+- added `features/payments/deposit-bounds.feature`: a method with no deposit bounds takes any amount its terminal allows
+- added `features/payments/deposit-bounds.feature`: a test payment answers the provider's outcome and credits no wallet
+- added `features/payments/deposit-bounds.feature`: a brand's operator reads the deposits of the sub-brand naming their brand, and no other's
+- added `features/payments/deposit-bounds.feature`: a deposit is found by its payment reference
+- added `features/payouts/operator-roles.feature`: each action on a withdrawal request is admitted to the roles the role matrix names and refused to the others
+- added `features/payouts/operator-roles.feature`: an operator holding only a payments role is refused every action on a withdrawal request
+- added `features/payouts/operator-roles.feature`: a platform administrator is admitted to every action on a withdrawal request
+- added `features/players/devices.feature`: a log-in from a new device adds a seen device
+- added `features/players/devices.feature`: a log-in from a seen device moves only when it was last seen
+- added `features/players/devices.feature`: a player's seen devices are erased with the player
+- added `features/players/games-played.feature`: a player's games are listed with their rounds, what was staked and what was won
+- added `features/players/lists.feature`: the player list is paged with its total and every player is reachable
+- added `features/players/lists.feature`: the player list is filtered by the players part, not by the reader
+- added `features/players/lists.feature`: the player list answers the count of players for each value of a filter when asked
+- added `features/players/lists.feature`: a list's status says how fresh its views are
+- added `features/players/lists.feature`: a player's activity is read for a period, page after page, with its total
+- added `features/players/lists.feature`: an operator reads a player's notes
+- added `features/players/lists.feature`: an operator reads a player session with its game sessions
+- added `features/players/lists.feature`: an operator reads a game session's bets
+- added `features/players/lists.feature`: an operator finds a player's bets by round, by transaction or by status, with what was staked and won
+- added `features/players/manager-tags.feature`: an admin operator sets a player's manager tags and they are read with the player
+- added `features/players/manager-tags.feature`: a manager tag longer than forty characters is refused
+- added `features/players/operator-roles.feature`: each action on a player is admitted to the roles the role matrix names and refused to the others
+- added `features/players/operator-roles.feature`: an operator holding only a payments role is refused every action on a player
+- added `features/players/operator-roles.feature`: a platform administrator is admitted to every action on a player
+- added `features/reporting/operator-roles.feature`: each action on the reports is admitted to the roles the role matrix names and refused to the others
+- added `features/reporting/operator-roles.feature`: an operator holding only a payments role is refused every action on the reports
+- added `features/reporting/operator-roles.feature`: a platform administrator is admitted to every action on the reports
+- added `features/responsible-gambling/operator-roles.feature`: each action on a player's protections is admitted to the roles the role matrix names and refused to the others
+- added `features/responsible-gambling/operator-roles.feature`: an operator holding only a payments role is refused every action on a player's protections
+- added `features/responsible-gambling/operator-roles.feature`: a platform administrator is admitted to every action on a player's protections
+- added `features/rewards/operator-roles.feature`: each action on a reward is admitted to the roles the role matrix names and refused to the others
+- added `features/rewards/operator-roles.feature`: an operator holding only a payments role is refused every action on a reward
+- added `features/rewards/operator-roles.feature`: a platform administrator is admitted to every action on a reward
+- added `features/support-agent/operator-roles.feature`: each action on the support agent is admitted to the roles the role matrix names and refused to the others
+- added `features/support-agent/operator-roles.feature`: an operator holding only a payments role is refused every action on the support agent
+- added `features/support-agent/operator-roles.feature`: a platform administrator is admitted to every action on the support agent
+- added `features/wallet/operator-roles.feature`: each action on a wallet is admitted to the roles the role matrix names and refused to the others
+- added `features/wallet/operator-roles.feature`: an operator holding only a payments role is refused every action on a wallet
+- added `features/wallet/operator-roles.feature`: a platform administrator is admitted to every action on a wallet
+- added `features/wallet/adjustments.feature`: an operator's adjustment carries its cause and answers the balance before and after
+- added `features/payouts/review.feature`: a withdrawal payment confirmed by hand names the operator who confirmed it
+- added `features/payouts/review.feature`: a withdrawal request keeps the balances it was made at
+- added `features/payouts/review.feature`: the queue answers how many requests are pending review and how many payments need review
+- added `features/responsible-gambling/operators.feature`: an operator lists the brand's open cases, oldest first, with their total
+- added `features/kyc/reads.feature`: an operator reads a player's decisions in order, each with who made it
+- added `features/game-provider/reads.feature`: a round is found by its id whatever its game provider
+- added `features/game-provider/reads.feature`: a round is found by the id of one of its transactions
+- added `features/migration/operator-roles.feature`: the mapping of the original's operators to roles is published for review before the migration runs
+- added `features/migration/operator-roles.feature`: an operator of the original is given the role their original role maps to
+- added `features/migration/operator-roles.feature`: an operator whose original roles map to more than one role is given the support role and listed
+- changed `features/players/duplicates.feature`: an operator clearing a player's no-deposit block lifts it and records who and when
 
 ### Edge Cases
 
@@ -460,7 +540,7 @@ previewed message.
 - **FR-016**: The backoffice MUST give each operator a worklist of the open items their roles may
   act on in the current brand: withdrawal requests pending review, withdrawal payments needing
   review, identity documents awaiting review, players flagged for review, open cases, open fraud
-  cases, unacknowledged provider callbacks, undelivered facts, undelivered outcomes and parked
+  cases, unacknowledged calls, undelivered facts, undelivered outcomes and parked
   sends. Undelivered outcomes are the shared `payments` project's and are shown to a payments
   administrator at their level.
 - **FR-017**: Worklist items MUST be ordered oldest first with each kind's count; a kind whose
@@ -531,7 +611,8 @@ previewed message.
 
 **Operator preferences**
 
-- **FR-038**: An operator's preferences (theme, last brand, worklist kinds shown, online notices)
+- **FR-038**: An operator's preferences (theme, last brand, worklist kinds shown, online notices, and the references of the jobs they
+  started)
   MUST be kept per operator by a service of the `backoffice` project and MUST hold nothing about
   any player.
 
@@ -594,7 +675,8 @@ forms keep the inspiration's colours, radii and type, at the density FR-020 need
   cause, and the sources that could not be read.
 - **Reference**: anything an operator pastes to find a record; resolved by kind to every match.
 - **Adjustment batch**: one reason and cause applied as one adjustment per row; its rows' outcomes.
-- **Operator preferences**: theme, last brand, worklist kinds, online notices; per operator, in the
+- **Operator preferences**: theme, last brand, worklist kinds, online notices, started jobs'
+  references; per operator, in the
   `backoffice` project.
 
 ## Success Criteria *(mandatory)*

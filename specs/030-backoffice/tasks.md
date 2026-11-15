@@ -29,7 +29,7 @@ every story's access depends on it.
   `src/test/scala/…` twin
 - `c/` is `contract/src/main/scala/io/eitheror/casino/contract/`
 - `svc/<name>/` is `services/<name>/`; a task there names the amendment's number in
-  contracts/amendments.md (P2, W2, …) and edits that service's endpoint, its tests, its
+  contracts/amendments.md (P2, W2, RW1, GP2, …; R1–R20 and V1–V5 are research.md's) and edits that service's endpoint, its tests, its
   `features/<area>/` scenarios, and adds one line under *Amended by 030* in its spec
 - sbt runs one process per service directory; the contract is published with a unique
   `CASINO_VERSION`; every `kubectl` takes `--context kind-…`
@@ -66,16 +66,16 @@ test harness. No story can be built before this phase is done.
 ### The matrix in every service (M)
 
 Each task: replace `Routes.operator`/`operatorHolding` and handler role sets with
-`Routes.operatorMay` per route (`withAcl` where an endpoint mixes actions); add the service's role
-scenarios to its `features/<area>/` and bind them in its `GherkinSuite`; one line in its spec.
+`Routes.operatorMay` per route (`withAcl` where an endpoint mixes actions); bind the service's
+`features/<area>/operator-roles.feature` in its `GherkinSuite`, failing first; one line in its spec.
 
 - [ ] T012 [P] M in `svc/wallet/` (W1): `adjustment.make`, `turnover.override`, `wallet.read`, `config.brand` in `api/AudienceEndpoints.scala`; amends spec 002
 - [ ] T013 [P] M in `svc/payouts/` (Y1): `withdrawal.read`, `withdrawal.review`, `config.brand` in the ACLs of `api/OperatorEndpoint.scala`, `PlayerEndpoint.scala`, `ConfigEndpoint.scala`; remove `FinanceRoles` from `api/Answers.scala`; amends spec 007
 - [ ] T014 [P] M in `svc/players/` (P1): the players rows of contracts/roles.md per route in `api/Endpoints.scala` and the `Operator*Routes`; remove `BlockRoles`; amends spec 008
 - [ ] T015 [P] M in `svc/kyc/` (K1): `identity.read` on `GET /{p}` without documents, `identity.review` elsewhere, `config.brand` on policy, in `api/OperatorEndpoint.scala`; remove `ComplianceRoles`; amends spec 009
 - [ ] T016 [P] M in `svc/responsible-gambling/` (G1): `protection.read`, `protection.change`, `config.brand` in `api/Endpoints.scala`; amends spec 010
-- [ ] T017 [P] M in `svc/rewards/` (R1): `reward.read` (list and one reward), `reward.grant`, `reward.revoke`, `offer.manage` in `api/RewardAdminEndpoint.scala`, `OffersEndpoint.scala`; amends spec 011
-- [ ] T018 [P] M in `svc/game-provider/` (V1): `player.read` on rounds, `config.games`, `callback.resolve` in `api/Endpoints.scala`; amends spec 003
+- [ ] T017 [P] M in `svc/rewards/` (RW1): `reward.read` (list and one reward), `reward.grant`, `reward.revoke`, `offer.manage` in `api/RewardAdminEndpoint.scala`, `OffersEndpoint.scala`; amends spec 011
+- [ ] T018 [P] M in `svc/game-provider/` (GP1): `player.read` on rounds, `config.games`, `callback.resolve` in `api/Endpoints.scala`; amends spec 003
 - [ ] T019 [P] M in `svc/engagement/` and `svc/support-agent/` (E1): `presence.read`, `send.release`, `config.crm`, `config.agent`; amends specs 014, 017
 - [ ] T020 [P] M in `svc/reporting/`, `svc/attribution/`, `svc/public-api/` (E1, E3): `api/Access.scala` reads the matrix (`dashboard.read`, `report.*`, `export.player`, `config.brand`); `config.attribution`, `fact.redeliver`; the status route under `config.brand`; amends specs 015, 012, 016
 - [ ] T021 Amend `specs/001-brands-and-projects/` (realm roles, the `backoffice` project and client, `contracts/routes.md`'s operator class now by action) and note in `GLOSSARY.md` under *operator* that an operator's roles decide each action
@@ -90,7 +90,7 @@ scenarios to its `features/<area>/` and bind them in its `GherkinSuite`; one lin
 
 - [ ] T025 Write `st-test/session/SessionSuite.scala` and `st-test/preferences/PreferencesSuite.scala` first, from data-model.md: one refresh for two concurrent `token` calls near expiry; a refused refresh ends the session; tokens cleared on `Ended`; a preference naming a player or an unknown key is refused; at most 20 jobs
 - [ ] T026 Implement `st/session/Session.scala` (event sourced), `st/session/RealmClient.scala` (code exchange with PKCE, refresh, revoke), `st/session/SessionsBySubject.scala` and the expiry timer
-- [ ] T027 Implement `st/preferences/Preferences.scala` (key value) and `st/Erasure.scala` (the `operator/<subject>` handler)
+- [ ] T027 Implement `st/preferences/Preferences.scala` (key value; FR-038) and `st/Erasure.scala` (the `operator/<subject>` handler)
 - [ ] T028 Implement `st/session/SessionEndpoint.scala` and `st/preferences/PreferencesEndpoint.scala` as contracts/routes.md, each admitting only `Callers.service("backoffice")`; no token in any log or trace
 - [ ] T029 Write `st-test/it/StateIt.scala` over Postgres and a Keycloak container (quickstart §4) and make it pass
 
@@ -99,14 +99,14 @@ scenarios to its `features/<area>/` and bind them in its `GherkinSuite`; one lin
 - [ ] T030 Write `t/unit/session.test.ts`, `t/unit/proxy.test.ts`, `t/unit/routes.test.ts` first: no cookie is `401 signed_out`; a non-GET without `X-Backoffice` or with a foreign `Origin` is `403`; a row not in the table is `404`; a brand not in the roles is `403` with no call made; an owner's answer is returned as given; a proxy's own answer becomes `503 source_unavailable`; no response or log line holds a token
 - [ ] T031 Implement `s/main.ts` (Hono on `PORT`, graceful stop, `/healthz`, static assets immutable and `index.html` `no-cache`: FR-042) and `s/session.ts` (the `__Host-bo` cookie, the token cache to expiry, the client of `backoffice-state`)
 - [ ] T032 Implement `s/auth.ts`: `/auth/sign-in` (PKCE, `return` restricted to this site), `/auth/callback`, `/auth/sign-out`, `/api/me` (brands from `BRANDS` and the roles, modules from players' `modules`, the actions per brand from the matrix)
-- [ ] T033 Implement `s/routes.ts` (the table: method, path template, service, scope, action) for the phase 1 owners, and `s/proxy.ts` (`/api/s/<service>/<scope>/<rest>`, 15 s bound, pass-through without parsing); generate the typed clients in `s/owners/` from the table
+- [ ] T033 Implement `s/routes.ts` (the table: method, path template, service, scope, action; FR-007: a route not in an owner is an amendment, never a workaround) for players, wallet, payouts, kyc, responsible-gambling, game-provider, rewards' reads and merchant's deposits, and `s/proxy.ts` (`/api/s/<service>/<scope>/<rest>`, 15 s bound, pass-through without parsing); generate the typed clients in `s/owners/` from the table
 - [ ] T034 [P] Implement `sh/generated/` (copied by `just backoffice-contract`), `sh/access.ts` (may this operator take this action in this brand, and which role would admit it), `sh/money.ts` (minor units to text by the contract's table; no float), `sh/dates.ts` (the brand's zone, named; a filter's end is its day's last instant), each with unit tests in `t/unit/` covering JPY, EUR and KWD (FR-013, FR-015, SC-007)
 - [ ] T035 [P] Implement `sh/messages/en.ts` (typed keys), `sh/messages/index.ts` (`intl-messageformat`), `sh/refusals.ts` (owner code to message and next step; an unknown code shown as given) and a lint rule in `services/backoffice/eslint.config.js` refusing a string literal in JSX outside the catalogue (FR-006, FR-040a)
 
 ### The frame and shared components
 
-- [ ] T036 Implement `w/tokens.css` from contracts/design.md (dark default, light) and `t/unit/contrast.test.ts` that computes every named pair's contrast and fails under AA
-- [ ] T037 Implement `w/frame/` (the icon rail, the top bar with brand, search box, freshness, jobs, notices and operator; the router with `?b=<slug>` on every route; the sign-in redirect; the below-1280 read-only mode: FR-041)
+- [ ] T036 Implement `w/tokens.css` from contracts/design.md (dark default, light; FR-039: no eitheror brand colour, mark or type) and `t/unit/contrast.test.ts` that computes every named pair's contrast and fails under AA
+- [ ] T037 Implement `w/frame/` (the icon rail, the top bar with brand, search box, freshness, jobs, notices and operator; the router with `?b=<slug>` on every route; the sign-in redirect; the below-1280 read-only mode: FR-041; an area whose module the brand does not run absent from the rail, with the modules page saying why; a link to the content system's own editor where the brand has one, and no content screen: FR-043)
 - [ ] T038 [P] Implement `w/components/list/` : a table at 36 px rows that keeps filters, sort, page and scroll in the URL and restores them on return (FR-010), shows total and whether complete (FR-009), keeps rows while refetching and marks changed rows (FR-012), and shows freshness and *provisional* (FR-011)
 - [ ] T039 [P] Implement `w/components/action/`: the action dialog that states the effect before confirmation, takes a reason where the owner records one, shows a disabled action with the role it needs, and shows a refusal with its reason and next step (FR-005, FR-006, FR-025), and `w/actions/index.ts` (one description per action: effect message, reason rule, the states it is offered in)
 - [ ] T040 [P] Implement `w/components/money.tsx`, `date.tsx`, `status.tsx` (word and icon, never colour alone: FR-040), `links.tsx` (a record links to the records it names: FR-024), `date-input.tsx` (a birth date typed: FR-015)
@@ -126,10 +126,10 @@ scenarios to its `features/<area>/` and bind them in its `GherkinSuite`; one lin
 `platform_admin`, and a role with no brand; the brand list, the switch, and each action's
 availability match what the owner admits.
 
-- [ ] T043 [US1] Bind `features/backoffice/access.feature` (7 scenarios) and `freshness.feature` in `t/features/steps/access.steps.ts`, failing first; the two role scenarios (support reads only; adjustment and limit by role) are also bound in `svc/wallet/`, `svc/players/` and `svc/responsible-gambling/`'s `GherkinSuite`s
+- [ ] T043 [US1] Bind `features/backoffice/access.feature` (7 scenarios) and `freshness.feature` in `t/features/steps/access.steps.ts`, failing first; what each service admits is held by its own `operator-roles.feature` (T012–T020)
 - [ ] T044 [US1] Implement `w/areas/access/`: the brand list from `/api/me`, the last brand or the only one opened, the switch in one step, the no-brand page naming the role needed, and the closing of a brand lost while signed in (edge case 1) on the `roles_changed` event
 - [ ] T045 [US1] Implement `s/events.ts`: `/api/events` as server-sent events with `roles_changed` and `signed_out` (from `backoffice-state`'s `rolesChanged`), and long polling if V5 fails
-- [ ] T046 [P] [US1] Add `GET …/status` (F) to `svc/players/`, `svc/wallet/`, `svc/payouts/`, `svc/kyc/`, `svc/responsible-gambling/`, `svc/rewards/` (P2, W4, Y5, K4, G4, R3): verify V2 in one and use the view's own consumer if a view's last applied time cannot be read; each with its test
+- [ ] T046 [P] [US1] Add `GET …/status` (F) to `svc/players/`, `svc/wallet/`, `svc/payouts/`, `svc/kyc/`, `svc/responsible-gambling/`, `svc/rewards/` (P2, W4, Y5, K4, G4, RW3): verify V2 in one and use the view's own consumer if a view's last applied time cannot be read; each with its test
 - [ ] T047 [US1] Implement `s/composite/freshness.ts` and `w/components/freshness.tsx`; wire it into `w/components/list/` and the top bar
 - [ ] T048 [US1] Implement `w/areas/preferences/` (theme, worklist kinds, online notices) over `/api/me` and `PUT` preferences through the server
 
@@ -147,7 +147,7 @@ exactly its kinds, oldest first; acting on one removes it and keeps the place.
 - [ ] T051 [P] [US2] `svc/kyc/` K2: paging on `queue` keeping `counts`, with tests
 - [ ] T052 [P] [US2] `svc/responsible-gambling/` G2: `cases?status=` brand-wide, paged, oldest first, with tests
 - [ ] T053 [P] [US2] `svc/players/` P11: paging and total on `fraud-cases`, oldest first for open, with tests
-- [ ] T054 [P] [US2] `svc/game-provider/` V3 and `svc/attribution/` E2: paging and total on `unacknowledged` and on `attribution-webhooks/undelivered`, with tests
+- [ ] T054 [P] [US2] `svc/game-provider/` GP3 and `svc/attribution/` E2: paging and total on `unacknowledged` and on `attribution-webhooks/undelivered`, with tests
 - [ ] T055 [P] [US2] `svc/psp-gateway/` T1: `total` on `outcomes/undelivered` and `/refused`, with tests
 - [ ] T056 [US2] Implement `s/composite/worklist.ts` from contracts/sources.md: only the kinds the roles admit, in parallel, 3 s each, `unavailable` with its reason, totals from the sources; unit tests in `t/unit/worklist.test.ts`
 - [ ] T057 [US2] Implement `w/areas/worklist/` as the first page: kinds with counts, one row per item oldest first, opening an item's investigation, returning to the same place after acting (FR-018), an item acted on by someone else showing who and what with no action
@@ -162,12 +162,12 @@ exactly its kinds, oldest first; acting on one removes it and keeps the place.
 read the timeline end to end; stop one source and see it named.
 
 - [ ] T058 [US3] Bind `features/backoffice/investigation.feature` (5 scenarios) in `t/features/steps/investigation.steps.ts`, failing first
-- [ ] T059 [P] [US3] `svc/players/` P2: the list as a view query with paging, total, the filters and `facets=true`, with tests at 10,000 rows
+- [ ] T059 [P] [US3] `svc/players/` P2: the list as a view query with paging, total, the filters and `facets=true`, binding `features/players/lists.feature`, with a suite at 10,000 rows
 - [ ] T060 [P] [US3] `svc/players/` P3, P4: `from`, `to`, `after`, `total` on `activity`; `GET notes`, with tests
 - [ ] T061 [P] [US3] `svc/players/` P5, P6, P10: a player's sessions with their game sessions and gaps, the brand-wide sessions list, force-close; a session's bets (no more `501`); `bets` filters and `staked`, `won`, `net`, with tests
-- [ ] T062 [P] [US3] `svc/game-provider/` V2: `total` on `rounds`; `rounds/by-round/{roundId}`; `rounds/by-transaction/{txId}`, with tests
+- [ ] T062 [P] [US3] `svc/game-provider/` GP2: `total` on `rounds`; `rounds/by-round/{roundId}`; `rounds/by-transaction/{txId}`, with tests
 - [ ] T063 [P] [US3] `svc/kyc/` K3 and `svc/responsible-gambling/` G3: `{p}/decisions` and the operator's `{p}/history`, with tests
-- [ ] T064 [P] [US3] `svc/merchant/` H1, H2: `deposit.read` for a brand's own sub-brand on `/v1/payments/cashier`, `/cashier/summary`, `/v1/payments/{id}`; `?reference=`, with tests; amends spec 004
+- [ ] T064 [P] [US3] `svc/merchant/` H1, H2: `deposit.read` for the sub-brand that names the brand on `/v1/payments/cashier`, `/cashier/summary`, `/v1/payments/{id}`; `?reference=`, with tests; amends spec 004
 - [ ] T065 [US3] Implement `s/composite/search.ts` and its classifier from contracts/sources.md, with `t/unit/search.test.ts` (free text is never sent as an id; every match listed by kind; a value of two shapes asked of both)
 - [ ] T066 [US3] Implement `s/composite/standing.ts` (the parts in parallel, each with its own state) and `s/composite/timeline.ts` (the k-way merge by cursor, gaps named, actors' names from merchant's operators, lines as message keys), with `t/unit/timeline.test.ts` covering order, a late source and a failed source
 - [ ] T067 [US3] Implement `w/areas/search/` (the one search in the top bar and its results by kind) and `w/areas/players/list.tsx` (the list with facets)
@@ -187,7 +187,7 @@ and actor shown; only that state's actions offered.
 
 - [ ] T071 [US4] Bind `features/backoffice/withdrawals.feature` (4 scenarios) in `t/features/steps/withdrawals.steps.ts`, failing first
 - [ ] T072 [P] [US4] `svc/payouts/` Y3: `operatorId` on a confirmed or failed outcome; `balancesAtRequest` and `restrictedAtRequest` recorded when a request is made (a new field on the request's first event, absent on older ones), with tests
-- [ ] T073 [P] [US4] `svc/payouts/` Y2, Y4: `playerSearch` by email and name; paging on `players/{p}/withdrawal-history`, with tests
+- [ ] T073 [P] [US4] `svc/payouts/` Y4: paging on `players/{p}/withdrawal-history`, with tests; in `s/composite/`, resolve a name or an email typed in the queue's search to player ids through players' search before asking payouts (Y2)
 - [ ] T074 [US4] Implement `w/areas/withdrawals/queue.tsx` (by state, the two counts, filters) and `w/areas/players/withdrawals.tsx` (every request in every state)
 - [ ] T075 [US4] Implement `w/areas/withdrawals/request.tsx`: requested, held, paid and voided apart and why; balances then and now; identity status and recent deposits; destination; every state with who moved it; the payment's attempts; and exactly the state's actions, each stating its effect (SC-003)
 
@@ -214,7 +214,7 @@ refused; repeat and nothing is made twice.
 explanations; a grant to a suspected duplicate shows why; a forfeit closes the record.
 
 - [ ] T081 [US6] Bind `features/backoffice/rewards.feature` (3 scenarios) in `t/features/steps/rewards.steps.ts`, failing first
-- [ ] T082 [US6] `svc/rewards/` R2: `allowedBy` beside `reason` on an ineligible grant, with tests
+- [ ] T082 [US6] `svc/rewards/` RW2: `allowedBy` beside `reason` on an ineligible grant, with tests
 - [ ] T083 [US6] Extend `s/routes.ts` with rewards' and offers' rows; implement `w/areas/rewards/list.tsx` (brand-wide, search and state) and `w/areas/players/rewards.tsx` (state in the glossary's words, wagering progress, open rounds, free rounds used of given as the player sees them, the state's actions with their effects)
 - [ ] T084 [US6] Implement `w/areas/rewards/grant.tsx` (from an offer or by hand; the refusal with its reason and what would allow it)
 - [ ] T085 [US6] Implement `w/areas/rewards/offers.tsx` (create, edit, order, deactivate, free rounds values, the games picker, dependants named before a change)
@@ -260,14 +260,14 @@ refused.
 
 - [ ] T096 [US9] Bind `features/backoffice/configuration.feature` (3 scenarios) in `t/features/steps/configuration.steps.ts`, failing first
 - [ ] T097 [P] [US9] `svc/wallet/` W3: `PUT wallet-config/rewards`, with tests
-- [ ] T098 [P] [US9] `svc/players/` P7, P8, P9: manager tags; devices recorded at login as `Personal` under the player's subject and erased with the player; the games panel, with tests and their scenarios in `features/players/`
-- [ ] T099 [P] [US9] `svc/merchant/` H3: deposit limits per method and currency, enforced by the deposit workflow, with tests and scenarios in `features/payments/`
+- [ ] T098 [P] [US9] `svc/players/` P7, P8, P9: manager tags; seen devices recorded at log-in as `Personal` under the player's subject and erased with the player; what a player plays; binding `features/players/manager-tags.feature`, `devices.feature`, `games-played.feature`
+- [ ] T099 [P] [US9] `svc/merchant/` H3: deposit bounds per method and currency, enforced by the deposit workflow, binding `features/payments/deposit-bounds.feature`
 - [ ] T100 [P] [US9] `svc/merchant/` H4, H5 and `svc/psp-gateway/` T2: the test payment through the gateway, never crediting a wallet; paging on `/v1/operators`, with tests; amends specs 004, 005
 - [ ] T101 [US9] Extend `s/routes.ts` with the configuration, merchant, psp-gateway, ingest, attribution, support-agent and engagement rows; implement `w/components/config-form.tsx` that marks each value differing from the brand's default or its licence profile (FR-034)
 - [ ] T102 [P] [US9] Implement `w/areas/configuration/brand.tsx` (sites, countries, currencies and zone, withdrawal, wagering and reward settings, reporting settings, the modules page with why a module is off)
 - [ ] T103 [P] [US9] Implement `w/areas/configuration/games.tsx` (providers, provider configuration and catalogue refresh, developers, categories, per-game overrides) and `callbacks.tsx` (unacknowledged calls: replay, resolve)
 - [ ] T104 [P] [US9] Implement `w/areas/configuration/crm.tsx`, `agent.tsx`, `attribution.tsx` (networks, webhooks, signing keys, undelivered facts: resend, discard), `sends.tsx` (parked sends: retry, discard)
-- [ ] T105 [US9] Implement `w/areas/payments/hierarchy.tsx`, `providers.tsx` (configurations: create, edit, activate, disable, delete, test payment), `terminals.tsx`, `deposit-limits.tsx`, `merchant.tsx`, with the level picker and banner kept here only (FR-004)
+- [ ] T105 [US9] Implement `w/areas/payments/hierarchy.tsx`, `providers.tsx` (configurations: create, edit, activate, disable, delete, test payment), `terminals.tsx`, `deposit-bounds.tsx`, `merchant.tsx`, with the level picker and banner kept here only (FR-004)
 - [ ] T106 [US9] Implement `w/areas/payments/routing.tsx` (the tree as the original draws it; draft, simulate, deploy, retire, roll back: FR-035), `outcomes.tsx` (undelivered and refused outcomes, redrive), `lost-answers.tsx`, `deposits.tsx` (list, detail, analytics, uncredited and retry)
 - [ ] T107 [US9] Implement `w/areas/team/` (list, invite with a role at or below one's own and a level, resend, reset, revoke, rescope) and `w/areas/players/devices.tsx`, `games.tsx`, the tags and VIP tier controls
 
@@ -281,7 +281,7 @@ refused.
 payout period, dismiss a fraud flag with a reason.
 
 - [ ] T108 [US10] Bind `features/backoffice/affiliates.feature` (2 scenarios) in `t/features/steps/affiliates.steps.ts`, failing first
-- [ ] T109 [P] [US10] `svc/affiliate-programme/` A1, A2: `{items, total}` on `accounts`; `accounts/{a}/portal/{view}` for managers, read-only and audited as `VIEWED_AS`, with tests and scenarios in `features/programme/`; amends spec 013
+- [ ] T109 [P] [US10] `svc/affiliate-programme/` A1, A2: `{items, total}` on `accounts`; `accounts/{a}/portal/{view}` for managers, read-only and audited as `VIEWED_AS`, binding the existing scenario "a manager's read-only view of an affiliate shows what the affiliate sees and changes nothing" in `features/programme/managers.feature`; amends spec 013
 - [ ] T110 [US10] Extend `s/routes.ts` with the programme's rows (the project named in one setting, so spec 028 can move it); a manager with no brand role sees the programme only, for the brands their roles name
 - [ ] T111 [P] [US10] Implement `w/areas/affiliates/dashboard.tsx`, `plans.tsx`, `links.tsx`, `creatives.tsx`, `settings.tsx`, `messages.tsx`, `managers.tsx`
 - [ ] T112 [US10] Implement `w/areas/affiliates/accounts.tsx` and `account.tsx` (create, approve, reject, status, edit, notes, audit, password, email, network, reparent, adjustments, view as the affiliate), `payouts.tsx` (by period: close, status, export), `fraud.tsx` (dismiss with a reason)
@@ -308,8 +308,8 @@ the notice, send a previewed message.
 - [ ] T118 Write `t/it/role-sweep.it.ts` (SC-006): for each of the five roles and one payments role, take every action the page offers and expect admission, and call every action it does not offer and expect the owner's refusal
 - [ ] T119 Write `t/it/investigations.it.ts` (SC-004: the three questions answered from the pages) and `t/it/degraded.it.ts` (a paused service named in the worklist and timeline; a rollout with a page open: FR-017, FR-022, FR-042)
 - [ ] T120 Write `t/it/browser.it.ts`: every request of a full session goes to the backoffice's address only, and no script-readable storage or response holds a token (FR-002, FR-003)
-- [ ] T121 [P] Write `t/unit/parity.test.ts`: every row of `specs/030-backoffice/parity.md` not dropped or moved names a route in `s/routes.ts` and a page in `w/areas/` (SC-001), failing on a row with neither
-- [ ] T122 [P] Amend `specs/019-spinvibe-migration/` (X1): the role mapping of contracts/roles.md, the report published for review before it runs, ambiguous operators given `brand_support` and listed (FR-008a), with its scenario in `features/migration/`
+- [ ] T121 [P] Write `t/unit/parity.test.ts`: every row of `specs/030-backoffice/parity.md` not dropped or moved names a route in `s/routes.ts` and a page in `w/areas/` (FR-030, SC-001), failing on a row with neither; and check FR-044: no other spec's route or manifest names `backoffice`, and nothing under the original is changed
+- [ ] T122 [P] Amend `specs/019-spinvibe-migration/` (X1): the role mapping of contracts/roles.md, the report published for review before it runs, ambiguous operators given `brand_support` and listed (FR-008a), binding `features/migration/operator-roles.feature`
 - [ ] T123 [P] Write `tests/original/backoffice-screens/` (the Playwright script, the index, `README.md`) and record the original on kind, one capture per screen per role (research R19); compare with the built screens and note each intended difference in `specs/030-backoffice/checklists/design-review.md`
 - [ ] T124 [P] Write `specs/030-backoffice/checklists/moderated.md` (the script and result sheet for SC-002 and SC-003) and leave the results to the product owner
 - [ ] T125 [P] Measure research R20's targets with `t/it/perf.it.ts` on the seeded brand and record them in `specs/030-backoffice/research.md`
