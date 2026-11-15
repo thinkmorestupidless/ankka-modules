@@ -47,7 +47,7 @@ class SessionSuite extends munit.FunSuite:
 
     def flow(generation: Int): WorkflowTestKit[SessionRefresh, RefreshFlow] =
       flows.getOrElse(generation, {
-        val kit = WorkflowTestKit.of(SessionRefresh, SessionRefresh.id(id, generation).value, toSession.client)
+        val kit = WorkflowTestKit.of(SessionRefresh, SessionRefresh.id(id, generation).toString, toSession.client)
         flows = flows.updated(generation, kit)
         kit
       })
@@ -61,6 +61,7 @@ class SessionSuite extends munit.FunSuite:
       .client
 
     @volatile var now: Instant = t0
+    StateRuntime.now = () => now // the refresh step's clock
     def tokensFlow             = Tokens(client, () => now, wait = 2.seconds, poll = 1.milli)
 
     def open(): Unit = session.call(Session.open)(Open(tokens(0, t0), t0)).replyValue: Unit
