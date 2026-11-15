@@ -4,6 +4,7 @@ import { Outlet, useRouterState } from "@tanstack/react-router";
 import { t } from "../../shared/messages/index.ts";
 import type { Me } from "../../shared/access.ts";
 import { render } from "../../shared/messages/index.ts";
+import { NotInBrand } from "../areas/access/NotInBrand.tsx";
 import { areaOf, areasFor } from "./areas.ts";
 import { MeContext, ReadOnlyContext } from "./context.ts";
 import { Rail } from "./Rail.tsx";
@@ -41,6 +42,7 @@ export function Frame({ me, readOnly, children }: { me: Me; readOnly: boolean; c
 export function Outside({ state }: { state: Exclude<MeState, { state: "signedIn" }> }) {
   if (state.state === "loading") return <p className="bo-centre">{t("frame.loading")}</p>;
   if (state.state === "unreachable") return <p className="bo-centre" role="alert">{t("frame.unreachable")}</p>;
+  if (state.state === "notInBrand") return <NotInBrand brand={state.brand} lost={state.lost} />;
   return (
     <div className="bo-centre" role="alert">
       <p>{render(state.refusal.message)}</p>
