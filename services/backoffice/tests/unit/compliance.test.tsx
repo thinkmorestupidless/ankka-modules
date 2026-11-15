@@ -1,13 +1,15 @@
 // @vitest-environment jsdom
 // T095 to T097: the identity queue paged in kyc's order with its count; a document's review offered
 // only while it is pending and a rejection only with one of kyc's reasons; a limit's value as
-// responsible-gambling takes it; a return offered only once a time-limited exclusion has ended.
+// responsible-gambling takes it; a return offered only once a time-limited exclusion has ended; a
+// policy change sending only what changed; a fraud case's dismissal naming the players it clears.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import type { Me } from "../../src/shared/access.ts";
 import { t } from "../../src/shared/messages/index.ts";
+import { changeOf } from "../../src/web/areas/configuration/identity-policy.tsx";
 import { pageOf, PageSize, waitingSince } from "../../src/web/areas/identity/queue.tsx";
 import type { QueueRow } from "../../src/web/areas/identity/kyc.ts";
 import { PlayerIdentity } from "../../src/web/areas/players/identity.tsx";
@@ -67,6 +69,16 @@ describe("the return", () => {
     expect(exclusionState(excluded("2026-11-01T00:00:00Z"), now)).toBe("ended");
     expect(exclusionState(excluded(null, true), now)).toBe("permanent");
     expect(exclusionState({ ...excluded("2026-11-01T00:00:00Z"), returnRequest: { requestedAt: "x", reinstatesAt: "y", actor: "operator" } }, now)).toBe("requested");
+  });
+});
+
+describe("the identity policy", () => {
+  const before = { depositGate: "NONE", playGate: "NONE", kycCurrency: "EUR", depositThreshold: "2000.00", sofThreshold: "", kycWindowDays: "30", requiredDocTypes: ["identity_front"], autoSuspendOnWindowExpiry: false };
+  it("sends only what changed, thresholds in minor units of its currency", () => {
+    expect(changeOf(before, before)).toEqual({});
+    expect(changeOf(before, { ...before, depositGate: "KYC_APPROVED", depositThreshold: "2500.50" })).toEqual({ depositGate: "KYC_APPROVED", depositThresholdMinorUnits: 250050 });
+    expect(changeOf(before, { ...before, kycWindowDays: "" })).toEqual({ kycWindowDays: null });
+    expect(changeOf(before, { ...before, sofThreshold: "abc" })).toBeUndefined();
   });
 });
 
