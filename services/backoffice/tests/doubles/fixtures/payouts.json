@@ -1,0 +1,103 @@
+{
+  "GET /v1/casino/brands/{brand}/withdrawal-requests": {
+    "body": {
+      "requests": [
+        {
+          "requestId": "w-1001",
+          "playerId": "p-kenji",
+          "kycStatus": "verified",
+          "amount": 30000,
+          "currency": "JPY",
+          "terminalName": "Pix out",
+          "method": "bank_transfer",
+          "destinationLastFour": "4821",
+          "createdAt": "2026-11-14T22:15:00Z",
+          "status": "PENDING",
+          "payoutStatus": "NONE"
+        },
+        {
+          "requestId": "w-1002",
+          "playerId": "p-fahad",
+          "kycStatus": "pending",
+          "amount": 1250,
+          "currency": "KWD",
+          "terminalName": "Card out",
+          "method": "card",
+          "destinationLastFour": "0093",
+          "createdAt": "2026-11-15T08:05:00Z",
+          "status": "PENDING",
+          "payoutStatus": "NONE"
+        },
+        {
+          "requestId": "w-1003",
+          "playerId": "p-lena",
+          "kycStatus": "verified",
+          "amount": 5000,
+          "currency": "EUR",
+          "terminalName": "SEPA out",
+          "method": "bank_transfer",
+          "destinationLastFour": "7710",
+          "createdAt": "2026-11-13T11:40:00Z",
+          "status": "APPROVED",
+          "payoutStatus": "PENDING"
+        }
+      ],
+      "total": 3,
+      "page": 1,
+      "pageSize": 50
+    }
+  },
+  "GET /v1/casino/brands/{brand}/withdrawal-requests/{requestId}": {
+    "by": "requestId",
+    "answers": {
+      "w-1001": {
+        "body": {
+          "requestId": "w-1001",
+          "playerId": "p-kenji",
+          "kycStatus": "verified",
+          "amount": 30000,
+          "currency": "JPY",
+          "terminalName": "Pix out",
+          "method": "bank_transfer",
+          "destinationLastFour": "4821",
+          "createdAt": "2026-11-14T22:15:00Z",
+          "status": "PENDING",
+          "payoutStatus": "NONE",
+          "decisions": []
+        }
+      },
+      "w-1002": {
+        "body": {
+          "requestId": "w-1002",
+          "playerId": "p-fahad",
+          "kycStatus": "pending",
+          "amount": 1250,
+          "currency": "KWD",
+          "terminalName": "Card out",
+          "method": "card",
+          "destinationLastFour": "0093",
+          "createdAt": "2026-11-15T08:05:00Z",
+          "status": "PENDING",
+          "payoutStatus": "NONE",
+          "decisions": []
+        }
+      },
+      "w-1003": {
+        "body": {
+          "requestId": "w-1003",
+          "playerId": "p-lena",
+          "kycStatus": "verified",
+          "amount": 5000,
+          "currency": "EUR",
+          "terminalName": "SEPA out",
+          "method": "bank_transfer",
+          "destinationLastFour": "7710",
+          "createdAt": "2026-11-13T11:40:00Z",
+          "status": "APPROVED",
+          "payoutStatus": "PENDING",
+          "decisions": []
+        }
+      }
+    }
+  }
+}

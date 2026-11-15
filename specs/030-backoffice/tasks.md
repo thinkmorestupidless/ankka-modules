@@ -121,7 +121,7 @@ Each task: replace `Routes.operator`/`operatorHolding` and handler role sets wit
 
 ### The test harness
 
-- [ ] T046 Implement `t/doubles/`: a scripted HTTP double per owner at the calling address (`<service>.<project>` paths; verify V3 and listen under the dotted name if `ankka local web` cannot map it), answering from fixtures in `t/doubles/fixtures/`, able to be told to fail, to be slow, and to assert the `Authorization` each call carried; and a double realm
+- [X] T046 Implement `t/doubles/`: a scripted HTTP double per owner at the calling address (`<service>.<project>` paths; verify V3 and listen under the dotted name if `ankka local web` cannot map it), answering from fixtures in `t/doubles/fixtures/`, able to be told to fail, to be slow, and to assert the `Authorization` each call carried; and a double realm
 - [ ] T047 Implement `t/features/` : the `playwright-bdd` config over `features/backoffice/`, the world (sign in as a role, a seeded brand in the doubles), and `t/a11y/axe.spec.ts` that visits every route in dark and light and fails on a serious finding (SC-008)
 
 **Checkpoint**: an operator can sign in and reach an empty frame; every service refuses by action.
