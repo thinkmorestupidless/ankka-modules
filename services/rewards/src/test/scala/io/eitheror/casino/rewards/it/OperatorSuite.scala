@@ -42,6 +42,19 @@ class OperatorSuite extends munit.FunSuite:
     assertEquals(kit.request("GET", kit.grantsPath(""), None, kit.asPlayer(p)).status, 403)
     assertEquals(kit.request("GET", kit.grantsPath(""), None, kit.asService("engagement")).status, 401)
 
+  test("status (RW3, F): the rewards view with when it last applied a change, for reward.read and the project's services"):
+    val status = s"/v1/casino/brands/${kit.slug}/rewards/status"
+    val p = paths.newPlayer("st-p")
+    assertEquals(give(p, "offerId" -> paths.noDeposit()).status / 100, 2)
+    val view = kit.eventually("the rewards view marked")(
+      Option(kit.request("GET", status, None, viewer)).filter(_.status == 200)
+        .flatMap(_.json.objects("views").find(_.text("name").contains("rewards-view"))).filter(_.text("asOf").nonEmpty))
+    assert(!java.time.Instant.parse(view.text("asOf").get).isAfter(java.time.Instant.now()), view.toString)
+    assertEquals(view.get("rebuilding").asBoolean, false)
+    assertEquals(kit.request("GET", status, None, kit.asService("backoffice")).json.objects("views").flatMap(_.text("name")), Vector("rewards-view"))
+    assertEquals(kit.request("GET", status, None, kit.asOperator("support_agent", "op-other")).status, 403)
+    assertEquals(kit.request("GET", status, None, kit.asPlayer(p)).status, 403)
+
   // ── the lists ─────────────────────────────────────────────────────────────────────────────────
 
   test("the brand's list across players, newest first, filterable by state, offer, player and search, and paged"):
