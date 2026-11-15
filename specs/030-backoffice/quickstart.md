@@ -14,14 +14,16 @@ applied (`just modules apply goldvibe --installation dev-kind`) and the shared p
 just backoffice-spike
 ```
 
-A web-hosted probe in a scratch project calls `players.goldvibe` at the calling address with an
-operator's token, and with none. **Passes when** the first answers `200` and the second `401`, with
-no grant made. If the first is refused by the runtime, stop: it is an ankka request.
+A web-hosted probe in the brand's project calls `players` at the calling address with an
+operator's token, and with none; then `merchant.payments` the same way. **Passes when** each tokened
+call answers `200` and each bare one `401`, with no grant made. If `players` refuses the tokened
+call, stop: it is an ankka request. If only `merchant.payments` does, the shared projects' screens
+wait for it.
 
-## 2. The contract and the matrix
+## 2. The contract: permissions and the role matrix
 
 ```bash
-just test                     # contract: OperatorPermissions, the published files
+just test                     # contract: OperatorPermissions, RoleBags, the published files
 just schemas && git diff --exit-code contract/schemas
 ```
 
@@ -35,7 +37,9 @@ just service <name> test      # for each service in contracts/amendments.md
 ```
 
 **Passes when** each service's own suites pass, including its bound role scenarios: a support
-operator is refused every write but notes and messages; a payments role is refused a casino action.
+operator is refused every write but notes and messages; a payments role is refused a casino action;
+a role changed in `players` is in force in the service within 15 seconds with nothing deployed; a
+service that has not read the roles answers unavailable.
 
 ## 4. `backoffice-state`
 
@@ -61,12 +65,13 @@ finding (SC-008), and the copied contract files equal the contract's.
 ## 6. Locally, against real services
 
 ```bash
-just modules apply shared/backoffice/manifest.json --installation dev-kind
+just modules apply goldvibe --installation dev-kind      # with the backoffice module in its entitlement
 just backoffice-seed goldvibe # 10,000 players, 1,000 rewards, 5,000 withdrawal requests, 3 currencies
 just backoffice-it
 ```
 
-**Passes when**, signed in as each of the five roles and as a payments role:
+**Passes when**, signed in as each of the five default roles, as a role made in the backoffice, and
+as a payments role:
 
 | Check | Criterion |
 |---|---|
@@ -78,6 +83,8 @@ just backoffice-it
 | an adjustment list repeated makes nothing twice | FR-028 |
 | a rollout of `backoffice` while a page is open breaks nothing | FR-042 |
 | the browser's requests go only to the backoffice's address, and no script can read the sign-in | FR-002, FR-003 |
+| a role made in the backoffice and given to an operator admits exactly its permissions; a permission added to a role is offered and admitted within 15 seconds without signing in again; giving a role with a permission the giver lacks is refused | FR-008b, FR-008c |
+| an operator of another brand only is told the role needed and sees nothing | FR-004 |
 
 ## 7. With people
 

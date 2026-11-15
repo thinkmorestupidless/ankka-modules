@@ -6,20 +6,24 @@
 
 ## Summary
 
-The backoffice is a shared project, `backoffice`, of two services. `backoffice` is a web-hosted
-service: one built page (React) and the small server that serves it. `backoffice-state` is a Scala
-service that keeps what must outlive an instance: each operator's sign-in and preferences.
+Each brand has its own backoffice, the module `backoffice` in the brand's project, of two services.
+`backoffice` is a web-hosted service: one built page (React) and the small server that serves it.
+`backoffice-state` is a Scala service that keeps what must outlive an instance: each operator's
+sign-in and preferences.
 
 The browser talks only to the page's server. The server holds a session id in a cookie the page's
 scripts cannot read, takes the operator's token from `backoffice-state`, and calls the owning
-service at ankka's calling address with that token. The owner admits or refuses the person, as it
-does today. The server serves only the routes in one table, and combines sources in six places:
-worklist, timeline, search, adjustment batch, document view and events.
+service at ankka's calling address with that token: the brand's own services by name, and the
+shared projects (payments, the programme, the audit) at their addresses. The owner admits or
+refuses the person, as it does today. The server serves only the routes in one table, and combines
+sources in six places: worklist, timeline, search, adjustment batch, document view and events.
 
-Every operator route requires one permission, and a role is a bag of permissions, held once in the
-contract (`OperatorPermissions`). A token carries roles only. Each service opens the bags
-in-process; the page's server does the same and answers the operator's permissions, so the page
-offers exactly what the owner will admit. Only the five casino roles have a bag.
+Every operator route requires one permission and names no role. A role is a bag of permissions the
+brand keeps, in its `players` service, and its administrators change in the backoffice while the
+brand runs. Every service of the brand holds a copy it refreshes every 10 seconds, so a change is
+in force within 15 seconds with nothing deployed. A token carries roles only. A brand starts with
+the role matrix of original spec 135 as its default roles. An operator is given roles through the
+brand, which refuses an escalation, and then the shared payments' merchant, which owns operators.
 
 The route check of 2026-11-15 found what the services lack for the spec: paging and totals on nine
 lists, freshness on every view-backed list, sixteen read routes, and six capabilities that need new
@@ -27,7 +31,7 @@ stored data or behaviour. Each is an amendment to its owner, built here with its
 ([contracts/amendments.md](contracts/amendments.md)).
 
 All six phases are built in one task list, in phase order. Decisions and evidence are in
-[research.md](research.md), R1 to R20, with five things to verify at task time (V1 to V5).
+[research.md](research.md), R1 to R20, with six things to verify at task time (V1 to V6).
 
 ## Technical Context
 
@@ -51,8 +55,9 @@ scripted service doubles; `@axe-core/playwright`; munit and `AnkkaTestKit` for t
 with each amended service's `GherkinSuite`; `just backoffice-it` against a seeded brand on
 `dev-kind` (R18).
 
-**Target Platform**: the shared project `backoffice` on the self-hosted installation (kind
-locally, GKE), exposed at its own hostname; operators' desktop browsers, 1280 px and wider.
+**Target Platform**: each brand's own project on the self-hosted installation (kind locally, GKE),
+from `modules/backoffice`, exposed at the brand's backoffice hostname; operators' desktop browsers,
+1280 px and wider.
 
 **Project Type**: a web application (one web-hosted service, one Scala service), amendments to
 the contract library, the modules tool, the realm, CI, and seventeen services.
@@ -64,7 +69,8 @@ p95; a proxied read within 30 ms of its owner.
 
 - the browser calls only the backoffice; the backoffice calls only routes in its table (FR-002, R4);
 - the operator's token is never in a response, a log, a trace or the page (FR-003);
-- no grant from a brand to `backoffice`, and no rule of an owner's repeated (constitution III, FR-007);
+- no grant for an operator's call, and no rule of an owner's repeated (constitution III, FR-007);
+- no role named in a service or in the page; a role's change in force within 15 seconds (FR-008b);
 - amounts are minor units end to end; the currency table is the contract's (FR-013, R6);
 - every string from the catalogue (FR-040a); every screen AA (FR-040);
 - at most two path parameters per route and one endpoint per prefix in the Scala services;
@@ -83,7 +89,8 @@ p95; a proxied read within 30 ms of its owner.
 | Services amended | 17, plus the contract, the modules tool, the realm, CI |
 | New stored data in owners | 5: manager tags, seen devices, deposit bounds, an adjustment's cause, balances at a request |
 | Entities in `backoffice-state` | 2 (`Session`, `Preferences`), 1 view |
-| Feature files | 12 under `features/backoffice/` (41 scenarios); 17 new files and 8 added scenarios in the owners' features (the spec's *Amendments to the owning services*) |
+| New in `players` for roles | 1 entity (`Role`), 1 view, 5 routes; `RoleBags` in 11 other services |
+| Feature files | 13 under `features/backoffice/` (43 scenarios); 18 new files and 11 added scenarios in the owners' features (the spec's *Amendments to the owning services*) |
 | Seed for SC-005 | 10,000 players, 1,000 rewards, 5,000 withdrawal requests |
 
 ## Constitution Check
@@ -94,12 +101,12 @@ p95; a proxied read within 30 ms of its owner.
 |---|---|---|
 | I. The original is the specification | parity named; divergences declared | Pass. [parity.md](parity.md) holds every capability of the original with its owner and status, confirmed against the code; every change is under the spec's *Changes from the original*. The risk blocklist is dropped as spec 004 FR-036 already dropped it. No recording is replayed (R19): the owners' recordings hold their routes, and the original's screens are recorded as the *before*. |
 | II. Money is exact, the wallet is the ledger | `Long`; idempotent | Pass. The backoffice holds no balance. An adjustment batch is one wallet adjustment per row under its own key (R15). Amounts cross the page as minor units. |
-| III. A brand is a project | no player data; no grant | Pass, as amended (1.3.0). `backoffice-state` refuses a preference that names a player. Calls carry the operator's own token; no grant is made (R3, V1). |
+| III. A brand is a project | no player data; no grant for a person | Pass, as amended (1.3.0). The backoffice is a module of the brand's own project and serves that brand alone. `backoffice-state` refuses a preference that names a player. Calls carry the operator's own token (R3, V1). The one grant is the brand's to merchant's role-setting route, a service's call for the brand (R5). |
 | IV. Commands over HTTP, facts over topics | no store read across services | Pass. Every read is an owner's route; the timeline reads owners, not topics (R10). |
 | V. Personal data marked, erasure honoured | `Personal`; handler | Pass. An operator's subject, name and email are `Personal` under `operator/<subject>` with an erasure route. Players' devices (P8) are `Personal` under the player's subject in `players`. |
 | VI. Scala by default | reason for anything else | Pass. TypeScript for the web-hosted program only, for the reason the spec and amendment 1.3.0 give; everything that keeps state is Scala. |
-| VII. Specs in the domain's words | `just features` passes | Pass: 0 findings in 1,456 scenarios and 26 specs. |
-| Workflow: clarify before plan | | Pass: clarified 2026-11-15, nine answers. |
+| VII. Specs in the domain's words | `just features` passes | Pass: 0 findings in 1,473 scenarios and 26 specs. |
+| Workflow: clarify before plan | | Pass: clarified 2026-11-15, twelve answers. |
 | Scope: ankka gaps are ankka specs | | Pass. V1 is the one platform assumption; if it fails it is an ankka request and the build stops. |
 
 No violations; Complexity Tracking is empty.
@@ -108,10 +115,13 @@ No violations; Complexity Tracking is empty.
 
 | Requirement | Component | Why this one | The close alternative, and why not |
 |---|---|---|---|
-| FR-001, FR-042 | `backoffice`, web-hosted; Vite's content-named assets | ankka's way to serve a browser | a service with components (it has no state) |
+| FR-001, FR-042 | `backoffice`, web-hosted, in the brand's module; Vite's content-named assets | ankka's way to serve a browser; one per brand | one shared backoffice (R1) |
 | FR-002, FR-007 | the route table and pass-through (`server/proxy.ts`, `routes.ts`) | one list of what may be asked | a handler per route (R4) |
 | FR-003 | `Session` (ES) in `backoffice-state`; the `__Host-` cookie | one writer for refresh; survives a rollout | a sealed cookie (R1) |
-| FR-004, FR-005, FR-008 | `OperatorPermissions` in the contract (permissions, and roles as bags of them), published; `Routes.operatorMay(slug, permission)`; `/api/me`'s permissions; `access.ts` | one table for screen and service; no role named in a route | permissions in the token (bloat; R5); a copy in the page (the original's drift) |
+| FR-004 | the brand from the project; `/api/me` refuses an operator whose roles do not name it | nothing to pick | a brand list (out of scope) |
+| FR-005, FR-008 | `OperatorPermissions` (names, the role matrix) and `RoleBags` in the contract; `Routes.operatorMay(slug, permission)`; `/api/me`'s permissions; `access.ts` | no role named in a route or in the page | permissions in the token (bloat; R5) |
+| FR-008b, FR-008d | `Role` (ES) and `Roles` view in `players`; `RoleBags` polled copy in every other service | changed at run time, in force in seconds, no consumer per service | facts on a topic; bags in code or in deploy-time values (R5) |
+| FR-008c | `players` `role-assignments` (the escalation check), then merchant's `brand-roles` under the brand's grant | the brand knows its bags; merchant owns operators | a realm admin credential in each brand |
 | FR-006 | the refusal map in the catalogue (`refusals.ts`) | the owner's code, the domain's words | prose from the owner (untranslatable) |
 | FR-009 to FR-012 | owners' paging (L); `status` routes (F); Query's kept rows and list state in the URL | the owner counts; the page keeps place | client paging (the original's loss of rows) |
 | FR-013 to FR-015 | `money.ts` over `currencies.v1.json`; `dates.ts` over the brand's zone | one rule | `Intl` defaults (R6) |
@@ -122,7 +132,7 @@ No violations; Complexity Tracking is empty.
 | FR-027, FR-028 | `composite/batch.ts`; wallet W2 | one keyed adjustment per row | a bulk route in the wallet (a new money command) |
 | FR-029 | owners' jobs; `jobs` in preferences; `/api/events` | no job state of its own | a job service |
 | FR-031 | `composite/document.ts` | the document id is the only input | a signed URL (an address the page is given) |
-| FR-038 | `Preferences` (KV) | per operator, small | browser storage (not kept across devices) |
+| FR-038 | `Preferences` (KV) in the brand's `backoffice-state` | per operator, small | browser storage (not kept across devices) |
 | FR-039 to FR-041 | `tokens.css`, the frame ([contracts/design.md](contracts/design.md)) | checked values | — |
 | FR-040a | `messages/en.ts`, typed keys, `intl-messageformat` | a translation changes no screen | strings in place |
 
@@ -138,7 +148,7 @@ specs/030-backoffice/
 ├── data-model.md        # what is stored, and the shapes the server makes
 ├── quickstart.md        # proving it, in build order
 ├── contracts/
-│   ├── roles.md         # the matrix, its published form, the cutover mapping
+│   ├── roles.md         # permissions, the role matrix, how a bag is opened, the cutover mapping
 │   ├── sources.md       # worklist, timeline and search sources
 │   ├── amendments.md    # every change to an owning service, the contract, the tool, CI
 │   ├── routes.md        # the backoffice's own routes
@@ -149,12 +159,13 @@ specs/030-backoffice/
 ### Source Code (repository root)
 
 ```text
-contract/src/main/scala/io/eitheror/casino/contract/access/OperatorPermissions.scala, Routes.scala
+contract/src/main/scala/io/eitheror/casino/contract/access/OperatorPermissions.scala, RoleBags.scala, Routes.scala
 contract/src/main/scala/io/eitheror/casino/contract/Layout.scala, facts/
 contract/schemas/access/operator-permissions.v1.json, money/currencies.v1.json
 brands/_realm/eitheror-operators.json
-tools/modules/src/main/scala/io/eitheror/casino/modules/   # Manifest, Render, Realm: web hosting, client upsert
-shared/backoffice/manifest.json
+tools/modules/src/main/scala/io/eitheror/casino/modules/   # Render, Realm: web hosting, the brand's client
+modules/backoffice/module.json
+services/players/src/main/scala/io/eitheror/casino/players/roles/   # Role, Roles, RolesEndpoint, Assignments
 services/<each of the 17>/                                 # contracts/amendments.md
 services/backoffice-state/
 ├── build.sbt, service.json, README.md
@@ -181,7 +192,8 @@ features/backoffice/                                       # the scenarios (writ
 .github/workflows/ci.yml, release.yml, Justfile
 ```
 
-**Structure Decision**: two service directories under `services/`, as every service is; the web
+**Structure Decision**: two service directories under `services/`, as every service is, shipped
+as one module of a brand; the web
 one split into `server`, `shared` and `web` so that the matrix, money and messages are one copy
 for both sides.
 
@@ -196,8 +208,9 @@ that depend on them, each with what happens if it does not hold.
 
 ### Constitution re-check after design
 
-Unchanged. The only stored data is the operator's own; the owners gain routes and five pieces of
-stored data inside their own projects; nothing reads another service's store.
+Unchanged. The backoffice's only stored data is the operator's own; the owners gain routes and five
+pieces of stored data inside their own projects, and `players` the brand's roles; a service reads
+the roles through `players`' route, never its store.
 
 ## Divergences
 
@@ -210,10 +223,10 @@ own suites.
 **Build order**:
 
 1. Setup: the spike for V1; the two service skeletons; the Justfile and CI entries.
-2. Foundation: the contract (matrix, published files, layout, facts); the realm; the modules
-   tool; `backoffice-state`; the server (session, proxy, route table); the frame, tokens, money,
+2. Foundation: the contract (permissions, the role matrix, `RoleBags`, published files, layout,
+   facts); the roles in `players`; the realm; the modules tool and the module; `backoffice-state`; the server (session, proxy, route table); the frame, tokens, money,
    dates, catalogue, list and action components; the doubles and the feature harness.
-3. Phase 1 (stories 1 to 3): the matrix in every service (M), freshness (F) and lists (L) in the
+3. Phase 1 (stories 1 to 3): permissions in every service (M), the roles screen and giving roles, freshness (F) and lists (L) in the
    services phase 1 reads; access; worklist; search; the player page and timeline.
 4. Phase 2 (stories 4, 5): payouts and wallet amendments; withdrawals; adjustments and batches.
 5. Phase 3 (stories 6, 7): rewards, kyc, responsible-gambling and players' fraud amendments;
@@ -227,12 +240,13 @@ own suites.
 
 **Do not**:
 
-- make a grant from a brand to `backoffice`, or admit `Callers.service("backoffice")` on a brand's
-  operator route: the operator's token is the admission;
+- admit `Callers.service("backoffice")` on an operator route, or make a grant for an operator's
+  call: the operator's token is the admission;
+- build a brand list, a brand switch, or anything that reads another brand;
 - put a rule in the page or its server that the owner does not hold; a missing route is an
   amendment in contracts/amendments.md;
-- name a role in a service or in the page: a route requires a permission, and roles appear only
-  in `OperatorPermissions`' bags;
+- name a role in a service or in the page: a route requires a permission; roles are data in
+  `players`, and the role matrix in the contract is only their seed;
 - parse or format an amount outside `money.ts`, or write an operator-facing string outside the
   catalogue;
 - run two sbt processes in one service directory, or use another worktree's contract snapshot

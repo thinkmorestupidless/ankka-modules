@@ -15,8 +15,8 @@ or *moved*. The two rows once marked *decide* were settled on 2026-11-15: both k
 |---|---|---|
 | Sign in at the `eitheror` realm; wrong-portal page for affiliates | realm (spec 001) | changed: server-held sign-in (FR-003) |
 | Accept an operator invitation; reset a password | merchant `/v1/operators` | kept |
-| Holding, company, sub-brand picker; impersonation banner | — | changed: brand from roles (FR-004); levels stay in payments administration |
-| Theme preference | backoffice-bff (Postgres) | changed: `backoffice` project preferences (FR-038) |
+| Holding, company, sub-brand picker; impersonation banner | — | changed: one backoffice per brand (FR-004); levels stay in payments administration |
+| Theme preference | backoffice-bff (Postgres) | changed: the brand's `backoffice-state` preferences (FR-038) |
 | Notice when a player comes online | engagement `presence`, `agent-stream` | kept (phase 6) |
 
 ## Dashboard and reports (phase 4)
@@ -150,6 +150,8 @@ or *moved*. The two rows once marked *decide* were settled on 2026-11-15: both k
 | Capability | Owner | Status |
 |---|---|---|
 | Operators: list, invite with role and level, resend, reset, revoke | merchant `/v1/operators` | kept |
+| Roles: create, change what each may do, reset, delete | players `roles` | new (FR-008b, FR-008d) |
+| Give and take away an operator's roles for the brand | players `role-assignments`, merchant `brand-roles` | new (FR-008c) |
 
 ## Affiliate programme (phase 6)
 

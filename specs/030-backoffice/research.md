@@ -134,16 +134,23 @@ decision, its reason, and the alternative that was close. The route check behind
 endpoint code of all 17 services with an operator route; its results are in
 [contracts/amendments.md](contracts/amendments.md) and [parity.md](parity.md).
 
-## R1. Two services in the `backoffice` project
+## R1. Two services in the brand's `backoffice` module
 
-- **Decision**: `backoffice` (web-hosted, TypeScript: the page and its server) and
+- **Decision**: one backoffice per brand, in the brand's own project, as the module `backoffice`
+  (clarified 2026-11-15): `backoffice` (web-hosted, TypeScript: the page and its server) and
   `backoffice-state` (Scala: operator sessions and preferences).
-- **Why**: a web-hosted service has no database and nothing it holds survives its instances
-  (ankka web hosting). FR-003 needs the sign-in held on the server across instances and rollouts,
-  and FR-038 needs preferences kept; constitution VI puts anything that keeps state in Scala.
-- **Alternative**: the sign-in sealed into a cookie, no session store. Rejected: a Keycloak access
-  and refresh token with a brand operator's roles is over one cookie's 4 KB, refresh-token rotation
-  races between instances, and "sign out ends both" (FR-003) cannot be enforced for a stolen cookie.
+- **Why per brand**: a brand is deployed on its own, possibly in its own cluster; ankka's calling
+  address reaches only the installation it is in. A backoffice inside the brand's project calls the
+  brand's services by name and needs nothing to cross a project for casino work.
+- **Why two services**: a web-hosted service has no database and nothing it holds survives its
+  instances (ankka web hosting). FR-003 needs the sign-in held on the server across instances and
+  rollouts, and FR-038 needs preferences kept; constitution VI puts anything that keeps state in
+  Scala.
+- **Alternatives**: one shared backoffice for every brand (the first draft). Rejected: it serves
+  only brands of its own installation, and rests wholly on a cross-project call. The sign-in sealed
+  into a cookie, with no session store. Rejected: a Keycloak access and refresh token is over one
+  cookie's 4 KB, refresh-token rotation races between instances, and "sign out ends both" (FR-003)
+  cannot be enforced for a stolen cookie.
 
 ## R2. The sign-in is exchanged and refreshed by `backoffice-state`
 
@@ -162,17 +169,22 @@ endpoint code of all 17 services with an operator route; its results are in
 
 ## R3. Calls are made by the page's server at the calling address, never under a mount
 
-- **Decision**: the descriptor has no mounts. Every call goes
-  `$ANKKA_SERVICES_URL/<service>.<project>/<path>` with `Authorization: Bearer <operator's token>`.
-- **Why**: a mount is honoured only within its project and arrives as the internet; the services
-  are in other projects (ankka web hosting reference). The proxy passes `Authorization` as given
-  (it removes only `X-Ankka-*` and hop-by-hop headers).
-- **To verify first (V1)**: that a brand service's `Oidc.authenticate()` route answers a call from
-  `Service(backoffice, backoffice)` carrying a valid operator token, with no grant. The contract's
-  `Routes.operator` refines only the token, and ankka's cross-project rule is written for
-  `Callers.granted` routes, so it should; the documentation does not say so in terms. If the
-  runtime refuses the connection, it is an ankka request (spec *Assumptions*) and the build stops
-  at T001. No grant is made: constitution III.
+- **Decision**: the descriptor has no mounts. A call to the brand's own service goes
+  `$ANKKA_SERVICES_URL/<service>/<path>`; a call to a shared project's service goes to that
+  project's address from the brand's values, by default
+  `$ANKKA_SERVICES_URL/<service>.<project>/<path>`. Both carry
+  `Authorization: Bearer <operator's token>`.
+- **Why**: a request under a mount arrives as the internet with whatever the browser sent, and the
+  browser holds no token (FR-003). The proxy passes `Authorization` as the process gave it (it
+  removes only `X-Ankka-*` and hop-by-hop headers).
+- **To verify first (V1)**: (a) that an operator route of a service in the same project answers a
+  call from `Service(<brand>, backoffice)` carrying a valid operator token; (b) the same for a
+  shared project's operator route, with no grant. `Routes.operator` and `paymentsOperator` refine
+  only the token, so both should hold; the documentation does not say so in terms. If (a) fails it
+  is an ankka request and the build stops at T001. If only (b) fails, the screens that read a
+  shared project (payments administration, deposits, the programme, the audit) wait for the ankka
+  request, and everything else is built. No grant is made for the operator's calls: constitution
+  III.
 
 ## R4. One route table admits what the browser may ask for
 
@@ -186,30 +198,43 @@ endpoint code of all 17 services with an operator route; its results are in
   decides admission.
 - **Alternative**: a GraphQL layer. Rejected: a second schema to keep true to seventeen services.
 
-## R5. Routes require a permission; roles are bags of permissions, held by the contract
+## R5. Routes require a permission; roles are bags the brand keeps at run time
 
-- **Decision**: `contract.access.OperatorPermissions` holds every permission (one per operator
-  action) and each role's bag of them. A route requires one permission:
-  `Routes.operatorMay(slug, permission)` admits a token whose roles' bags hold it. No service names
-  a role. The token carries roles only. `sbt contract/schemas` also writes
-  `contract/schemas/access/operator-permissions.v1.json` and
-  `contract/schemas/money/currencies.v1.json`; the backoffice's server reads the first to answer an
-  operator's permissions in `/api/me`, and the page offers an action only when its permission is
-  there. CI fails when the server's copy differs from the contract's.
-- **Why**: FR-005 (read, not written again) and SC-006. Today each service holds its own role set
-  (`payouts` `FinanceRoles`, `kyc` `ComplianceRoles`, reporting's `Access`), checked partly in ACLs
-  and partly in handlers, and several routes check none.
-- **Alternative: permissions in the token** (the realm's composite roles expanded). Rejected by the
-  product owner on 2026-11-15: about forty permissions in every token.
-- **Alternative: the bags fetched at run time** by each service. Rejected for now: an owning
-  service must open a bag on every request without a call, and a bag changed without review is a
-  change to who may move money. The lookup is one function, so its source can move later.
-- **Bags**: [contracts/roles.md](contracts/roles.md). Where FR-008 is silent the rule used is: a
-  permission that moves money is in `brand_finance`'s bag; one that changes a player's standing,
-  identity or protection in `brand_compliance`'s; one that changes what the brand is in
-  `brand_admin`'s; `brand_support` reads and writes notes and messages only.
-- **Payments roles**: in no bag (clarified 2026-11-15). They keep `Routes.paymentsOperator` and
-  nothing else.
+- **Decision** (clarified 2026-11-15, three answers):
+  1. Every operator route of a brand's services requires one permission,
+     `Routes.operatorMay(slug, permission)`, and names no role. The contract holds the permissions'
+     names and the role matrix (the default roles and bags).
+  2. The brand's `players` service keeps the roles: a `Role` entity each, seeded from the matrix
+     when the brand first starts, changed through `roles` routes by an operator holding
+     `roles.change`, each change an audit record.
+  3. Every other service of the brand holds a copy through `contract.access.RoleBags`: it asks
+     `players` for the roles every 10 seconds and decides from the copy, with no call in a request.
+     Until its first copy it answers `Unavailable`; if `players` cannot be reached it keeps the
+     last copy.
+  4. The token carries roles only. The backoffice's server reads the same roles to answer the
+     operator's permissions (`/api/me`) and the bags (`/api/permissions`).
+  5. Giving an operator roles: the backoffice asks the brand's `players` (`role-assignments`),
+     which refuses when the giver lacks a permission the roles carry, then asks the shared
+     payments' merchant, which owns operators, to set them in the realm, under a grant the brand
+     makes for that one route.
+- **Why `players`**: it already keeps the brand's own configuration (sites, countries, currencies,
+  modules); a service for roles alone would be one more database and deployment per brand.
+- **Why a polled copy and not facts on a topic**: one helper in the contract library, against a
+  consumer and a stored copy in each of twelve services. The cost is at most 10 seconds of
+  staleness, inside FR-008b's 15. The fetch is supplied by the service, so the contract library
+  stays on its own ankka pin.
+- **Why merchant sets them**: operators are realm users and merchant already invites, resets and
+  revokes them; a realm admin credential in every brand project is avoided.
+- **Alternatives rejected**: permissions in the token (bloat); bags in the contract's code (a bag
+  change would be a release and a rollout); bags as deploy-time values (no code, but a restart, and
+  no screen for an administrator).
+- **Limits**: role names are the realm's. An operator of two brands holds the same role names in
+  both; what a role carries is each brand's own. A different role per brand for one operator is out
+  of scope (spec, *Out of scope*). Shared services (merchant, the programme, the audit) open no
+  brand's bag: they keep their own role checks.
+- **Payments roles**: in no bag, and not a brand's to give. They keep `Routes.paymentsOperator`.
+- **To verify (V6)**: that an ACL refinement may decide `Unavailable`; if not, the unread case is
+  refused with a `503` from the endpoint's own first line.
 
 ## R6. The currency table is the contract's, published
 
@@ -232,14 +257,15 @@ endpoint code of all 17 services with an operator route; its results are in
 - **Alternative**: a server-rendered framework. Rejected: the process must stay a thin HTTP program
   beside ankka's proxy, and Next's server would become a second place for rules.
 
-## R8. Deploying a web-hosted service through the modules tool
+## R8. Deploying the module
 
-- **Decision**: `Layout.SharedProjects` gains `backoffice -> (backoffice, backoffice-state)`; a
-  shared manifest's service may carry `hosting: "web"`, `processPort` and `callers`, rendered into
-  the descriptor as given; `backoffice` is exposed, `backoffice-state` admits only
-  `Callers.service("backoffice")`. `Realm.ensure` gains an upsert for one confidential client
-  (`backoffice`, audience `eitheror-casino`) and the role `brand_support`. `release.yml` builds an
-  image for a service directory with a `package.json` as well as a `build.sbt`.
+- **Decision**: `modules/backoffice/module.json`, depending on `core`: `backoffice` with
+  `hosting: "web"`, exposed at the brand's backoffice host; `backoffice-state`, not exposed,
+  admitting only `Callers.service("backoffice")`. The vendor's manifest schema already allows
+  `hosting: "web"`; `Render` passes it through. The page's server listens on the default process
+  port and needs no mount and no `callers`. `Realm.ensure` makes one confidential client per brand,
+  `backoffice-<slug>` (audience `eitheror-casino`), and the role `brand_support`. `release.yml`
+  builds an image for a service directory with a `package.json` as well as a `build.sbt`.
 - **Why**: the tool renders `Embedded` or `Process` only, imports the realm only when it is
   missing, and CI enumerates `services/*/build.sbt`.
 
@@ -318,12 +344,12 @@ endpoint code of all 17 services with an operator route; its results are in
   notices are engagement's `agent-stream`, relayed by the server as server-sent events on
   `/api/events` (the proxy streams event by event).
 
-## R17. Brands and modules
+## R17. The brand and its modules
 
-- **Decision**: the brands the installation runs are an environment value of `backoffice`,
-  rendered by the modules tool from `brands/*/values.json`; an operator sees those their roles name.
-  A brand's enabled modules come from `players`' `modules` route; a screen whose module is off is
-  absent.
+- **Decision**: the brand is the project's (`CASINO_BRAND`, as every brand service reads it). An
+  operator whose roles do not name it is told so and sees nothing. The brand's enabled modules come
+  from `players`' `modules` route; an area whose module is off is absent. The addresses of the
+  shared projects are values of the brand.
 
 ## R18. Tests
 
@@ -359,16 +385,18 @@ endpoint code of all 17 services with an operator route; its results are in
 
 | | What | If it does not hold |
 |---|---|---|
-| V1 | an operator route answers the backoffice's call with the operator's token, across projects | an ankka request; the build stops |
+| V1 | an operator route answers the backoffice's call with the operator's token: (a) in the brand's project, (b) in a shared project | (a) an ankka request, and the build stops; (b) an ankka request, and the shared projects' screens wait |
 | V2 | a view's last applied time is readable | the view's consumer records it |
-| V3 | `ankka local web` accepts `--service name.project=url` for another project's service | the double listens under the dotted name |
-| V4 | Keycloak issues the `backoffice` client's token with audience `eitheror-casino` and the realm roles | a mapper is added in `Realm` |
+| V3 | `ankka local web` accepts `--service name.project=url` for a shared project's service | the double listens under the dotted name |
+| V4 | Keycloak issues the `backoffice-<slug>` client's token with audience `eitheror-casino` and the realm roles | a mapper is added in `Realm` |
 | V5 | the proxy streams server-sent events from the process unbuffered through the gateway | long polling on `/api/events` |
+| V6 | an ACL refinement may decide `Unavailable` | the endpoint answers `503` itself before its handler |
 
 ## Design finished
 
-2026-11-15: analyze reported nothing above LOW. Round 1 found two HIGH (the amendments' scenarios
-were left to the build; one scenario named a fraud role) and six MEDIUM, all applied; round 2 found
-three LOW, left as they are: FR-020's "without scrolling" is checked by eye at 1440 by 900 (T068);
-SC-002 and SC-003 need people (T124); the affiliate's read-only view has its scenario from spec 013
-and its route from T109.
+2026-11-15: reworked after the first finish, on three decisions made in review: one backoffice per
+brand in the brand's project; permissions, with roles as bags the brand keeps at run time; merchant
+sets an operator's roles. The checker is green; the analysis was repeated by hand for coverage and
+leftovers, not by a full `/speckit-analyze` run. Nothing above LOW was found: FR-020's "without
+scrolling" is checked by eye at 1440 by 900; SC-002 and SC-003 need people; role names are the
+realm's and shared between brands that use it.

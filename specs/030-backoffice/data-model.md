@@ -1,7 +1,8 @@
 # Data model: the backoffice
 
-The backoffice stores two things, both in `backoffice-state`, and neither about a player. Everything
-else it shows is read from an owner and held only while a page is open.
+A brand's backoffice stores two things, both in its `backoffice-state`, and neither about a player.
+Everything else it shows is read from an owner and held only while a page is open. The brand's
+roles are not the backoffice's: `players` keeps them (below).
 
 ## Stored (`services/backoffice-state/`)
 
@@ -32,10 +33,9 @@ Rules:
 | Field | Type | Rule |
 |---|---|---|
 | `theme` | `dark` or `light` | default `dark` |
-| `lastBrand` | `Option[String]` | a slug; ignored when the roles no longer name it |
 | `worklistKinds` | `Set[String]` | kinds shown; default all the roles admit |
-| `onlineNotices` | `Map[String, Boolean]` | per brand |
-| `jobs` | `List[Job]`, at most 20, newest first | `Job(reference, kind, brand, startedAt)`; no player id |
+| `onlineNotices` | `Boolean` | |
+| `jobs` | `List[Job]`, at most 20, newest first | `Job(reference, kind, startedAt)`; no player id |
 
 A write that names a player id, or any key not above, is refused: `400 unknown_preference`.
 
@@ -53,15 +53,16 @@ the erasure handler does the same for the `operator/<subject>` prefix.
 | What | Life | Note |
 |---|---|---|
 | a session's access token | to its expiry | keyed by session id; never written anywhere |
-| operators' names by subject | 5 minutes, per brand | from merchant's `/v1/operators` |
+| operators' names by subject | 5 minutes | from merchant's `/v1/operators` |
+| the brand's roles and their bags | 10 seconds | from players' `roles` |
 | a brand's enabled modules | 1 minute | from players' `modules` |
-| the route table, the matrix, the currency table | the build | from `routes.ts` and the contract's published files |
+| the route table, the permissions' names, the currency table | the build | from `routes.ts` and the contract's published files |
 
 ## Shapes the page's server makes (not stored)
 
 ### Worklist
 
-`Worklist { brand, kinds: [WorklistKind] }`;
+`Worklist { kinds: [WorklistKind] }`;
 `WorklistKind { kind, state: ok | unavailable, reason?, total, items: [WorklistItem] }`;
 `WorklistItem { id, kind, subject: {player?, name?}, since: Instant, summary: Message, actedBy?: Actor, actedWhat?: Message }`.
 
@@ -97,8 +98,31 @@ two keys (the spec's edge case), and the result says so.
 - `Message { key, values }`: the catalogue's key, never prose, so another language is a
   translation (FR-040a).
 
+## The brand's roles (`services/players/`, amendment P12)
+
+### `Role` (event sourced entity; id: the role's name)
+
+| Field | Type | Rule |
+|---|---|---|
+| `name` | `String` | lower case letters, digits and `_`, at most 40; not `platform_admin`, not `brand_<slug>`, not a payments role |
+| `description` | `String` | at most 200 characters |
+| `permissions` | `Set[String]` | each a name the contract knows |
+| `default` | `Boolean` | one of the role matrix's roles: resettable, not deletable |
+
+Events: `Defined`, `PermissionsChanged(before, after, by)`, `Reset(by)`, `Deleted(by)`.
+
+Rules: the last role carrying `roles.change` cannot lose it or be deleted; the default roles are
+seeded once, when no role exists; a deleted role's name may be used again.
+
+`Roles` (view): every role with its permissions, read by `GET roles`.
+
+### In each other service of the brand
+
+`RoleBags` (in memory, per instance): the roles as last read, when they were read, and whether
+`players` answered the last time. Nothing stored.
+
 ## What each owning service gains
 
 New stored data in the owners (manager tags, seen devices, deposit bounds, the adjustment's cause, the
 balances at a withdrawal request) is described where it is specified:
-[contracts/amendments.md](contracts/amendments.md) P7, P8, H3, W2, Y3.
+[contracts/amendments.md](contracts/amendments.md) P7, P8, P12, H3, W2, Y3.

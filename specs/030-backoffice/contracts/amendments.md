@@ -6,8 +6,8 @@ Three kinds recur and are named by letter:
 
 - **M** the role matrix: each operator route requires one permission,
   `Routes.operatorMay(slug, permission)`, from [roles.md](roles.md); role names and role sets leave
-  the service; the service binds its
-  `features/<area>/operator-roles.feature`.
+  the service; the service reads the
+  brand's roles through `RoleBags` and binds its `features/<area>/operator-roles.feature`.
 - **L** lists: `page`, `pageSize` (max 200), `total`, the order FR-009 names.
 - **F** freshness: `GET …/status` answering `{views: [{name, asOf, rebuilding}]}` (research R13).
 
@@ -15,11 +15,11 @@ Three kinds recur and are named by letter:
 
 | # | Change |
 |---|---|
-| C1 | `access/OperatorPermissions.scala`: the permissions and each role's bag; `OperatorPermissions.of(roles)`; `Routes.operatorMay(slug, permission)`; `Routes.operatorHolding` and bare `Routes.operator` leave the brand services |
+| C1 | `access/OperatorPermissions.scala`: the permissions' names and the role matrix (the default bags); `access/RoleBags.scala`: the kept copy of the brand's roles, refreshed every 10 seconds through a fetch the service supplies, `Unavailable` until first read; `Routes.operatorMay(slug, permission)`; `Routes.operatorHolding` and bare `Routes.operator` leave the brand services |
 | C2 | `WriteSchemas` writes `schemas/access/operator-permissions.v1.json` and `schemas/money/currencies.v1.json` |
-| C3 | `Layout.SharedProjects` gains `backoffice -> Seq("backoffice", "backoffice-state")`; `ReservedSlugs` follows |
+| C3 | `Layout`: the module `backoffice` and its two services (`backoffice`, `backoffice-state`); the grant a brand makes for merchant's role-setting route (P13, H6) |
 | C4 | `facts`: `adjustment` gains optional `cause {kind, ref}` |
-| C5 | `brands/_realm/eitheror-operators.json`: role `brand_support`; confidential client `backoffice` (audience `eitheror-casino`, standard flow, PKCE) |
+| C5 | `brands/_realm/eitheror-operators.json`: role `brand_support`. Each brand gets its own confidential client `backoffice-<slug>` (audience `eitheror-casino`, standard flow, PKCE, the brand's backoffice address), made by `Realm.ensure` with the brand (D3) |
 
 ## players (spec 008)
 
@@ -36,6 +36,8 @@ Three kinds recur and are named by letter:
 | P9 | `players/{p}/games` GET: games played with rounds, staked and won per game, from the rounds facts |
 | P10 | `players/{p}/bets`: filters `roundId`, `transactionId`, `type`, `status`; `summary` gains `staked`, `won`, `net` in minor units |
 | P11 | `fraud-cases`: L, oldest first for `status=open` |
+| P12 | the brand's roles: a `Role` entity per role (name, description, permissions, default or the brand's own), seeded from the role matrix when the brand first starts; `roles` GET (every service of the project, and `roles.read`), `roles/{name}` PUT, DELETE and `roles/{name}/reset` POST (`roles.change`), with the rules of roles.md and an audit record per change |
+| P13 | `role-assignments/{operator}` PUT (`roles.give`): refuses when the giver lacks a permission the roles carry, then asks merchant (H6) to set them; audit record |
 
 ## wallet (spec 002)
 
@@ -102,11 +104,12 @@ Three kinds recur and are named by letter:
 
 | # | Change |
 |---|---|
-| H1 | `deposit.read`: a brand operator reads `/v1/payments/cashier`, `/cashier/summary` and `/v1/payments/{id}` for the sub-brand that names the brand (glossary, *sub-brand*) and no other |
+| H1 | an operator holding `brand_<slug>` reads `/v1/payments/cashier`, `/cashier/summary` and `/v1/payments/{id}` for the sub-brand that names that brand (glossary, *sub-brand*) and no other |
 | H2 | `/v1/payments/cashier?reference=` (exact payment reference) |
 | H3 | `/v1/sub-brands/{id}/deposit-bounds` GET, PUT: the deposit bounds per method and currency, in minor units; enforced by the deposit workflow before a provider is asked, refused as `DEPOSIT_BELOW_MINIMUM` or `DEPOSIT_ABOVE_MAXIMUM` |
 | H4 | `/v1/sub-brands/{id}/psp-credentials/{provider}/test-payment` POST: one payment of the provider's smallest amount on the provider's test mode, through psp-gateway; answers the provider's outcome; never credits a wallet |
 | H5 | `/v1/operators`: L |
+| H6 | `/v1/operators/{id}/brand-roles/{brand}` PUT, admitted only to that brand's `players` service under the brand's grant: sets the operator's roles for the brand (adds `brand_<slug>`, creates a realm role that does not exist, removes the brand-given roles no longer asked for); refuses a payments role, `platform_admin` and another brand's `brand_<slug>`; changes no role another brand's request gave |
 
 ## psp-gateway (spec 005)
 
@@ -126,9 +129,9 @@ Three kinds recur and are named by letter:
 
 | # | Change |
 |---|---|
-| D1 | a shared manifest's service may carry `hosting: "web"`, `processPort`, `callers`; `Render` writes them; validation refuses `mounts` to another project |
-| D2 | `shared/backoffice/manifest.json`; `BRANDS` rendered from `brands/*/values.json` |
-| D3 | `Realm.ensure`: upserts the `backoffice` client and `brand_support` into an existing realm |
+| D1 | `Render` passes a module service's `hosting: "web"` through to the descriptor (the vendor's schema already allows it; the page's server listens on the default process port and needs no mount) |
+| D2 | `modules/backoffice/module.json` (depends on `core`; services `backoffice`, exposed, and `backoffice-state`); the brand's values gain the backoffice's host and the addresses of the shared projects it reads |
+| D3 | `Realm.ensure`: upserts `brand_support` and the brand's `backoffice-<slug>` client into an existing realm, its secret into the brand's secrets |
 | D4 | `ci.yml`: a `backoffice` filter and a Node job (typecheck, unit, bound features, axe); `release.yml`: an image for a service with a `package.json` |
 
 ## The migration (spec 019)
