@@ -112,8 +112,15 @@ final class OperatorEndpoint(ctx: Ctx, bags: RoleBags) extends HttpEndpoint(s"/v
  * report (FR-022), and erasure and export (FR-032). Every check is one profile read and the request's
  * figures, no call out; an unreadable request is `400`, which every caller takes as a refusal.
  */
-final class ServiceEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${ctx.slug}/rg"):
+final class ServiceEndpoint(ctx: Ctx, bags: RoleBags) extends HttpEndpoint(s"/v1/casino/brands/${ctx.slug}/rg"):
   val acl: Acl = Routes.service()
+
+  // spec 030 G4 (F): the views' freshness, for an operator who may read protection, or for the project's services
+  withAcl(Acl.anyOf(Routes.operatorMay(ctx.slug, "protection.read", bags, ctx.authenticate()), Routes.service())) {
+    get("/status") { () =>
+      io.eitheror.casino.rg.freshness.Freshness.answer(io.eitheror.casino.rg.freshness.Freshness.of(ctx.clients.componentClient))
+    }
+  }
 
   private def body(text: String)(f: JsonNode => Reply): Reply = Json.parseObject(text).fold(badBody)(f)
 
