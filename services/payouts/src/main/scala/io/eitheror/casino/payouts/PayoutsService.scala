@@ -34,7 +34,7 @@ object PayoutsService:
     ConfigAuditPublisher.descriptor,
     WithdrawalWorkflow.descriptor,
     WithdrawalQueue.descriptor
-  )
+  ) ++ io.eitheror.casino.payouts.freshness.ViewFollower.descriptors
 
   /**
    * One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. `bags` is

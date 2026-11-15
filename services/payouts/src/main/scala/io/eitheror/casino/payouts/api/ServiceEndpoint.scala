@@ -18,6 +18,13 @@ import Answers.*
 final class ServiceEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${ctx.slug}/payouts"):
   val acl: Acl = Routes.serviceOf("players")
 
+  // spec 030 Y5 (F): the views' freshness, for an operator who may read the withdrawals, or for the project's services
+  withAcl(Acl.anyOf(ctx.may("withdrawal.read"), Routes.service())) {
+    get("/status") { () =>
+      io.eitheror.casino.payouts.freshness.Freshness.answer(io.eitheror.casino.payouts.freshness.Freshness.of(ctx.components))
+    }
+  }
+
   private def requestsOf(record: PlayerState, p: String): Vector[String] =
     (record.recent.map(_.id) ++ ctx.byPlayer(p).map(_.requestId)).distinct
 
