@@ -85,6 +85,14 @@ final class Kit(base: Settings = Kit.Base):
   Kit.Secrets.foreach((name, value) => testKit.secrets.put(name, value))
   testKit.secrets.put(Secrets.RealmAdmin, Json.render(Json.obj("clientId" -> realm.adminClient, "clientSecret" -> realm.adminSecret)))
   PlayersService.started(timers, testKit.service.viewClient, testKit.componentClient)
+  rolesRead()
+
+  /** Waits until the process's bags hold the seeded role matrix, so the first operator request is decided. */
+  def rolesRead(): Unit =
+    testKit.eventually("the brand's roles read", 30.seconds) {
+      io.eitheror.casino.players.PlayersRuntime.bags.refresh()
+      io.eitheror.casino.players.PlayersRuntime.bags.permissionsOf(Set("brand_admin")).filter(_.contains("roles.change"))
+    }: Unit
 
   def components = testKit.componentClient
   def views      = testKit.service.viewClient
@@ -102,11 +110,13 @@ final class Kit(base: Settings = Kit.Base):
   def adopt(): Unit =
     rewire()
     PlayersService.started(timers, views, components)
+    rolesRead()
 
   /** Stops the service and starts it again over the same database, as a crash and a redeploy would. */
   def restart(): Unit =
     testKit.restartService()
     PlayersService.started(timers, views, components)
+    rolesRead()
 
   def stop(): Unit =
     Kit.started.remove(this)
@@ -153,8 +163,9 @@ final class Kit(base: Settings = Kit.Base):
   def asPlayer(playerId: String): Seq[(String, String)] = asVisitor :+ ("Authorization" -> s"Bearer ${playerToken(playerId)}")
   def asToken(token: String): Seq[(String, String)]     = asVisitor :+ ("Authorization" -> s"Bearer $token")
 
-  def staffToken(roles: String = s"brand_$slug", subject: String = "op-1"): String = s"staff|$subject|$roles"
-  def asOperator(roles: String = s"brand_$slug", subject: String = "op-1"): Seq[(String, String)] =
+  /** An operator of the brand; by default holding `brand_admin`, whose bag the role matrix fills with every permission. */
+  def staffToken(roles: String = s"brand_$slug,brand_admin", subject: String = "op-1"): String = s"staff|$subject|$roles"
+  def asOperator(roles: String = s"brand_$slug,brand_admin", subject: String = "op-1"): Seq[(String, String)] =
     asVisitor :+ ("Authorization" -> s"Bearer ${staffToken(roles, subject)}")
 
   /** Another service of this project (or of `project`), by its certificate. */

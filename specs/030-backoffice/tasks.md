@@ -79,7 +79,7 @@ Each task: replace `Routes.operator`/`operatorHolding` and handler role sets wit
 
 - [X] T017 [P] M in `svc/wallet/` (W1): `adjustment.make`, `turnover.override`, `wallet.read`, `config.brand` in `api/AudienceEndpoints.scala`; amends spec 002
 - [ ] T018 [P] M in `svc/payouts/` (Y1): `withdrawal.read`, `withdrawal.review`, `config.brand` in the ACLs of `api/OperatorEndpoint.scala`, `PlayerEndpoint.scala`, `ConfigEndpoint.scala`; remove `FinanceRoles` from `api/Answers.scala`; amends spec 007
-- [ ] T019 [P] M in `svc/players/` (P1): the players rows of contracts/roles.md per route in `api/Endpoints.scala` and the `Operator*Routes`; remove `BlockRoles`; amends spec 008
+- [X] T019 [P] M in `svc/players/` (P1): the players rows of contracts/roles.md per route in `api/Endpoints.scala` and the `Operator*Routes`; remove `BlockRoles`; amends spec 008
 - [ ] T020 [P] M in `svc/kyc/` (K1): `identity.read` on `GET /{p}` without documents, `identity.review` elsewhere, `config.brand` on policy, in `api/OperatorEndpoint.scala`; remove `ComplianceRoles`; amends spec 009
 - [ ] T021 [P] M in `svc/responsible-gambling/` (G1): `protection.read`, `protection.change`, `config.brand` in `api/Endpoints.scala`; amends spec 010
 - [X] T022 [P] M in `svc/rewards/` (RW1): `reward.read` (list and one reward), `reward.grant`, `reward.revoke`, `offer.manage` in `api/RewardAdminEndpoint.scala`, `OffersEndpoint.scala`; amends spec 011

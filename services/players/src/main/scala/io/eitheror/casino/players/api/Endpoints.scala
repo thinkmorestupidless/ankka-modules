@@ -161,70 +161,158 @@ final class SessionEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/sessions
     patch("/{sessionId}/end") { (sessionId: String) => games.endMine(principal, sessionId) }
   }
 
-/** `/v1/casino/backoffice/<slug>`: the brand's operators. */
+/**
+ * `/v1/casino/backoffice/<slug>`: the brand's operators. Every route requires one permission (spec 030
+ * amendment P1, contracts/roles.md), decided from the brand's roles `players` keeps.
+ */
 final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoffice/${ctx.slug}"):
-  val acl: Acl = Routes.operator(ctx.slug, ctx.authenticate())
+  // every route names its own permission; this is never reached
+  val acl: Acl = Acl.DenyAll
+
+  private def may(permission: String) = Routes.operatorMay(ctx.slug, permission, PlayersRuntime.bags, ctx.authenticate())
 
   private val P     = "/players/{playerId}"
   private val account = OperatorProfileRoutes(ctx)
   private val games = GameSessionRoutes(ctx)
   private val status = OperatorStatusRoutes(ctx)
 
+  withAcl(may("player.read")) {
   get("/players") { () =>
     status.players(query.raw("search"), query.raw("status"), query.raw("vipOnly"), query.raw("page"), query.raw("pageSize"))
   }
+  }
+  withAcl(may("player.read")) {
   get(s"$P/profile") { (id: String) => account.profile(id) }
+  }
+  withAcl(may("profile.change")) {
   patchBody(s"$P/profile") { (id: String, text: String) => account.editProfile(principal, id, text) }
+  }
+  withAcl(may("profile.change")) {
   patchBody(s"$P/date-of-birth") { (id: String, text: String) => account.dateOfBirth(principal, id, text) }
+  }
+  withAcl(may("player.read")) {
   get(s"$P/wallet") { (id: String) => status.wallet(id) }
+  }
+  withAcl(may("player.read")) {
   get(s"$P/activity") { (id: String) => status.activity(id, query.raw("category"), query.raw("page")) }
+  }
+  withAcl(may("player.read")) {
   get(s"$P/bets") { (id: String) =>
     status.bets(id, query.raw("fromDate"), query.raw("toDate"), query.raw("limit"), query.raw("offset"))
   }
-  get(s"$P/sessions/{sessionId}/bets") { (_: String, _: String) => notYet("session bets") }
-  get(s"$P/sessions") { (id: String) => status.sessions(id) }
-  get(s"$P/crm") { (id: String) => account.crm(id) }
-  patchBody(s"$P/crm") { (id: String, text: String) => account.editCrm(principal, id, text) }
-  patchBody(s"$P/suspend") { (id: String, text: String) => status.suspend(principal, id, text) }
-  patch(s"$P/reinstate") { (id: String) => status.reinstate(principal, id) }
-  postBody(s"$P/close") { (id: String, text: String) => status.close(principal, id, text) }
-  postBody(s"$P/reopen") { (id: String, text: String) => status.reopen(principal, id, text) }
-  putBody(s"$P/vip-tier") { (id: String, text: String) => status.vipTier(principal, id, text) }
-  putBody(s"$P/pot-vip") { (id: String, text: String) => status.potVip(principal, id, text) }
-  post(s"$P/reset-password") { (id: String) => account.resetPassword(principal, id) }
-  post(s"$P/sessions/{sessionId}/force-end") { (playerId: String, sessionId: String) => games.forceEnd(principal, playerId, sessionId) }
-  post(s"$P/sessions/force-end-all") { (playerId: String) => games.forceEndAll(principal, playerId) }
-  postBody(s"$P/notes") { (id: String, text: String) => status.note(principal, id, text) }
-  patch(s"$P/notes/{noteId}/pin") { (id: String, noteId: String) => status.pin(id, noteId, pinned = true) }
-  patch(s"$P/notes/{noteId}/unpin") { (id: String, noteId: String) => status.pin(id, noteId, pinned = false) }
-  get(s"$P/messages") { (id: String) => status.messages(id, query.raw("page"), query.raw("pageSize")) }
-  postBody(s"$P/messages") { (id: String, text: String) => status.message(principal, id, text) }
-  get("/merge-tags") { () => status.mergeTags }
-  postBody("/messages/preview") { (text: String) => status.preview(text) }
-  post(s"$P/clear-suspect-flag") { (id: String) => status.clearSuspectFlag(principal, id) }
-  // spec 011 FR-036: the ACL admits the brand's operator; the handler asks for a fraud or compliance role
-  post(s"$P/clear-no-deposit-block") { (id: String) =>
-    if principal.roles.exists(OperatorStatusRoutes.BlockRoles) then status.clearNoDepositBlock(principal, id)
-    else refusal(403, "forbidden", "a fraud or compliance role is needed to clear the block")
   }
+  withAcl(may("player.read")) {
+  get(s"$P/sessions/{sessionId}/bets") { (_: String, _: String) => notYet("session bets") }
+  }
+  withAcl(may("player.read")) {
+  get(s"$P/sessions") { (id: String) => status.sessions(id) }
+  }
+  withAcl(may("player.read")) {
+  get(s"$P/crm") { (id: String) => account.crm(id) }
+  }
+  withAcl(may("profile.change")) {
+  patchBody(s"$P/crm") { (id: String, text: String) => account.editCrm(principal, id, text) }
+  }
+  withAcl(may("standing.change")) {
+  patchBody(s"$P/suspend") { (id: String, text: String) => status.suspend(principal, id, text) }
+  }
+  withAcl(may("standing.change")) {
+  patch(s"$P/reinstate") { (id: String) => status.reinstate(principal, id) }
+  }
+  withAcl(may("standing.change")) {
+  postBody(s"$P/close") { (id: String, text: String) => status.close(principal, id, text) }
+  }
+  withAcl(may("standing.change")) {
+  postBody(s"$P/reopen") { (id: String, text: String) => status.reopen(principal, id, text) }
+  }
+  withAcl(may("tier.change")) {
+  putBody(s"$P/vip-tier") { (id: String, text: String) => status.vipTier(principal, id, text) }
+  }
+  withAcl(may("tier.change")) {
+  putBody(s"$P/pot-vip") { (id: String, text: String) => status.potVip(principal, id, text) }
+  }
+  withAcl(may("profile.change")) {
+  post(s"$P/reset-password") { (id: String) => account.resetPassword(principal, id) }
+  }
+  withAcl(may("session.end")) {
+  post(s"$P/sessions/{sessionId}/force-end") { (playerId: String, sessionId: String) => games.forceEnd(principal, playerId, sessionId) }
+  }
+  withAcl(may("session.end")) {
+  post(s"$P/sessions/force-end-all") { (playerId: String) => games.forceEndAll(principal, playerId) }
+  }
+  withAcl(may("note.write")) {
+  postBody(s"$P/notes") { (id: String, text: String) => status.note(principal, id, text) }
+  }
+  withAcl(may("note.write")) {
+  patch(s"$P/notes/{noteId}/pin") { (id: String, noteId: String) => status.pin(id, noteId, pinned = true) }
+  }
+  withAcl(may("note.write")) {
+  patch(s"$P/notes/{noteId}/unpin") { (id: String, noteId: String) => status.pin(id, noteId, pinned = false) }
+  }
+  withAcl(may("player.read")) {
+  get(s"$P/messages") { (id: String) => status.messages(id, query.raw("page"), query.raw("pageSize")) }
+  }
+  withAcl(may("message.send")) {
+  postBody(s"$P/messages") { (id: String, text: String) => status.message(principal, id, text) }
+  }
+  withAcl(may("message.send")) {
+  get("/merge-tags") { () => status.mergeTags }
+  }
+  withAcl(may("message.send")) {
+  postBody("/messages/preview") { (text: String) => status.preview(text) }
+  }
+  withAcl(may("flag.clear")) {
+  post(s"$P/clear-suspect-flag") { (id: String) => status.clearSuspectFlag(principal, id) }
+  }
+  // spec 011 FR-036, amended by spec 030: flag.clear
+  withAcl(may("flag.clear")) {
+  post(s"$P/clear-no-deposit-block") { (id: String) => status.clearNoDepositBlock(principal, id) }
+  }
+  withAcl(may("fraud.review")) {
   get("/fraud-cases") { () => FraudRoutes(ctx).cases(query.raw("status")) }
+  }
+  withAcl(may("fraud.review")) {
   patch("/fraud-cases/{caseId}/review") { (id: String) => FraudRoutes(ctx).review(principal, id) }
+  }
+  withAcl(may("fraud.review")) {
   patchBody("/fraud-cases/{caseId}/dismiss") { (id: String, text: String) => FraudRoutes(ctx).dismiss(principal, id, text) }
+  }
+  withAcl(may("export.player")) {
   post(s"$P/activity-export") { (id: String) => ErasureRoutes(ctx).startExport(id, principal.subject) }
+  }
+  withAcl(may("export.player")) {
   get("/exports/{exportId}") { (exportId: String) => ErasureRoutes(ctx).read(None, exportId) }
+  }
+  withAcl(may("erasure.request")) {
   post(s"$P/erasure") { (id: String) => ErasureRoutes(ctx).file(id) }
+  }
+  withAcl(may("erasure.request")) {
   get(s"$P/erasure") { (id: String) => ErasureRoutes(ctx).state(id) }
+  }
+  withAcl(may("profile.change")) {
   get(s"$P/verification-link") { (playerId: String) => RegistrationRoutes(ctx).verificationLink(playerId) }
+  }
+  withAcl(may("config.brand")) {
   get("/brand-config") { () => status.config("brand-config") }
+  }
+  withAcl(may("config.brand")) {
   putBody("/brand-config") { (text: String) => status.setBrandConfig(text) }
+  }
+  withAcl(may("config.brand")) {
   get("/currency-config") { () => status.config("currency-config") }
+  }
+  withAcl(may("config.brand")) {
   putBody("/currency-config") { (text: String) => status.setCurrencyConfig(text) }
+  }
+  withAcl(may("config.brand")) {
   get("/allow-list") { () => status.config("allow-list") }
+  }
+  withAcl(may("config.brand")) {
   putBody("/allow-list") { (text: String) => status.setAllowList(text) }
+  }
 
   // spec 030 P12, P13: the brand's roles, each route requiring its permission
   private val roles = RolesRoutes(ctx)
-  private def may(permission: String) = Routes.operatorMay(ctx.slug, permission, PlayersRuntime.bags, ctx.authenticate())
   withAcl(may("roles.read")) {
     get("/roles") { () => roles.list }
   }
@@ -239,10 +327,16 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
 
 /** `/v1/casino/brands/<slug>/modules`: spec 021's operator modules page, through the vendor's agent. */
 final class ModulesEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${ctx.slug}/modules"):
-  val acl: Acl = Routes.operator(ctx.slug, ctx.authenticate())
+  val acl: Acl = Acl.DenyAll
 
-  get("/") { () => OperatorStatusRoutes(ctx).modules }
-  postBody("/requests") { (text: String) => OperatorStatusRoutes(ctx).moduleRequest(principal, text) }
+  private def may(permission: String) = Routes.operatorMay(ctx.slug, permission, PlayersRuntime.bags, ctx.authenticate())
+
+  withAcl(may("modules.read")) {
+    get("/") { () => OperatorStatusRoutes(ctx).modules }
+  }
+  withAcl(may("modules.request")) {
+    postBody("/requests") { (text: String) => OperatorStatusRoutes(ctx).moduleRequest(principal, text) }
+  }
 
 /** `/v1/casino/brands/<slug>/players`: the project's services, by certificate. */
 final class ServiceEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${ctx.slug}/players"):
