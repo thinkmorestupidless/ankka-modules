@@ -179,6 +179,8 @@ class PathsSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
       val p = paths.newPlayer("pa-o")
       val r = paths.viaOperator(p, paths.noDeposit(setup(p)*)).reply.get
       assertEquals((r.status, r.str("status"), r.str("reason")), (409, "ineligible", reason), r.text)
+      // spec 030 RW2: what would allow it, beside the reason
+      assertEquals(io.eitheror.casino.rewards.Json.strings(r.json)("allowedBy"), io.eitheror.casino.rewards.eligibility.AllowedBy.of(reason), r.text)
     operator("SUSPECTED_DUPLICATE", p => { paths.checked(p); paths.flagged(p); Seq.empty })
     operator("NO_DEPOSIT_OFFER_BLOCKED", p => { paths.blocked(p); Seq.empty })
     operator("ELIGIBILITY_CHECK_UNAVAILABLE", p => { paths.checkStarted(p, kit.now()); Seq.empty })
