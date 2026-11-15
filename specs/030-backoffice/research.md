@@ -494,3 +494,41 @@ therefore shown only for reporting's views until ankka lets a service read a pro
 freshness scenario (`features/backoffice/freshness.feature`) seeds `rebuilding: true` and holds.
 `Freshness.at` may be null: a view that has applied nothing shows no time, only *provisional* when it
 is.
+
+### Manager views of an affiliate's portal, 2026-11-15 (T116)
+
+affiliate-programme keeps both manager views, `accounts/{a}/portal/{view}` (A2) and the port's
+`accounts/{a}/view/{page}` (spec 013 O29–O34, the parity recording's path). Both go through one
+function that writes `VIEWED_AS`, so no manager read skips the audit. `accounts` answers
+`{items, total, page, pageSize}`; `limit` and `offset` are gone, since no caller used them. Two
+postback-retry tests fail on HEAD as well ("not observed within 20 seconds"); they are not this
+change's.
+
+### A brand's operators read their sub-brands' payments, 2026-11-15 (T071)
+
+merchant admits a brand reader (staff holding `brand_<slug>`, or `platform_admin`) to the cashier
+list, the summary and a payment of the sub-brands that name their brand (`SubBrandState.brand`).
+Another brand's sub-brand, one naming no brand, or an unknown one answers `403 scope_violation`. A
+payments operator who also holds a brand role keeps exactly their payments access. `?reference=`
+matches the payment id, the cashier's transaction id or the provider's transaction id, exactly.
+
+### The dashboard and the reports, 2026-11-15 (T098–T102)
+
+- Freshness reads reporting's own shape: `completeFrom` per view, the service's being the latest
+  (T052, above).
+- A job's state comes from reporting's `GET /documents`; `job_done` watches the operator's jobs
+  started within the last 24 hours, and a job whose state reporting cannot give is looked at again
+  next time.
+- Export stays offered below 1280 px: it changes nothing, so FR-041's read-only mode does not
+  withhold it.
+- The reports area opens with `export.player` as well as with the report permissions.
+- The charts are hand-written SVG (line and candle, donut, dot grid, the map). The map uses
+  world-atlas 2.0.2 and topojson-client 3.1.0 (`@types/topojson-client` 3.1.5).
+- Gap: reporting's `/dashboard/geo` takes no period, so the map shows all time whatever period the
+  dashboard is set to.
+
+### US7's commit under US8's message, 2026-11-15
+
+`00a1d35a` carries the header of T099 and T100 but holds US7's 17 files: two agents committed through
+the shared index at once. Nothing was lost; history is not rewritten. Agents now commit through a
+private index (`commit-own.sh`).

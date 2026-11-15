@@ -138,7 +138,7 @@ exactly its permissions.
 - [X] T048 [US1] Bind `features/backoffice/access.feature` (7 scenarios), `roles.feature` (2) and `freshness.feature` in `t/features/steps/access.steps.ts`, failing first; what each service admits is held by its own `operator-roles.feature` (T017–T025)
 - [X] T049 [US1] Implement `w/areas/access/`: the brand shown from `/api/me`, the page that names the role needed for an operator whose roles do not name the brand, and signing an operator out of the brand, saying why, when they lose it (edge case 1)
 - [X] T050 [US1] Implement `s/events.ts`: `/api/events` as server-sent events with `permissions_changed` (the server compares the operator's permissions at each read of the roles and of the token) and `signed_out`; the page re-reads `/api/me` on it, so an action appears or goes without signing in again (FR-008b); long polling if V5 fails
-- [ ] T051 [P] [US1] Add `GET …/status` (F) to `svc/players/`, `svc/wallet/`, `svc/payouts/`, `svc/kyc/`, `svc/responsible-gambling/`, `svc/rewards/` (P2, W4, Y5, K4, G4, RW3): verify V2 in one and use the view's own consumer if a view's last applied time cannot be read; each with its test
+- [X] T051 [P] [US1] Add `GET …/status` (F) to `svc/players/`, `svc/wallet/`, `svc/payouts/`, `svc/kyc/`, `svc/responsible-gambling/`, `svc/rewards/` (P2, W4, Y5, K4, G4, RW3): verify V2 in one and use the view's own consumer if a view's last applied time cannot be read; each with its test
 - [X] T052 [US1] Implement `s/composite/freshness.ts` and `w/components/freshness.tsx`; wire it into `w/components/list/` and the top bar
 - [X] T053 [US1] Implement `w/areas/preferences/` (theme, worklist kinds, online notices) over `/api/me` and `PUT` preferences through the server
 - [X] T054 [US1] Implement `w/areas/team/roles.tsx`: the brand's roles with what each carries; create a role (name, description, permissions grouped by area with their catalogue descriptions); change, reset and delete, each stating its effect (who gains or loses what) before it is confirmed; the owner's refusals shown with their reasons (FR-008b, FR-008d)
@@ -253,11 +253,11 @@ cleared.
 **Goal**: FR-032, FR-033. **Independent test**: two currencies and five countries give two sets of
 figures and five countries on the map; each report exports with its reference.
 
-- [ ] T098 [US8] Bind `features/backoffice/dashboard.feature` (3 scenarios) in `t/features/steps/dashboard.steps.ts`, failing first
-- [ ] T099 [US8] Extend `s/routes.ts` with reporting's rows; implement `s/composite/jobs.ts` and `w/areas/jobs/` (start, poll `documents/{reference}`, notify wherever the operator is through `/api/events`, download: FR-029)
-- [ ] T100 [P] [US8] Implement `w/components/charts/` (line and candle, donut, dot grid, the world map from `d3-geo` with a bundled map and a table beside it) in the tokens of contracts/design.md
-- [ ] T101 [US8] Implement `w/areas/dashboard/` (figures per currency never summed, trend, the map, top games and players, rewards, payment health, each with freshness)
-- [ ] T102 [US8] Implement `w/areas/reports/` (revenue, players, transactions, rewards, payment providers, day-end, compliance exports, the dispute report; a period; `incomplete_period` shown with the first complete day; export by the owner with its reference number)
+- [X] T098 [US8] Bind `features/backoffice/dashboard.feature` (3 scenarios) in `t/features/steps/dashboard.steps.ts`, failing first
+- [X] T099 [US8] Extend `s/routes.ts` with reporting's rows; implement `s/composite/jobs.ts` and `w/areas/jobs/` (start, poll `documents/{reference}`, notify wherever the operator is through `/api/events`, download: FR-029)
+- [X] T100 [P] [US8] Implement `w/components/charts/` (line and candle, donut, dot grid, the world map from `d3-geo` with a bundled map and a table beside it) in the tokens of contracts/design.md
+- [X] T101 [US8] Implement `w/areas/dashboard/` (figures per currency never summed, trend, the map, top games and players, rewards, payment health, each with freshness)
+- [X] T102 [US8] Implement `w/areas/reports/` (revenue, players, transactions, rewards, payment providers, day-end, compliance exports, the dispute report; a period; `incomplete_period` shown with the first complete day; export by the owner with its reference number)
 
 **Checkpoint**: phase 4 of FR-045.
 
