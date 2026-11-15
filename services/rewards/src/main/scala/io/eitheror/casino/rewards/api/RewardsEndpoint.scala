@@ -24,8 +24,15 @@ import io.eitheror.casino.contract.http.Json as JsonBody
  * is 503 past it (the award goes on and lands on the reward). A deposit offer's selection is pending until the
  * deposit (`MoneyConsumer`) or its `pending-<reward>` timer (`RewardClocks`).
  */
-final class RewardsEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${ctx.slug}/rewards"):
+final class RewardsEndpoint(ctx: Ctx, bags: io.eitheror.casino.contract.access.RoleBags) extends HttpEndpoint(s"/v1/casino/brands/${ctx.slug}/rewards"):
   val acl: Acl = Routes.player(ctx.slug, ctx.authenticate())
+
+  // spec 030 RW3 (F): the views' freshness, for an operator who may read the rewards, or for the project's services
+  withAcl(Acl.anyOf(Routes.operatorMay(ctx.slug, "reward.read", bags, ctx.authenticate()), Routes.service())) {
+    get("/status") { () =>
+      io.eitheror.casino.rewards.freshness.Freshness.answer(io.eitheror.casino.rewards.freshness.Freshness.of(ctx.components))
+    }
+  }
 
   private def mine(playerId: String)(f: => Reply): Reply =
     if !Routes.playerId(principal).contains(playerId) then notYours else f

@@ -27,7 +27,7 @@ object RewardsService:
     consumers.RoundsConsumer.descriptor,
     codes.CodeDocument.descriptor,
     codes.CodesTimer.descriptor
-  )
+  ) ++ freshness.ViewFollower.descriptors
 
   /**
    * One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. `bags` is the
@@ -37,7 +37,7 @@ object RewardsService:
       : Seq[EndpointClients => HttpEndpoint] =
     def roles(clients: EndpointClients): RoleBags = bags.fold(api.BrandRoles.of(clients.services, RewardsRuntime.settings))(_(clients))
     Seq(
-    clients => api.RewardsEndpoint(api.Ctx(authenticate, clients, project)),
+    clients => api.RewardsEndpoint(api.Ctx(authenticate, clients, project), roles(clients)),
     clients => api.OffersEndpoint(api.Ctx(authenticate, clients, project), roles(clients)),
     clients => api.RewardAdminEndpoint(api.Ctx(authenticate, clients, project), roles(clients)),
     clients => api.CampaignEndpoint(api.Ctx(authenticate, clients, project))
