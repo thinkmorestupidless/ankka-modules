@@ -6,6 +6,7 @@ export * as payouts from "./payouts.ts";
 export * as kyc from "./kyc.ts";
 export * as responsibleGambling from "./responsible-gambling.ts";
 export * as gameProvider from "./game-provider.ts";
+export * as engagement from "./engagement.ts";
 export * as rewards from "./rewards.ts";
 export * as merchant from "./merchant.ts";
 export * as reporting from "./reporting.ts";

@@ -15,6 +15,8 @@ import { eventRoutes } from "./events.ts";
 import { search } from "./composite/search.ts";
 import { viewDocument } from "./composite/document.ts";
 import { freshness, named } from "./composite/freshness.ts";
+import { knownKind, PageSize as WorklistPageSize, readKind, wanted, worklist } from "./composite/worklist.ts";
+import { kindsFor } from "../shared/worklist.ts";
 import { kept, start as startJob, states as jobStates } from "./composite/jobs.ts";
 import { brandReads, inBrand, permissionsOf, PlatformAdmin, type BrandReads } from "./roles.ts";
 
@@ -175,6 +177,32 @@ export function createApp(deps: Deps): Hono<Env> {
     const bags = await reads.bags.get();
     const held = new Set(permissionsOf(token.roles, bags ?? {}));
     return c.json(await search({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 3_000) }, q, token.accessToken, (p) => held.has(p)));
+  });
+
+  // The operator's worklist (contracts/sources.md): the kinds their roles admit, each asked of its owner as them, 3 s each.
+  const admittedKinds = async (roles: string[]) => {
+    const [bags, modules] = await Promise.all([reads.bags.get(), reads.modules.get()]);
+    return kindsFor({ brand: { slug: deps.brand, name: deps.brand, modules: modules ?? null }, permissions: permissionsOf(roles, bags ?? {}) });
+  };
+  const worklistDeps = () => ({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 3_000) });
+  app.get("/api/worklist", async (c) => {
+    c.set("logPath", "/api/worklist");
+    const token = c.get("token");
+    if (!inBrand(token.roles, deps.brand)) return c.json({ error: "brand_not_in_roles", brand: deps.brand }, 403);
+    const kinds = wanted(c.req.query("kinds"), await admittedKinds(token.roles));
+    return c.json({ pageSize: WorklistPageSize, kinds: await worklist(worklistDeps(), kinds, token.accessToken) });
+  });
+  app.get("/api/worklist/:kind", async (c) => {
+    c.set("logPath", "/api/worklist/{kind}");
+    const token = c.get("token");
+    if (!inBrand(token.roles, deps.brand)) return c.json({ error: "brand_not_in_roles", brand: deps.brand }, 403);
+    const page = Number(c.req.query("page") ?? "1");
+    if (!Number.isInteger(page) || page < 1 || page > 10_000) return c.json({ error: "invalid_page", message: "page is a whole number from 1" }, 400);
+    const known = knownKind(c.req.param("kind"));
+    const kind = known && (await admittedKinds(token.roles)).find((k) => k.id === known.id);
+    if (kind === undefined) return c.json({ error: "no_such_kind" }, 404);
+    const answer = await readKind(worklistDeps(), kind, page, token.accessToken);
+    return answer === undefined ? c.json({ error: "no_such_kind" }, 404) : c.json({ pageSize: WorklistPageSize, ...answer });
   });
 
   // Each named service's views' freshness, as the operator (FR-011).
