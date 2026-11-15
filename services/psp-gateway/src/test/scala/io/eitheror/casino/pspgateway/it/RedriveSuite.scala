@@ -57,6 +57,13 @@ class RedriveSuite extends munit.FunSuite with LogCapturing:
     val ids = Vector.fill(20)(settled(Scripted.Pending))
     ids.foreach(until("undelivered")(_.isInstanceOf[Delivery.Undelivered]))
     kit.eventually("all listed undelivered")(Option.when(ids.forall(listed("undelivered").contains))(()))
+    // `total` counts every undelivered outcome, however few `limit` lists (spec 030 T1), oldest first.
+    val five = kit.request("GET", "/v1/psp/outcomes/undelivered?limit=5", None, kit.asOperator())
+    assertEquals(five.status, 200, five.text)
+    val since = five.json.path("outcomes").elements.asScala.toVector.flatMap(_.text("since"))
+    assertEquals(since.size, 5, five.text)
+    assertEquals(since, since.sortBy(java.time.Instant.parse), five.text)
+    assert(five.json.path("total").asLong >= 20L, five.text)
     val read = kit.session(ids.head)
     assertEquals((read.status, read.json.path("undelivered").asBoolean), (200, true), read.text)
 
@@ -74,6 +81,8 @@ class RedriveSuite extends munit.FunSuite with LogCapturing:
     val refused   = until("refused")(_.isInstanceOf[Delivery.Refused])(paymentId)
     assert(refused.toString.contains("400"), refused.toString)
     kit.eventually("listed refused")(Option.when(listed("refused").contains(paymentId))(()))
+    val all = kit.request("GET", "/v1/psp/outcomes/refused", None, kit.asOperator())
+    assertEquals(all.json.path("total").asLong, all.json.path("outcomes").size.toLong, all.text)
     assert(!listed("undelivered").contains(paymentId))
 
     val calls = kit.merchant.deliveredTo(paymentId).size

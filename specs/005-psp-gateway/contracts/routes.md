@@ -57,8 +57,8 @@ caller's project. These routes are what `Layout.brandGrantsReceived` grants
 
 | Method, path | Does |
 |---|---|
-| `GET /undelivered?limit=` | the undelivered outcomes: reference, kind, receiver, outcome, attempts, last answer and since (FR-016) |
-| `GET /refused?limit=` | the refused outcomes, with the receiver's answer |
+| `GET /undelivered?limit=` | the undelivered outcomes, oldest first: reference, kind, receiver, outcome, attempts, last answer and since (FR-016); `total`, every undelivered outcome (spec 030 T1) |
+| `GET /refused?limit=` | the refused outcomes, oldest first, with the receiver's answer; `total` (spec 030 T1) |
 | `POST /{reference}/redrive` | re-drive one at once, undelivered or refused. `202` when re-driven; `409 not_redrivable` with the delivery state otherwise (delivered, or not yet settled) |
 
 ## `/status`: any service of the project, and payments operators
