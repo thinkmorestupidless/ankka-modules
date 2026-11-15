@@ -29,9 +29,28 @@ final class PaymentsEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/payments"):
   private val captures = CaptureRoutes(ctx)
   private val ops      = MerchantOps(ctx)
 
+  private def reader = Reader.of(principal)
+
+  /** A payments operator at their level, or an operator of a brand over the sub-brands naming it (spec 030 H1, H2). */
+  withAcl(PaymentsReaders.acl(ctx.authenticate())) {
+    get("/cashier") { () =>
+      back.list(reader, q("merchantId"), q("status"), q("search"), q("page"), q("pageSize"), q("reference"))
+    }
+    get("/cashier/summary") { () => back.summary(reader, q("merchantId")) }
+
+    get("/{paymentId}") { (paymentId: String) =>
+      guarded {
+        val read = Commands(ctx).read(paymentId)
+        if read.status != 200 then read
+        else
+          val sb = ctx.subBrand(com.thinkmorestupidless.ankka.core.EntityId(paymentId).pipe(id =>
+            ctx.components.forEventSourcedEntity(id).call(io.eitheror.casino.merchant.payments.Payment.get).invoke().opened.get.subBrandId))
+          if reader.permits(sb, ctx.subBrandTarget(sb)) then read else scopeViolation
+      }
+    }
+  }
+
   withAcl(Routes.paymentsOperator(ctx.authenticate())) {
-    get("/cashier") { () => back.list(op, q("merchantId"), q("status"), q("search"), q("page"), q("pageSize")) }
-    get("/cashier/summary") { () => back.summary(op, q("merchantId")) }
     get("/cashier/uncredited") { () => back.uncredited(op) }
     post("/cashier/{paymentId}/retry-credit") { (paymentId: String) => back.retryCredit(op, paymentId) }
 
@@ -53,17 +72,6 @@ final class PaymentsEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/payments"):
       q("merchantId") match
         case None => refuse(400, "INVALID_REQUEST", "merchantId is required")
         case Some(id) => ops.scoped(op, id)(s => ok(Json.obj("terminals" -> Json.arr(ops.terminalSummaries(s)*))))
-    }
-
-    get("/{paymentId}") { (paymentId: String) =>
-      guarded {
-        val read = Commands(ctx).read(paymentId)
-        if read.status != 200 then read
-        else
-          val sb = ctx.subBrand(com.thinkmorestupidless.ankka.core.EntityId(paymentId).pipe(id =>
-            ctx.components.forEventSourcedEntity(id).call(io.eitheror.casino.merchant.payments.Payment.get).invoke().opened.get.subBrandId))
-          if op.permits(ctx.subBrandTarget(sb)) then read else scopeViolation
-      }
     }
   }
 

@@ -19,18 +19,29 @@ import io.eitheror.casino.merchant.payments.*
  */
 final class BackofficeRoutes(ctx: Ctx):
 
-  /** The sub-brands an operator may read, or the one named, or a scope violation. */
-  private def scoped(op: Operator, merchantId: Option[String]): Either[Respond[Bytes], Set[String]] =
+  /**
+   * The sub-brands a reader may read, or the one named, or a scope violation: a payments operator's by
+   * their level, a brand operator's the sub-brands naming their brands (spec 030 H1), another's named
+   * one refused as out of scope, as a payments operator's is.
+   */
+  private def scoped(reader: Reader, merchantId: Option[String]): Either[Respond[Bytes], Set[String]] =
     merchantId.map(_.trim).filter(_.nonEmpty) match
       case Some(id) =>
         val s = ctx.subBrand(id)
-        if s.exists && !op.permits(ctx.subBrandTarget(s)) then Left(scopeViolation)
-        else if !s.exists && !op.platform then Left(scopeViolation)
-        else Right(Set(id))
+        reader match
+          case Reader.Payments(op) =>
+            if s.exists && !op.permits(ctx.subBrandTarget(s)) then Left(scopeViolation)
+            else if !s.exists && !op.platform then Left(scopeViolation)
+            else Right(Set(id))
+          case brand: Reader.Brand =>
+            if brand.permits(s, ctx.subBrandTarget(s)) then Right(Set(id)) else Left(scopeViolation)
       case None =>
-        Right(ctx.views.forView(SubBrandsView).all(100_000)
-          .filter(r => op.permits(Target(Option(r.holdingId).filter(_.nonEmpty), Option(r.companyId).filter(_.nonEmpty), Some(r.id))))
-          .map(_.id).toSet)
+        val all = ctx.views.forView(SubBrandsView).all(100_000)
+        Right((reader match
+          case Reader.Payments(op) =>
+            all.filter(r => op.permits(Target(Option(r.holdingId).filter(_.nonEmpty), Option(r.companyId).filter(_.nonEmpty), Some(r.id))))
+          case Reader.Brand(brands) => all.filter(_.brand.exists(brands.holds))
+        ).map(_.id).toSet)
 
   private def rows(subBrands: Set[String]): Vector[PaymentRow] =
     subBrands.toVector.flatMap(id => ctx.views.forView(PaymentsView).where(jsonText("subBrandId") ++ sql" = $id", 100_000))
@@ -44,14 +55,20 @@ final class BackofficeRoutes(ctx: Ctx):
       "amountCents" -> r.amount, "currency" -> r.currency, "status" -> r.status, "psp" -> r.psp, "pspTransactionId" -> r.pspTransactionId,
       "terminalId" -> r.terminalId, "failureReason" -> r.failureReason, "createdAt" -> r.createdAt.toString)
 
-  /** Search, then counts by status, then the status filter, newest first, paged (`buildCashierPaymentsPage`). */
-  def list(op: Operator, merchantId: Option[String], status: Option[String], search: Option[String], page: Option[String],
-      pageSize: Option[String]): Respond[Bytes] =
+  /**
+   * The payment reference, then search, then counts by status, then the status filter, newest first,
+   * paged (`buildCashierPaymentsPage`). A reference (spec 030 H2) is matched exactly, case and all,
+   * against the payment id, the cashier's transaction id and the provider's, within the sub-brands the
+   * reader may read.
+   */
+  def list(reader: Reader, merchantId: Option[String], status: Option[String], search: Option[String], page: Option[String],
+      pageSize: Option[String], reference: Option[String] = None): Respond[Bytes] =
     val st = status.map(_.trim.toLowerCase).filter(_.nonEmpty).getOrElse("all")
     if !Status.Filters(st) then refuse(400, "invalid_status", s"status must be one of ${Status.Filters.toVector.sorted.mkString(", ")}")
     else
-      scoped(op, merchantId).fold(identity, ids =>
-        val all = rows(ids)
+      scoped(reader, merchantId).fold(identity, ids =>
+        val all = reference.map(_.trim).filter(_.nonEmpty).fold(rows(ids))(ref =>
+          rows(ids).filter(r => r.paymentId == ref || r.transactionId == ref || r.pspTransactionId == ref))
         val searched = search.map(_.trim.toLowerCase).filter(_.nonEmpty).fold(all)(q =>
           all.filter(r => Seq(r.paymentId, r.customerId, r.psp, r.pspTransactionId).exists(_.toLowerCase.contains(q))))
         val grouped  = searched.groupBy(r => bucket(r.status)).view.mapValues(_.size).toMap
@@ -63,8 +80,8 @@ final class BackofficeRoutes(ctx: Ctx):
           "pageSize" -> size, "statusCounts" -> counts)))
 
   /** The count, counts by status, captured volume per currency, the daily and per-provider series (`buildCashierSummary`). */
-  def summary(op: Operator, merchantId: Option[String]): Respond[Bytes] =
-    scoped(op, merchantId).fold(identity, ids =>
+  def summary(reader: Reader, merchantId: Option[String]): Respond[Bytes] =
+    scoped(reader, merchantId).fold(identity, ids =>
       val all      = rows(ids)
       val grouped  = all.groupBy(r => bucket(r.status)).view.mapValues(_.size).toMap
       val captured = all.filter(_.status == Status.Captured)
@@ -82,7 +99,7 @@ final class BackofficeRoutes(ctx: Ctx):
 
   /** Captured and not credited, with when, the attempts and the wallet's last answer (FR-023). */
   def uncredited(op: Operator): Respond[Bytes] =
-    scoped(op, None).fold(identity, ids =>
+    scoped(Reader.Payments(op), None).fold(identity, ids =>
       val listed = BackofficeRoutes.uncreditedRows(ctx).filter(r => ids(r.subBrandId)).sortBy(_.capturedAt)
       ok(Json.obj("payments" -> Json.arr(listed.map(r => Json.obj("paymentId" -> r.paymentId, "merchantId" -> r.subBrandId,
         "capturedAt" -> r.capturedAt.map(_.toString), "attempts" -> r.attempts, "lastAnswer" -> r.lastAnswer, "creditStatus" -> r.creditStatus))*))))
