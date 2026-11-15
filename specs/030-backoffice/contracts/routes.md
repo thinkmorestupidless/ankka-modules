@@ -52,6 +52,7 @@ its next step, and shows an unknown code as given (FR-006).
 | `GET /api/kyc/{p}/documents/{d}/view` | streams kyc's `views/{d}` for this operator; the document id is the only input (FR-031) |
 | `GET /api/freshness?services=` | each named service's `status` |
 | `GET /api/events` | server-sent events: `player_online` (when the operator asked for notices), `job_done`, `permissions_changed` (the operator's roles, or what they carry, changed), `signed_out` |
+| `PUT /api/preferences` | the operator's own `{theme?, worklistKinds?, onlineNotices?}`, merged over what `backoffice-state` keeps for their subject; answers all four; `400 {"error":"unknown_preference"}` for `jobs` (written only by `/api/jobs`) or any other key, and `backoffice-state`'s own `400` as it gave it |
 | `GET /api/jobs`, `POST /api/jobs` | the operator's started jobs (reference, kind, state), kept in preferences |
 | `GET /healthz` | `200` when the process serves |
 

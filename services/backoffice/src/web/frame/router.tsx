@@ -7,6 +7,7 @@ type Page = () => ReactElement;
 import type { MessageKey } from "../../shared/messages/index.ts";
 import { Shell } from "./Frame.tsx";
 import { ModulesPage, NotFound, Placeholder } from "./pages.tsx";
+import { PreferencesPage } from "../areas/preferences/PreferencesPage.tsx";
 
 const page = (label: MessageKey): Page => () => <Placeholder label={label} />;
 
@@ -37,7 +38,7 @@ export const Pages: [string, Page][] = [
   ["/affiliates", page("area.affiliates")],
   ["/affiliates/$area", page("area.affiliates")],
   ["/jobs", page("area.jobs")],
-  ["/preferences", page("area.preferences")],
+  ["/preferences", () => <PreferencesPage />],
 ];
 
 export function createAppRouter(history: RouterHistory = createBrowserHistory()) {

@@ -40,6 +40,16 @@ export class FakeState implements StateClient {
   async preferences(): Promise<Preferences> {
     return this.prefs;
   }
+  written: { subject: string; body: string }[] = [];
+  /** What the state service answers a write; by default it merges it in. */
+  writeAnswer: ((body: string) => { status: number; body: string }) | Error | undefined;
+  async writePreferences(subject: string, body: string) {
+    this.written.push({ subject, body });
+    if (this.writeAnswer instanceof Error) throw this.writeAnswer;
+    if (this.writeAnswer) return this.writeAnswer(body);
+    this.prefs = { ...this.prefs, ...(JSON.parse(body) as Partial<Preferences>) };
+    return { status: 200, body: JSON.stringify(this.prefs) };
+  }
 }
 
 export function harness(over: Partial<Deps> = {}) {

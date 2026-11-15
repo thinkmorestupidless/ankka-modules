@@ -456,3 +456,11 @@ roles, and every name under `brand_`, `audit_compliance_` and `reidentify_` but 
 `OperatorPermissions.RealmRoles` lists the realm's roles; `OperatorPermissionsSuite` holds it equal to
 `brands/_realm/eitheror-operators.json`. players and merchant both refuse a reserved name.
 contracts/roles.md amended.
+
+### The operator's preferences are written through the server, 2026-11-15 (T053)
+
+contracts/routes.md had no route for the page to write preferences, and the page cannot call
+`backoffice-state`. Decision (Trevor): `PUT /api/preferences`, taking `theme`, `worklistKinds` and
+`onlineNotices`, the subject taken from the operator's token; `jobs` stay the server's own, written
+only by `/api/jobs`. The row is added to contracts/routes.md. The worklist's kind ids
+(`shared/worklist.ts`) are what `worklistKinds` holds.

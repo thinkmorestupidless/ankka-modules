@@ -52,6 +52,9 @@ export type Env = { Variables: { session: string; token: Token; logPath: string;
 
 const Reads = new Set(["GET", "HEAD"]);
 
+/** The preferences the page writes; `jobs` are the server's own (data-model.md). */
+const PageWritable = new Set(["theme", "worklistKinds", "onlineNotices"]);
+
 /** The address the proxy says this request was sent to, as an `Origin` would name it. */
 function selfOrigin(c: Context): string | undefined {
   const host = c.req.header("x-forwarded-host") ?? c.req.header("host");
@@ -120,6 +123,30 @@ export function createApp(deps: Deps): Hono<Env> {
       preferences,
       permissions: permissionsOf(token.roles, bags ?? {}),
     });
+  });
+
+  // The operator's own preferences: theme, worklist kinds, online notices. Jobs are kept by /api/jobs.
+  app.put("/api/preferences", async (c) => {
+    c.set("logPath", "/api/preferences");
+    const subject = claimsOf(c.get("token").accessToken).sub;
+    if (!subject) return c.json({ error: "signed_out" }, 401);
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "invalid_preference", message: "the body is not a JSON object" }, 400);
+    }
+    if (body === null || typeof body !== "object" || Array.isArray(body))
+      return c.json({ error: "invalid_preference", message: "the body is not a JSON object" }, 400);
+    const unknown = Object.keys(body).find((k) => !PageWritable.has(k));
+    if (unknown !== undefined) return c.json({ error: "unknown_preference", message: `no preference '${unknown}' is written here` }, 400);
+    try {
+      const r = await deps.state.writePreferences(subject, JSON.stringify(body));
+      return new Response(r.body, { status: r.status, headers: { "Content-Type": "application/json" } });
+    } catch (e) {
+      c.set("why", e instanceof Error ? e.name : "unknown");
+      return unavailable("backoffice-state");
+    }
   });
 
   eventRoutes(app, { brand: deps.brand, tokens, reads, everyMs: deps.eventsEveryMs ?? 5_000 });
