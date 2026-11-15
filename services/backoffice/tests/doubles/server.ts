@@ -10,6 +10,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { table } from "../../src/server/routes.ts";
 import { Owner, type Answer, type Asked, type Fixtures, type Script } from "./owner.ts";
 import { BrandRoles } from "./roles.ts";
+import { FraudCases, type FraudSeed } from "./fraud.ts";
 import { Realm } from "./realm.ts";
 import type { Preferences } from "../../src/server/session.ts";
 
@@ -36,6 +37,8 @@ export function seed(): Seed {
 export function ownerNames(): string[] {
   const names = new Set(table.map((r) => (r.where === "brand" ? r.service : `${r.service}.${r.where}`)));
   names.add("backoffice-state");
+  // the brand's object store, where kyc's signed links point (the document view, FR-031)
+  names.add("document-store");
   return [...names].sort();
 }
 
@@ -47,6 +50,15 @@ function scripted(name: string): Answer {
   const file = path.join(FixturesDir, "scripted", `${name}.json`);
   if (!/^[\w./-]+$/.test(name) || name.includes("..") || !existsSync(file)) return { status: 500, body: { error: "no_scripted_fixture", name } };
   return JSON.parse(readFileSync(file, "utf8")) as Answer;
+}
+
+/** The subject of a double realm's token (unsigned). */
+function subjectOf(token: string): string | undefined {
+  try {
+    return (JSON.parse(Buffer.from(token.split(".")[1] ?? "", "base64url").toString("utf8")) as { sub?: string }).sub;
+  } catch {
+    return undefined;
+  }
 }
 
 export interface Doubles {
@@ -83,9 +95,11 @@ export async function startDoubles(port = 0): Promise<Doubles> {
   for (const name of ownerNames())
     owners.set(name, new Owner(name, scripted, name === "backoffice-state" ? (a) => realm.state(a) : undefined));
   const roles = new BrandRoles((operator, given) => realm.setRoles(operator, given));
+  const fraud = new FraudCases();
   const reset = () => {
     realm.reset();
     roles.reset();
+    fraud.reset();
     for (const [name, o] of owners) o.load(read(path.join(FixturesDir, `${name}.json`)));
   };
   reset();
@@ -126,6 +140,10 @@ export async function startDoubles(port = 0): Promise<Doubles> {
       realm.setRoles(a, (given().roles as string[]) ?? []);
       return send(res, { body: { subject: a } });
     }
+    if (req.method === "PUT" && what === "fraud-cases") {
+      fraud.seed(given() as unknown as FraudSeed);
+      return send(res, { body: { seeded: "fraud-cases" } });
+    }
     if (req.method === "PUT" && what === "settings") {
       const s = given();
       if (typeof s.tokenLifeMs === "number") realm.tokenLifeMs = s.tokenLifeMs;
@@ -161,12 +179,18 @@ export async function startDoubles(port = 0): Promise<Doubles> {
           o.calls.push({ owner: o.name, method: req.method ?? "GET", path, query: url.searchParams.toString(), headers: flat(req.headers), body, at: Date.now() });
           return send(res, kept);
         }
+        const bearer = /^Bearer (\S+)$/.exec(req.headers.authorization ?? "")?.[1];
+        const decided = fraud.handle(req.method ?? "GET", path, url.searchParams, body, bearer ? subjectOf(bearer) : undefined);
+        if (decided) {
+          o.calls.push({ owner: o.name, method: req.method ?? "GET", path, query: url.searchParams.toString(), headers: flat(req.headers), body, at: Date.now() });
+          return send(res, bearer ? decided : { status: 401, body: { error: "unauthenticated" } });
+        }
       }
       const asked: Asked = { method: req.method ?? "GET", path: `/${rest.join("/")}`, query: url.searchParams, headers: flat(req.headers), body };
       const out = o.handle(asked);
       if (out.delayMs > 0) await new Promise((r) => setTimeout(r, out.delayMs));
       if ("drop" in out) return void req.socket.destroy();
-      send(res, out.answer);
+      send(res, first === "players" ? fraud.profile(asked.path, out.answer) : out.answer);
     } catch (e) {
       send(res, { status: 500, body: { error: "double_failed", message: e instanceof Error ? e.message : String(e) } });
     }

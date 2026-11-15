@@ -3,6 +3,7 @@
 import type { Entry, Recorded, Script } from "./owner.ts";
 import type { Preferences } from "../../src/server/session.ts";
 import type { Seed } from "./server.ts";
+import type { FraudSeed } from "./fraud.ts";
 
 export interface Claims {
   sub?: string;
@@ -99,6 +100,11 @@ export class DoublesClient {
   /** The subject's roles from its sessions' next token on (a role given or taken at the realm). */
   roles(subject: string, roles: string[]): Promise<unknown> {
     return this.ask("PUT", `/subjects/${encodeURIComponent(subject)}/roles`, { roles });
+  }
+
+  /** players' fraud cases kept by the double from here on: listed, reviewed, dismissed, their flags cleared. */
+  fraudCases(seed: FraudSeed): Promise<unknown> {
+    return this.ask("PUT", "/fraud-cases", seed);
   }
 
   tokenLife(ms: number): Promise<unknown> {
