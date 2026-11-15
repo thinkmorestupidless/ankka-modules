@@ -72,6 +72,34 @@ class MoneyPathsItSuite extends Harness:
     assert(!publisher.published.exists(_.text.contains("J. Doe")), "the operator's text left the wallet")
   }
 
+  test("spec 030 W2: an operator's adjustment in minor units with its cause answers before and after; a repeat the first answer") {
+    deposit("w2", "pay-1", 1000)
+    val adjust = s"/v1/casino/backoffice/$brand/wallets/w2/EUR/adjustments"
+    val body   = """{"key":"a-1","walletType":"real","amountMinor":500,"reason":"provider win not paid","category":"correction","cause":{"kind":"round","ref":"r-9"}}"""
+    val (status, first) = sendWithToken("POST", adjust, TestTokens.operator("op-42"), Some(body))
+    assertEquals((status, field(first, "realBalance"), field(first, "amountMinor"), field(first, "before"), field(first, "after"), field(first, "walletType")),
+      (200, Some("15.00"), Some("500"), Some("1000"), Some("1500"), Some("real")))
+    assert(first.contains(""""cause":{"kind":"round","ref":"r-9"}"""), first)
+    sendWithToken("POST", adjust, TestTokens.operator("op-42"),
+      Some("""{"key":"a-2","amount":"-1.00","reason":"fix","category":"correction"}""")): Unit
+    val (_, repeat) = sendWithToken("POST", adjust, TestTokens.operator("op-42"), Some(body))
+    assertEquals((field(repeat, "txnId"), field(repeat, "before"), field(repeat, "after"), field(repeat, "realBalance")),
+      (field(first, "txnId"), Some("1000"), Some("1500"), Some("14.00")))
+    // amount and amountMinor must agree; a cause names a known kind
+    assertEquals(sendWithToken("POST", adjust, TestTokens.operator("op-42"),
+      Some("""{"key":"a-3","amount":"5.00","amountMinor":400,"reason":"x","category":"correction"}"""))._1, 400)
+    assertEquals(sendWithToken("POST", adjust, TestTokens.operator("op-42"),
+      Some("""{"key":"a-4","amountMinor":400,"reason":"x","category":"correction","cause":{"kind":"hunch","ref":"x"}}"""))._1, 400)
+    assertEquals(sendWithToken("POST", adjust, TestTokens.operator("op-42"), Some("""{"key":"a-5","reason":"x"}"""))._1, 400)
+    // the operator's transactions read carries the reason, category, cause and actor
+    val rows = eventually(sendWithToken("GET", s"/v1/casino/backoffice/$brand/wallets/w2/EUR/transactions?type=admin_adjust",
+      TestTokens.operator("op-42"))._2)(field(_, "total").contains("2"))
+    assert(rows.contains(""""cause":{"kind":"round","ref":"r-9"}""") && rows.contains(""""actorId":"op-42"""") &&
+      rows.contains(""""category":"correction"""") && rows.contains(""""reason":"provider win not paid""""), rows)
+    val adjusted = eventually(facts("money.transactions", "w2/EUR"))(_.count(_.contains("admin_adjusted")) == 2).filter(_.contains("admin_adjusted"))
+    assert(adjusted.exists(_.contains(""""cause":{"kind":"round","ref":"r-9"}""")), adjusted.mkString("\n"))
+  }
+
   test("an operator from another brand, and a player, are refused the backoffice") {
     assertEquals(sendWithToken("GET", s"/v1/casino/backoffice/$brand/wallets/adj/EUR/balance", TestTokens.operator("op-1", "brand_other"))._1, 403)
     assertEquals(sendWithToken("GET", s"/v1/casino/backoffice/$brand/wallets/adj/EUR/balance", TestTokens.player("adj"))._1, 403)

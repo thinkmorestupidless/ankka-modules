@@ -628,19 +628,22 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
 
   // ── adjustments (FR-026) ──────────────────────────────────────────────────
 
-  def adjust(c: Adjust): Effect[Outcome] = keyed(c, "adjust") { digest =>
+  def adjust(c: Adjust): Effect[Outcome] = keyed(c, "adjust", unset = Set("cause" -> "None")) { digest =>
     val s = currentState
     if c.reason.trim.isEmpty then refuse(c, "adjust", digest, Refusals.ReasonRequired, Refusals.reasonRequired)
-    else if c.amount == 0 then effects.reply(accepted("adjust", c, None, s.realBalance, s.restrictedBalance))
+    else if c.amount == 0 then
+      val balance = if c.target == "restricted" then s.restrictedBalance else s.realBalance
+      effects.reply(accepted("adjust", c, None, s.realBalance, s.restrictedBalance)
+        .copy(balanceBefore = Some(balance), balanceAfter = Some(balance), cause = c.cause))
     else
       val txId = transactionId(c.key)
       def persistAdjusted(real: Long, recordId: Option[String], forfeited: Option[Forfeit], updates: Vector[RecordUpdate],
           before: Long, after: Long, pools: Pools = s.pools, parts: Parts = Parts.zero, closes: Boolean = false) =
         val restricted = s.withUpdates(updates).restrictedBalance
         val outcome = pooled(accepted("adjust", c, Some(txId), real, restricted), pools).copy(recordId = recordId,
-          forfeited = forfeited.map(_.recordId).toVector, balanceBefore = Some(before), balanceAfter = Some(after))
+          forfeited = forfeited.map(_.recordId).toVector, balanceBefore = Some(before), balanceAfter = Some(after), cause = c.cause)
         effects.persist(AdminAdjusted(c.key, digest, txId, c.target, c.amount, Personal(c.reason), c.category, c.actorId, recordId,
-          forfeited, updates, real, restricted, c.at, outcome, parts, pools.deposit, pools.converted, closes)).thenReply(_ => outcome)
+          forfeited, updates, real, restricted, c.at, outcome, parts, pools.deposit, pools.converted, closes, c.cause)).thenReply(_ => outcome)
       c.target match
         case "restricted" =>
           Resolver.adjustRestricted(s.fundingWallet, s.openRecords, c.amount) match

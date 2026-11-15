@@ -8,6 +8,7 @@ import com.thinkmorestupidless.ankka.runtime.ViewClient
 import com.thinkmorestupidless.ankka.sdk.ComponentClient
 import io.eitheror.casino.contract.access.{RoleBags, Routes}
 import io.eitheror.casino.contract.money.{Currency, Key}
+import io.eitheror.casino.contract.personal.Personal.reveal
 import io.eitheror.casino.wallet.config.{BrandConfig, BrandConfigEntity, SetTurnoverTerms}
 import io.eitheror.casino.wallet.entity.*
 import io.eitheror.casino.wallet.views.*
@@ -22,19 +23,36 @@ final case class MajorPrimary(grantRef: String, status: String, wageringRequirem
 final case class MajorTransaction(transactionId: String, `type`: String, walletType: String, amount: String, balanceBefore: String,
     balanceAfter: String, status: String, roundId: Option[String], awardRef: Option[String], paymentReference: Option[String],
     createdAt: String, depositPart: String, convertedPart: String, depositPoolAfter: String, convertedPoolAfter: String,
-    reference: Option[String] = None)
+    reference: Option[String] = None,
+    /** Spec 030 W2: an adjustment's reason (personal, FR-033), category, cause and actor. */
+    reason: Option[String] = None, category: Option[String] = None, cause: Option[Cause] = None, actorId: Option[String] = None)
 final case class MajorTransactions(transactions: Vector[MajorTransaction], page: Int, pageSize: Int, total: Long)
 final case class MajorLifetime(totalDeposited: String, totalWagered: String, totalWon: String)
 /** Spec 022 FR-009: an operator's adjustment of a non-player account, in major units; the reason names no player. */
 final case class OperatorAccountAdjustRequest(key: Option[String], currency: String, amount: String, reason: String = "", category: String = "other")
 final case class MajorAccountBalance(balance: String, creditLine: String, floor: String, owner: String, currency: String,
     txnId: Option[String] = None)
-final case class OperatorAdjustRequest(key: Option[String], walletType: String = "real", amount: String, reason: String = "", category: String = "other")
+/**
+ * Spec 030 W2: `amountMinor` (signed minor units) is accepted beside `amount` (signed major text);
+ * both given must agree. `cause` is what the adjustment corrects.
+ */
+final case class OperatorAdjustRequest(key: Option[String], walletType: String = "real", amount: String = "", reason: String = "",
+    category: String = "other", amountMinor: Option[Long] = None, cause: Option[Cause] = None)
+/**
+ * The adjustment's answer: the balance read as before (major units), and, from the adjustment's own
+ * outcome (so a repeat under its key answers the first), the transaction, the signed amount and the
+ * adjusted balance before and after in minor units, and the cause (spec 030 W2, FR-027).
+ */
+final case class MajorAdjustment(realBalance: String, bonusBalance: String, currency: String, primary: Option[MajorPrimary],
+    depositPoolBalance: String, convertedPoolBalance: String, reserved: String, available: String,
+    txnId: Option[String], walletType: String, amountMinor: Long, before: Long, after: Long, cause: Option[Cause])
 
 private[api] object Major:
   /** reserved and available are written at "0.00" too: the read reports both (spec 022). */
   given JsonValueCodec[MajorBalance] =
     com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker.make(com.github.plokhotnyuk.jsoniter_scala.macros.CodecMakerConfig.withDiscriminatorFieldName(Some("type")).withAllowRecursiveTypes(true).withRequireDiscriminatorFirst(false).withTransientEmpty(false).withTransientNone(false).withTransientDefault(false))
+  given JsonValueCodec[MajorAdjustment] =
+    com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker.make(com.github.plokhotnyuk.jsoniter_scala.macros.CodecMakerConfig.withTransientEmpty(false).withTransientNone(true).withTransientDefault(false))
   given JsonValueCodec[MajorTransactions]     = Codecs.make[MajorTransactions]
   given JsonValueCodec[MajorLifetime]         = Codecs.make[MajorLifetime]
   given JsonValueCodec[OperatorAdjustRequest] = Codecs.make[OperatorAdjustRequest]
@@ -59,8 +77,37 @@ private[api] object Major:
     MajorTransactions(p.transactions.map(r => MajorTransaction(r.transactionId, r.`type`, r.walletType, Wire.major(r.amount, c),
       Wire.major(r.balanceBefore, c), Wire.major(r.balanceAfter, c), r.status, r.roundKey, r.awardRef, r.paymentReference, r.createdAt,
       Wire.major(r.depositPart, c), Wire.major(r.convertedPart, c), Wire.major(r.depositPoolAfter, c), Wire.major(r.convertedPoolAfter, c),
-      r.reference)),
+      r.reference, r.reason.map(_.reveal), r.category, r.cause, r.actorId)),
       p.page, p.pageSize, p.total)
+
+  def adjustment(b: Balance, o: Outcome, target: String, c: Currency): MajorAdjustment =
+    val m = balance(b, c)
+    val before = o.balanceBefore.getOrElse(if target == "restricted" then o.restrictedBalance else o.realBalance)
+    MajorAdjustment(m.realBalance, m.bonusBalance, m.currency, m.primary, m.depositPoolBalance, m.convertedPoolBalance, m.reserved,
+      m.available, o.transactionId, if target == "restricted" then "bonus" else "real", o.amount.getOrElse(0L), before,
+      o.balanceAfter.getOrElse(before), o.cause)
+
+  /** The amount an adjustment names: `amount`, `amountMinor`, or both when they agree (spec 030 W2). */
+  def adjustAmount(r: OperatorAdjustRequest, currency: Currency): Either[(String, Map[String, String]), Long] =
+    (Option(r.amount).map(_.trim).filter(_.nonEmpty), r.amountMinor) match
+      case (None, None)        => Left(("an adjustment names its amount, as amount or amountMinor", Map.empty))
+      case (None, Some(minor)) => Right(minor)
+      case (Some(text), minor) =>
+        parse(text, currency) match
+          case Left(message) => Left((message, Map("amount" -> text)))
+          case Right(a) if minor.exists(_ != a) =>
+            Left((s"amount '$text' and amountMinor ${minor.get} name different amounts", Map("amount" -> text, "amountMinor" -> minor.get.toString)))
+          case Right(a) => Right(a)
+
+  /** A cause names one of the contract's kinds and a reference of at most 200 characters (spec 030 W2). */
+  def checkCause(cause: Option[Cause]): Either[(String, Map[String, String]), Option[Cause]] =
+    cause match
+      case None => Right(None)
+      case Some(c) if !io.eitheror.casino.contract.facts.AdjustmentCause.Kinds(c.kind) =>
+        Left((s"a cause's kind is one of ${io.eitheror.casino.contract.facts.AdjustmentCause.Kinds.toVector.sorted.mkString(", ")}", Map("kind" -> c.kind)))
+      case Some(c) if c.ref.trim.isEmpty || c.ref.trim.length > 200 =>
+        Left(("a cause names its reference, at most 200 characters", Map("kind" -> c.kind)))
+      case Some(c) => Right(Some(c.copy(ref = c.ref.trim)))
 
   /**
    * An operator's amount in major units by the currency's exponent, as the reads write it (spec 027
@@ -106,13 +153,15 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
   withAcl(may("adjustment.make")) {
   postBody("/wallets/{player}/{currency}/adjustments") { (player: String, currency: String, r: OperatorAdjustRequest) =>
     checked(currency) { c =>
-      (Key.from(r.key), Major.parse(r.amount, c)) match
-        case (Left(_), _)        => Wire.missingKey
-        case (_, Left(message))  => Wire.refusal("INVALID_REQUEST", message, Map("amount" -> r.amount))
-        case (Right(k), Right(a)) =>
+      (Key.from(r.key), Major.adjustAmount(r, c), Major.checkCause(r.cause)) match
+        case (Left(_), _, _)                  => Wire.missingKey
+        case (_, Left((message, details)), _) => Wire.refusal("INVALID_REQUEST", message, details)
+        case (_, _, Left((message, details))) => Wire.refusal("INVALID_REQUEST", message, details)
+        case (Right(k), Right(a), Right(cause)) =>
           val target = if r.walletType == "bonus" || r.walletType == "restricted" then "restricted" else "real"
-          val o = wallet(player, currency).call(WalletEntity.adjust).invoke(Adjust(k.value, target, a, r.reason, r.category, principal.subject, clock()))
-          if o.accepted then Wire.json(200, Major.balance(wallet(player, currency).call(WalletEntity.balance).invoke(), c))
+          val o = wallet(player, currency).call(WalletEntity.adjust)
+            .invoke(Adjust(k.value, target, a, r.reason, r.category, principal.subject, clock(), cause))
+          if o.accepted then Wire.json(200, Major.adjustment(wallet(player, currency).call(WalletEntity.balance).invoke(), o, target, c))
           else Wire.outcome(o, currency)
     }
   }

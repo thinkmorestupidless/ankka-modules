@@ -99,7 +99,7 @@ enum WalletEvent:
       reason: Personal[String], category: String, actorId: String, recordId: Option[String],
       forfeited: Option[Forfeit], recordUpdates: Vector[RecordUpdate], realAfter: Long, restrictedAfter: Long,
       at: Instant, outcome: Outcome, parts: Parts = Parts.zero, depositAfter: Long = 0L, convertedAfter: Long = 0L,
-      turnoverClosed: Boolean = false)
+      turnoverClosed: Boolean = false, cause: Option[Cause] = None)
 
   /** `landedOn`: real | restricted (FR-027). */
   case ProviderCredited(key: String, digest: String, transactionId: String, amount: Long, providerRef: String,
