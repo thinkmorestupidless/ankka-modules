@@ -168,7 +168,7 @@ Then("the operator is shown the limit is still {string} until the time the brand
   const pending = row.locator("[data-pending]");
   await expect(pending).toBeVisible();
   await expect(pending).toHaveAttribute("data-applies-at", s.appliesAt!);
-  await expect(pending.locator("time")).toHaveAttribute("datetime", s.appliesAt!);
+  await expect(pending.locator("time")).toHaveAttribute("datetime", new Date(s.appliesAt!).toISOString());
 });
 
 // --- a fraud case dismissed -------------------------------------------------------------------------
@@ -179,7 +179,7 @@ Given("a fraud case that flagged two players as suspected duplicates", async ({ 
   Object.assign(state(world), { fraudCase: caseId, flagged: [ana!.playerId, kenji!.playerId] });
   await world.doubles.fraudCases({
     cases: [
-      { caseId, playerIds: [ana!.playerId, kenji!.playerId], signals: ["device", "ip"], status: "OPEN", detectedAt: "2026-11-14T10:00:00Z", reviewedBy: null, reviewedAt: null, reviewNotes: null },
+      { caseId, playerIds: [ana!.playerId, kenji!.playerId], signals: ["device", "address"], status: "OPEN", detectedAt: "2026-11-14T10:00:00Z", reviewedBy: null, reviewedAt: null, reviewNotes: null },
     ],
   });
   await world.doubles.fixtures("players", { "GET /v1/casino/brands/{brand}/players/status": { body: { views: [] } } });
