@@ -649,3 +649,7 @@ port, so that each has a parity test. ConnecX, which also has none, is dropped r
 - Stripe and merchant-API webhooks (006).
 - Any provider not in the nine; adding one is a new spec naming its deviations in the table above.
 - Card authorisation server-to-server; no provider offers it.
+
+## Amended by 030
+
+- T1 (spec 030 contracts/amendments.md, T062): `GET /v1/psp/outcomes/undelivered` and `/refused` answer `total` beside `outcomes`, every outcome in that state however few `limit` lists; the order stays oldest first.
