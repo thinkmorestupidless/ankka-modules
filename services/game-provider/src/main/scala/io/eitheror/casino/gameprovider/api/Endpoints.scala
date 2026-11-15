@@ -376,26 +376,73 @@ final class BackofficeEndpoint(ctx: Context) extends HttpEndpoint("/v1/casino/ba
   }
 
   withAcl(ctx.operatorMay("player.read")) {
+    // A player's or a game session's rounds, newest first, with their `total` (spec 030 GP2). `page` and
+    // `pageSize` page them as every operator list is paged (spec 030 L); without either, `offset` and
+    // `limit` (100 by default, at most 1,000) as before 030.
     get("/{brand}/game-provider/rounds") { (segment: String) =>
       ctx.ownBrand(segment)
-      val limit  = query.optional[Int]("limit").getOrElse(100).max(1).min(1000)
-      val offset = query.optional[Int]("offset").getOrElse(0).max(0)
-      val rows = (query.optional[String]("playerId"), query.optional[String]("sessionId")) match
-        case (Some(p), _) => ctx.views.forView(RoundsByPlayer).where(jsonText("playerId") ++ sql" = $p", offset + limit)
-        case (_, Some(s)) => ctx.views.forView(RoundsBySession).where(jsonText("sessionId") ++ sql" = $s", offset + limit)
+      val (view, condition) = (query.optional[String]("playerId"), query.optional[String]("sessionId")) match
+        case (Some(p), _) => (ctx.views.forView(RoundsByPlayer), jsonText("playerId") ++ sql" = $p")
+        case (_, Some(s)) => (ctx.views.forView(RoundsBySession), jsonText("sessionId") ++ sql" = $s")
         case _            => badRequest("playerId or sessionId required")
-      ok(Json.obj("rounds" -> Json.arr(rows.sortBy(_.openedAt.map(_.toEpochMilli).getOrElse(0L)).reverse.slice(offset, offset + limit)
-        .map(r => Json.parse(writeToString(r)(using Codecs.make[RoundRow])).get)*)))
+      Paging.from(query.raw("page"), query.raw("pageSize")) match
+        case Left(parameter) => refuse(400, "INVALID_REQUEST", "field" -> parameter, "message" -> s"$parameter is not a valid value")
+        case Right(paging) =>
+          val (skip, take) = paging.fold((query.optional[Int]("offset").getOrElse(0).max(0).toLong,
+            query.optional[Int]("limit").getOrElse(100).max(1).min(1000)))(p => ((p.page.toLong - 1) * p.pageSize, p.pageSize))
+          val rows = if skip + take > Int.MaxValue then Vector.empty
+                     else view.ordered(condition, RoundReads.Newest, (skip + take).toInt).drop(skip.toInt)
+          ok(Json.obj("rounds" -> Json.arr(rows.map(r => Json.parse(writeToString(r)(using Codecs.make[RoundRow])).get)*),
+            "total" -> view.count(condition), "page" -> paging.map(_.page), "pageSize" -> paging.map(_.pageSize)))
+    }
+
+    // A round by its id at whichever of the brand's providers holds it (spec 030 GP2). These literal
+    // segments are matched before a `rounds/<adapter>/{roundId}` (ankka sorts a literal before a
+    // parameter); an adapter named `by-round` or `by-transaction` would declare the same route twice,
+    // which ankka refuses at start.
+    get("/{brand}/game-provider/rounds/by-round/{roundId}") { (segment: String, roundId: String) =>
+      ctx.ownBrand(segment)
+      RoundReads.byRound(ctx, roundId).fold(refuse(404, "round_not_found", "roundId" -> roundId))(s => ok(RoundReads.json(s)))
+    }
+
+    // The round holding a transaction (a bet, a win, a cancel, a buyin or a payout): the transaction's own
+    // workflow names its round, as a cancel finds the transaction it references (spec 030 GP2).
+    get("/{brand}/game-provider/rounds/by-transaction/{transactionId}") { (segment: String, transactionId: String) =>
+      ctx.ownBrand(segment)
+      RoundReads.byTransaction(ctx, transactionId)
+        .fold(refuse(404, "round_not_found", "transactionId" -> transactionId))(s => ok(RoundReads.json(s)))
     }
 
     ctx.settings.adapters.foreach { a =>
       get(s"/{brand}/game-provider/rounds/${a.name}/{roundId}") { (segment: String, roundId: String) =>
         ctx.ownBrand(segment)
-        val state = ctx.components.forEventSourcedEntity(EntityId(Round.entityId(a.name, roundId))).call(Round.get).invoke()
-        if state.isNew then refuse(404, "round_not_found") else ok(Json.parse(writeToString(state)(using Codecs.make[RoundState])).get)
+        RoundReads.at(ctx, Round.entityId(a.name, roundId)).fold(refuse(404, "round_not_found"))(s => ok(RoundReads.json(s)))
       }
     }
   }
+
+/** The operator's reads of one round (FR-021, spec 030 GP2), from the round's entity. */
+object RoundReads:
+  /** Newest opened first, the row's key breaking a tie. */
+  val Newest: com.thinkmorestupidless.ankka.runtime.SqlFragment =
+    com.thinkmorestupidless.ankka.runtime.SqlFragment.raw("(payload::jsonb->>'openedAt')::timestamptz DESC NULLS LAST, row_key")
+
+  def json(state: RoundState) = Json.parse(writeToString(state)(using Codecs.make[RoundState])).get
+
+  /** The round under its entity id, none before it opened. */
+  def at(ctx: Context, entityId: String): Option[RoundState] =
+    Some(ctx.components.forEventSourcedEntity(EntityId(entityId)).call(Round.get).invoke()).filterNot(_.isNew)
+
+  /** The round with this id at the first of the brand's providers (in `casino-providers` order) that holds one. */
+  def byRound(ctx: Context, roundId: String): Option[RoundState] =
+    ctx.settings.adapters.iterator.flatMap(a => at(ctx, Round.entityId(a.name, roundId))).nextOption()
+
+  /** The round that recorded this transaction, at the first of the brand's providers whose workflow for it names one. */
+  def byTransaction(ctx: Context, transactionId: String): Option[RoundState] =
+    ctx.settings.adapters.iterator.flatMap { a =>
+      ctx.components.forWorkflow(BetWorkflow.id(a.name, transactionId)).call(BetWorkflow.status).invoke().job
+        .flatMap(job => at(ctx, job.roundEntity)).filter(_.transaction(transactionId).isDefined)
+    }.nextOption()
 
 /** The open unacknowledged callbacks, from the view (FR-020). */
 object Unacknowledgements:

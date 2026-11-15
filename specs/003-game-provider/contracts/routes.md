@@ -49,7 +49,9 @@ brand is still `404`; the answers are unchanged. The launch stays `Routes.player
 | GET | `/v1/casino/backoffice/{brand}/game-provider/unacknowledged` | `page`, `pageSize` (1–200, 50), optional (spec 030 GP3) | `{entries:[{transactionId, kind, amount, currency, provider, roundId, playerId, error, recordedAt}], total, page?, pageSize?}`, oldest first |
 | POST | `/v1/casino/backoffice/{brand}/game-provider/unacknowledged/{transactionId}/replay` | | 200 `{status, balance, currency}` as the callback would have answered; 409 `still_unacknowledged` with the new error when the wallet refuses again; 404 when not open |
 | POST | `/v1/casino/backoffice/{brand}/game-provider/unacknowledged/{transactionId}/resolve` | `{reason}` (required) | 204 |
-| GET | `/v1/casino/backoffice/{brand}/game-provider/rounds` | `playerId` or `sessionId`, `limit`, `offset` | rows of RoundsByPlayer / RoundsBySession |
+| GET | `/v1/casino/backoffice/{brand}/game-provider/rounds` | `playerId` or `sessionId`; `page`, `pageSize` (1–200, 50 by default), or else `limit`, `offset` | `{rounds, total, page, pageSize}`: rows of RoundsByPlayer / RoundsBySession, newest opened first (spec 030 GP2) |
+| GET | `/v1/casino/backoffice/{brand}/game-provider/rounds/by-round/{roundId}` | | the round's state, at the first of the brand's providers holding that round id; 404 `round_not_found` (spec 030 GP2) |
+| GET | `/v1/casino/backoffice/{brand}/game-provider/rounds/by-transaction/{transactionId}` | | the state of the round that recorded that transaction, found by its bet workflow; 404 `round_not_found` (spec 030 GP2) |
 | GET | `/v1/casino/backoffice/{brand}/game-provider/rounds/{provider}/{roundId}` | | the round's state with its transactions; `{provider}` is a literal per adapter, since a route takes at most two path parameters in ankka 0.11 |
 | GET | `/v1/casino/backoffice/{brand}/game-provider/metrics` | | `text/plain` in Prometheus' format: `eitheror_casino_bets_total` and `eitheror_casino_unacknowledged_callbacks` (FR-029, research R16) |
 

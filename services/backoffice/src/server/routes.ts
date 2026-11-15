@@ -187,6 +187,10 @@ export const table: readonly Row[] = [
   r("POST", "game-provider", "/unacknowledged/{transactionId}/resolve", `${P}/game-provider/unacknowledged/{transactionId}/resolve`, "callback.resolve"),
   r("GET", "game-provider", "/metrics", `${P}/game-provider/metrics`, "callback.resolve"),
   r("GET", "game-provider", "/rounds", `${P}/game-provider/rounds`, "player.read"),
+  // a round by its id at any of the brand's providers, or by one of its transactions (GP2); literal
+  // segments, so before the adapter's row, which `match()` would otherwise take first
+  r("GET", "game-provider", "/rounds/by-round/{roundId}", `${P}/game-provider/rounds/by-round/{roundId}`, "player.read"),
+  r("GET", "game-provider", "/rounds/by-transaction/{transactionId}", `${P}/game-provider/rounds/by-transaction/{transactionId}`, "player.read"),
   // one route per configured adapter (`rounds/<adapter>/{roundId}`); the adapter's name is the parameter here
   r("GET", "game-provider", "/rounds/{provider}/{roundId}", `${P}/game-provider/rounds/{provider}/{roundId}`, "player.read"),
 
