@@ -141,8 +141,8 @@ exactly its permissions.
 - [ ] T051 [P] [US1] Add `GET …/status` (F) to `svc/players/`, `svc/wallet/`, `svc/payouts/`, `svc/kyc/`, `svc/responsible-gambling/`, `svc/rewards/` (P2, W4, Y5, K4, G4, RW3): verify V2 in one and use the view's own consumer if a view's last applied time cannot be read; each with its test
 - [ ] T052 [US1] Implement `s/composite/freshness.ts` and `w/components/freshness.tsx`; wire it into `w/components/list/` and the top bar
 - [X] T053 [US1] Implement `w/areas/preferences/` (theme, worklist kinds, online notices) over `/api/me` and `PUT` preferences through the server
-- [ ] T054 [US1] Implement `w/areas/team/roles.tsx`: the brand's roles with what each carries; create a role (name, description, permissions grouped by area with their catalogue descriptions); change, reset and delete, each stating its effect (who gains or loses what) before it is confirmed; the owner's refusals shown with their reasons (FR-008b, FR-008d)
-- [ ] T055 [US1] Implement `w/areas/team/assign.tsx`: an operator's roles for the brand, given and taken away through players' `role-assignments`; a role carrying a permission the giver lacks shown disabled, naming the permission (FR-008c)
+- [X] T054 [US1] Implement `w/areas/team/roles.tsx`: the brand's roles with what each carries; create a role (name, description, permissions grouped by area with their catalogue descriptions); change, reset and delete, each stating its effect (who gains or loses what) before it is confirmed; the owner's refusals shown with their reasons (FR-008b, FR-008d)
+- [X] T055 [US1] Implement `w/areas/team/assign.tsx`: an operator's roles for the brand, given and taken away through players' `role-assignments`; a role carrying a permission the giver lacks shown disabled, naming the permission (FR-008c)
 
 **Checkpoint**: US1's scenarios pass; `t/it/role-sweep` (T125) can already run against the doubles.
 

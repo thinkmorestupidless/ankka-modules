@@ -110,6 +110,12 @@ export const Actions = {
     permission: "protection.change",
     reason: "required",
   },
+  // players: the brand's roles (RolesRoutes.scala records the change and who made it, and no reason)
+  "role.create": { label: "action.role.create.label", effect: "action.role.create.effect", permission: "roles.change", reason: "none" },
+  "role.change": { label: "action.role.change.label", effect: "action.role.change.effect", permission: "roles.change", reason: "none" },
+  "role.reset": { label: "action.role.reset.label", effect: "action.role.reset.effect", permission: "roles.change", reason: "none", offeredIn: ["default"] },
+  "role.delete": { label: "action.role.delete.label", effect: "action.role.delete.effect", permission: "roles.change", reason: "none", offeredIn: ["own"] },
+  "role.give": { label: "action.role.give.label", effect: "action.role.give.effect", permission: "roles.give", reason: "none" },
 } as const satisfies Record<string, ActionDescription>;
 
 export type ActionId = keyof typeof Actions;
