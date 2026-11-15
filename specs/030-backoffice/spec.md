@@ -92,6 +92,14 @@ operator's preferences) is a Scala service.
   with every string in a message catalogue so that another language is a translation (FR-040a).
 - Q: Which of parity.md's *decide* rows (the CRM configuration page, affiliate adjustments) does
   the backoffice include? → A: Both (FR-030; [parity.md](parity.md)).
+- Q: Do the original's payments-realm roles that services admit to casino actions today
+  (`resource_admin`, `resource_finance`, `compliance_officer`, `fraud_analyst`, `support_agent`) stay
+  in the matrix? → A: No. Only the five casino roles confer casino actions; the payments roles
+  confer payments administration only (FR-008, FR-008a).
+- Q: Six capabilities need new behaviour or stored data in an owning service (manager tags, the
+  games panel, the devices tab, deposit minimum and maximum per method, a test payment, viewing the
+  portal as an affiliate). Which are built? → A: All six, each as an amendment to its owning
+  service's spec ([parity.md](parity.md)).
 - Q: Do the proposed glossary terms worklist, timeline, adjustment batch and merge tag stand? → A:
   All four, as defined.
 
@@ -312,7 +320,8 @@ A brand administrator sets the brand's configuration (sites, countries, currenci
 deposit and wagering settings, the game catalogue, the support agent, the modules page of spec
 021) and sees which values differ from the brand's defaults. A payments administrator, at their
 operator level, manages holdings, companies and sub-brands, payment provider configurations and
-terminals, routing rules (draft, simulate, deploy, roll back) and risk settings. Administrators
+terminals, routing rules (draft, simulate, deploy, roll back) and deposit limits per method.
+Administrators
 invite operators with a role at or below their own, resend, reset and revoke.
 
 **Why this priority**: Infrequent, high-consequence work; parity matters more than redesign.
@@ -420,7 +429,10 @@ previewed message.
   suspension, reinstatement, closing and reopening an account admitted to `brand_compliance` and
   `brand_admin`; withdrawal review admitted to `brand_finance` and `brand_admin`; configuration
   admitted to `brand_admin`; `platform_admin` admitted everywhere. `brand_finance` and
-  `brand_compliance` MUST be realm roles. Each owning service's acceptance scenarios MUST state the
+  `brand_compliance` MUST be realm roles. No other role confers a casino action: the payments roles
+  (`resource_*`, `compliance_officer`, `fraud_analyst`, `support_agent`) that services admitted to
+  casino actions MUST stop conferring them and confer payments administration only (spec 004).
+  Each owning service's acceptance scenarios MUST state the
   roles it admits per route, and the contract MUST hold the matrix once (FR-005).
 - **FR-008a**: At spec 019's cutover every operator of the original MUST be given the roles their
   original role maps to, by a mapping the migration publishes for review before it runs; an
@@ -448,7 +460,9 @@ previewed message.
 - **FR-016**: The backoffice MUST give each operator a worklist of the open items their roles may
   act on in the current brand: withdrawal requests pending review, withdrawal payments needing
   review, identity documents awaiting review, players flagged for review, open cases, open fraud
-  cases, unacknowledged provider callbacks, undelivered facts and parked sends.
+  cases, unacknowledged provider callbacks, undelivered facts, undelivered outcomes and parked
+  sends. Undelivered outcomes are the shared `payments` project's and are shown to a payments
+  administrator at their level.
 - **FR-017**: Worklist items MUST be ordered oldest first with each kind's count; a kind whose
   source cannot be read MUST be shown as unavailable.
 - **FR-018**: Acting on an item MUST return the operator to the worklist at their place; an item
@@ -671,7 +685,10 @@ per screen, per role) as the *before* that the plan's design is compared with.
 ## Dependencies
 
 - Constitution amendment 1.3.0 (*Context*).
-- Amendments to specs 001, 002, 007, 008, 009, 010 and 019 for the role matrix (FR-008, FR-008a).
+- Amendments to specs 001, 002, 007, 008, 009, 010 and 019 for the role matrix (FR-008, FR-008a),
+  and to every spec whose service has an operator route, for the routes [parity.md](parity.md)
+  marks as gaps and for paging, totals and freshness (FR-009, FR-011); the plan's
+  `contracts/amendments.md` lists each.
 - Specs 001, 002, 004, 007, 008, 009, 010, 011, 013, 014, 015, 018, 021 and 026 for the routes
   behind each screen; spec 028 for where the programme lives.
 - ankka web hosting (021) and OIDC sign-in (022) at the pinned version.

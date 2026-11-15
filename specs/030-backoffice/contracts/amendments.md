@@ -1,0 +1,136 @@
+# Amendments to the owning services
+
+Every change this spec makes outside `services/backoffice*`, by service, with the spec it amends.
+Each is made with its own tests in that service and one line under *Amended by 030* in that spec.
+Three kinds recur and are named by letter:
+
+- **M** the role matrix: operator routes take `Routes.operatorMay(slug, action)` from
+  [roles.md](roles.md); role sets in handlers go; the service's features state the roles per route.
+- **L** lists: `page`, `pageSize` (max 200), `total`, the order FR-009 names.
+- **F** freshness: `GET …/status` answering `{views: [{name, asOf, rebuilding}]}` (research R13).
+
+## The contract (`contract/`, spec 001)
+
+| # | Change |
+|---|---|
+| C1 | `access/OperatorActions.scala`: the matrix; `Routes.operatorMay`; `Routes.operator` kept for `player.read`-class routes only through it |
+| C2 | `WriteSchemas` writes `schemas/access/operator-actions.v1.json` and `schemas/money/currencies.v1.json` |
+| C3 | `Layout.SharedProjects` gains `backoffice -> Seq("backoffice", "backoffice-state")`; `ReservedSlugs` follows |
+| C4 | `facts`: `adjustment` gains optional `cause {kind, ref}`; device and tag facts for players (P7, P8) |
+| C5 | `brands/_realm/eitheror-operators.json`: role `brand_support`; confidential client `backoffice` (audience `eitheror-casino`, standard flow, PKCE) |
+
+## players (spec 008)
+
+| # | Change |
+|---|---|
+| P1 | M |
+| P2 | L and F on `players`; the list becomes a view query (no 10,000 row cap); filters `country`, `currency`, `potVip`, `online`, `identity`, `birthdayWithinDays`; `facets=true` answers counts per filter value |
+| P3 | `players/{p}/activity`: `from`, `to`, `after` cursor, `total` |
+| P4 | `players/{p}/notes` GET (list) |
+| P5 | `players/{p}/player-sessions` (a player's sessions with their game sessions and data gaps); `sessions` brand-wide list with `status`, `from`, `to`, L; `player-sessions/{sid}/force-close` |
+| P6 | `players/{p}/sessions/{sid}/bets` answers the session's bets (501 today), from the rounds facts it already reads |
+| P7 | `players/{p}/tags` GET, PUT (manager tags; `tier.change`); a tag is free text of at most 40 characters, not personal data about the player beyond the association |
+| P8 | `players/{p}/devices` GET: each device seen at login (first and last seen, platform, browser family, country), `Personal` under `player/<id>`, erased with the player; recorded from the login the service already handles |
+| P9 | `players/{p}/games` GET: games played with rounds, staked and won per game, from the rounds facts |
+| P10 | `players/{p}/bets`: filters `roundId`, `transactionId`, `type`, `status`; `summary` gains `staked`, `won`, `net` in minor units |
+| P11 | `fraud-cases`: L, oldest first for `status=open` |
+
+## wallet (spec 002)
+
+| # | Change |
+|---|---|
+| W1 | M (adjustments, turnover override, configuration) |
+| W2 | adjustment body gains optional `cause {kind: round | provider_transaction | payment | incident, ref}`; `amountMinor` accepted beside `amount`; the answer gains `before` and `after`; the transaction row gains `cause` and `actor` |
+| W3 | `wallet-config/rewards` PUT: `contributionRateByGameType`, `bonusWageringCounts`, `partialSplitsAllowed`, `maxConcurrentAwards` (`config.brand`) |
+| W4 | F on transactions |
+
+## payouts (spec 007)
+
+| # | Change |
+|---|---|
+| Y1 | M, in the ACL |
+| Y2 | queue: `sort=oldest`; `counts {pendingReview, needsReview}`; `playerSearch` matches email and name through the request's own stored player fields |
+| Y3 | request detail: `outcomes[].operatorId` for a confirmed or failed payment; `balancesAtRequest` and `restrictedAtRequest` (recorded when the request was made) |
+| Y4 | `players/{p}/withdrawal-history`: L |
+| Y5 | F |
+
+## kyc (spec 009)
+
+| # | Change |
+|---|---|
+| K1 | M, in the ACL; `identity.read` admits a reader to `GET /{p}` without documents |
+| K2 | `queue`: L (`counts` kept) |
+| K3 | `{p}/decisions` GET: the player's reviews and decisions with actor and time |
+| K4 | F |
+
+## responsible-gambling (spec 010)
+
+| # | Change |
+|---|---|
+| G1 | M |
+| G2 | `cases?status=` brand-wide, L, oldest first |
+| G3 | `{p}/history` for operators (the player's own route's data) |
+| G4 | F |
+
+## rewards (spec 011)
+
+| # | Change |
+|---|---|
+| R1 | M; `GET reward-grants/{rewardId}` admits `reward.read` |
+| R2 | the ineligible answer gains `allowedBy` (what would allow the grant) beside `reason` |
+| R3 | F |
+
+## game-provider (spec 003)
+
+| # | Change |
+|---|---|
+| V1 | M |
+| V2 | `rounds`: `total`; `rounds/by-round/{roundId}` (any provider); `rounds/by-transaction/{txId}` |
+| V3 | `unacknowledged`: L |
+
+## engagement (spec 014), support-agent (017), attribution (012), reporting (015), public-api (016)
+
+| # | Change |
+|---|---|
+| E1 | M in each |
+| E2 | attribution `attribution-webhooks/undelivered`: L |
+| E3 | reporting: no route change; `Access` reads the matrix |
+
+## merchant (spec 004)
+
+| # | Change |
+|---|---|
+| H1 | `deposit.read`: a brand operator reads `/v1/payments/cashier`, `/cashier/summary` and `/v1/payments/{id}` for the brand's own sub-brand |
+| H2 | `/v1/payments/cashier?reference=` (exact payment reference) |
+| H3 | `/v1/sub-brands/{id}/deposit-limits` GET, PUT: minimum and maximum per method and currency, in minor units; enforced by the deposit workflow before a provider is asked, refused as `DEPOSIT_BELOW_MINIMUM` or `DEPOSIT_ABOVE_MAXIMUM` |
+| H4 | `/v1/sub-brands/{id}/psp-credentials/{provider}/test-payment` POST: one payment of the provider's smallest amount on the provider's test mode, through psp-gateway; answers the provider's outcome; never credits a wallet |
+| H5 | `/v1/operators`: L |
+
+## psp-gateway (spec 005)
+
+| # | Change |
+|---|---|
+| T1 | `outcomes/undelivered`, `/refused`: `total` |
+| T2 | the test payment call H4 uses (the adapter's own smallest test charge; `501` from an adapter with no test mode, shown as such) |
+
+## affiliate-programme (spec 013)
+
+| # | Change |
+|---|---|
+| A1 | `accounts`: answers `{items, total}` |
+| A2 | `accounts/{a}/portal/{view}` GET for managers: the data the affiliate's own portal routes answer, read-only, audited as `VIEWED_AS`; no token of the affiliate's is made |
+
+## The modules tool, realm and delivery (specs 001, 021)
+
+| # | Change |
+|---|---|
+| D1 | a shared manifest's service may carry `hosting: "web"`, `processPort`, `callers`; `Render` writes them; validation refuses `mounts` to another project |
+| D2 | `shared/backoffice/manifest.json`; `BRANDS` rendered from `brands/*/values.json` |
+| D3 | `Realm.ensure`: upserts the `backoffice` client and `brand_support` into an existing realm |
+| D4 | `ci.yml`: a `backoffice` filter and a Node job (typecheck, unit, bound features, axe); `release.yml`: an image for a service with a `package.json` |
+
+## The migration (spec 019)
+
+| # | Change |
+|---|---|
+| X1 | the role mapping of [roles.md](roles.md), published as a report for review before it runs; ambiguous operators get `brand_support` and are listed (FR-008a) |
