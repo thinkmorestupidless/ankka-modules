@@ -30,7 +30,8 @@ object RgService:
     PendingTimer.descriptor,
     BreakTimer.descriptor,
     ReturnTimer.descriptor,
-    SyncTimer.descriptor
+    SyncTimer.descriptor,
+    io.eitheror.casino.rg.cases.CasesView.descriptor
   ) ++ io.eitheror.casino.rg.freshness.ViewFollower.descriptors
 
   /**
