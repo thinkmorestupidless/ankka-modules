@@ -8,6 +8,7 @@ import io.eitheror.casino.players.PlayersRuntime
 import io.eitheror.casino.players.fraud.{FraudCaseEntity, FraudCaseEvent}
 import io.eitheror.casino.players.inbox.{MessageEntity, MessageEvent, NoteEntity, NoteState}
 import io.eitheror.casino.players.player.{PlayerEntity, PlayerEvent}
+import io.eitheror.casino.players.roles.{AssignmentEvent, Role, RoleAssignment, RoleEvent}
 import io.eitheror.casino.players.sessions.{GameSessionEntity, GameSessionEvent, PlayerSessionEntity, PlayerSessionEvent}
 
 /**
@@ -127,3 +128,17 @@ final class FraudCaseAudit extends AuditConsumer[FraudCaseEvent]:
 
 object FraudCaseAudit extends AuditCompanion[FraudCaseAudit, FraudCaseEvent]("fraud-case-audit", ChangeSource.eventsOf(FraudCaseEntity)):
   def create(ctx: ConsumerContext) = new FraudCaseAudit
+
+final class RoleAudit extends AuditConsumer[RoleEvent]:
+  protected def audit(change: RoleEvent): Option[AuditRecord] =
+    Facts.roleAudit(PlayersRuntime.settings.brand, messageContext.subject, messageContext.sequenceNumber, change).map(_.fact)
+
+object RoleAudit extends AuditCompanion[RoleAudit, RoleEvent]("role-audit", ChangeSource.eventsOf(Role)):
+  def create(ctx: ConsumerContext) = new RoleAudit
+
+final class RoleAssignmentAudit extends AuditConsumer[AssignmentEvent]:
+  protected def audit(change: AssignmentEvent): Option[AuditRecord] =
+    Facts.assignmentAudit(PlayersRuntime.settings.brand, messageContext.subject, messageContext.sequenceNumber, change).map(_.fact)
+
+object RoleAssignmentAudit extends AuditCompanion[RoleAssignmentAudit, AssignmentEvent]("role-assignment-audit", ChangeSource.eventsOf(RoleAssignment)):
+  def create(ctx: ConsumerContext) = new RoleAssignmentAudit

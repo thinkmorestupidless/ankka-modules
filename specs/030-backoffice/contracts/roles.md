@@ -107,8 +107,12 @@ The backoffice's server uses the same routes to answer `/api/me` and `/api/permi
 - the last role carrying `roles.change` cannot lose it or be deleted;
 - a default role can be changed and reset to the matrix above, and cannot be deleted; a role the
   brand created can be deleted;
-- `platform_admin`, `brand_<slug>` and the payments roles are not roles a brand can create, change
-  or give;
+- no realm role but the four default roles, and no name under `brand_`, `audit_compliance_` or
+  `reidentify_` but the default roles, is a role a brand can create, change or give: that is
+  `platform_admin`, every `brand_<slug>`, the payments roles, and every other role an ACL checks by
+  name (`audit_compliance`, `affiliate_manager`, `api_keys`, …). `OperatorPermissions.RealmRoles`
+  lists the realm's roles and a contract test holds it equal to `brands/_realm/eitheror-operators.json`,
+  so a new realm role is reserved by being added to the realm;
 - giving roles (`role-assignments`) is refused when the giver's own permissions do not include
   every permission the roles carry; when it passes, `players` asks merchant to set them;
 - every change and every giving is an audit record.

@@ -424,3 +424,14 @@ sets an operator's roles. The checker is green; the analysis was repeated by han
 leftovers, not by a full `/speckit-analyze` run. Nothing above LOW was found: FR-020's "without
 scrolling" is checked by eye at 1440 by 900; SC-002 and SC-003 need people; role names are the
 realm's and shared between brands that use it.
+
+### Reserved role names, 2026-11-15 (T015)
+
+The design reserved `platform_admin`, `brand_<slug>` and the payments roles only. Every other realm
+role that an ACL checks by name was open, so a brand admin could create a role named
+`audit_compliance` (or `affiliate_manager`, `api_keys`, `reidentify_<slug>`, …), give it, and merchant
+would grant the real realm role. Decision (Trevor): reserve every realm role but the four default
+roles, and every name under `brand_`, `audit_compliance_` and `reidentify_` but the defaults.
+`OperatorPermissions.RealmRoles` lists the realm's roles; `OperatorPermissionsSuite` holds it equal to
+`brands/_realm/eitheror-operators.json`. players and merchant both refuse a reserved name.
+contracts/roles.md amended.

@@ -176,9 +176,14 @@ final class FakeWallet(brand: String, bind: Int = 0) extends KnobbedServer(bind)
   def erasures: Vector[String] = received.filter(_.path.startsWith(s"$prefix/erasure/players/")).map(_.path.split('/').last)
   def exports: Vector[String]  = received.filter(_.path.startsWith(s"$prefix/exports/players/")).map(_.path.split('/').last)
 
+  /** merchant's `PUT /v1/operators/{id}/brand-roles/{brand}` (spec 004 H6), which this fake also plays. */
+  def brandRoles: Vector[Received] = received.filter(r => r.method == "PUT" && r.path.startsWith("/v1/operators/") && r.path.contains("/brand-roles/"))
+
   protected def answer(r: Received): Answer =
     val p = r.path.stripPrefix(prefix)
-    if p.startsWith("/wallets/") && p.endsWith("/deposit-sums") then
+    if r.path.startsWith("/v1/operators/") && r.path.contains("/brand-roles/") then
+      Answer.ok(Json.parse(r.body).getOrElse(Json.obj()))
+    else if p.startsWith("/wallets/") && p.endsWith("/deposit-sums") then
       val player = java.net.URLDecoder.decode(p.split('/')(2), "UTF-8")
       val (d1, d7, d30) = Option(sums.get(player)).getOrElse((0L, 0L, 0L))
       Answer.ok(Json.obj("last24h" -> d1, "last7d" -> d7, "last30d" -> d30))

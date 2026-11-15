@@ -51,13 +51,28 @@ object OperatorPermissions:
   )
 
   /**
-   * Names a brand may not create, change or give: `platform_admin`, any `brand_…` but the default roles
-   * (so every `brand_<slug>`), and the payments roles (spec 004's privilege table), which confer no casino
-   * action. The default roles are the brand's.
+   * Every realm role of `brands/_realm/eitheror-operators.json` (`OperatorPermissionsSuite` holds the two
+   * equal): an ACL somewhere checks each by name, so a brand role of the same name would carry it.
+   */
+  val RealmRoles: Set[String] = Set(
+    "platform_admin", "support_agent", "fraud_analyst", "compliance_officer", "operator", "merchant", "payments-operator",
+    "brand_admin", "brand_compliance", "brand_support", "brand_finance", "audit_compliance", "markets", "games",
+    "api_keys", "affiliate", "affiliate_manager", "resource_owner", "resource_admin", "resource_operator",
+    "resource_viewer", "resource_finance", "resource_developer"
+  )
+
+  /** Prefixes of the realm roles made per brand: `brand_<slug>`, `audit_compliance_<slug>`, `reidentify_<slug>`. */
+  val ReservedPrefixes: Vector[String] = Vector("brand_", "audit_compliance_", "reidentify_")
+
+  /**
+   * Names a brand may not create, change or give (spec 030 research, *Found during implementation*,
+   * T015): every realm role but the default roles, and every name under a per-brand prefix but the
+   * default roles. That covers `platform_admin`, every `brand_<slug>` and the payments roles, which
+   * confer no casino action. The default roles are the brand's.
    */
   def reserved(role: String): Boolean =
-    role == PlatformAdmin || Routes.PaymentsRoles.contains(role) ||
-      (role.startsWith("brand_") && !DefaultRoles.contains(role))
+    !DefaultRoles.contains(role) &&
+      (RealmRoles.contains(role) || Routes.PaymentsRoles.contains(role) || ReservedPrefixes.exists(role.startsWith))
 
   /** A role's name: lower case letters, digits and `_`, at most 40 (data-model.md *Role*). */
   def validRoleName(name: String): Boolean = name.matches("[a-z0-9_]{1,40}")

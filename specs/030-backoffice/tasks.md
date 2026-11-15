@@ -65,11 +65,11 @@ the frame and the test harness. No story can be built before this phase is done.
 
 ### The brand's roles (players, merchant)
 
-- [ ] T012 Bind `features/players/roles.feature` (12 scenarios) in `svc/players/`'s `GherkinSuite` and write `RoleSuite` in its test tree, failing first: the seed, the rules of contracts/roles.md, the audit record
-- [ ] T013 Implement in `services/players/src/main/scala/io/eitheror/casino/players/roles/` `Role.scala` (event sourced, data-model.md), `Roles.scala` (the view), the seed of the role matrix when no role exists, and the rules: known permissions only, the last role carrying `roles.change` keeps it, a default role resets and is not deleted (P12, FR-008b, FR-008d)
-- [ ] T014 Implement `roles/RolesEndpoint.scala` in `svc/players/`: `GET roles` admitted to every service of the project and to `roles.read`; `PUT roles/{name}`, `DELETE roles/{name}`, `POST roles/{name}/reset` requiring `roles.change`; an audit record per change through the service's audit consumer; `players` opens its own bags from `Roles` directly (P12)
+- [X] T012 Bind `features/players/roles.feature` (12 scenarios) in `svc/players/`'s `GherkinSuite` and write `RoleSuite` in its test tree, failing first: the seed, the rules of contracts/roles.md, the audit record
+- [X] T013 Implement in `services/players/src/main/scala/io/eitheror/casino/players/roles/` `Role.scala` (event sourced, data-model.md), `Roles.scala` (the view), the seed of the role matrix when no role exists, and the rules: known permissions only, the last role carrying `roles.change` keeps it, a default role resets and is not deleted (P12, FR-008b, FR-008d)
+- [X] T014 Implement `roles/RolesEndpoint.scala` in `svc/players/`: `GET roles` admitted to every service of the project and to `roles.read`; `PUT roles/{name}`, `DELETE roles/{name}`, `POST roles/{name}/reset` requiring `roles.change`; an audit record per change through the service's audit consumer; `players` opens its own bags from `Roles` directly (P12)
 - [ ] T015 [P] `svc/merchant/` H6: `PUT /v1/operators/{id}/brand-roles/{brand}` admitted only to that brand's `players` under the brand's grant; adds `brand_<slug>`, creates a realm role that does not exist, removes brand-given roles no longer asked for, refuses a payments role, `platform_admin` and another brand's role; binding the three new scenarios of `features/payments/operators.feature`; amends spec 004
-- [ ] T016 Implement `roles/Assignments.scala` in `svc/players/` (P13): `PUT role-assignments/{operator}` requiring `roles.give`; refuses, naming the permission, when the giver's permissions do not include every permission the roles carry; then calls merchant's `brand-roles`; an audit record naming both operators and the roles (FR-008c)
+- [X] T016 Implement `roles/Assignments.scala` in `svc/players/` (P13): `PUT role-assignments/{operator}` requiring `roles.give`; refuses, naming the permission, when the giver's permissions do not include every permission the roles carry; then calls merchant's `brand-roles`; an audit record naming both operators and the roles (FR-008c)
 
 ### Permissions in every service (M)
 
