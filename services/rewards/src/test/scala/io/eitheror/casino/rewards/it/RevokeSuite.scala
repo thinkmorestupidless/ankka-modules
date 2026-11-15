@@ -49,10 +49,11 @@ class RevokeSuite extends munit.FunSuite:
       case r: AuditRecord if r.subjectId == id && r.action == "rewards.revoked" => r
     })
 
-  test("only the three admin roles revoke; a player is refused by the ACL"):
+  test("only a role holding reward.revoke revokes; a player is refused by the ACL"):
     val (id, player) = active()
     val support = revoke(id, "mode" -> "forfeit")(kit.asOperator("brand_support"))
-    assertEquals((support.status, support.str("error")), (403, "forbidden"))
+    assertEquals(support.status, 403, support.text)
+    assert(support.text.contains("the reward.revoke permission is needed"), support.text)
     assertEquals(revoke(id, "mode" -> "forfeit")(kit.asPlayer(player)).status, 403)
     assertEquals(reward(id).status, RewardStatus.Active)
     assertEquals(kit.wallet.keys("awards/forfeit"), Vector.empty)

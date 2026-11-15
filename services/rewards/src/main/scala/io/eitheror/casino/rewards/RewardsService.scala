@@ -4,6 +4,7 @@ import com.thinkmorestupidless.ankka.auth.oidc.Oidc
 import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, HttpServer}
 import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime}
+import io.eitheror.casino.contract.access.RoleBags
 
 /** Every component of the service (plan.md's structure), registered by the service and by its test kit alike. */
 object RewardsService:
@@ -28,13 +29,19 @@ object RewardsService:
     codes.CodesTimer.descriptor
   )
 
-  /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */
-  def endpoints(authenticate: () => Acl, project: String = ""): Seq[EndpointClients => HttpEndpoint] = Seq(
+  /**
+   * One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. `bags` is the
+   * brand's roles the operator routes decide from (spec 030 RW1): by default read from the brand's `players`.
+   */
+  def endpoints(authenticate: () => Acl, project: String = "", bags: Option[EndpointClients => RoleBags] = None)
+      : Seq[EndpointClients => HttpEndpoint] =
+    def roles(clients: EndpointClients): RoleBags = bags.fold(api.BrandRoles.of(clients.services, RewardsRuntime.settings))(_(clients))
+    Seq(
     clients => api.RewardsEndpoint(api.Ctx(authenticate, clients, project)),
-    clients => api.OffersEndpoint(api.Ctx(authenticate, clients, project)),
-    clients => api.RewardAdminEndpoint(api.Ctx(authenticate, clients, project)),
+    clients => api.OffersEndpoint(api.Ctx(authenticate, clients, project), roles(clients)),
+    clients => api.RewardAdminEndpoint(api.Ctx(authenticate, clients, project), roles(clients)),
     clients => api.CampaignEndpoint(api.Ctx(authenticate, clients, project))
-  )
+    )
 
   /**
    * Once the service has started: the timers reachable from the components, the wallet steps wired to `Reward`, and the

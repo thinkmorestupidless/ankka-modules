@@ -26,10 +26,11 @@ class OffersSuite extends munit.FunSuite:
   private def audits(subject: String): Vector[AuditRecord] =
     kit.facts(PlatformAudit).collect { case r: AuditRecord if r.subjectId == subject => r }
 
-  test("only an operator of the brand holding an admin role may call"):
+  test("only an operator of the brand whose roles hold offer.manage may call"):
     assertEquals(kit.request("GET", kit.offersPath(""), None, kit.asPlayer("p-1")).status, 403)
     assertEquals(kit.request("GET", kit.offersPath(""), None, kit.asOperator("brand_finance")).status, 403)
-    assertEquals(kit.request("GET", kit.offersPath(""), None, kit.asOperator("resource_admin")).status, 200)
+    assertEquals(kit.request("GET", kit.offersPath(""), None, kit.asOperator("resource_admin")).status, 403)
+    assertEquals(kit.request("GET", kit.offersPath(""), None, kit.asStaff("platform_admin")).status, 200)
     assertEquals(kit.request("GET", kit.offersPath(""), None, Nil).status, 401)
 
   test("a create answers 201 with the offer, listed and read by id, audited with the operator"):

@@ -766,3 +766,7 @@ and `finalize-expired-free-spins-grant`.
 - The provider's own bonus mechanics beyond create, poll, cancel and spin values.
 - The programme's commission on bonus cost (spec 013).
 - The frontend's bonus pages (they change only base URLs).
+
+## Amended by 030
+
+- RW1 (spec 030 contracts/amendments.md, T022): FR-031's operator roles become permissions; every operator route requires one (`Routes.operatorMay`), decided from the brand's roles rewards reads from `players` every 10 seconds, and no role name is left in rewards: `reward.read` for the brand's list (a player's rewards among it) and one reward, `reward.grant` for an award, `reward.revoke` for a revoke, `offer.manage` for every `offers` route (the reads, the code document and spin values among them); rewards holds no reward settings of its own (`features/rewards/operator-roles.feature`).
