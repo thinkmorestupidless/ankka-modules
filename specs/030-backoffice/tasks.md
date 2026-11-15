@@ -57,16 +57,16 @@ test harness. No story can be built before this phase is done.
 
 ### The contract and the matrix
 
-- [ ] T007 Write `contract/src/test/scala/io/eitheror/casino/contract/access/OperatorActionsSuite.scala` first: every action of contracts/roles.md with its roles; `platform_admin` everywhere; no payments role in any action; `operatorMay` refuses with `forbidden` naming the first role that would admit
-- [ ] T008 Implement `c/access/OperatorActions.scala` (the matrix as data) and `Routes.operatorMay(slug, action)` in `c/access/Routes.scala` (C1)
-- [ ] T009 Make `WriteSchemas` in `build.sbt`'s contract project write `contract/schemas/access/operator-actions.v1.json` and `contract/schemas/money/currencies.v1.json` (every ISO currency's minor-unit count from `Amounts.exponent`); regenerate with `just schemas`; extend the CI schemas diff to them (C2, R5, R6)
+- [ ] T007 Write `contract/src/test/scala/io/eitheror/casino/contract/access/OperatorPermissionsSuite.scala` first: every permission of contracts/roles.md and each role's bag; `platform_admin`'s bag holds every permission; no payments role has a bag; `OperatorPermissions.of(roles)` is the union of the roles' bags; `operatorMay(slug, permission)` refuses with `forbidden` naming the permission and a role whose bag holds it
+- [ ] T008 Implement `c/access/OperatorPermissions.scala` (the permissions and the roles' bags as data, `of(roles)`) and `Routes.operatorMay(slug, permission)` in `c/access/Routes.scala` (C1)
+- [ ] T009 Make `WriteSchemas` in `build.sbt`'s contract project write `contract/schemas/access/operator-permissions.v1.json` (permissions, and each role's bag) and `contract/schemas/money/currencies.v1.json` (every ISO currency's minor-unit count from `Amounts.exponent`); regenerate with `just schemas`; extend the CI schemas diff to them (C2, R5, R6)
 - [ ] T010 [P] Add `backoffice -> Seq("backoffice", "backoffice-state")` to `c/Layout.scala` `SharedProjects` with its test, and the optional `cause` on the adjustment fact in `c/facts/` with its schema regenerated (C3, C4)
 - [ ] T011 [P] Add the role `brand_support` and the confidential client `backoffice` (standard flow, PKCE, audience `eitheror-casino`, the realm-role mapper) to `brands/_realm/eitheror-operators.json` and `brands/_realm/README.md` (C5)
 
 ### The matrix in every service (M)
 
 Each task: replace `Routes.operator`/`operatorHolding` and handler role sets with
-`Routes.operatorMay` per route (`withAcl` where an endpoint mixes actions); bind the service's
+`Routes.operatorMay(slug, permission)` per route, so that no role name is left in the service (`withAcl` where an endpoint mixes actions); bind the service's
 `features/<area>/operator-roles.feature` in its `GherkinSuite`, failing first; one line in its spec.
 
 - [ ] T012 [P] M in `svc/wallet/` (W1): `adjustment.make`, `turnover.override`, `wallet.read`, `config.brand` in `api/AudienceEndpoints.scala`; amends spec 002
@@ -98,9 +98,9 @@ Each task: replace `Routes.operator`/`operatorHolding` and handler role sets wit
 
 - [ ] T030 Write `t/unit/session.test.ts`, `t/unit/proxy.test.ts`, `t/unit/routes.test.ts` first: no cookie is `401 signed_out`; a non-GET without `X-Backoffice` or with a foreign `Origin` is `403`; a row not in the table is `404`; a brand not in the roles is `403` with no call made; an owner's answer is returned as given; a proxy's own answer becomes `503 source_unavailable`; no response or log line holds a token
 - [ ] T031 Implement `s/main.ts` (Hono on `PORT`, graceful stop, `/healthz`, static assets immutable and `index.html` `no-cache`: FR-042) and `s/session.ts` (the `__Host-bo` cookie, the token cache to expiry, the client of `backoffice-state`)
-- [ ] T032 Implement `s/auth.ts`: `/auth/sign-in` (PKCE, `return` restricted to this site), `/auth/callback`, `/auth/sign-out`, `/api/me` (brands from `BRANDS` and the roles, modules from players' `modules`, the actions per brand from the matrix)
-- [ ] T033 Implement `s/routes.ts` (the table: method, path template, service, scope, action; FR-007: a route not in an owner is an amendment, never a workaround) for players, wallet, payouts, kyc, responsible-gambling, game-provider, rewards' reads and merchant's deposits, and `s/proxy.ts` (`/api/s/<service>/<scope>/<rest>`, 15 s bound, pass-through without parsing); generate the typed clients in `s/owners/` from the table
-- [ ] T034 [P] Implement `sh/generated/` (copied by `just backoffice-contract`), `sh/access.ts` (may this operator take this action in this brand, and which role would admit it), `sh/money.ts` (minor units to text by the contract's table; no float), `sh/dates.ts` (the brand's zone, named; a filter's end is its day's last instant), each with unit tests in `t/unit/` covering JPY, EUR and KWD (FR-013, FR-015, SC-007)
+- [ ] T032 Implement `s/auth.ts`: `/auth/sign-in` (PKCE, `return` restricted to this site), `/auth/callback`, `/auth/sign-out`, `/api/permissions` (the bags, from the contract's published table), `/api/me` (brands from `BRANDS` and the roles, modules from players' `modules`, the operator's permissions per brand opened from their roles' bags with the contract's published table)
+- [ ] T033 Implement `s/routes.ts` (the table: method, path template, service, scope, permission; FR-007: a route not in an owner is an amendment, never a workaround) for players, wallet, payouts, kyc, responsible-gambling, game-provider, rewards' reads and merchant's deposits, and `s/proxy.ts` (`/api/s/<service>/<scope>/<rest>`, 15 s bound, pass-through without parsing); generate the typed clients in `s/owners/` from the table
+- [ ] T034 [P] Implement `sh/generated/` (copied by `just backoffice-contract`), `sh/access.ts` (does this operator hold this permission in this brand, from `/api/me`; and, for a disabled action, a role whose bag holds it, from `GET /api/permissions`; no bag is written in the page), `sh/money.ts` (minor units to text by the contract's table; no float), `sh/dates.ts` (the brand's zone, named; a filter's end is its day's last instant), each with unit tests in `t/unit/` covering JPY, EUR and KWD (FR-013, FR-015, SC-007)
 - [ ] T035 [P] Implement `sh/messages/en.ts` (typed keys), `sh/messages/index.ts` (`intl-messageformat`), `sh/refusals.ts` (owner code to message and next step; an unknown code shown as given) and a lint rule in `services/backoffice/eslint.config.js` refusing a string literal in JSX outside the catalogue (FR-006, FR-040a)
 
 ### The frame and shared components

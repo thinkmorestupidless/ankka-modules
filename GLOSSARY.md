@@ -1498,7 +1498,7 @@ Avoid: bulk adjustment, compensation run
 A placeholder in an operator's send, such as the player's first name, that the brand fills from the player's record when the inbox item is previewed and when it is sent.
 
 ### role matrix
-The one table of which operator roles admit which action on a brand: held by the contract, checked by each owning part on its own routes, and read by the backoffice to decide what to offer. Only `brand_support`, `brand_finance`, `brand_compliance`, `brand_admin` and `platform_admin` appear in it.
+The one table of the permissions an operator may hold on a brand, one per action, and of each operator role as a bag of them: held by the contract, opened by each owning part on its own routes, and by the backoffice to decide what to offer. A sign-in carries roles, never permissions. Only `brand_support`, `brand_finance`, `brand_compliance`, `brand_admin` and `platform_admin` appear in it.
 
 Avoid: permission table, access matrix
 

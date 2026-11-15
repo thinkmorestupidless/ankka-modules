@@ -21,11 +21,11 @@ no grant made. If the first is refused by the runtime, stop: it is an ankka requ
 ## 2. The contract and the matrix
 
 ```bash
-just test                     # contract: OperatorActions, the published files
+just test                     # contract: OperatorPermissions, the published files
 just schemas && git diff --exit-code contract/schemas
 ```
 
-**Passes when** `operator-actions.v1.json` and `currencies.v1.json` are written and unchanged by a
+**Passes when** `operator-permissions.v1.json` and `currencies.v1.json` are written and unchanged by a
 second run.
 
 ## 3. Each amended service

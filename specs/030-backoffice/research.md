@@ -186,22 +186,30 @@ endpoint code of all 17 services with an operator route; its results are in
   decides admission.
 - **Alternative**: a GraphQL layer. Rejected: a second schema to keep true to seventeen services.
 
-## R5. The role matrix is data the contract publishes
+## R5. Routes require a permission; roles are bags of permissions, held by the contract
 
-- **Decision**: `contract.access.OperatorActions`: every operator action, the roles that admit it,
-  and the service and route it guards. `Routes.operatorMay(slug, action)` builds the ACL from it;
-  `sbt contract/schemas` also writes `contract/schemas/access/operator-actions.v1.json` and
-  `contract/schemas/money/currencies.v1.json`. The page's build copies both; CI fails when the
-  copies differ.
+- **Decision**: `contract.access.OperatorPermissions` holds every permission (one per operator
+  action) and each role's bag of them. A route requires one permission:
+  `Routes.operatorMay(slug, permission)` admits a token whose roles' bags hold it. No service names
+  a role. The token carries roles only. `sbt contract/schemas` also writes
+  `contract/schemas/access/operator-permissions.v1.json` and
+  `contract/schemas/money/currencies.v1.json`; the backoffice's server reads the first to answer an
+  operator's permissions in `/api/me`, and the page offers an action only when its permission is
+  there. CI fails when the server's copy differs from the contract's.
 - **Why**: FR-005 (read, not written again) and SC-006. Today each service holds its own role set
   (`payouts` `FinanceRoles`, `kyc` `ComplianceRoles`, reporting's `Access`), checked partly in ACLs
-  and partly in handlers.
-- **Matrix**: [contracts/roles.md](contracts/roles.md). Where FR-008 is silent the rule used is: an
-  action that moves money needs `brand_finance`; one that changes a player's standing, identity or
-  protection needs `brand_compliance`; one that changes what the brand is needs `brand_admin`;
-  `brand_support` reads and writes notes and messages only.
-- **Payments roles**: no longer admitted to a casino action (clarified 2026-11-15). They keep
-  `Routes.paymentsOperator` and nothing else.
+  and partly in handlers, and several routes check none.
+- **Alternative: permissions in the token** (the realm's composite roles expanded). Rejected by the
+  product owner on 2026-11-15: about forty permissions in every token.
+- **Alternative: the bags fetched at run time** by each service. Rejected for now: an owning
+  service must open a bag on every request without a call, and a bag changed without review is a
+  change to who may move money. The lookup is one function, so its source can move later.
+- **Bags**: [contracts/roles.md](contracts/roles.md). Where FR-008 is silent the rule used is: a
+  permission that moves money is in `brand_finance`'s bag; one that changes a player's standing,
+  identity or protection in `brand_compliance`'s; one that changes what the brand is in
+  `brand_admin`'s; `brand_support` reads and writes notes and messages only.
+- **Payments roles**: in no bag (clarified 2026-11-15). They keep `Routes.paymentsOperator` and
+  nothing else.
 
 ## R6. The currency table is the contract's, published
 

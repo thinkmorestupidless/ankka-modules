@@ -17,7 +17,8 @@ and the page goes to `/auth/sign-in`. Every route that is not `GET` needs the he
 | `GET /auth/sign-in?return=` | starts the code flow with PKCE at the `eitheror` realm; `return` must be a path of this site |
 | `GET /auth/callback` | asks `backoffice-state` to exchange the code; sets `__Host-bo` (`HttpOnly`, `Secure`, `SameSite=Lax`, the session's life); redirects to `return` |
 | `POST /auth/sign-out` | ends the session at `backoffice-state` and at the realm; clears the cookie |
-| `GET /api/me` | `{subject, name, roles, brands: [{slug, name, modules}], lastBrand, preferences, actions: {<brand>: [action]}}`; the token itself is never answered |
+| `GET /api/permissions` | `{roles: {<role>: [permission]}}`: the contract's bags as the server holds them, so the page can say which role would give a permission the operator lacks |
+| `GET /api/me` | `{subject, name, roles, brands: [{slug, name, modules}], lastBrand, preferences, permissions: {<brand>: [permission]}}`, the permissions opened from the roles' bags by the server (contracts/roles.md); the token itself is never answered |
 
 ### Pass-through, by the route table (research R4)
 
