@@ -74,7 +74,7 @@ export const Resolvers: readonly Resolver[] = [
   { kind: "player", shape: "uuid", service: "players", template: "/players/{playerId}/profile", path: (q) => `/players/${enc(q)}/profile`, read: one("player", "playerId", ["email", "status", "currency"]) },
   { kind: "withdrawal", shape: "uuid", service: "payouts", template: "/withdrawal-requests/{requestId}", path: (q) => `/withdrawal-requests/${enc(q)}`, read: one("withdrawal", "requestId", ["status", "amount", "currency"]) },
   { kind: "reward", shape: "uuid", service: "rewards", template: "/reward-grants/{rewardId}", path: (q) => `/reward-grants/${enc(q)}`, read: one("reward", "rewardId", ["status", "offerName", "kind"]) },
-  { kind: "payment", shape: "uuid", service: "merchant", template: "/payments/{paymentId}", path: (q) => `/payments/${enc(q)}`, read: one("payment", "id", ["status", "amount", "currency", "method"]) },
+  { kind: "payment", shape: "uuid", service: "merchant", template: "/{paymentId}", path: (q) => `/${enc(q)}`, read: one("payment", "id", ["status", "amount", "currency", "method"]) },
   { kind: "round", shape: "uuid", service: "game-provider", template: "/rounds/by-round/{roundId}", path: (q) => `/rounds/by-round/${enc(q)}`, read: one("round", "roundId", ["game", "status", "currency"]) },
   { kind: "round", shape: "uuid", service: "game-provider", template: "/rounds/by-transaction/{transactionId}", path: (q) => `/rounds/by-transaction/${enc(q)}`, read: one("round", "roundId", ["game", "status", "currency"]) },
   { kind: "player", shape: "email", service: "players", template: "/players", path: (q) => `/players?search=${enc(q)}`, read: list("player", "items", "playerId", ["email", "username", "accountStatus", "currency"]) },

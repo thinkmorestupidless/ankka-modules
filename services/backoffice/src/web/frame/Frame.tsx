@@ -8,12 +8,17 @@ import { NotInBrand } from "../areas/access/NotInBrand.tsx";
 import { areaOf, areasFor } from "./areas.ts";
 import { MeContext, ReadOnlyContext } from "./context.ts";
 import { useEvents } from "./events.ts";
+import { useFreshness } from "../components/freshness.tsx";
+import { FreshnessNote } from "../components/list/index.ts";
 import { Rail } from "./Rail.tsx";
 import { TopBar } from "./TopBar.tsx";
 import { useMe, useReadOnly, useTheme, type MeState } from "./session.ts";
 
 export function Frame({ me, readOnly, children }: { me: Me; readOnly: boolean; children?: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const area = areaOf(pathname);
+  const fresh = useFreshness(area?.views ?? []);
+  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   return (
     <MeContext.Provider value={me}>
       <ReadOnlyContext.Provider value={readOnly}>
@@ -21,9 +26,9 @@ export function Frame({ me, readOnly, children }: { me: Me; readOnly: boolean; c
           {t("frame.skip")}
         </a>
         <div className="bo-frame" data-read-only={readOnly || undefined}>
-          <Rail areas={areasFor(me)} current={areaOf(pathname)} collapsed={readOnly} />
+          <Rail areas={areasFor(me)} current={area} collapsed={readOnly} />
           <div className="bo-body">
-            <TopBar me={me} />
+            <TopBar me={me} freshness={fresh ? <FreshnessNote freshness={fresh} zone={zone} /> : undefined} />
             {readOnly ? (
               <p role="status" className="bo-notice">
                 {t("frame.readOnly")}

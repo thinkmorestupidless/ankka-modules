@@ -3,6 +3,7 @@
 // brand always shown; read-only below 1280 px; signed out goes to the sign-in with the return path.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterProvider } from "@tanstack/react-router";
 import type { Me } from "../../src/shared/access.ts";
 import { areaOf, areasFor } from "../../src/web/frame/areas.ts";
@@ -57,7 +58,11 @@ async function inFrame(operator: Me, readOnly: boolean, path = "/players", page:
     createRoute({ getParentRoute: () => root, path: p, component: page }),
   );
   const router = createRouter({ routeTree: root.addChildren(routes), history: createMemoryHistory({ initialEntries: [path] }) });
-  render(<RouterProvider router={router} />);
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
   await screen.findByRole("main");
 }
 

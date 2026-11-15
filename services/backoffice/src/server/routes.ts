@@ -198,4 +198,12 @@ export const table: readonly Row[] = [
   r("GET", "merchant", "/cashier", "/v1/payments/cashier", "wallet.read", "payments"),
   r("GET", "merchant", "/cashier/summary", "/v1/payments/cashier/summary", "wallet.read", "payments"),
   r("GET", "merchant", "/{paymentId}", "/v1/payments/{paymentId}", "wallet.read", "payments"),
+
+  // each service's views' freshness (amendment F, T051): its service endpoint, the permission that opens its lists
+  r("GET", "players", "/status", `${B}/players/status`, "player.read"),
+  r("GET", "wallet", "/status", `${B}/wallet/status`, "wallet.read"),
+  r("GET", "payouts", "/status", `${B}/payouts/status`, "withdrawal.read"),
+  r("GET", "kyc", "/status", `${B}/kyc/status`, "identity.review"),
+  r("GET", "responsible-gambling", "/status", `${B}/rg/status`, "protection.read"),
+  r("GET", "rewards", "/status", `${B}/rewards/status`, "reward.read"),
 ];
