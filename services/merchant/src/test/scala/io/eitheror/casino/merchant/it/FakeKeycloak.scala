@@ -23,11 +23,17 @@ final class FakeKeycloak extends FakeServer:
     var attributes: com.fasterxml.jackson.databind.node.ObjectNode = Json.obj()
 
   private val users = mutable.LinkedHashMap.empty[String, User]
-  val Roles = Set("platform_admin", "compliance_officer", "fraud_analyst", "resource_owner", "resource_admin", "support_agent",
-    "resource_operator", "resource_finance", "resource_developer", "resource_viewer")
+  /** The realm's roles; a test reads one created by H6 here. */
+  val roles = mutable.Set("platform_admin", "compliance_officer", "fraud_analyst", "resource_owner", "resource_admin", "support_agent",
+    "resource_operator", "resource_finance", "resource_developer", "resource_viewer", "brand_support", "brand_admin",
+    "brand_finance", "brand_compliance")
 
   def user(id: String): Option[User] = synchronized(users.get(id))
   def byEmail(email: String): Option[User] = synchronized(users.values.find(_.email == email))
+  /** A user made in the realm directly, as an administrator or another brand would. */
+  def put(email: String, roles: String*): String = synchronized {
+    val u = User(UUID.randomUUID().toString, email); u.roles ++= roles; users.update(u.id, u); u.id
+  }
   def disable(id: String): Unit = synchronized(users.get(id).foreach(_.enabled = false))
   def attribute(id: String, name: String): Vector[String] =
     user(id).flatMap(u => Option(u.attributes.get(name))).map(_.elements.asScala.map(_.asText).toVector).getOrElse(Vector.empty)
@@ -37,6 +43,7 @@ final class FakeKeycloak extends FakeServer:
   private val Pwd   = """/admin/realms/([^/]+)/users/([^/]+)/reset-password""".r
   private val Mapping = """/admin/realms/([^/]+)/users/([^/]+)/role-mappings/realm""".r
   private val Role  = """/admin/realms/([^/]+)/roles/([^/]+)""".r
+  private val RolesAt = """/admin/realms/([^/]+)/roles""".r
 
   private def actions(b: com.fasterxml.jackson.databind.JsonNode): Option[Vector[String]] =
     Option(b.get("requiredActions")).filter(_.isArray).map(_.elements.asScala.map(_.asText).toVector)
@@ -59,7 +66,16 @@ final class FakeKeycloak extends FakeServer:
       case ("GET", Users(_)) =>
         Answer.ok(Json.arr(users.values.toVector.map(u => Json.obj("id" -> u.id, "email" -> u.email, "username" -> u.email,
           "enabled" -> u.enabled, "emailVerified" -> u.emailVerified))*))
-      case ("GET", Role(_, role)) => if Roles(role) then Answer.ok(Json.obj("id" -> s"role-$role", "name" -> role)) else Answer(404, "{}")
+      case ("POST", RolesAt(_)) =>
+        val name = r.json.get.textOr("name", "")
+        if roles(name) then Answer(409, "{}") else { roles += name; Answer(201, "") }
+      case ("GET", Mapping(_, id)) =>
+        users.get(id).fold(Answer(404, "{}"))(u => Answer.ok(Json.arr(u.roles.toVector.sorted.map(n => Json.obj("id" -> s"role-$n", "name" -> n))*)))
+      case ("DELETE", Mapping(_, id)) =>
+        users.get(id).fold(Answer(404, "{}")) { u =>
+          r.json.get.elements.asScala.foreach(n => u.roles -= n.textOr("name", "")); Answer(204, "")
+        }
+      case ("GET", Role(_, role)) => if roles(role) then Answer.ok(Json.obj("id" -> s"role-$role", "name" -> role)) else Answer(404, "{}")
       case ("POST", Mapping(_, id)) =>
         users.get(id).fold(Answer(404, "{}")) { u =>
           r.json.get.elements.asScala.foreach(n => u.roles += n.textOr("name", "")); Answer(204, "")

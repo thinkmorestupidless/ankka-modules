@@ -28,7 +28,9 @@ final case class OperatorState(
     enabled: Boolean = true,
     removed: Boolean = false,
     createdAt: Option[Instant] = None,
-    createdBy: String = ""
+    createdBy: String = "",
+    // spec 030 H6: the realm roles each brand's `players` asked this operator to hold, by brand
+    brandRoles: Map[String, Set[String]] = Map.empty
 ):
   def exists: Boolean = createdAt.isDefined && !removed
 
@@ -40,12 +42,15 @@ enum OperatorEvent:
   case ScopeChanged(scopeLevel: String, scopeId: String, ancestors: Vector[String], actor: Actor, at: Instant)
   case EnabledMirrored(enabled: Boolean, at: Instant)
   case Removed(actor: Actor, at: Instant)
+  /** A brand's `players` set the realm roles it gives this operator (spec 030 H6). */
+  case BrandRolesSet(brand: String, before: Set[String], after: Set[String], at: Instant)
 
 final case class CreateOperator(email: Personal[String], role: String, scopeLevel: String, scopeId: String, ancestors: Vector[String],
     firstName: Option[Personal[String]], lastName: Option[Personal[String]], actor: Actor, at: Instant)
 final case class OperatorChange(actor: Actor, at: Instant)
 final case class ChangeScope(scopeLevel: String, scopeId: String, ancestors: Vector[String], actor: Actor, at: Instant)
 final case class MirrorEnabled(enabled: Boolean, at: Instant)
+final case class SetBrandRoles(brand: String, roles: Set[String], at: Instant)
 
 object OperatorCodecs:
   given Serializer[OperatorState]  = MerchantCodecs.serializer[OperatorState]("operator-state")
@@ -54,6 +59,7 @@ object OperatorCodecs:
   given Serializer[OperatorChange] = MerchantCodecs.serializer[OperatorChange]("operator-change")
   given Serializer[ChangeScope]    = MerchantCodecs.serializer[ChangeScope]("change-scope")
   given Serializer[MirrorEnabled]  = MerchantCodecs.serializer[MirrorEnabled]("mirror-enabled")
+  given Serializer[SetBrandRoles]  = MerchantCodecs.serializer[SetBrandRoles]("set-brand-roles")
   given Serializer[Instant]        = MerchantCodecs.serializer[Instant]("instant")
 
 import OperatorCodecs.given
@@ -70,6 +76,8 @@ final class Operator(context: EventSourcedEntityContext) extends EventSourcedEnt
     case OperatorEvent.ScopeChanged(level, id, anc, _, _)  => currentState.copy(scopeLevel = level, scopeId = id, ancestors = anc)
     case OperatorEvent.EnabledMirrored(enabled, _)         => currentState.copy(enabled = enabled)
     case OperatorEvent.Removed(_, _)                       => currentState.copy(removed = true)
+    case OperatorEvent.BrandRolesSet(brand, _, after, _)   =>
+      currentState.copy(brandRoles = if after.isEmpty then currentState.brandRoles - brand else currentState.brandRoles.updated(brand, after))
 
   private def live[R](f: OperatorState => Effect[R]): Effect[R] =
     if currentState.exists then f(currentState) else effects.error("OPERATOR_NOT_FOUND", ErrorCode.NotFound)
@@ -93,6 +101,16 @@ final class Operator(context: EventSourcedEntityContext) extends EventSourcedEnt
 
   def remove(cmd: OperatorChange): Effect[OperatorState] = live(_ => effects.persist(OperatorEvent.Removed(cmd.actor, cmd.at)).thenReplyState)
 
+  /**
+   * Records the roles `brand` gives this operator, after the realm was set. The same roles again record
+   * nothing. It is not refused on an operator this service did not create: a brand's operators may have
+   * been made in the realm by other means, and the record is what lets one brand leave another's roles.
+   */
+  def setBrandRoles(cmd: SetBrandRoles): Effect[OperatorState] =
+    val before = currentState.brandRoles.getOrElse(cmd.brand, Set.empty)
+    if before == cmd.roles then effects.reply(currentState)
+    else effects.persist(OperatorEvent.BrandRolesSet(cmd.brand, before, cmd.roles, cmd.at)).thenReplyState
+
   def get: ReadOnlyEffect[OperatorState] = effects.reply(currentState)
 
 object Operator extends EventSourcedEntity.Companion[Operator, OperatorState, OperatorEvent](
@@ -107,6 +125,7 @@ object Operator extends EventSourcedEntity.Companion[Operator, OperatorState, Op
   val changeScope   = command("change-scope")(_.changeScope)
   val mirrorEnabled = command("mirror-enabled")(_.mirrorEnabled)
   val remove        = command("remove")(_.remove)
+  val setBrandRoles = command("set-brand-roles")(_.setBrandRoles)
   val get           = query("get")(_.get)
 
 /**

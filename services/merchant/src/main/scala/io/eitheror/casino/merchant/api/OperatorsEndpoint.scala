@@ -2,13 +2,13 @@ package io.eitheror.casino.merchant.api
 
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.http.*
-import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.access.{OperatorPermissions, Routes}
 import io.eitheror.casino.contract.personal.Personal
 import io.eitheror.casino.merchant.Json
 import io.eitheror.casino.merchant.Json.*
 import io.eitheror.casino.merchant.api.Answers.*
 import io.eitheror.casino.merchant.keys.RawKeys
-import io.eitheror.casino.merchant.operators.{Invitation, InvitationToken, Invitations, IssueInvitation, KeycloakAdmin, Level, OperatorsRuntime, OperatorsView, OperatorRow, OperatorState, Privilege, RealmError, Scope, CreateOperator, ChangeScope, OperatorChange}
+import io.eitheror.casino.merchant.operators.{Invitation, InvitationToken, Invitations, IssueInvitation, KeycloakAdmin, Level, OperatorsRuntime, OperatorsView, OperatorRow, OperatorState, Privilege, RealmError, Scope, CreateOperator, ChangeScope, OperatorChange, SetBrandRoles}
 import io.eitheror.casino.merchant.operators.Operator as OperatorEntity
 
 /**
@@ -159,3 +159,53 @@ final class OperatorsEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/operators"):
       }
     }
   }
+
+  /**
+   * Spec 030 H6: a brand's `players` sets the realm roles that brand gives an operator. Admitted to any
+   * project's `players` (the brand's grant names it); the handler holds the caller to its own brand. It
+   * adds `brand_<slug>`, creates a realm role that does not exist, and removes only roles this brand gave
+   * before and no longer asks for, never one another brand's request gave. A reserved name (every realm
+   * role but the default roles, `platform_admin`, a payments role, another brand's `brand_<slug>`) is
+   * refused and the realm is not touched.
+   */
+  withAcl(BrandRoles.acl) {
+    putBody("/{id}/brand-roles/{brand}") { (id: String, brand: String, text: String) =>
+      guarded {
+        caller match
+          case com.thinkmorestupidless.ankka.http.Caller.Service(project, _) if project != brand =>
+            refuse(403, "FORBIDDEN", s"$project sets the roles of its own brand only")
+          case _ =>
+            body(text).fold(identity, b => setBrandRoles(id, brand, b.strings("roles").toSet))
+      }
+    }
+  }
+
+  private def setBrandRoles(id: String, brand: String, asked: Set[String]): Respond[Bytes] =
+    val own = s"brand_$brand"
+    BrandRoles.refused(brand, asked) match
+      case Some(role) => refuse(400, "RESERVED_ROLE", s"$role is not a role a brand gives", "role" -> role)
+      case None =>
+        realm.realmRoles(id).fold(realmFailure, held =>
+          val state  = operator(id).call(OperatorEntity.get).invoke()
+          val before = state.brandRoles.getOrElse(brand, Set.empty)
+          val others = (state.brandRoles - brand).values.flatten.toSet
+          val target = asked + own
+          val gone   = (before -- target -- others).intersect(held)
+          val done = for
+            _ <- target.toVector.sorted.foldLeft[Either[RealmError, Unit]](Right(()))((acc, r) => acc.flatMap(_ => realm.ensureRole(r)))
+            _ <- (target -- held).toVector.sorted.foldLeft[Either[RealmError, Unit]](Right(()))((acc, r) => acc.flatMap(_ => realm.assignRole(id, r)))
+            _ <- gone.toVector.sorted.foldLeft[Either[RealmError, Unit]](Right(()))((acc, r) => acc.flatMap(_ => realm.removeRole(id, r)))
+          yield ()
+          done.fold(realmFailure, _ =>
+            operator(id).call(OperatorEntity.setBrandRoles).invoke(SetBrandRoles(brand, target, ctx.now())): Unit
+            ok(Json.obj("operatorId" -> id, "brand" -> brand, "roles" -> Json.arr(target.toVector.sorted*)))))
+
+object BrandRoles:
+  /** Any project's `players`, or a local run. */
+  val acl: Acl = Acl.AllowIf(r => r.caller match
+    case Caller.Service(_, "players") | Caller.Local => true
+    case _                                           => false)
+
+  /** The first role `brand` may not give: not a role's name, or reserved, but its own `brand_<slug>`. */
+  def refused(brand: String, asked: Set[String]): Option[String] =
+    asked.toVector.sorted.find(r => r != s"brand_$brand" && (!OperatorPermissions.validRoleName(r) || OperatorPermissions.reserved(r)))

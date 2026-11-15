@@ -303,6 +303,9 @@ scenario 12's full chain, whose steps 1 to 3 touch the realm directly and are st
 - added `features/payments/operators.feature`: a pending operator who accepts the operator invitation and sets a password is active at their level
 - added `features/payments/operators.feature`: an operator cannot create an operator above their own level or with more privilege than their own
 - added `features/payments/operators.feature`: an operator disabled at the sign-in reads as disabled in the shared payments
+- added `features/payments/operators.feature`: a brand's request sets an operator's roles for that brand
+- added `features/payments/operators.feature`: a brand's request for a payments role or the platform administrator's role is refused
+- added `features/payments/operators.feature`: a brand's request changes no role another brand's request gave
 
 ---
 
@@ -520,6 +523,13 @@ original refuses a capture it cannot trust rather than credit it.
 - **FR-028**: The service MUST mirror an operator's enabled flag from the realm on a recurring timer
   (ankka 032), replacing the original's in-process syncer, and MUST list operators by the caller's
   scope.
+- **FR-028a** *(amended by spec 030, H6)*: `PUT /v1/operators/{id}/brand-roles/{brand}`, admitted only
+  to that brand's `players` under the brand's grant, MUST set the realm roles the brand gives the
+  operator: add `brand_<slug>`, create a realm role that does not exist, and remove only the roles this
+  brand gave before and no longer asks for, never a role another brand's request gave. It MUST refuse,
+  touching nothing, a role reserved by `OperatorPermissions.reserved` (every realm role but the four
+  default brand roles, `platform_admin`, the payments roles, another brand's `brand_<slug>`). The
+  roles each brand gave are kept on the operator, and each setting is an audit record.
 
 **Backoffice reads**
 
