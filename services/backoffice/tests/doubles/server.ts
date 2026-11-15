@@ -8,8 +8,8 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { table } from "../../src/server/routes.ts";
-import permissions from "../../src/shared/generated/operator-permissions.v1.json" with { type: "json" };
 import { Owner, type Answer, type Asked, type Fixtures, type Script } from "./owner.ts";
+import { BrandRoles } from "./roles.ts";
 import { Realm } from "./realm.ts";
 import type { Preferences } from "../../src/server/session.ts";
 
@@ -49,18 +49,6 @@ function scripted(name: string): Answer {
   return JSON.parse(readFileSync(file, "utf8")) as Answer;
 }
 
-/** The brand's roles as players answers them, from the contract's defaults unless the fixture names them. */
-function rolesOf(): Fixtures {
-  return {
-    "GET /v1/casino/brands/{brand}/players/roles": {
-      anonymous: true,
-      body: {
-        roles: Object.entries(permissions.defaults).map(([name, ps]) => ({ name, description: "", permissions: [...ps].sort(), default: true })),
-      },
-    },
-  };
-}
-
 export interface Doubles {
   url: string;
   owners: Map<string, Owner>;
@@ -94,9 +82,11 @@ export async function startDoubles(port = 0): Promise<Doubles> {
   const owners = new Map<string, Owner>();
   for (const name of ownerNames())
     owners.set(name, new Owner(name, scripted, name === "backoffice-state" ? (a) => realm.state(a) : undefined));
+  const roles = new BrandRoles((operator, given) => realm.setRoles(operator, given));
   const reset = () => {
     realm.reset();
-    for (const [name, o] of owners) o.load({ ...(name === "players" ? rolesOf() : {}), ...read(path.join(FixturesDir, `${name}.json`)) });
+    roles.reset();
+    for (const [name, o] of owners) o.load(read(path.join(FixturesDir, `${name}.json`)));
   };
   reset();
 
@@ -163,6 +153,14 @@ export async function startDoubles(port = 0): Promise<Doubles> {
         const [service, project] = first.split(".");
         const why = project ? `no service '${service}' in the project '${project}'` : `no service '${first}'`;
         return send(res, { status: 503, body: { error: why }, headers: { "X-Ankka-Answered-By": "proxy" } });
+      }
+      if (first === "players") {
+        const path = `/${rest.join("/")}`;
+        const kept = roles.handle(req.method ?? "GET", path, body, /^Bearer \S+$/.test(req.headers.authorization ?? ""));
+        if (kept) {
+          o.calls.push({ owner: o.name, method: req.method ?? "GET", path, query: url.searchParams.toString(), headers: flat(req.headers), body, at: Date.now() });
+          return send(res, kept);
+        }
       }
       const asked: Asked = { method: req.method ?? "GET", path: `/${rest.join("/")}`, query: url.searchParams, headers: flat(req.headers), body };
       const out = o.handle(asked);
