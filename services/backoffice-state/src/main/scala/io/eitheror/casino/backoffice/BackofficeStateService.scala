@@ -3,13 +3,14 @@ package io.eitheror.casino.backoffice
 import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{EndpointClients, HttpEndpoint, HttpServer}
 import com.thinkmorestupidless.ankka.runtime.{Ankka, TimerRuntime}
+import io.eitheror.casino.backoffice.preferences.Preferences
 import io.eitheror.casino.backoffice.session.{KeycloakRealmClient, Session, SessionExpiry, SessionRefresh, SessionsBySubject}
 
 /** Every component of the service (data-model.md), registered by the service and by its test kit alike. */
 object BackofficeStateService:
 
   def descriptors: Seq[ComponentDescriptor] =
-    Seq(Session.descriptor, SessionRefresh.descriptor, SessionExpiry.descriptor, SessionsBySubject.descriptor)
+    Seq(Session.descriptor, SessionRefresh.descriptor, SessionExpiry.descriptor, SessionsBySubject.descriptor, Preferences.descriptor)
 
   /** Filled by T033: the session and preferences endpoints, admitting only the brand's `backoffice`. */
   def endpoints(settings: Settings): Seq[EndpointClients => HttpEndpoint] = Seq.empty
@@ -22,6 +23,7 @@ object BackofficeStateService:
   val builder = Ankka.service
     .registerAll(BackofficeStateService.descriptors)
     .withExtension(timers)
+    .withErasureHandler(Erasure.handler)
     .withExtension(HttpServer.of(BackofficeStateService.endpoints(settings)*))
   // The installation names its keyring for a service with personal fields; a local run keeps its keys in its own database.
   val keyed =
