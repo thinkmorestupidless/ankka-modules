@@ -31,7 +31,7 @@
 
 ## Notes
 
-1. The spec names where the backoffice runs (a shared project, a web-hosted service, the operator's
+1. The spec names where the backoffice runs (a module of each brand's own project, a web-hosted service, the operator's
    sign-in held server-side) and the reason-given language for the constitution amendment. These
    are placement and trust decisions the constitution and spec 001 make at spec level in this
    repository (as spec 021 does), not implementation choices; no framework, library or route shape
