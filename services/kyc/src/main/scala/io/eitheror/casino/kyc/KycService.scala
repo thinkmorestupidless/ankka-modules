@@ -35,7 +35,7 @@ object KycService:
     ClosureConsumer.descriptor,
     RecordTimers.descriptor,
     WindowTimer.descriptor
-  )
+  ) ++ io.eitheror.casino.kyc.freshness.ViewFollower.descriptors
 
   /**
    * One endpoint per prefix (contracts/routes.md), none sharing one. `bags` is the brand's roles the

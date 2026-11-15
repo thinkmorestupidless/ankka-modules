@@ -47,6 +47,19 @@ class QueueSuite extends munit.FunSuite with LogCapturing with io.eitheror.casin
   private def listedUnder(query: String, p: String, listed: Boolean = true): JsonNode =
     kit.eventually(s"$p ${if listed then "in" else "out of"} '$query'")(Some(queue(query)).filter(q => ids(q).contains(p) == listed))
 
+  test("status (K4, F): the queue's view with when it last applied a change, for identity.review and the project's services"):
+    val status = kit.servicePath("/status")
+    val p = newPlayer()
+    flag(p)
+    val queue = kit.eventually("the queue marked")(
+      Option(kit.request("GET", status, None, kit.asOperator())).filter(_.status == 200)
+        .flatMap(_.json.objects("views").find(_.text("name").contains("kyc-queue"))).filter(_.text("asOf").nonEmpty))
+    assert(!java.time.Instant.parse(queue.text("asOf").get).isAfter(java.time.Instant.now()), queue.toString)
+    assertEquals(queue.get("rebuilding").asBoolean, false)
+    assertEquals(kit.request("GET", status, None, kit.asService("backoffice")).json.objects("views").flatMap(_.text("name")), Vector("kyc-queue"))
+    assertEquals(kit.request("GET", status, None, kit.asOperator(roles = s"brand_${kit.slug},resource_finance")).status, 403)
+    assertEquals(kit.request("GET", status, None, kit.asPlayer(p)).status, 403)
+
   test("each filter lists its players, and each count is its filter's rows"):
     val a = newPlayer(); submit(a)
     val b = newPlayer(); flag(b)
