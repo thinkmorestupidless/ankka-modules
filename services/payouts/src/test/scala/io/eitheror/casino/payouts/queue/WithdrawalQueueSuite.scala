@@ -75,3 +75,35 @@ class WithdrawalQueueSuite extends munit.FunSuite with LogCapturing:
     assertEquals((small.page, small.pageSize), (1, 1))
     val two = WithdrawalQueue.page(queue, f, 2, 1)
     assertNotEquals(two.rows.map(_.requestId), first.rows.map(_.requestId))
+
+  test("oldest first by when the request was made, a page the same slice from the other end (spec 030 Y2)"):
+    // A method only this test's requests have, so the queue's other rows are outside the filter.
+    val own  = TerminalRef("t-o", "sb-1", "Own", "unityfinance", s"OWN-$tag", true)
+    val made = Vector(3, 1, 2).map { m =>
+      val id = s"o-$tag-$m"
+      entity(id).call(WithdrawalRequest.open).invoke(Open(id, s"op-$tag-$m", 5000L, 5000L, "EUR", own, payee, Forfeit(), "verified",
+        start.plus(Duration.ofMinutes(m.toLong)))): Unit
+      id
+    }
+    val f = WithdrawalQueue.Filter(status = None, method = Some(s"OWN-$tag"))
+    kit.eventually("own rows")(Option.when(WithdrawalQueue.page(queue, f, 1, 200).total == 3)(()))
+    val ordered = Vector(1, 2, 3).map(m => s"o-$tag-$m")
+    assertEquals(WithdrawalQueue.page(queue, f, 1, 200, oldest = true).rows.map(_.requestId), ordered)
+    assertEquals(WithdrawalQueue.page(queue, f, 1, 200).rows.map(_.requestId), ordered.reverse)
+    val second = WithdrawalQueue.page(queue, f, 2, 2, oldest = true)
+    assertEquals((second.rows.map(_.requestId), second.total), (Vector(s"o-$tag-3"), 3L))
+    assertEquals(made.toSet, ordered.toSet)
+
+  test("counts are the brand's requests pending review and its approved ones whose payment needs review (spec 030 Y2)"):
+    val pending = WithdrawalQueue.Filter()
+    val doubt   = WithdrawalQueue.Filter(status = Some("approved"), payoutStatus = Some("needs_review"))
+    def now() = (queue.count(pending.condition), queue.count(doubt.condition))
+    val id = s"n-$tag"
+    entity(id).call(WithdrawalRequest.open).invoke(Open(id, s"np-$tag", 5000L, 5000L, "EUR", bank, payee, Forfeit(), "verified", start)): Unit
+    entity(id).call(WithdrawalRequest.approve).invoke(Approve("op-1", start)): Unit
+    entity(id).call(WithdrawalRequest.initiated).invoke(Initiated("initiated", Some(s"ref-$id"), start)): Unit
+    entity(id).call(WithdrawalRequest.needsReview).invoke(NeedsReview("in_doubt", start)): Unit
+    kit.eventually("in doubt")(queue.get(id).filter(_.payoutStatus == "needs_review"))
+    val c = WithdrawalQueue.counts(queue)
+    assertEquals((c.pendingReview, c.needsReview), now())
+    assert(c.needsReview >= 1 && c.pendingReview >= 8, c.toString)

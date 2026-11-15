@@ -107,18 +107,29 @@ object WithdrawalQueue extends View.Companion[WithdrawalQueueView, RequestEvent,
       ).flatten
       if parts.isEmpty then sql"1 = 1" else parts.reduce((a, b) => a ++ SqlFragment.raw(" AND ") ++ b)
 
-  /** One page of a filter, newest first, and how many rows the filter holds. */
+  /** One page of a filter, newest first or oldest first, and how many rows the filter holds. */
   final case class Page(rows: Vector[QueueRow], total: Long, page: Int, pageSize: Int)
 
   val MaxPageSize = 200
 
-  private val Newest = SqlFragment.raw("(payload::jsonb->>'createdAt')::timestamptz DESC")
+  // The request id breaks a tie, so a page is the same slice each time it is asked for.
+  private val Newest = SqlFragment.raw("(payload::jsonb->>'createdAt')::timestamptz DESC, payload::jsonb->>'requestId' DESC")
+  private val Oldest = SqlFragment.raw("(payload::jsonb->>'createdAt')::timestamptz ASC, payload::jsonb->>'requestId' ASC")
 
-  def page(queue: ViewQueries[QueueRow], filter: Filter, page: Int, pageSize: Int): Page =
+  def page(queue: ViewQueries[QueueRow], filter: Filter, page: Int, pageSize: Int, oldest: Boolean = false): Page =
     val p    = math.max(1, page)
     val size = math.min(MaxPageSize, math.max(1, pageSize))
-    val upTo = queue.ordered(filter.condition, Newest, p * size)
+    val upTo = queue.ordered(filter.condition, if oldest then Oldest else Newest, p * size)
     Page(upTo.drop((p - 1) * size).take(size), queue.count(filter.condition), p, size)
+
+  /** The brand's two queues of work (spec 030 Y2): the requests pending review, and the approved ones whose payment needs review. */
+  final case class Counts(pendingReview: Long, needsReview: Long)
+
+  val PendingReview: Filter = Filter()
+  val NeedsReview: Filter   = Filter(status = Some(Status.Approved.wire), payoutStatus = Some(PayoutStatus.NeedsReview.wire))
+
+  def counts(queue: ViewQueries[QueueRow]): Counts =
+    Counts(queue.count(PendingReview.condition), queue.count(NeedsReview.condition))
 
   /** The player's requests, newest first. */
   def byPlayer(queue: ViewQueries[QueueRow], playerId: String, limit: Int = 1000): Vector[QueueRow] =

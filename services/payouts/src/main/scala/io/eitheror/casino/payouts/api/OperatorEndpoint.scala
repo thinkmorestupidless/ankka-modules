@@ -60,8 +60,8 @@ object Operator:
   private def notFound = refusal(404, RequestCodes.NotFound, "no such withdrawal request")
   private def invalid(parameter: String) = refusal(400, "INVALID_REQUEST", s"$parameter is not a valid value", "field" -> parameter)
 
-  /** The query as a filter and a page, or the first parameter that is not valid. */
-  def filter(q: String => Option[String], now: java.time.Instant): Either[String, (WithdrawalQueue.Filter, Int, Int)] =
+  /** The query as a filter, a page and whether oldest first (`sort=oldest`; newest by default), or the first parameter that is not valid. */
+  def filter(q: String => Option[String], now: java.time.Instant): Either[String, (WithdrawalQueue.Filter, Int, Int, Boolean)] =
     def opt(name: String) = q(name).map(_.trim).filter(_.nonEmpty)
     def number(name: String, default: Int) = opt(name).fold[Either[String, Int]](Right(default))(v => v.toIntOption.toRight(name))
     for
@@ -80,17 +80,23 @@ object Operator:
       size <- number("pageSize", 50)
       _    <- Either.cond(page >= 1, (), "page")
       _    <- Either.cond(size >= 1 && size <= WithdrawalQueue.MaxPageSize, (), "pageSize")
+      oldest <- opt("sort").map(_.toLowerCase) match
+        case None | Some("newest") => Right(false)
+        case Some("oldest")        => Right(true)
+        case Some(_)               => Left("sort")
     yield
       val waiting = if stale then payout.orElse(Some(PayoutStatus.Initiated.wire)) else payout
       (WithdrawalQueue.Filter(status, waiting, kyc, opt("method"), band, opt("playerSearch"),
-        Option.when(stale)(now.minus(Stale))), page, size)
+        Option.when(stale)(now.minus(Stale))), page, size, oldest)
 
   def queue(ctx: Ctx, q: String => Option[String]): Reply =
     filter(q, ctx.now()) match
       case Left(parameter) => invalid(parameter)
-      case Right((f, page, size)) =>
-        val p = WithdrawalQueue.page(ctx.queue, f, page, size)
-        ok(Json.obj("requests" -> Json.arr(p.rows.map(row)*), "total" -> p.total, "page" -> p.page, "pageSize" -> p.pageSize))
+      case Right((f, page, size, oldest)) =>
+        val p = WithdrawalQueue.page(ctx.queue, f, page, size, oldest)
+        val c = WithdrawalQueue.counts(ctx.queue)
+        ok(Json.obj("requests" -> Json.arr(p.rows.map(row)*), "total" -> p.total, "page" -> p.page, "pageSize" -> p.pageSize,
+          "counts" -> Json.obj("pendingReview" -> c.pendingReview, "needsReview" -> c.needsReview)))
 
   /** A row as contracts/routes.md has it. */
   def row(r: QueueRow): JsonNode =
