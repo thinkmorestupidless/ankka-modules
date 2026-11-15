@@ -57,6 +57,12 @@ class LayoutSuite extends munit.FunSuite:
     assertEquals(Layout.brandGrantsReceived("goldvibe").map(_.principal).toSet, Set("service:goldvibe/payouts", "service:goldvibe/players"))
   }
 
+  test("spec 030 H6: a brand's players sets its operators' roles at merchant, and nothing else of merchant's") {
+    assertEquals(
+      Layout.brandGrantsReceived("goldvibe").filter(_.target match { case GrantTarget.Route("merchant", _, _) => true; case _ => false }),
+      Vector(Grant("service:goldvibe/players", GrantTarget.Route("merchant", "PUT", "/v1/operators/{id}/brand-roles/{brand}"))))
+  }
+
   test("the longest brand service still sets the slug's limit") {
     assertEquals(Layout.MaxSlugLength, 42)
   }

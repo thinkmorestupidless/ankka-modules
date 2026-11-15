@@ -791,6 +791,19 @@
           "type": "integer",
           "x-unit": "minor"
         },
+        "cause": {
+          "additionalProperties": true,
+          "properties": {
+            "kind": {
+              "type": "string"
+            },
+            "ref": {
+              "type": "string"
+            }
+          },
+          "required": ["kind", "ref"],
+          "type": "object"
+        },
         "converted_part_cents": {
           "minimum": 0,
           "type": "integer",
