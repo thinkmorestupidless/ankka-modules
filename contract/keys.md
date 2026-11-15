@@ -70,6 +70,9 @@ same for every brand and are literals in the descriptors, not keys.
 | public-api-host | public-api | url | no | | | `PUBLIC_API_HOST` |
 | player-site-languages | player-site | string | no | | | `PLAYER_SITE_LANGUAGES` |
 | player-site-currency | player-site | string | no | | | `PLAYER_SITE_CURRENCY` |
+| backoffice-host | backoffice | url | no | | | `BACKOFFICE_HOST` |
+| backoffice-shared-projects | backoffice | string | no | | | `BACKOFFICE_SHARED_PROJECTS` |
+| backoffice-client-secret | backoffice | string | yes | `<slug>-backoffice/CLIENT_SECRET` | | `BACKOFFICE_CLIENT_SECRET` |
 
 `reporting-zone`, `casino-modules` and `kyc-max-upload-bytes` have a value when a brand writes none (spec
 012 research R7, R12; spec 009 R18; `Values.defaults`): the largest KYC upload is 5,242,880 bytes, the reporting zone is `UTC`, and the modules are those the brand runs, `core`
@@ -92,6 +95,12 @@ minor units and shares. `predictions-taker-fee-bps` is `0` and `predictions-gate
 `play-gate,may-bet` when a brand writes none; a fee above `0` stops `markets` at start until
 ankka-predictions 0.2.0 charges one (R8). The reasoning mirror's key is added with the mirror,
 when ankka-reasoning 0.2.0 is cut (R14).
+
+`backoffice-host` (spec 030) is the brand's backoffice address as operators reach it; the realm's
+`backoffice-<slug>` client redirects only to `<backoffice-host>/auth/callback`, so the modules tool's
+realm step makes the client once the brand has one. `backoffice-shared-projects` names the shared
+projects the backoffice reads, `<role>=<project>` by comma (`payments`, `programme`, `reasoner`); it is
+`payments=payments,programme=programme,reasoner=reasoner` when a brand writes none.
 
 `public-api-host` (spec 016) is the brand's public API address, without `/v1`, as callers reach it: the
 served contract's `servers[0].url` is it with `/v1` appended. The platform gives a service no hostname

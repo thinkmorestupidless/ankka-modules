@@ -15,6 +15,7 @@ manifest format (vendor spec 004 `contracts/manifest.md`; the schema is vendored
 | `predictions` | product | markets, exchange | `core` |
 | `public-api` | product | public-api | `core`, `casino` |
 | `player-site` | product | player-site (web-hosted: the reference site on the player SDK, spec 027) | `core` |
+| `backoffice` | product | backoffice, backoffice-state | `core` |
 
 `pool` is written by spec 024.
 
@@ -26,6 +27,17 @@ Every apply, of a brand or a shared project, is refused before anything is deplo
 installation's platform cannot run a runtime the manifests name: a platform runs its own minor
 version and the one below (spec 031). The platform's version is `GET /installation`'s
 `platformVersion`, else the overlay's `PLATFORM_VERSION`; `dev-kind` states 0.16.3 until it is rebuilt.
+
+## The backoffice
+
+`backoffice` (spec 030) is the brand's operators' console: `backoffice`, a web-hosted service
+(`hosting: "web"`, any program on `PORT`; ankka's proxy beside it) exposed at the brand's
+`backoffice-host`, and `backoffice-state`, not exposed, holding the operators' sessions and
+preferences and admitting only `backoffice`. The page calls every owning service as the signed-in
+operator through `ANKKA_SERVICES_URL`; a shared project at the address `backoffice-shared-projects`
+names. A brand entitled to it writes `backoffice-host` and a `<slug>-backoffice/CLIENT_SECRET` in its
+secrets file; the realm step then adds the brand's `backoffice-<slug>` client to `eitheror`
+(`brands/_realm/README.md`).
 
 ## What a manifest carries
 
