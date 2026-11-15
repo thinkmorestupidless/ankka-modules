@@ -58,15 +58,15 @@ const pick = (o: Obj, keys: string[]): Match["summary"] => {
   }
   return s;
 };
-const one = (kind: string, idKey: string, summary: string[]) => (body: unknown): Match[] => {
+const one = (kind: string, idKey: string, summary: string[], playerKey = "playerId") => (body: unknown): Match[] => {
   const o = obj(body);
   const id = str(o[idKey]);
   if (!id) return [];
-  return [{ kind, id, player: str(o.playerId), summary: pick(o, summary) }];
+  return [{ kind, id, player: str(o[playerKey]), summary: pick(o, summary) }];
 };
-const list = (kind: string, field: string, idKey: string, summary: string[]) => (body: unknown): Match[] => {
+const list = (kind: string, field: string, idKey: string, summary: string[], playerKey = "playerId") => (body: unknown): Match[] => {
   const items = obj(body)[field];
-  return Array.isArray(items) ? items.flatMap((i) => one(kind, idKey, summary)(i)) : [];
+  return Array.isArray(items) ? items.flatMap((i) => one(kind, idKey, summary, playerKey)(i)) : [];
 };
 const enc = encodeURIComponent;
 
@@ -74,12 +74,12 @@ export const Resolvers: readonly Resolver[] = [
   { kind: "player", shape: "uuid", service: "players", template: "/players/{playerId}/profile", path: (q) => `/players/${enc(q)}/profile`, read: one("player", "playerId", ["email", "status", "currency"]) },
   { kind: "withdrawal", shape: "uuid", service: "payouts", template: "/withdrawal-requests/{requestId}", path: (q) => `/withdrawal-requests/${enc(q)}`, read: one("withdrawal", "requestId", ["status", "amount", "currency"]) },
   { kind: "reward", shape: "uuid", service: "rewards", template: "/reward-grants/{rewardId}", path: (q) => `/reward-grants/${enc(q)}`, read: one("reward", "rewardId", ["status", "offerName", "kind"]) },
-  { kind: "payment", shape: "uuid", service: "merchant", template: "/{paymentId}", path: (q) => `/${enc(q)}`, read: one("payment", "id", ["status", "amount", "currency", "method"]) },
+  { kind: "payment", shape: "uuid", service: "merchant", template: "/{paymentId}", path: (q) => `/${enc(q)}`, read: one("payment", "paymentId", ["status", "amountCents", "currency", "psp"], "customerRef") },
   { kind: "round", shape: "uuid", service: "game-provider", template: "/rounds/by-round/{roundId}", path: (q) => `/rounds/by-round/${enc(q)}`, read: one("round", "roundId", ["game", "status", "currency"]) },
   { kind: "round", shape: "uuid", service: "game-provider", template: "/rounds/by-transaction/{transactionId}", path: (q) => `/rounds/by-transaction/${enc(q)}`, read: one("round", "roundId", ["game", "status", "currency"]) },
   { kind: "player", shape: "email", service: "players", template: "/players", path: (q) => `/players?search=${enc(q)}`, read: list("player", "items", "playerId", ["email", "username", "accountStatus", "currency"]) },
   { kind: "document", shape: "document", service: "reporting", template: "/documents/{reference}", path: (q) => `/documents/${enc(q)}`, read: one("document", "reference", ["kind", "state"]) },
-  { kind: "payment", shape: "reference", service: "merchant", template: "/cashier", path: (q) => `/cashier?reference=${enc(q)}`, read: list("payment", "items", "id", ["status", "amount", "currency", "method"]) },
+  { kind: "payment", shape: "reference", service: "merchant", template: "/cashier", path: (q) => `/cashier?reference=${enc(q)}`, read: list("payment", "payments", "paymentId", ["status", "amountCents", "currency", "psp"], "customerRef") },
   { kind: "player", shape: "text", service: "players", template: "/players", path: (q) => `/players?search=${enc(q)}`, read: list("player", "items", "playerId", ["email", "username", "accountStatus", "currency"]) },
 ];
 
