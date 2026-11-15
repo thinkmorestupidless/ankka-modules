@@ -55,6 +55,10 @@ trait Harness extends munit.FunSuite with LogCapturing:
 
   def testKit: AnkkaTestKit = kit
 
+  /** The brand's roles the operator routes decide from: the role matrix, as a new brand starts. */
+  val roles: io.eitheror.casino.contract.access.RoleBags =
+    io.eitheror.casino.contract.access.RoleBags.fixed(io.eitheror.casino.contract.access.OperatorPermissions.DefaultRoles)
+
   /** The service's components, the deposit workflow asking the fake; a suite adds a prototype's beside them. */
   def components: Seq[ComponentDescriptor] = WalletService.components(_ => rg)
 
@@ -65,7 +69,8 @@ trait Harness extends munit.FunSuite with LogCapturing:
   private val held = HeldToPlayerRoutes(Harness.description, brand)
 
   override def beforeAll(): Unit =
-    server = held.hold(HttpServer.at("127.0.0.1", 0)(WalletService.endpoints(brand, () => TestTokens.authenticate, project = Harness.Project)*))
+    server = held.hold(HttpServer.at("127.0.0.1", 0)(WalletService.endpoints(brand, () => TestTokens.authenticate, project = Harness.Project,
+      bags = Some(_ => roles))*))
     kit = AnkkaTestKit.start(components, Seq(ProjectionRuntime.withPublisher(publisher), server), localServices = localServices)
 
   override def afterAll(): Unit = if kit != null then kit.stop()
@@ -129,7 +134,7 @@ object TestTokens:
   val Header = "X-Test-Token"
 
   def player(subject: String, realm: String = "casino-goldvibe"): String = s"$subject|player|$realm|"
-  def operator(subject: String, roles: String = "brand_goldvibe"): String = s"$subject|staff|eitheror|$roles"
+  def operator(subject: String, roles: String = "brand_goldvibe,brand_admin"): String = s"$subject|staff|eitheror|$roles"
 
   val authenticate: com.thinkmorestupidless.ankka.http.Acl =
     import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Principal}

@@ -9,6 +9,10 @@ import io.eitheror.casino.wallet.publish.Facts
 /** features/wallet/adjustments.feature (User Story 5). */
 class AdjustmentsFeatures extends WalletFeatures("adjustments.feature"):
 
+  // spec 030 W2: bound by T084, with the cause on the answer, the row and the fact
+  override protected def ranElsewhere: Map[String, String] = Map(
+    "an operator's adjustment carries its cause and answers the balance before and after" -> "T084 (pending)")
+
   private var sums: DepositSums = null
 
   When("an operator credits {string} to real balance with reason {string}") { (a: String, reason: String) =>

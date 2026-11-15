@@ -4,7 +4,7 @@ import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.auth.oidc.Oidc
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, HttpServer}
 import com.thinkmorestupidless.ankka.runtime.{Ankka, ProjectionRuntime}
-import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.access.{RoleBags, Routes}
 import io.eitheror.casino.wallet.api.*
 import com.thinkmorestupidless.ankka.sdk.ServiceClients
 import io.eitheror.casino.wallet.accounts.{AccountEntity, AccountMoveWorkflow}
@@ -48,10 +48,15 @@ object WalletService:
     AccountTransactionsPublisher.descriptor
   )
 
-  /** The four audiences' endpoints, for a brand, with `responsible-gambling` as given. */
-  def endpoints(brand: String, authenticate: () => Acl = () => Oidc.authenticate(), project: String = ""): Seq[EndpointClients => HttpEndpoint] = Seq(
+  /**
+   * The four audiences' endpoints, for a brand, with `responsible-gambling` as given. `bags` is the
+   * brand's roles the operator routes decide from: by default read from the brand's `players`.
+   */
+  def endpoints(brand: String, authenticate: () => Acl = () => Oidc.authenticate(), project: String = "",
+      bags: Option[EndpointClients => RoleBags] = None)
+      : Seq[EndpointClients => HttpEndpoint] = Seq(
     clients => ServiceEndpoint(clients.componentClient, clients.viewClient, brand, project = project),
-    clients => OperatorEndpoint(clients.componentClient, clients.viewClient, brand, authenticate()),
+    clients => OperatorEndpoint(clients.componentClient, clients.viewClient, brand, authenticate(), bags = bags.fold(BrandRoles.of(clients.services, brand))(_(clients))),
     clients => PlayerEndpoint(clients.componentClient, clients.viewClient, brand, authenticate())
   )
 

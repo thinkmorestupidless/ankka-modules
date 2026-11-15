@@ -28,14 +28,27 @@ final class RoleBags(fetch: () => Either[String, String], clock: Clock = Clock.s
   /** Reads the roles now, keeping the last copy when the read fails. */
   def refresh(): Unit = synchronized {
     val now = clock.instant()
-    lastTry.set(Some(now))
+    val tried = lastTry.getAndSet(Some(now)).isDefined
     val read = Try(fetch()).toEither.left.map(e => s"the roles could not be read: ${e.getMessage}").flatten.flatMap(RoleBags.parse)
-    current.updateAndGet {
+    val before = current.get
+    val after = current.updateAndGet {
       case _ if read.isRight                        => RoleBags.State.Read(read.toOption.get, now, None)
       case RoleBags.State.Read(roles, at, _)        => RoleBags.State.Read(roles, at, read.left.toOption)
       case RoleBags.State.Unread                    => RoleBags.State.Unread
-    }: Unit
+    }
+    // the service's status (contracts/roles.md): a read that fails is said once, and its recovery
+    (problemOf(before, tried), read) match
+      case (None, Left(why))    => RoleBags.log.warn(s"the brand's roles could not be read; ${RoleBags.describe(after)}: $why")
+      case (Some(_), Right(_))  => RoleBags.log.info(s"the brand's roles are read again; ${RoleBags.describe(after)}")
+      case _                    => ()
   }
+
+  private def problemOf(s: RoleBags.State, tried: Boolean): Option[String] = s match
+    case RoleBags.State.Read(_, _, problem) => problem
+    case RoleBags.State.Unread              => Option.when(tried)("unread")
+
+  /** When the roles were last read and why the latest read failed, for a service's status. */
+  def status: String = RoleBags.describe(state)
 
   /** Reads the roles when [[RoleBags.Interval]] has passed since the last try, or none was made. */
   def refreshIfDue(): Unit =
@@ -71,6 +84,13 @@ object RoleBags:
     case Unread
     /** The roles as read at `at`; `problem` is why the latest read failed, if it did. */
     case Read(roles: Map[String, Set[String]], at: Instant, problem: Option[String])
+
+  private[access] val log = org.slf4j.LoggerFactory.getLogger(classOf[RoleBags])
+
+  def describe(s: State): String = s match
+    case State.Unread                     => "never read: operators are answered unavailable"
+    case State.Read(roles, at, None)      => s"${roles.size} roles read at $at"
+    case State.Read(roles, at, Some(why)) => s"${roles.size} roles kept from $at; the latest read failed: $why"
 
   /** A copy that is already read, for a service's own tests and for `players`, which reads its own view. */
   def fixed(roles: Map[String, Set[String]]): RoleBags =
