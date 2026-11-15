@@ -356,3 +356,11 @@ endpoint code of all 17 services with an operator route; its results are in
 | V3 | `ankka local web` accepts `--service name.project=url` for another project's service | the double listens under the dotted name |
 | V4 | Keycloak issues the `backoffice` client's token with audience `eitheror-casino` and the realm roles | a mapper is added in `Realm` |
 | V5 | the proxy streams server-sent events from the process unbuffered through the gateway | long polling on `/api/events` |
+
+## Design finished
+
+2026-11-15: analyze reported nothing above LOW. Round 1 found two HIGH (the amendments' scenarios
+were left to the build; one scenario named a fraud role) and six MEDIUM, all applied; round 2 found
+three LOW, left as they are: FR-020's "without scrolling" is checked by eye at 1440 by 900 (T068);
+SC-002 and SC-003 need people (T124); the affiliate's read-only view has its scenario from spec 013
+and its route from T109.
