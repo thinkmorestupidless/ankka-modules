@@ -46,7 +46,12 @@ export function harness(over: Partial<Deps> = {}) {
     const req = new Request(input, init);
     const call = { url: req.url, method: req.method, headers: req.headers, body: req.body ? await req.text() : "" };
     calls.push(call);
-    return answer(call);
+    // as a real fetch does: the request's signal ends the wait
+    const signal = init?.signal;
+    return new Promise<Response>((resolve, reject) => {
+      signal?.addEventListener("abort", () => reject(signal.reason), { once: true });
+      Promise.resolve().then(() => answer(call)).then(resolve, reject);
+    });
   };
   const deps: Deps = {
     brand: Brand,
