@@ -27,6 +27,16 @@ export interface StateClient {
   /** The session's token, refreshed by the state service when under 30 seconds remain; none once it ended. */
   token(session: string): Promise<Token | undefined>;
   end(session: string): Promise<void>;
+  /** The operator's preferences (data-model.md), as the state service keeps them. */
+  preferences(subject: string): Promise<Preferences>;
+}
+
+export interface Preferences {
+  theme: "dark" | "light";
+  /** `null` while the operator keeps the default: every kind their roles admit. */
+  worklistKinds: string[] | null;
+  onlineNotices: boolean;
+  jobs: { reference: string; kind: string; startedAt: string }[];
 }
 
 export class StateUnavailable extends Error {
@@ -67,6 +77,11 @@ export function stateClient(servicesUrl: string, fetchFn: typeof fetch, timeoutM
     async end(session) {
       const r = await call("DELETE", `/sessions/${encodeURIComponent(session)}`);
       if (!r.ok && r.status !== 404) throw new StateUnavailable(r.status);
+    },
+    async preferences(subject) {
+      const r = await call("GET", `/preferences/${encodeURIComponent(subject)}`);
+      if (!r.ok) throw new StateUnavailable(r.status);
+      return (await r.json()) as Preferences;
     },
   };
 }
