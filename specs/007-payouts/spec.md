@@ -647,3 +647,7 @@ is skipped; neither can be recorded. The recordings are:
   010 may add); the brand's withdrawal limits are in scope (FR-005a).
 - The affiliate commission consequence of a withdrawal (spec 013).
 - The operator console and the player frontend, which change base URLs and the amount's units.
+
+## Amended by 030
+
+- Y1 (spec 030 contracts/amendments.md, T018): every operator route requires one permission (`Routes.operatorMay`), decided from the brand's roles payouts reads from `players` every 10 seconds, in place of the finance and admin role sets: `withdrawal.read` for the queue, a request, a player's withdrawal history and reading the brand's withdrawal limits; `withdrawal.review` for approving, rejecting, confirming a payment and marking it failed; `config.brand` for setting the brand's withdrawal limits (`features/payouts/operator-roles.feature`).

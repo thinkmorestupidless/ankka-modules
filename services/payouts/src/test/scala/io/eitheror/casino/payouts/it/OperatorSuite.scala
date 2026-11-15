@@ -40,15 +40,19 @@ class OperatorSuite extends munit.FunSuite with LogCapturing:
 
   private val brand = s"brand_${kit.slug}"
 
-  test("each of the five roles is admitted to the queue; any other role is forbidden"):
-    Vector("brand_admin", "brand_finance", "resource_admin", "resource_finance").foreach { role =>
+  test("the roles whose bags hold withdrawal.read are admitted to the queue; any other role is refused naming it"):
+    Vector("brand_admin", "brand_finance", "brand_support", "brand_compliance").foreach { role =>
       assertEquals(call("GET", "/", s"$brand,$role").status, 200, role)
     }
     assertEquals(call("GET", "/", "platform_admin").status, 200, "platform_admin")
-    val viewer = call("GET", "/", s"$brand,resource_viewer")
-    assertEquals((viewer.status, viewer.str("error")), (403, "forbidden"))
+    // spec 030 Y1: a payments role carries no permission of a brand
+    val viewer = call("GET", "/", s"$brand,resource_finance")
+    assertEquals(viewer.status, 403, viewer.text)
+    assert(viewer.text.contains("forbidden: the withdrawal.read permission is needed"), viewer.text)
     val id = pending()
-    assertEquals(call("POST", s"/$id/approve", s"$brand,support_agent").status, 403)
+    val support = call("POST", s"/$id/approve", s"$brand,brand_support")
+    assertEquals(support.status, 403, support.text)
+    assert(support.text.contains("forbidden: the withdrawal.review permission is needed"), support.text)
     assertEquals(call("GET", s"/$id", s"$brand,brand_finance").status, 200)
 
   test("an operator of another brand is refused, and a player's token too"):

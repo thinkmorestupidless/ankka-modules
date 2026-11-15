@@ -11,6 +11,12 @@ import io.eitheror.casino.payouts.request.Status
  */
 class ReviewFeatures extends PayoutsFeatures("review.feature"):
 
+  // spec 030 Y2 (T057) and Y3 (T079) bind these, with the queue's counts and the request's recorded balances
+  override protected def ranElsewhere: Map[String, String] = Map(
+    "a withdrawal payment confirmed by hand names the operator who confirmed it" -> "T079 (pending)",
+    "a withdrawal request keeps the balances it was made at"                     -> "T079 (pending)",
+    "the queue answers how many requests are pending review and how many payments need review" -> "T057 (pending)")
+
   private var id = ""
 
   override def beforeEach(context: BeforeEach): Unit =
