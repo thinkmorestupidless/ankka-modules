@@ -100,6 +100,10 @@ operator's preferences) is a Scala service.
   games panel, the devices tab, deposit bounds per method, a test payment, viewing the
   portal as an affiliate). Which are built? → A: All six, each as an amendment to its owning
   service's spec ([parity.md](parity.md)).
+- Q: How are roles and actions related? → A: Each action requires one permission; a role is a bag
+  of permissions; a token carries roles only, never permissions; the owning services and the
+  backoffice's server open the bags from the one table the contract holds, and the page asks the
+  backoffice which permissions the operator has (FR-005, FR-008).
 - Q: Are the scenarios for the amendments to the owning services written in design, and the one
   scenario that named a fraud role corrected? → A: Yes (*Amendments to the owning services*).
 - Q: Do the proposed glossary terms worklist, timeline, adjustment batch and merge tag stand? → A:
@@ -492,8 +496,10 @@ who may take each action there, by the role matrix (FR-008), and the routes and 
   (`brand_<slug>`, or every brand for `platform_admin`), MUST work in exactly one brand at a time,
   and MUST show which. It MUST NOT offer a holding, company or sub-brand picker for casino work;
   payments administration acts at the operator's level as spec 004 defines it.
-- **FR-005**: The backoffice MUST decide which actions to offer from the same role rules the
-  owning services check, read from this repository's contract rather than written again; an action
+- **FR-005**: Each operator action MUST require one permission, and a role MUST be a bag of
+  permissions held once in this repository's contract. An operator's sign-in MUST carry roles only.
+  The backoffice MUST decide which actions to offer from the permissions its server opens from the
+  operator's roles with that same table, never from a rule written again in the page; an action
   the operator may not take MUST be shown with the role it needs, or not at all, never offered and
   then refused for a reason the backoffice already knew.
 - **FR-006**: Every refusal from an owning service MUST be shown with its reason in the domain's

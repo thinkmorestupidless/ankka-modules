@@ -16,9 +16,10 @@ service at ankka's calling address with that token. The owner admits or refuses 
 does today. The server serves only the routes in one table, and combines sources in six places:
 worklist, timeline, search, adjustment batch, document view and events.
 
-The role matrix becomes data in the contract (`OperatorActions`), published as JSON. Every
-service's operator routes are guarded from it, and the page reads the same file to decide what to
-offer. Only the five casino roles confer casino actions.
+Every operator route requires one permission, and a role is a bag of permissions, held once in the
+contract (`OperatorPermissions`). A token carries roles only. Each service opens the bags
+in-process; the page's server does the same and answers the operator's permissions, so the page
+offers exactly what the owner will admit. Only the five casino roles have a bag.
 
 The route check of 2026-11-15 found what the services lack for the spec: paging and totals on nine
 lists, freshness on every view-backed list, sixteen read routes, and six capabilities that need new
@@ -98,7 +99,7 @@ p95; a proxied read within 30 ms of its owner.
 | V. Personal data marked, erasure honoured | `Personal`; handler | Pass. An operator's subject, name and email are `Personal` under `operator/<subject>` with an erasure route. Players' devices (P8) are `Personal` under the player's subject in `players`. |
 | VI. Scala by default | reason for anything else | Pass. TypeScript for the web-hosted program only, for the reason the spec and amendment 1.3.0 give; everything that keeps state is Scala. |
 | VII. Specs in the domain's words | `just features` passes | Pass: 0 findings in 1,456 scenarios and 26 specs. |
-| Workflow: clarify before plan | | Pass: clarified 2026-11-15, eight answers. |
+| Workflow: clarify before plan | | Pass: clarified 2026-11-15, nine answers. |
 | Scope: ankka gaps are ankka specs | | Pass. V1 is the one platform assumption; if it fails it is an ankka request and the build stops. |
 
 No violations; Complexity Tracking is empty.
@@ -110,7 +111,7 @@ No violations; Complexity Tracking is empty.
 | FR-001, FR-042 | `backoffice`, web-hosted; Vite's content-named assets | ankka's way to serve a browser | a service with components (it has no state) |
 | FR-002, FR-007 | the route table and pass-through (`server/proxy.ts`, `routes.ts`) | one list of what may be asked | a handler per route (R4) |
 | FR-003 | `Session` (ES) in `backoffice-state`; the `__Host-` cookie | one writer for refresh; survives a rollout | a sealed cookie (R1) |
-| FR-004, FR-005, FR-008 | `OperatorActions` in the contract, published; `Routes.operatorMay`; `access.ts` | one matrix for screen and service | a copy in the page (the original's drift) |
+| FR-004, FR-005, FR-008 | `OperatorPermissions` in the contract (permissions, and roles as bags of them), published; `Routes.operatorMay(slug, permission)`; `/api/me`'s permissions; `access.ts` | one table for screen and service; no role named in a route | permissions in the token (bloat; R5); a copy in the page (the original's drift) |
 | FR-006 | the refusal map in the catalogue (`refusals.ts`) | the owner's code, the domain's words | prose from the owner (untranslatable) |
 | FR-009 to FR-012 | owners' paging (L); `status` routes (F); Query's kept rows and list state in the URL | the owner counts; the page keeps place | client paging (the original's loss of rows) |
 | FR-013 to FR-015 | `money.ts` over `currencies.v1.json`; `dates.ts` over the brand's zone | one rule | `Intl` defaults (R6) |
@@ -148,9 +149,9 @@ specs/030-backoffice/
 ### Source Code (repository root)
 
 ```text
-contract/src/main/scala/io/eitheror/casino/contract/access/OperatorActions.scala, Routes.scala
+contract/src/main/scala/io/eitheror/casino/contract/access/OperatorPermissions.scala, Routes.scala
 contract/src/main/scala/io/eitheror/casino/contract/Layout.scala, facts/
-contract/schemas/access/operator-actions.v1.json, money/currencies.v1.json
+contract/schemas/access/operator-permissions.v1.json, money/currencies.v1.json
 brands/_realm/eitheror-operators.json
 tools/modules/src/main/scala/io/eitheror/casino/modules/   # Manifest, Render, Realm: web hosting, client upsert
 shared/backoffice/manifest.json
@@ -230,7 +231,8 @@ own suites.
   operator route: the operator's token is the admission;
 - put a rule in the page or its server that the owner does not hold; a missing route is an
   amendment in contracts/amendments.md;
-- write a role name outside `OperatorActions`;
+- name a role in a service or in the page: a route requires a permission, and roles appear only
+  in `OperatorPermissions`' bags;
 - parse or format an amount outside `money.ts`, or write an operator-facing string outside the
   catalogue;
 - run two sbt processes in one service directory, or use another worktree's contract snapshot

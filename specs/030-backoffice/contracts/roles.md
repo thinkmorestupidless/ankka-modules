@@ -1,13 +1,22 @@
-# The operator role matrix
+# The operator role matrix: permissions, and roles as bags of them
 
-What `contract.access.OperatorActions` holds, once (FR-005, FR-008; research R5). Each row is one
-action: its name in the contract, the roles that admit it, and the services whose routes it guards.
-`platform_admin` is admitted to every action and is not repeated. Every action also needs the
-brand: `brand_<slug>` or `platform_admin`, as `Routes.operator` checks today.
+What `contract.access.OperatorPermissions` holds, once (FR-005, FR-008; research R5).
+
+- A **permission** is one action an operator may take. A route requires exactly one permission and
+  names no role.
+- A **role** is a bag of permissions, written here once. A token carries roles only (`brand_<slug>`
+  and the role names below); it never carries a permission.
+- Each service opens the bags in-process: `OperatorPermissions.of(roles)`. The backoffice's server
+  does the same and answers the operator's permissions in `/api/me`; the page never maps a role.
+
+Each row below is one permission, the roles whose bag holds it, and the services whose routes
+require it. `platform_admin`'s bag holds every permission and is not repeated. Every route also
+needs the brand: `brand_<slug>` or `platform_admin`, as `Routes.operator` checks today. Roles apply
+to every brand an operator holds; a different role per brand is not expressible (as on main).
 
 Roles: **S** `brand_support`, **F** `brand_finance`, **C** `brand_compliance`, **A** `brand_admin`.
 
-| Action | S | F | C | A | Guards |
+| Permission | S | F | C | A | Required by |
 |---|---|---|---|---|---|
 | `player.read` (profile, standing, sessions, rounds, activity, notes, messages) | ✓ | ✓ | ✓ | ✓ | players, game-provider `rounds` |
 | `wallet.read` (balances, restricted funds, lifetime totals, transactions) | ✓ | ✓ | ✓ | ✓ | wallet |
@@ -60,7 +69,7 @@ Roles: **S** `brand_support`, **F** `brand_finance`, **C** `brand_compliance`, *
 
 | Service | Today | Becomes |
 |---|---|---|
-| wallet | any operator of the brand adjusts | `adjustment.make`, `turnover.override`, `wallet.read`, `config.brand` |
+| wallet | any operator of the brand adjusts | requires `adjustment.make`, `turnover.override`, `wallet.read`, `config.brand` |
 | payouts | `FinanceRoles` (with `resource_admin`, `resource_finance`) in the handler | `withdrawal.read`, `withdrawal.review`, `config.brand` in the ACL |
 | players | any operator; `BlockRoles` for one route | the players rows above, per route |
 | kyc | `ComplianceRoles` (with `compliance_officer`, `resource_admin`) in the handler | `identity.read`, `identity.review`, `config.brand` |
@@ -74,13 +83,21 @@ Roles: **S** `brand_support`, **F** `brand_finance`, **C** `brand_compliance`, *
 
 ## Published form
 
-`contract/schemas/access/operator-actions.v1.json`:
+`contract/schemas/access/operator-permissions.v1.json`, read by the backoffice's server (not the
+page):
 
 ```json
 { "version": 1,
-  "roles": ["brand_support", "brand_finance", "brand_compliance", "brand_admin", "platform_admin"],
-  "actions": [ { "action": "adjustment.make", "roles": ["brand_finance", "brand_admin", "platform_admin"] } ] }
+  "permissions": ["adjustment.make", "withdrawal.review"],
+  "roles": { "brand_finance": ["adjustment.make", "withdrawal.review"],
+             "platform_admin": ["*"] } }
 ```
+
+## Changing a bag
+
+A bag is reviewed code: changing what a role may do is a contract release and a rollout of the
+services. The lookup is one function, so a later move of its source (deploy-time values per brand,
+for a bespoke role) changes no route. Not built until a brand needs it.
 
 ## Cutover mapping (FR-008a, amends spec 019)
 

@@ -5,7 +5,7 @@ Paths are after each service's operator prefix; `{b}` is the brand. *(new)* mark
 
 ## Worklist (FR-016 to FR-018; research R9)
 
-| Kind | Action needed | Source | Order, count |
+| Kind | Permission needed | Source | Order, count |
 |---|---|---|---|
 | Withdrawal requests pending review | `withdrawal.review` | payouts `withdrawal-requests?status=PENDING_REVIEW&sort=oldest` *(sort new)* | oldest first, `total` |
 | Withdrawal payments needing review | `withdrawal.review` | payouts `withdrawal-requests?payoutStatus=NEEDS_REVIEW&sort=oldest` | oldest first, `total` |

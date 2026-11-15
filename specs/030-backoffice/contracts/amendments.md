@@ -4,8 +4,9 @@ Every change this spec makes outside `services/backoffice*`, by service, with th
 Each is made with its own tests in that service and one line under *Amended by 030* in that spec.
 Three kinds recur and are named by letter:
 
-- **M** the role matrix: operator routes take `Routes.operatorMay(slug, action)` from
-  [roles.md](roles.md); role sets in handlers go; the service binds its
+- **M** the role matrix: each operator route requires one permission,
+  `Routes.operatorMay(slug, permission)`, from [roles.md](roles.md); role names and role sets leave
+  the service; the service binds its
   `features/<area>/operator-roles.feature`.
 - **L** lists: `page`, `pageSize` (max 200), `total`, the order FR-009 names.
 - **F** freshness: `GET …/status` answering `{views: [{name, asOf, rebuilding}]}` (research R13).
@@ -14,8 +15,8 @@ Three kinds recur and are named by letter:
 
 | # | Change |
 |---|---|
-| C1 | `access/OperatorActions.scala`: the matrix; `Routes.operatorMay`; `Routes.operator` kept for `player.read`-class routes only through it |
-| C2 | `WriteSchemas` writes `schemas/access/operator-actions.v1.json` and `schemas/money/currencies.v1.json` |
+| C1 | `access/OperatorPermissions.scala`: the permissions and each role's bag; `OperatorPermissions.of(roles)`; `Routes.operatorMay(slug, permission)`; `Routes.operatorHolding` and bare `Routes.operator` leave the brand services |
+| C2 | `WriteSchemas` writes `schemas/access/operator-permissions.v1.json` and `schemas/money/currencies.v1.json` |
 | C3 | `Layout.SharedProjects` gains `backoffice -> Seq("backoffice", "backoffice-state")`; `ReservedSlugs` follows |
 | C4 | `facts`: `adjustment` gains optional `cause {kind, ref}` |
 | C5 | `brands/_realm/eitheror-operators.json`: role `brand_support`; confidential client `backoffice` (audience `eitheror-casino`, standard flow, PKCE) |
