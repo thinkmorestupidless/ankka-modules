@@ -32,7 +32,8 @@ the dotted name itself, and the server runs directly with `ANKKA_SERVICES_URL` a
 ## Fixtures
 
 `fixtures/<owner>.json` maps `"<METHOD> <the owner's path template>"` to an answer
-`{status?, body, headers?}`, or to `{by: "<parameter>", answers: {<value>: answer}, otherwise?}`. A
+`{status?, body, headers?}`, or to `{by: "<parameter>", answers: {<value>: answer}, otherwise?}` (`by: "?<name>"`
+answers by a query parameter, `""` when it is absent). A
 literal path goes before a parameter in the same place. An operator route needs `Authorization:
 Bearer …` and answers `401` without it, unless its entry is `anonymous` (the server's own reads of the
 brand's roles and modules). A route with no fixture answers `501 {"error":"no_fixture"}`. The brand's

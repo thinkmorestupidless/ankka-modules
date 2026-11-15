@@ -9,7 +9,7 @@ export interface Answer {
   headers?: Record<string, string>;
 }
 
-/** A fixture: one answer, or one per value of a path parameter. */
+/** A fixture: one answer, or one per value of a path parameter (`by: "playerId"`) or of a query parameter (`by: "?currency"`). */
 export type Entry = (Answer | { by: string; answers: Record<string, Answer>; otherwise?: Answer }) & {
   /** Answered with no `Authorization`: the server's own reads (the brand's roles and modules). */
   anonymous?: boolean;
@@ -144,7 +144,10 @@ export class Owner {
       if (!params) continue;
       if (!entry.anonymous && !/^Bearer \S+$/.test(asked.headers["authorization"] ?? ""))
         return { status: 401, body: { error: "unauthenticated", message: "an operator route needs a bearer token" } };
-      if ("by" in entry) return entry.answers[params[entry.by] ?? ""] ?? entry.otherwise ?? { status: 404, body: { error: "not_found", [entry.by]: params[entry.by] } };
+      if ("by" in entry) {
+        const value = entry.by.startsWith("?") ? (asked.query.get(entry.by.slice(1)) ?? "") : (params[entry.by] ?? "");
+        return entry.answers[value] ?? entry.otherwise ?? { status: 404, body: { error: "not_found", [entry.by]: value } };
+      }
       return entry;
     }
     return { status: 501, body: { error: "no_fixture", owner: this.name, route: `${asked.method} ${asked.path}` } };
