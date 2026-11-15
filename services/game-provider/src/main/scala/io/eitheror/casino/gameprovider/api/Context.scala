@@ -3,7 +3,7 @@ package io.eitheror.casino.gameprovider.api
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpProblem, Respond}
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.sdk.SecretStore
-import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.access.{RoleBags, Routes}
 import io.eitheror.casino.gameprovider.Json
 import io.eitheror.casino.gameprovider.api.callbacks.Callbacks
 import io.eitheror.casino.gameprovider.catalogue.CatalogueReads
@@ -75,8 +75,11 @@ object Settings:
       publicBaseUrl = sys.env.get("CASINO_PUBLIC_URL")
     )
 
-/** The service's clients and the settings, as every endpoint uses them. */
-final class Context(val settings: Settings, val clients: EndpointClients):
+/**
+ * The service's clients and the settings, as every endpoint uses them, and the brand's roles the operator
+ * routes decide from (spec 030 amendment GP1).
+ */
+final class Context(val settings: Settings, val clients: EndpointClients, val bags: RoleBags):
   val brand: String                    = settings.brand
   def now(): Instant                   = settings.now()
   val components                       = clients.componentClient
@@ -97,6 +100,9 @@ final class Context(val settings: Settings, val clients: EndpointClients):
     configs.get(provider).flatMap(_.walletUrl)
       .orElse(settings.publicBaseUrl.map(b => s"${b.stripSuffix("/")}/v1/casino/brands/$brand/$provider"))
       .getOrElse(s"/v1/casino/brands/$brand/$provider")
+
+  /** An operator of this brand whose roles' bags hold `permission` (spec 030 amendment GP1). */
+  def operatorMay(permission: String): Acl = Routes.operatorMay(brand, permission, bags, settings.authenticate())
 
   /** Refuses another brand's `{brand}` (spec 001 FR-005). */
   def ownBrand(segment: String): Unit = Routes.brandSegment(brand, segment).fold(p => throw p, _ => ())
