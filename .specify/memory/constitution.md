@@ -27,7 +27,9 @@ provider requires for a deposit, held as `Personal` values under the project's o
 `programme` holds no player id at all, only a per-network pseudonym. A shared project reaches a
 brand only through a grant the brand made (ankka 040); a brand's public routes are the exception,
 reached by any caller as the internet reaches them, admitted by the route's own signature or key
-and never by a platform identity. Nothing is shared by convention.
+and never by a platform identity. The shared `backoffice` holds no player data and reaches a brand's
+operator routes only on behalf of a signed-in operator, carrying that operator's own sign-in, so the
+brand admits the person and never the backoffice. Nothing is shared by convention.
 
 ### IV. Commands over HTTP, facts over topics
 A command that needs an answer in the request path is an HTTP call to the owning service. A fact is
@@ -59,8 +61,9 @@ A requirement is testable or it is not a requirement.
   lacks are specs in ankka (038–044 at the time of writing), not workarounds here.
 - The player site is in scope as spec 027: the player SDK and a reference site, a module of each
   brand's own project. A site built on the SDK holds no rule of a service and reaches a service
-  only as the signed-in player. The affiliate portal and the operator console are out of scope:
-  they change only base URLs.
+  only as the signed-in player. The affiliate portal is out of scope: it changes only base URLs.
+  The operator console is in scope as spec 030, the backoffice, in the shared project
+  `backoffice`; it calls the owning services as the signed-in operator and holds no rule of theirs.
 - Chatwoot, Strapi, Keycloak and Unleash stay external; this repository integrates with them and
   replaces none of them.
 
@@ -78,7 +81,7 @@ This constitution outranks any other practice in the repository. An amendment is
 that states what changes and why, and every open spec is checked against it before merge. Where a
 spec and the constitution disagree, the spec is wrong until the constitution is amended.
 
-**Version**: 1.3.0 | **Ratified**: 2026-10-08 | **Last Amended**: 2026-11-18
+**Version**: 1.4.0 | **Ratified**: 2026-10-08 | **Last Amended**: 2026-11-19
 
 Amendment 1.1.0 (2026-10-09): principle III said shared projects hold "no brand's player data beyond
 a pseudonymous subject id". Spec 001 FR-018, settled after the cashier was read, has `payments` hold
@@ -98,3 +101,10 @@ original's site holds rules the services own (it opened the cashier session itse
 site is now in scope, holding no rule of a service and calling a service only as the signed-in
 player; principle VI gains the reason a browser's code is TypeScript. Spec 030 amends the same
 bullet for the operator console: whichever merges second keeps both sentences and takes 1.4.0.
+
+Amendment 1.4.0 (2026-11-15, numbered when spec 027 merged first): *Scope* kept the operator
+console out of scope, to change only its base URLs. Spec 030 replaces it instead, because the
+original's use shows its faults would carry over (spec 030 research). The operator console is now in scope as spec 030, in a shared project
+`backoffice`; principle III says how it reaches a brand (as the signed-in operator, never by a grant
+or its own identity), and principle VI is met by the reason spec 030 gives for TypeScript in the
+program that serves the browser.
