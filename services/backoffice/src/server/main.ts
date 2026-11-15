@@ -1,9 +1,105 @@
-// The page's server: one program on PORT. It serves the built page and, from T036 on, the sign-in,
-// the pass-through and the composite routes of contracts/routes.md. Node runs this file directly.
+// The page's server: one program on PORT (contracts/routes.md). It serves the built page, signs the
+// operator in, and passes the page's calls to the brand's services with the operator's token. It stores
+// nothing; `backoffice-state` keeps the sign-ins. Node runs this file directly.
 import http from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { Hono, type Context } from "hono";
+import { getRequestListener } from "@hono/node-server";
+import { dropSession, sessionOf, stateClient, TokenCache, type StateClient, type Token } from "./session.ts";
+import { match, table as routeTable, type Row } from "./routes.ts";
+import { pass, unavailable } from "./proxy.ts";
+
+export interface Deps {
+  /** The brand this backoffice is, from `CASINO_BRAND`; the browser never names one. */
+  brand: string;
+  /** `ANKKA_SERVICES_URL`: the calling address. */
+  servicesUrl: string;
+  /** A shared project's key to its project's name, from `BACKOFFICE_SHARED_PROJECTS`. */
+  sharedProjects: Record<string, string>;
+  state: StateClient;
+  fetch: typeof fetch;
+  log: (line: string) => void;
+  now: () => number;
+  table: readonly Row[];
+  /** The bound on a call to an owner. */
+  timeoutMs: number;
+  /** The built page; served only when given (production). */
+  dist?: string;
+}
+
+export type Env = { Variables: { session: string; token: Token; logPath: string; why: string } };
+
+const Reads = new Set(["GET", "HEAD"]);
+
+/** The address the proxy says this request was sent to, as an `Origin` would name it. */
+function selfOrigin(c: Context): string | undefined {
+  const host = c.req.header("x-forwarded-host") ?? c.req.header("host");
+  return host ? `${c.req.header("x-forwarded-proto") ?? "http"}://${host}` : undefined;
+}
+
+export function createApp(deps: Deps): Hono<Env> {
+  const app = new Hono<Env>();
+  const tokens = new TokenCache(deps.state, deps.now);
+
+  // One line a request: the route's template, never its parameters, never a token.
+  app.use("*", async (c, next) => {
+    const started = deps.now();
+    await next();
+    const named = c.get("logPath") ?? (c.req.path.startsWith("/api/") ? "/api/…" : c.req.path.startsWith("/auth/") ? c.req.path : "page");
+    deps.log(JSON.stringify({ method: c.req.method, route: named, status: c.res.status, ms: deps.now() - started, ...(c.get("why") ? { why: c.get("why") } : {}) }));
+  });
+
+  // A write comes only from this site's page.
+  app.use("*", async (c, next) => {
+    if (Reads.has(c.req.method)) return next();
+    const origin = selfOrigin(c);
+    if (c.req.header("x-backoffice") !== "1" || origin === undefined || c.req.header("origin") !== origin)
+      return c.json({ error: "bad_origin" }, 403);
+    return next();
+  });
+
+  app.get("/healthz", (c) => c.text("ok"));
+
+  // Every /api route needs a session the state service still holds.
+  app.use("/api/*", async (c, next) => {
+    const session = sessionOf(c);
+    if (session === undefined) return c.json({ error: "signed_out" }, 401);
+    let token: Token | undefined;
+    try {
+      token = await tokens.token(session);
+    } catch (e) {
+      c.set("why", e instanceof Error ? e.name : "unknown");
+      return unavailable("backoffice-state");
+    }
+    if (token === undefined) {
+      dropSession(c);
+      return c.json({ error: "signed_out" }, 401);
+    }
+    c.set("session", session);
+    c.set("token", token);
+    return next();
+  });
+
+  app.all("/api/s/:service/*", async (c) => {
+    const service = c.req.param("service");
+    const pathname = new URL(c.req.url).pathname;
+    const prefix = `/api/s/${service}`;
+    const m = /^[a-z0-9-]+$/.test(service) ? match(deps.table, c.req.method, service, pathname.slice(prefix.length)) : undefined;
+    if (m === undefined) return c.json({ error: "no_such_route" }, 404);
+    c.set("logPath", `${prefix}${m.row.path}`);
+    const { response, why } = await pass(deps, m, c.req.raw, c.get("token").accessToken);
+    if (why) c.set("why", why);
+    return response;
+  });
+
+  if (deps.dist) {
+    const dist = deps.dist;
+    app.get("*", (c) => serveBuilt(dist, new URL(c.req.url).pathname));
+  }
+  return app;
+}
 
 const types: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -23,40 +119,74 @@ async function isFile(file: string): Promise<boolean> {
   }
 }
 
-/** A built file, immutable under assets/; any other path that is not a file is the page. */
-async function serveBuilt(dist: string, pathname: string, res: http.ServerResponse): Promise<void> {
+/** A built file, immutable under assets/; any other path that is not a file is the page, uncached (FR-042). */
+export async function serveBuilt(dist: string, pathname: string): Promise<Response> {
   const file = path.join(dist, decodeURIComponent(pathname));
-  if (!file.startsWith(dist)) return void res.writeHead(404).end();
+  if (!file.startsWith(dist + path.sep) && file !== dist) return new Response(null, { status: 404 });
   if (await isFile(file)) {
     const immutable = file.startsWith(path.join(dist, "assets") + path.sep);
-    res.writeHead(200, {
-      "Content-Type": types[path.extname(file)] ?? "application/octet-stream",
-      "Cache-Control": immutable ? "public, max-age=31536000, immutable" : "no-cache",
+    return new Response(await readFile(file), {
+      headers: {
+        "Content-Type": types[path.extname(file)] ?? "application/octet-stream",
+        "Cache-Control": immutable ? "public, max-age=31536000, immutable" : "no-cache",
+      },
     });
-    return void res.end(await readFile(file));
   }
-  if (path.extname(pathname) !== "") return void res.writeHead(404).end();
-  res.writeHead(200, { "Content-Type": types[".html"], "Cache-Control": "no-cache" });
-  res.end(await readFile(path.join(dist, "index.html")));
+  if (path.extname(pathname) !== "") return new Response(null, { status: 404 });
+  return new Response(await readFile(path.join(dist, "index.html")), {
+    headers: { "Content-Type": types[".html"]!, "Cache-Control": "no-cache" },
+  });
+}
+
+/** `payments=payments,programme=programme` to a map. */
+export function sharedProjects(text: string | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const pair of (text ?? "").split(",")) {
+    const [key, project] = pair.split("=").map((s) => s.trim());
+    if (key && project) out[key] = project;
+  }
+  return out;
+}
+
+function required(name: string): string {
+  const v = process.env[name];
+  if (!v) {
+    console.error(`${name} is not set`);
+    process.exit(2);
+  }
+  return v;
 }
 
 async function main(): Promise<void> {
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
   const port = Number(process.env.PORT ?? 3000);
   const production = process.env.NODE_ENV === "production";
-  const dist = path.join(root, "dist");
-  let middleware: ((req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void) | undefined;
+  const servicesUrl = required("ANKKA_SERVICES_URL").replace(/\/$/, "");
+  const app = createApp({
+    brand: required("CASINO_BRAND"),
+    servicesUrl,
+    sharedProjects: sharedProjects(process.env.BACKOFFICE_SHARED_PROJECTS),
+    state: stateClient(servicesUrl, fetch),
+    fetch,
+    log: (line) => console.log(line),
+    now: () => Date.now(),
+    table: routeTable,
+    timeoutMs: 15_000,
+    dist: production ? path.join(root, "dist") : undefined,
+  });
+  const serve = getRequestListener(app.fetch);
+  let page: ((req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void) | undefined;
   if (!production) {
     const { createServer } = await import("vite");
-    middleware = (await createServer({ configFile: path.join(root, "vite.config.ts"), server: { middlewareMode: true }, appType: "spa" })).middlewares;
+    page = (await createServer({ configFile: path.join(root, "vite.config.ts"), server: { middlewareMode: true }, appType: "spa" })).middlewares;
   }
+  const ours = (url: string) => url === "/healthz" || url.startsWith("/api/") || url.startsWith("/auth/");
   const server = http.createServer((req, res) => {
-    const url = new URL(req.url ?? "/", "http://backoffice");
-    if (url.pathname === "/healthz") return void res.end("ok");
-    if (production) return void serveBuilt(dist, url.pathname, res);
-    middleware!(req, res, () => void res.writeHead(404).end());
+    if (page && !ours(req.url ?? "/")) return page(req, res, () => void res.writeHead(404).end());
+    void serve(req, res);
   });
-  server.listen(port, () => console.log(`backoffice on ${port}`));
+  server.listen(port, () => console.log(JSON.stringify({ started: "backoffice", port })));
+  // A rollout stops an instance: finish what is in flight, take nothing new.
   process.on("SIGTERM", () => {
     server.close(() => process.exit(0));
     server.closeIdleConnections();
