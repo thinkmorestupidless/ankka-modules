@@ -54,6 +54,41 @@ class UnacknowledgedViewSuite extends SharedKitSuite:
     assertEquals(gauge(), before - 1)
   }
 
+  test("the list is oldest first, paged by page and pageSize, and answers its total (spec 030 GP3)") {
+    val player = s"$run-p"
+    kit.wallet.set(player, "EUR", 1000)
+    val token = kit.sessionTicket(player)
+    kit.wallet.down = true
+    val txs = (1 to 3).map { i =>
+      val tx = s"$run-p$i"
+      assertEquals(kit.callback("debit", Json.obj("token" -> token, "transaction_id" -> tx, "round" -> s"$run-pr$i", "amount" -> "1.00")).word, "error")
+      tx
+    }
+    kit.wallet.down = false
+    def list(query: String) = kit.request("GET", s"/v1/casino/backoffice/${kit.brand}/game-provider/unacknowledged$query", None, kit.asOperator())
+    def ids(r: Reply)       = r.json.objects("entries").flatMap(_.text("transactionId"))
+    val whole = kit.eventually("three listed")(Some(list("")).filter(r => txs.forall(ids(r).contains)))
+    assertEquals(whole.json.path("total").asLong, ids(whole).size.toLong, whole.text)
+    assert(whole.json.path("page").isMissingNode, "no paging asked, none answered")
+    val at = whole.json.objects("entries").flatMap(_.text("recordedAt")).map(java.time.Instant.parse)
+    assertEquals(at, at.sorted, "oldest first")
+    assertEquals(ids(whole).filter(txs.contains), txs.toVector)
+
+    val total = whole.json.path("total").asLong
+    val first = list("?page=1&pageSize=2")
+    assertEquals((first.status, first.json.path("page").asInt, first.json.path("pageSize").asInt), (200, 1, 2), first.text)
+    assertEquals(ids(first), ids(whole).take(2))
+    assertEquals(first.json.path("total").asLong, total)
+    val second = list("?page=2&pageSize=2")
+    assertEquals(ids(second), ids(whole).slice(2, 4))
+    val past = list(s"?page=${total / 2 + 2}&pageSize=2")
+    assertEquals((past.status, ids(past), past.json.path("total").asLong), (200, Vector.empty, total), past.text)
+
+    val tooMany = list("?pageSize=201")
+    assertEquals((tooMany.status, tooMany.json.text("field")), (400, Some("pageSize")), tooMany.text)
+    assertEquals(list("?page=0").status, 400)
+  }
+
   test("the bets counter counts every bet placed, free rounds included") {
     val player = s"$run-b"
     kit.wallet.set(player, "EUR", 1000)

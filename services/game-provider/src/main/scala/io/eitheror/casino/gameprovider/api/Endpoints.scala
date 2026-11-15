@@ -324,11 +324,18 @@ final class BackofficeEndpoint(ctx: Context) extends HttpEndpoint("/v1/casino/ba
   withAcl(ctx.operatorMay("callback.resolve")) {
     get("/{brand}/game-provider/unacknowledged") { (segment: String) =>
       ctx.ownBrand(segment)
-      val entries = Unacknowledgements.open(ctx).map { (row, e) =>
-        Json.obj("transactionId" -> e.transactionId, "callback" -> e.callback, "kind" -> e.kind, "amount" -> e.amount, "currency" -> row.currency,
-          "provider" -> row.provider, "roundId" -> row.roundId, "playerId" -> row.playerId, "error" -> e.error, "recordedAt" -> e.recordedAt.toString)
-      }
-      ok(Json.obj("entries" -> Json.arr(entries*)))
+      Paging.from(query.raw("page"), query.raw("pageSize")) match
+        case Left(parameter) => refuse(400, "INVALID_REQUEST", "field" -> parameter, "message" -> s"$parameter is not a valid value")
+        case Right(paging) =>
+          // Oldest first (a review queue, spec 030 FR-009). An entry is one of a round row's nested entries, which
+          // a view query cannot page, so the page is cut in memory from the open entries of at most 10,000 rounds.
+          val open = Unacknowledgements.open(ctx)
+          val entries = paging.fold(open)(_.of(open)).map { (row, e) =>
+            Json.obj("transactionId" -> e.transactionId, "callback" -> e.callback, "kind" -> e.kind, "amount" -> e.amount, "currency" -> row.currency,
+              "provider" -> row.provider, "roundId" -> row.roundId, "playerId" -> row.playerId, "error" -> e.error, "recordedAt" -> e.recordedAt.toString)
+          }
+          ok(Json.obj("entries" -> Json.arr(entries*), "total" -> open.size.toLong, "page" -> paging.map(_.page),
+            "pageSize" -> paging.map(_.pageSize)))
     }
 
     post("/{brand}/game-provider/unacknowledged/{transactionId}/replay") { (segment: String, transactionId: String) =>

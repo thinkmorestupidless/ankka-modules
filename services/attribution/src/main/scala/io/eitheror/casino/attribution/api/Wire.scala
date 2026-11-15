@@ -140,8 +140,8 @@ object Wire:
   final case class Subscriptions(subscriptions: Vector[SubscriptionAnswer])
 
   final case class UndeliveredAnswer(delivery: String, subscription: String, network: String, factId: String, kind: String,
-      attempts: Int, lastStatus: Option[Int], lastError: Option[String])
-  final case class Undelivered(undelivered: Vector[UndeliveredAnswer])
+      attempts: Int, lastStatus: Option[Int], lastError: Option[String], firstAttemptAt: Option[Instant] = None)
+  final case class Undelivered(undelivered: Vector[UndeliveredAnswer], total: Long, page: Option[Int] = None, pageSize: Option[Int] = None)
 
   /** The wire's codec settings: an absent value is left out, an empty list and a default are written. */
   inline def wire[A]: JsonValueCodec[A] =
