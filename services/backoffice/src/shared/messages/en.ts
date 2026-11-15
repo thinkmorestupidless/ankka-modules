@@ -7,6 +7,38 @@ export const en = {
   "frame.search": "Search players, withdrawals, rounds…",
   "frame.readOnly": "This window is narrower than 1280 pixels, so the backoffice is read-only here.",
   "frame.moduleOff": "{module} is not run by this brand.",
+  "frame.brand": "Brand",
+  "frame.operator": "Signed in as {name}",
+  "frame.areas": "Areas",
+  "frame.jobs": "Jobs",
+  "frame.notices": "Notices",
+  "frame.loading": "Loading…",
+  "frame.unreachable": "The backoffice cannot reach its own server.",
+  "frame.notFound": "There is no such page.",
+  "frame.notBuilt": "This page is not built yet.",
+  "frame.modulesWhy": "An area is shown only when the brand runs its module. This brand runs: {modules}.",
+  "frame.modulesUnknown": "The brand's modules could not be read, so every area is shown.",
+  "frame.skip": "Skip to the page",
+
+  // the areas, as the rail and each page's heading name them
+  "area.worklist": "Worklist",
+  "area.search": "Search",
+  "area.players": "Players",
+  "area.withdrawals": "Withdrawals",
+  "area.adjustments": "Adjustments",
+  "area.rewards": "Rewards",
+  "area.offers": "Offers",
+  "area.identity": "Identity",
+  "area.protection": "Protection",
+  "area.fraud": "Fraud",
+  "area.dashboard": "Dashboard",
+  "area.reports": "Reports",
+  "area.configuration": "Configuration",
+  "area.payments": "Payments",
+  "area.team": "Team",
+  "area.affiliates": "Affiliates",
+  "area.jobs": "Jobs",
+  "area.preferences": "Preferences",
 
   // refusals by the backoffice itself
   "refusal.signed_out": "You are signed out.",
@@ -44,6 +76,7 @@ export const en = {
   // money and dates
   "money.unknownCurrency": "{minor} minor units of {currency}",
   "date.zone": "Times are in {zone}.",
+
 } as const satisfies Record<string, string>;
 
 export type MessageKey = keyof typeof en;
