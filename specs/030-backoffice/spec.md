@@ -86,6 +86,14 @@ operator's preferences) is a Scala service.
   set limits, suspend, self-exclude and close), or carry original spec 135's matrix (a read-only
   support role; money and standing restricted) into the owning services? → A: Carry spec 135 in, as
   amendments to the owning services (FR-008, FR-008a).
+- Q: Which of the six phases of FR-045 does this spec's task list, and the one build that follows,
+  cover? → A: All six, in one task list and one build, in phase order (FR-045).
+- Q: What language is the backoffice's own interface in for operators? → A: English at delivery,
+  with every string in a message catalogue so that another language is a translation (FR-040a).
+- Q: Which of parity.md's *decide* rows (the CRM configuration page, affiliate adjustments) does
+  the backoffice include? → A: Both (FR-030; [parity.md](parity.md)).
+- Q: Do the proposed glossary terms worklist, timeline, adjustment batch and merge tag stand? → A:
+  All four, as defined.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -486,8 +494,9 @@ previewed message.
 **Parity**
 
 - **FR-030**: Every capability listed in [parity.md](parity.md) MUST be reachable in the
-  backoffice for the roles the owning service admits, except those the list marks dropped, moved
-  or decided.
+  backoffice for the roles the owning service admits, except those the list marks dropped or
+  moved. The CRM configuration page and affiliate adjustments, unreachable in the original, are
+  kept.
 - **FR-031**: Identity documents MUST be shown only through the backoffice to a signed-in operator
   the brand's kyc service admits for that document; the backoffice MUST NOT fetch any address it
   is given.
@@ -518,6 +527,11 @@ previewed message.
   and MUST NOT use the eitheror brand.
 - **FR-040**: Every screen MUST meet WCAG 2.2 AA for contrast, focus and keyboard use; colour MUST
   never be the only sign of a state.
+- **FR-040a**: The backoffice's interface MUST be in English at delivery, and every string an
+  operator reads that the backoffice itself writes (labels, effect statements, the reasons it gives
+  for known refusal codes) MUST come from one message catalogue keyed by message, so that another
+  language is added by translating the catalogue and changes no screen. What an owning service
+  returns as data is shown as given.
 - **FR-041**: The backoffice MUST be usable at 1280 pixels wide and above; below that it MUST stay
   readable for looking a player up, and need not support editing.
 - **FR-042**: Built files MUST be named by their content and the index served uncached, so that a
@@ -530,7 +544,8 @@ previewed message.
   editor.
 - **FR-044**: The original backoffice MUST keep working for Spinvibe until spec 019's cutover; this
   backoffice serves brands on ankka and MUST NOT be required by any route of another spec.
-- **FR-045**: The backoffice MUST be delivered in phases, each usable on its own: (1) access,
+- **FR-045**: The backoffice MUST be built in one task list and one build that covers all six
+  phases, in phase order, each phase usable on its own when its tasks are done: (1) access,
   worklist and investigation (stories 1 to 3); (2) withdrawals and corrections (4, 5); (3) rewards
   and compliance (6, 7); (4) dashboard and reports (8); (5) configuration, payments and team (9);
   (6) the affiliate programme and outreach (10, 11).
@@ -572,7 +587,7 @@ forms keep the inspiration's colours, radii and type, at the density FR-020 need
 
 ### Measurable Outcomes
 
-- **SC-001**: Every capability in [parity.md](parity.md) not marked dropped, moved or decided is
+- **SC-001**: Every capability in [parity.md](parity.md) not marked dropped or moved is
   reachable, by the roles the owning service admits, before the phase that lists it ends.
 - **SC-002**: An operator finds a player from any of the reference kinds of FR-019 in under ten
   seconds and one search, in nine of ten tries in a moderated test with three operators.
@@ -620,10 +635,12 @@ forms keep the inspiration's colours, radii and type, at the density FR-020 need
 - **Review queues first-in first-out, keeping the operator's place.**
 - **Jobs for long work**, with a notice wherever the operator is.
 - **A new look** from the inspiration, light and dark.
+- **Kept though unreachable in the original**: CRM configuration and affiliate adjustments, each
+  now a screen.
+- **Strings in one catalogue**: English at delivery, translatable without changing a screen.
 - **Dropped**: the casino content screens (FR-043); the code that had no route in the original
-  (the operators twin page, the Customer.io page reached by no link, the affiliate portal calls,
-  the unused affiliate adjustment call) unless [parity.md](parity.md) decides otherwise; the
-  build-time content flag and the reporting tab's feature flag.
+  (the operators twin page, the affiliate portal calls); the build-time content flag and the
+  reporting tab's feature flag.
 - **Not carried over**: the original's generic twin reads for lists; the browser-side CSV; the
   theme store in its own database.
 
@@ -669,4 +686,4 @@ per screen, per role) as the *before* that the plan's design is compared with.
 
 ## Open Questions
 
-- None open. The *decide* rows of [parity.md](parity.md) are settled in the plan.
+- None open. The *decide* rows of [parity.md](parity.md) were settled on 2026-11-15: both kept.

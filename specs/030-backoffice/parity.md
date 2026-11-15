@@ -7,7 +7,7 @@ that delivers it (FR-045), and the service in this repository whose operator rou
 **Status**: *kept* (a route exists; the plan confirms its shape), *gap* (no route found in the
 owning service on `origin/main` at `c07af6d6`; the plan confirms, and a confirmed gap is an
 amendment to that service's spec), *changed* (kept with the change the spec names), *dropped*,
-*moved*, or *decide* (the plan or a clarification settles it).
+or *moved*. The two rows once marked *decide* were settled on 2026-11-15: both kept.
 
 ## Shell and access (phase 1)
 
@@ -127,7 +127,7 @@ amendment to that service's spec), *changed* (kept with the change the spec name
 | Wagering settings and game contribution | wallet `wallet-config` | kept (reward settings beyond turnover: gap to confirm) |
 | Deposit minimum and maximum per method | — | gap |
 | Terminal capabilities | merchant `terminals`, gateway capability | kept |
-| CRM configuration | engagement `crm-config` | kept (the original page had no link: decide) |
+| CRM configuration | engagement `crm-config` | kept (the original page had no link; decided 2026-11-15) |
 | Support agent configuration | support-agent (spec 017) | kept when merged |
 | Modules page | spec 021 | kept |
 | Attribution networks, webhooks, signing keys | attribution | kept (no screen in the original) |
@@ -163,7 +163,7 @@ amendment to that service's spec), *changed* (kept with the change the spec name
 | Payouts by period: close, status, export | programme `payouts` | kept |
 | Fraud flags: dismiss with reason | programme `fraud-flags` | kept (the original logged it locally only) |
 | Settings, programme settings, messages, managers | programme | kept |
-| Affiliate adjustments | programme `accounts/{id}/adjustments` | decide (unreachable in the original) |
+| Affiliate adjustments | programme `accounts/{id}/adjustments` | kept (unreachable in the original; decided 2026-11-15) |
 
 ## Content (none)
 
@@ -176,6 +176,6 @@ amendment to that service's spec), *changed* (kept with the change the spec name
 | Capability | Status |
 |---|---|
 | Operators twin page (`OperatorsPage.tsx`) | dropped: the team page covers it |
-| Customer.io page (`CustomerIOConfigPage.tsx`) | decide: CRM configuration above |
+| Customer.io page (`CustomerIOConfigPage.tsx`) | kept as CRM configuration above |
 | Affiliate portal calls (`portalApi.ts`) | dropped: the portal's |
-| Affiliate adjustment call | decide: above |
+| Affiliate adjustment call | kept: above |
