@@ -14,6 +14,7 @@ import io.eitheror.casino.merchant.terminals.*
 import io.eitheror.casino.merchant.terminals.catalogue.Catalogue
 
 import java.util.UUID
+import scala.jdk.CollectionConverters.*
 
 /**
  * What an operator does to one sub-brand (FR-004, FR-006, FR-007, FR-009), shared by `/v1/merchants`
@@ -206,6 +207,38 @@ final class MerchantOps(ctx: Ctx):
       val o = Json.obj()
       grouped.toVector.sortBy(_._1).foreach((k, v) => Json.set(o, k, v))
       ok(Json.obj("methodGateways" -> o))
+    }
+
+  // ── deposit bounds (spec 030 H3) ─────────────────────────────────────────────────────────────
+
+  def depositBounds(op: Operator, id: String): Respond[Bytes] = scoped(op, id)(s => ok(Render.depositBounds(s)))
+
+  /**
+   * Replaces the sub-brand's deposit bounds: `{"bounds": [{method, currency, minimumAmountCents?,
+   * maximumAmountCents?}]}`, amounts as JSON integers of minor units; an empty list removes them all.
+   */
+  def setDepositBounds(op: Operator, id: String, text: String): Respond[Bytes] =
+    scoped(op, id) { _ =>
+      body(text).fold(identity, b =>
+        Option(b.get("bounds")).filter(_.isArray) match
+          case None => refuse(400, "INVALID_REQUEST", "the body carries `bounds`, a list", "field" -> "bounds")
+          case Some(list) =>
+            val parsed = list.elements.asScala.toVector.zipWithIndex.map { (n, i) =>
+              def amount(field: String): Either[String, Option[Long]] =
+                Option(n.get(field)).filterNot(_.isNull) match
+                  case None                                                 => Right(None)
+                  case Some(v) if v.isIntegralNumber && v.canConvertToLong => Right(Some(v.asLong))
+                  case Some(_)                                              => Left(s"bounds[$i].$field")
+              for
+                min <- amount("minimumAmountCents")
+                max <- amount("maximumAmountCents")
+              yield DepositBound(n.textOr("method", ""), n.textOr("currency", ""), min, max)
+            }
+            parsed.collectFirst { case Left(field) => field } match
+              case Some(field) => refuse(400, "INVALID_REQUEST", s"$field must be a whole number of minor units", "field" -> field)
+              case None =>
+                val s = sb(id).call(SubBrand.setDepositBounds).invoke(SetDepositBounds(parsed.collect { case Right(d) => d }, op.actor, ctx.now()))
+                ok(Render.depositBounds(s)))
     }
 
   /** Credential-named terminals and terminals together, with the directions each takes (FR-009). */

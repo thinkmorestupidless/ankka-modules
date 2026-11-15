@@ -25,6 +25,12 @@ final case class CredentialRecord(id: String, provider: String, name: String, en
     status: String, secretKeys: Vector[String], createdAt: Instant, deleted: Boolean = false):
   def active: Boolean = status == CredentialRecord.Active && !deleted
 
+/**
+ * The least and the most one deposit by a payment method may be in a currency, in minor units (spec 030
+ * H3); either may be absent. The rules are `deposits.DepositBounds`.
+ */
+final case class DepositBound(method: String, currency: String, minimum: Option[Long] = None, maximum: Option[Long] = None)
+
 object CredentialRecord:
   val Active   = "active"
   val Disabled = "disabled"
@@ -39,7 +45,8 @@ final case class SubBrandState(
     brand: Option[String] = None,
     keys: Vector[MerchantKey] = Vector.empty,
     credentials: Vector[CredentialRecord] = Vector.empty,
-    createdAt: Option[Instant] = None
+    createdAt: Option[Instant] = None,
+    depositBounds: Vector[DepositBound] = Vector.empty
 ):
   def exists: Boolean = createdAt.isDefined
 
@@ -66,6 +73,8 @@ enum SubBrandEvent:
   case CredentialSecretsChanged(id: String, secretKeys: Vector[String], actor: Actor, at: Instant)
   case CredentialStatusChanged(id: String, status: String, actor: Actor, at: Instant)
   case CredentialDeleted(id: String, actor: Actor, at: Instant)
+  /** The sub-brand's deposit bounds, all of them, as now set (spec 030 H3). */
+  case DepositBoundsSet(bounds: Vector[DepositBound], actor: Actor, at: Instant)
 
 final case class CreateSubBrand(companyId: String, holdingId: String, name: String, subBrandType: String, brand: Option[String],
     actor: Actor, at: Instant)
@@ -79,6 +88,7 @@ final case class Registered(record: CredentialRecord, created: Boolean)
 final case class ChangeCredentialSecrets(id: String, secretKeys: Vector[String], actor: Actor, at: Instant)
 final case class ChangeCredentialStatus(id: String, status: String, actor: Actor, at: Instant)
 final case class DeleteCredential(id: String, actor: Actor, at: Instant)
+final case class SetDepositBounds(bounds: Vector[DepositBound], actor: Actor, at: Instant)
 
 object SubBrandCodecs:
   given Serializer[SubBrandState]          = MerchantCodecs.serializer[SubBrandState]("sub-brand-state")
@@ -93,6 +103,7 @@ object SubBrandCodecs:
   given Serializer[ChangeCredentialSecrets] = MerchantCodecs.serializer[ChangeCredentialSecrets]("change-credential-secrets")
   given Serializer[ChangeCredentialStatus] = MerchantCodecs.serializer[ChangeCredentialStatus]("change-credential-status")
   given Serializer[DeleteCredential]       = MerchantCodecs.serializer[DeleteCredential]("delete-credential")
+  given Serializer[SetDepositBounds]       = MerchantCodecs.serializer[SetDepositBounds]("set-deposit-bounds")
 
 import SubBrandCodecs.given
 
@@ -177,6 +188,15 @@ final class SubBrand(context: EventSourcedEntityContext) extends EventSourcedEnt
   def deleteCredential(cmd: DeleteCredential): Effect[SubBrandState] =
     credential(cmd.id)(_ => effects.persist(SubBrandEvent.CredentialDeleted(cmd.id, cmd.actor, cmd.at)).thenReplyState)
 
+  /** Replaces the deposit bounds (spec 030 H3); the same set again records nothing. */
+  def setDepositBounds(cmd: SetDepositBounds): Effect[SubBrandState] =
+    if !currentState.exists then missing
+    else
+      io.eitheror.casino.merchant.deposits.DepositBounds.validate(cmd.bounds) match
+        case Left(problem)                                  => effects.error(problem, ErrorCode.BadRequest)
+        case Right(bounds) if bounds == currentState.depositBounds => effects.reply(currentState)
+        case Right(bounds)                                  => effects.persist(SubBrandEvent.DepositBoundsSet(bounds, cmd.actor, cmd.at)).thenReplyState
+
   def get: ReadOnlyEffect[SubBrandState] = effects.reply(currentState)
 
 object SubBrand extends EventSourcedEntity.Companion[SubBrand, SubBrandState, SubBrandEvent](
@@ -194,6 +214,7 @@ object SubBrand extends EventSourcedEntity.Companion[SubBrand, SubBrandState, Su
   val changeCredentialSecrets = command("change-credential-secrets")(_.changeCredentialSecrets)
   val changeCredentialStatus  = command("change-credential-status")(_.changeCredentialStatus)
   val deleteCredential        = command("delete-credential")(_.deleteCredential)
+  val setDepositBounds        = command("set-deposit-bounds")(_.setDepositBounds)
   val get                     = query("get")(_.get)
 
   def fold(s: SubBrandState, event: SubBrandEvent): SubBrandState =
@@ -209,3 +230,4 @@ object SubBrand extends EventSourcedEntity.Companion[SubBrand, SubBrandState, Su
       case SubBrandEvent.CredentialSecretsChanged(id, keys, _, _)   => withCredential(id)(_.copy(secretKeys = keys))
       case SubBrandEvent.CredentialStatusChanged(id, status, _, _)  => withCredential(id)(_.copy(status = status))
       case SubBrandEvent.CredentialDeleted(id, _, _)                => withCredential(id)(_.copy(deleted = true))
+      case SubBrandEvent.DepositBoundsSet(bounds, _, _)             => s.copy(depositBounds = bounds)

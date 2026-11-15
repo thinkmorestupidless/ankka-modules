@@ -45,6 +45,8 @@ parent (FR-029).
 | `GET\|PUT\|DELETE /{id}/psp-credentials/{provider}?name=` | as below |
 | `POST /{id}/psp-credentials/{provider}/activate?name=`, `/disable?name=` | as below |
 | `GET /{id}/gateway-config` | `methodGateways` |
+| `GET /{id}/deposit-bounds` | *(spec 030 H3, FR-029c)* → `subBrandId`, `bounds[{method, currency, minimumAmountCents?, minimumAmount?, maximumAmountCents?, maximumAmount?}]` sorted by method and currency, `methods[]` (the catalogue's) |
+| `PUT /{id}/deposit-bounds` | *(spec 030 H3)* replace them all: `bounds[{method, currency, minimumAmountCents?, maximumAmountCents?}]` (JSON integers of minor units; `[]` removes them) → as `GET`; `400 INVALID_REQUEST` (with `field` for an amount that is not a whole number) for a bad set |
 
 ### `/v1/merchants` (`{id}` is the sub-brand id; the original's "merchant")
 
