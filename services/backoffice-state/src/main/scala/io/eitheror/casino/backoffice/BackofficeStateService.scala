@@ -3,8 +3,8 @@ package io.eitheror.casino.backoffice
 import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{EndpointClients, HttpEndpoint, HttpServer}
 import com.thinkmorestupidless.ankka.runtime.{Ankka, TimerRuntime}
-import io.eitheror.casino.backoffice.preferences.Preferences
-import io.eitheror.casino.backoffice.session.{KeycloakRealmClient, Session, SessionExpiry, SessionRefresh, SessionsBySubject}
+import io.eitheror.casino.backoffice.preferences.{Preferences, PreferencesEndpoint, SubjectsEndpoint}
+import io.eitheror.casino.backoffice.session.{KeycloakRealmClient, Session, SessionEndpoint, SessionExpiry, SessionRefresh, SessionsBySubject}
 
 /** Every component of the service (data-model.md), registered by the service and by its test kit alike. */
 object BackofficeStateService:
@@ -12,8 +12,9 @@ object BackofficeStateService:
   def descriptors: Seq[ComponentDescriptor] =
     Seq(Session.descriptor, SessionRefresh.descriptor, SessionExpiry.descriptor, SessionsBySubject.descriptor, Preferences.descriptor)
 
-  /** Filled by T033: the session and preferences endpoints, admitting only the brand's `backoffice`. */
-  def endpoints(settings: Settings): Seq[EndpointClients => HttpEndpoint] = Seq.empty
+  /** contracts/routes.md's routes, in three endpoints (one prefix each), admitting only the brand's `backoffice`. */
+  def endpoints(settings: Settings): Seq[EndpointClients => HttpEndpoint] =
+    Seq(clients => SessionEndpoint(settings, clients), clients => PreferencesEndpoint(clients), clients => SubjectsEndpoint(clients))
 
 @main def run(): Unit =
   val settings = Settings.fromEnvironment().fold(problem => { System.err.println(problem); sys.exit(2) }, identity)
