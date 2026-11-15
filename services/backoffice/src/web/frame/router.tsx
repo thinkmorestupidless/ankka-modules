@@ -8,6 +8,7 @@ import type { MessageKey } from "../../shared/messages/index.ts";
 import { Shell } from "./Frame.tsx";
 import { ModulesPage, NotFound, Placeholder } from "./pages.tsx";
 import { PreferencesPage } from "../areas/preferences/PreferencesPage.tsx";
+import { TeamPage } from "../areas/team/TeamPage.tsx";
 
 const page = (label: MessageKey): Page => () => <Placeholder label={label} />;
 
@@ -33,8 +34,8 @@ export const Pages: [string, Page][] = [
   ["/configuration/$area", page("area.configuration")],
   ["/payments", page("area.payments")],
   ["/payments/$area", page("area.payments")],
-  ["/team", page("area.team")],
-  ["/team/roles", page("area.team")],
+  ["/team", () => <TeamPage />],
+  ["/team/roles", () => <TeamPage />],
   ["/affiliates", page("area.affiliates")],
   ["/affiliates/$area", page("area.affiliates")],
   ["/jobs", page("area.jobs")],
