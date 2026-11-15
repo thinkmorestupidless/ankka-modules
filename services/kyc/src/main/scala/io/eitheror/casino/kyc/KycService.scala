@@ -5,7 +5,8 @@ import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, HttpServer}
 import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime, ViewClient}
 import com.thinkmorestupidless.ankka.sdk.DeclaredQuery
-import io.eitheror.casino.kyc.api.{Ctx, OperatorEndpoint, PlayerEndpoint, PublicEndpoint, ServiceEndpoint}
+import io.eitheror.casino.contract.access.RoleBags
+import io.eitheror.casino.kyc.api.{BrandRoles, Ctx, OperatorEndpoint, PlayerEndpoint, PublicEndpoint, ServiceEndpoint}
 import io.eitheror.casino.kyc.consumers.{ClosureConsumer, DepositsConsumer, PolicyFlagger, ProfileConsumer, RegistrationConsumer}
 import io.eitheror.casino.kyc.consumers.PolicyFlagger.Search
 import io.eitheror.casino.kyc.documents.Store
@@ -36,9 +37,12 @@ object KycService:
     WindowTimer.descriptor
   )
 
-  /** One endpoint per prefix (contracts/routes.md), none sharing one. */
-  def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] =
-    def ctx(c: EndpointClients) = Ctx(authenticate, c)
+  /**
+   * One endpoint per prefix (contracts/routes.md), none sharing one. `bags` is the brand's roles the
+   * operator routes decide from: by default read from the brand's `players` (spec 030 K1).
+   */
+  def endpoints(authenticate: () => Acl, bags: Option[EndpointClients => RoleBags] = None): Seq[EndpointClients => HttpEndpoint] =
+    def ctx(c: EndpointClients) = Ctx(authenticate, c, bags.fold(BrandRoles.of(c.services, KycRuntime.settings.brand))(_(c)))
     Seq[Ctx => HttpEndpoint](PlayerEndpoint(_), PublicEndpoint(_), OperatorEndpoint(_), ServiceEndpoint(_)).map(e => (c: EndpointClients) => e(ctx(c)))
 
   /** Once the service has started: the timers, the store and the queue reachable from the components and endpoints. */

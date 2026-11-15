@@ -88,8 +88,15 @@ object Render:
       "deadline"  -> s.deadline.map(_.at.toString).orNull
     )
 
-  def operator(s: KycState, policy: Policy, now: Instant): ObjectNode =
+  /**
+   * The operator's read of a player. `withDocuments` false is a reader's (spec 030 K1, `identity.read`
+   * alone): the status and what is asked of the player, without any document.
+   */
+  def operator(s: KycState, policy: Policy, now: Instant, withDocuments: Boolean = true): ObjectNode =
     val read = documents(s, policy, now, operator = true)
+    if !withDocuments then
+      read.remove("other")
+      read.get("categories").forEach(c => c.asInstanceOf[ObjectNode].remove("document"): Unit)
     Json.set(read, "playerId", s.playerId)
     Json.set(read, "readyAt", s.readyAt.map(_.toString).orNull)
     Json.set(read, "sof", s.sof.wire)

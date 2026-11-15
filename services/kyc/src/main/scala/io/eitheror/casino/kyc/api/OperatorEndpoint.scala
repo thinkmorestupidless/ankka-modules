@@ -14,16 +14,21 @@ import scala.jdk.CollectionConverters.*
 import Answers.*
 
 /**
- * `/v1/casino/backoffice/<slug>/kyc`: the brand's compliance operators (FR-002, R14). The ACL admits an
- * operator of the brand; each route then asks for one of the compliance roles, and any other is `forbidden`.
+ * `/v1/casino/backoffice/<slug>/kyc`: the brand's operators (FR-002, R14). Each route requires one
+ * permission of the brand's roles (spec 030 amendment K1, `Routes.operatorMay` over the roles as
+ * `ctx.bags` last read them): `identity.read` for a player's identity status, `identity.review` for
+ * everything else on a player, `config.brand` for the brand's policy.
  */
 final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoffice/${ctx.slug}/kyc"):
-  val acl: Acl = Routes.operator(ctx.slug, ctx.authenticate())
+  // every route names its own permission; this is never reached
+  val acl: Acl = Acl.DenyAll
+
+  private def may(permission: String): Acl = Routes.operatorMay(ctx.slug, permission, ctx.bags, ctx.authenticate())
+
+  /** Whether the caller's roles hold `permission`, for what a route shows beyond what admitted them. */
+  private def holds(permission: String): Boolean = ctx.bags.permissionsOf(principal.roles).exists(_(permission))
 
   private val documents = DocumentRoutes(ctx)
-
-  private def compliance(f: => Reply): Reply =
-    if principal.roles.exists(OperatorEndpoint.ComplianceRoles) then f else refused("forbidden")
 
   private def body(text: String)(f: JsonNode => Reply): Reply = Json.parseObject(text).fold(badBody)(f)
 
@@ -36,30 +41,42 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
         Option.when(code == "unknown_profile")("knownProfiles" -> Json.arr(a.known*)).toSeq
       refused(code, named*)
 
-  get("/policy") { () => compliance(ok(Render.policy(ctx.policy))) }
+  withAcl(may("config.brand")) {
+  get("/policy") { () => ok(Render.policy(ctx.policy)) }
+  }
 
+  withAcl(may("config.brand")) {
   putBody("/policy") { (text: String) =>
-    compliance(body(text) { b =>
+    body(text) { b =>
       OperatorEndpoint.change(b) match
         case Left(field) => refused("invalid_policy", "field" -> field)
         case Right(change) =>
           policyAnswer(ctx.policyEntity.call(PolicyEntity.change).invoke(ChangePolicy(change, operatorId, ctx.now())))
-    })
+    }
+  }
   }
 
+  withAcl(may("config.brand")) {
   postBody("/policy/profile") { (text: String) =>
-    compliance(body(text)(b => policyAnswer(ctx.policyEntity.call(PolicyEntity.applyProfile)
-      .invoke(ApplyProfile(b.text("profile"), operatorId, ctx.now())))))
+    body(text)(b => policyAnswer(ctx.policyEntity.call(PolicyEntity.applyProfile)
+      .invoke(ApplyProfile(b.text("profile"), operatorId, ctx.now()))))
+  }
   }
 
+  withAcl(may("identity.review")) {
   postBody("/{playerId}/uploads") { (p: String, text: String) =>
-    compliance(body(text) { b =>
+    body(text) { b =>
       b.text("reason").fold(refused("reason_required"))(reason => documents.upload(p, b, Uploader.support(principal.subject, reason)))
-    })
+    }
   }
-  postBody("/{playerId}/documents") { (p: String, text: String) => compliance(body(text)(documents.confirm(p, _))) }
+  }
+  withAcl(may("identity.review")) {
+  postBody("/{playerId}/documents") { (p: String, text: String) => body(text)(documents.confirm(p, _)) }
+  }
+  withAcl(may("identity.review")) {
   get("/{playerId}/views/{documentId}") { (p: String, d: String) =>
-    compliance(documents.view(p, d, Actor.operator(principal.subject)))
+    documents.view(p, d, Actor.operator(principal.subject))
+  }
   }
 
   // ── the player's account (US2) ─────────────────────────────────────────────────────────────────
@@ -67,28 +84,30 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
   private def operatorId = principal.subject
 
   /** The queue (FR-035): a filter's rows, oldest first by its time unless `sort=newest`, and every filter's live count. */
+  withAcl(may("identity.review")) {
   get("/queue") { () =>
-    compliance {
-      KycQueue.Filter.of(request.query.raw("filter"), request.query.raw("reason")) match
-        case None => refused("invalid_filter")
-        case Some(filter) =>
-          val queue = ctx.views.forView(KycQueue)
-          val now   = ctx.now()
-          val shown = filter.rows(queue, OperatorEndpoint.QueueLimit, request.query.raw("sort").contains("newest"))
-          ok(Json.obj("rows" -> Json.arr(shown.map(Render.queueRow(_, filter.since, now))*), "counts" -> Json.obj(KycQueue.counts(queue)*)))
-    }
+    KycQueue.Filter.of(request.query.raw("filter"), request.query.raw("reason")) match
+      case None => refused("invalid_filter")
+      case Some(filter) =>
+        val queue = ctx.views.forView(KycQueue)
+        val now   = ctx.now()
+        val shown = filter.rows(queue, OperatorEndpoint.QueueLimit, request.query.raw("sort").contains("newest"))
+        ok(Json.obj("rows" -> Json.arr(shown.map(Render.queueRow(_, filter.since, now))*), "counts" -> Json.obj(KycQueue.counts(queue)*)))
+  }
   }
 
+  /** A player's identity status (K1): a reader without `identity.review` is shown it without the documents. */
+  withAcl(may("identity.read")) {
   get("/{playerId}") { (p: String) =>
-    compliance {
-      val s = ctx.state(p)
-      if s.isEmpty then refused("player_not_found") else ok(Render.operator(s, ctx.policy, ctx.now()))
-    }
+    val s = ctx.state(p)
+    if s.isEmpty then refused("player_not_found") else ok(Render.operator(s, ctx.policy, ctx.now(), withDocuments = holds("identity.review")))
+  }
   }
 
   /** The reason code is checked before the document (R8); an outcome neither approved nor rejected is not a review. */
+  withAcl(may("identity.review")) {
   postBody("/{playerId}/reviews/{documentId}") { (p: String, d: String, text: String) =>
-    compliance(body(text) { b =>
+    body(text) { b =>
       b.text("outcome").flatMap(Outcome.of) match
         case None => refusal(400, "invalid_body", "outcome is approved or rejected")
         case Some(outcome) =>
@@ -96,68 +115,81 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
             .invoke(ReviewDocument(d, outcome, b.text("reasonCode"), operatorId, ctx.policy.required, ctx.now()))
           a.refusal.fold(ok(Json.obj("document" -> a.state.document(d).map(Render.document(_, operator = true)),
             "status" -> a.state.status.wire)))(refused)
-    })
+    }
+  }
   }
 
+  withAcl(may("identity.review")) {
   putBody("/{playerId}/mode") { (p: String, text: String) =>
-    compliance(body(text) { b =>
+    body(text) { b =>
       b.text("mode").flatMap(Mode.of).fold(refused("invalid_mode")) { mode =>
         val a = ctx.record(p).call(KycRecord.setMode).invoke(SetMode(mode, operatorId, ctx.policy.required, ctx.now()))
         a.refusal.fold(ok(Json.obj("mode" -> a.state.mode.wire, "status" -> a.state.status.wire,
           "readyAt" -> a.state.readyAt.map(_.toString).orNull)))(refused)
       }
-    })
+    }
+  }
   }
 
   /** An operator sets pending or verified; verified needs the profile complete (FR-015). */
+  withAcl(may("identity.review")) {
   putBody("/{playerId}/status") { (p: String, text: String) =>
-    compliance(body(text) { b =>
+    body(text) { b =>
       b.text("status").flatMap(Status.of).filter(OperatorEndpoint.Settable) match
         case None => refused("invalid_status")
         case Some(status) =>
           val a = ctx.record(p).call(KycRecord.setStatus).invoke(SetStatus(status, operatorId, ctx.policy.required, ctx.now()))
           a.refusal.fold(ok(Json.obj("status" -> a.state.status.wire)))(refused)
-    })
+    }
+  }
   }
 
+  withAcl(may("identity.review")) {
   putBody("/{playerId}/required") { (p: String, text: String) =>
-    compliance(body(text) { b =>
+    body(text) { b =>
       val a = ctx.record(p).call(KycRecord.setRequired)
         .invoke(SetRequired(b.strings("categories"), operatorId, ctx.policy.required, ctx.now()))
       a.refusal.fold(ok(Json.obj("categories" -> a.state.required.map(_.wire), "mode" -> a.state.mode.wire,
         "status" -> a.state.status.wire)))(refused)
-    })
+    }
+  }
   }
 
   /** The original's approve and reject: verified or rejected regardless of the documents and the profile (R8). */
+  withAcl(may("identity.review")) {
   postBody("/{playerId}/override") { (p: String, text: String) =>
-    compliance(body(text) { b =>
+    body(text) { b =>
       b.text("status").flatMap(Status.of).filter(OperatorEndpoint.Overridable) match
         case None => refused("invalid_status")
         case Some(status) =>
           val at = ctx.now()
           val a  = ctx.record(p).call(KycRecord.overrideStatus).invoke(Override(status, b.text("reason"), operatorId, ctx.policy.required, at))
           a.refusal.fold(ok(Json.obj("status" -> a.state.status.wire, "by" -> operatorId, "at" -> at.toString)))(refused)
-    })
+    }
+  }
   }
 
   /** The source of funds review (FR-023): cleared closes the source of funds flag; unverified sets it back. */
+  withAcl(may("identity.review")) {
   postBody("/{playerId}/sof") { (p: String, text: String) =>
-    compliance(body(text) { b =>
+    body(text) { b =>
       val record = ctx.record(p)
       b.text("status") match
         case Some("cleared")    => ok(Json.obj("sof" -> record.call(KycRecord.clearSof).invoke(ClearSof(operatorId, ctx.now())).state.sof.wire))
         case Some("unverified") => ok(Json.obj("sof" -> record.call(KycRecord.resetSof).invoke(ResetSof(operatorId, ctx.now())).state.sof.wire))
         case _                  => refused("invalid_status")
-    })
+    }
+  }
   }
 
   /** An open flag dismissed with a note (FR-024); the note is personal and kept only on the record. */
+  withAcl(may("identity.review")) {
   postBody("/{playerId}/flags/{reason}/dismiss") { (p: String, reason: String, text: String) =>
-    compliance(body(text) { b =>
+    body(text) { b =>
       val a = ctx.record(p).call(KycRecord.dismissFlag).invoke(DismissFlag(reason, b.text("note").getOrElse(""), operatorId, ctx.now()))
       a.refusal.fold(ok(Json.obj("flags" -> Render.flags(a.state))))(refused)
-    })
+    }
+  }
   }
 
 object OperatorEndpoint:
@@ -207,6 +239,3 @@ object OperatorEndpoint:
                    case Some(n) if n.isBoolean  => Right(Some(n.asBoolean))
                    case Some(_)                 => Left("autoSuspendOnWindowExpiry")
     yield Change(deposit, play, ccy, dt, sof, window, req, suspend)
-
-  /** The roles that may act on a player's KYC and on the brand's policy (FR-002). */
-  val ComplianceRoles: Set[String] = Set("brand_admin", "brand_compliance", "compliance_officer", "resource_admin", "platform_admin")

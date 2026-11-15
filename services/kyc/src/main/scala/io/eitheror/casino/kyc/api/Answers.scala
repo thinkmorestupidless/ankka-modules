@@ -3,6 +3,7 @@ package io.eitheror.casino.kyc.api
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.http.{Acl, Bytes, EndpointClients, Respond}
+import io.eitheror.casino.contract.access.RoleBags
 import io.eitheror.casino.kyc.{Json, KycRuntime, Settings}
 import io.eitheror.casino.kyc.documents.Store
 import io.eitheror.casino.kyc.policy.{Policy, PolicyEntity}
@@ -69,8 +70,12 @@ object Answers:
     val (status, message) = Statuses.getOrElse(code, (400, code))
     refusal(status, code, message, fields*)
 
-/** What every endpoint is built with: the service's clients, the authenticator, the settings, the clock and the store. */
-final class Ctx(val authenticate: () => Acl, val clients: EndpointClients):
+/**
+ * What every endpoint is built with: the service's clients, the authenticator, the settings, the clock, the
+ * store, and the brand's roles the operator routes decide from (spec 030 K1), opened on first use.
+ */
+final class Ctx(val authenticate: () => Acl, val clients: EndpointClients, roles: => RoleBags):
+  lazy val bags: RoleBags = roles
   def settings: Settings = KycRuntime.settings
   def slug: String       = settings.brand
   def now(): Instant     = KycRuntime.now()
