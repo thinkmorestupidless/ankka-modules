@@ -2,7 +2,7 @@ package io.eitheror.casino.backoffice
 
 import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{EndpointClients, HttpEndpoint, HttpServer}
-import com.thinkmorestupidless.ankka.runtime.{Ankka, TimerRuntime}
+import com.thinkmorestupidless.ankka.runtime.{Ankka, ProjectionRuntime, TimerRuntime}
 import io.eitheror.casino.backoffice.preferences.{Preferences, PreferencesEndpoint, SubjectsEndpoint}
 import io.eitheror.casino.backoffice.session.{KeycloakRealmClient, Session, SessionEndpoint, SessionExpiry, SessionRefresh, SessionsBySubject}
 
@@ -23,6 +23,7 @@ object BackofficeStateService:
   StateRuntime.realm = KeycloakRealmClient(settings)
   val builder = Ankka.service
     .registerAll(BackofficeStateService.descriptors)
+    .withExtension(ProjectionRuntime()) // SessionsBySubject; no topics, so no broker
     .withExtension(timers)
     .withErasureHandler(Erasure.handler)
     .withExtension(HttpServer.of(BackofficeStateService.endpoints(settings)*))

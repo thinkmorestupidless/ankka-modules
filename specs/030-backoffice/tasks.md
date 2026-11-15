@@ -100,7 +100,7 @@ Each task: replace `Routes.operator`/`operatorHolding` and handler role sets wit
 - [X] T031 Implement `st/session/Session.scala` (event sourced), `st/session/RealmClient.scala` (code exchange with PKCE, refresh, revoke), `st/session/SessionsBySubject.scala` and the expiry timer
 - [X] T032 Implement `st/preferences/Preferences.scala` (key value; FR-038) and `st/Erasure.scala` (the `operator/<subject>` handler)
 - [X] T033 Implement `st/session/SessionEndpoint.scala` and `st/preferences/PreferencesEndpoint.scala` as contracts/routes.md, each admitting only `Callers.service("backoffice")`; no token in any log or trace
-- [ ] T034 Write `st-test/it/StateIt.scala` over Postgres and a Keycloak container (quickstart §4) and make it pass
+- [X] T034 Write `st-test/it/StateIt.scala` over Postgres and a Keycloak container (quickstart §4) and make it pass
 
 ### The page's server
 
