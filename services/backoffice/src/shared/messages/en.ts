@@ -180,6 +180,8 @@ export const en = {
   "refusal.unknown_preference": "That preference cannot be kept.",
   "refusal.service_unavailable": "The service could not finish this in time.",
   "refusal.service_unavailable.next": "Try again; nothing was done twice.",
+  "refusal.suspected_duplicate": "The player is flagged as a suspected duplicate.",
+  "refusal.suspected_duplicate.next": "Clearing the suspected duplicate flag would allow it.",
   "refusal.unknown": "{code}: {given}",
 
   // money and dates
