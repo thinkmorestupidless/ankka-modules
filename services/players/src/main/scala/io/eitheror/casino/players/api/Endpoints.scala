@@ -281,6 +281,8 @@ final class ServiceEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/$
   get("/config/{name}") { (name: String) => OperatorStatusRoutes(ctx).config(name) }
   // spec 030: every service of the brand reads the brand's roles here, every 10 seconds (contract.access.RoleBags)
   get("/roles") { () => RolesRoutes(ctx).list }
+  // spec 030 P14: the brand's enabled modules, for the backoffice's frame whatever the operator's roles
+  get("/modules") { () => OperatorStatusRoutes(ctx).modules }
   withAcl(Routes.serviceOf("players")) {
     post("/erasure/players/{playerId}") { (id: String) => ErasureRoutes(ctx).eraseOwn(id) }
     get("/exports/players/{playerId}") { (id: String) => ErasureRoutes(ctx).ownPart(id) }

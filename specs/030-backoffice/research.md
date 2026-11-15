@@ -416,6 +416,27 @@ checked again when the shared projects are applied to `dev-kind`. Until then the
 T113, T117 to T119) are built against the doubles and wait on it for their checks against real
 services.
 
+### The brand's modules for every operator, 2026-11-15 (T037)
+
+`/api/me` names the brand's modules so an area the brand does not run is absent (R17), but players'
+`GET …/brands/<slug>/modules` requires `modules.read`, which only `brand_admin`'s default bag
+carries. Decided (Trevor): players gains `GET /v1/casino/brands/<slug>/players/modules` on its
+`ServiceEndpoint`, admitting the project's services as its `roles` route does (amendment P14); the
+page's server reads it under its own identity and keeps it for one minute for every operator, as
+the table *Held in the page's server* already said. `modules.read` stays the permission of the page
+that lists and requests modules. Rejected: `modules.read` in every default bag (a change to the role
+matrix, and a brand that took it out of a role would break that role's frame); reading with the
+operator's token and showing every area when refused (against R17).
+
+### `personal` does not reach a module's descriptor, 2026-11-15 (T034)
+
+`backoffice-state` keeps operators' names and emails as ankka's sealing `Personal` and declares
+`"personal": true` in its `service.json`. The vendor's manifest schema refuses `personal` on a
+module's descriptor (no such property), so a service applied through a module carries no such
+flag; engagement, reporting, public-api and support-agent are in the same position today. Whether
+the installation's erasure notices reach a personal service applied through ankka-vendor is the
+vendor's to say: an ankka-vendor question, recorded here, not worked around in the manifest.
+
 ## Design finished
 
 2026-11-15: reworked after the first finish, on three decisions made in review: one backoffice per

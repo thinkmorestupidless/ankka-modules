@@ -38,6 +38,7 @@ Three kinds recur and are named by letter:
 | P11 | `fraud-cases`: L, oldest first for `status=open` |
 | P12 | the brand's roles: a `Role` entity per role (name, description, permissions, default or the brand's own), seeded from the role matrix when the brand first starts; `roles` GET (every service of the project, and `roles.read`), `roles/{name}` PUT, DELETE and `roles/{name}/reset` POST (`roles.change`), with the rules of roles.md and an audit record per change |
 | P13 | `role-assignments/{operator}` PUT (`roles.give`): refuses when the giver lacks a permission the roles carry, then asks merchant (H6) to set them; audit record |
+| P14 | `GET /v1/casino/brands/<slug>/players/modules` on the service endpoint (the project's services, as `roles`): the brand's enabled modules, what `…/modules` answers an operator holding `modules.read`; the backoffice's server reads it for `/api/me` (research, *Found during implementation*, T037) |
 
 ## wallet (spec 002)
 
