@@ -158,8 +158,8 @@ exactly its kinds, oldest first; acting on one removes it and keeps the place.
 - [ ] T058 [P] [US2] `svc/kyc/` K2: paging on `queue` keeping `counts`, with tests
 - [ ] T059 [P] [US2] `svc/responsible-gambling/` G2: `cases?status=` brand-wide, paged, oldest first, with tests
 - [ ] T060 [P] [US2] `svc/players/` P11: paging and total on `fraud-cases`, oldest first for open, with tests
-- [ ] T061 [P] [US2] `svc/game-provider/` GP3 and `svc/attribution/` E2: paging and total on `unacknowledged` and on `attribution-webhooks/undelivered`, with tests
-- [ ] T062 [P] [US2] `svc/psp-gateway/` T1: `total` on `outcomes/undelivered` and `/refused`, with tests
+- [X] T061 [P] [US2] `svc/game-provider/` GP3 and `svc/attribution/` E2: paging and total on `unacknowledged` and on `attribution-webhooks/undelivered`, with tests
+- [X] T062 [P] [US2] `svc/psp-gateway/` T1: `total` on `outcomes/undelivered` and `/refused`, with tests
 - [ ] T063 [US2] Implement `s/composite/worklist.ts` from contracts/sources.md: only the kinds the roles admit, in parallel, 3 s each, `unavailable` with its reason, totals from the sources; unit tests in `t/unit/worklist.test.ts`
 - [ ] T064 [US2] Implement `w/areas/worklist/` as the first page: kinds with counts, one row per item oldest first, opening an item's investigation, returning to the same place after acting (FR-018), an item acted on by someone else showing who and what with no action
 
