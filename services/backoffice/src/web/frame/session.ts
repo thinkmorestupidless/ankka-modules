@@ -1,6 +1,6 @@
 // The operator's session as the page sees it: `/api/me`, the sign-in redirect on 401, and the narrow
 // window's read-only mode (FR-041).
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Me } from "../../shared/access.ts";
 import { explain, type Refusal } from "../../shared/refusals.ts";
@@ -9,6 +9,8 @@ export type MeState =
   | { state: "loading" }
   | { state: "signedIn"; me: Me }
   | { state: "refused"; refusal: Refusal }
+  /** The operator's roles do not name this brand; `lost` when they did earlier in this page's life. */
+  | { state: "notInBrand"; brand: string; lost: boolean }
   | { state: "unreachable" };
 
 /** Where the browser goes to sign in, coming back to where it was. */
@@ -27,12 +29,42 @@ export async function readMe(fetchFn: typeof fetch = fetch, go: (href: string) =
     go(signInHref(window.location));
     return { state: "loading" };
   }
-  if (!r.ok) return { state: "refused", refusal: explain(r.status, await r.text()) };
+  if (!r.ok) {
+    const body = await r.text();
+    const notIn = r.status === 403 ? brandRefused(body) : undefined;
+    if (notIn !== undefined) return { state: "notInBrand", brand: notIn, lost: false };
+    return { state: "refused", refusal: explain(r.status, body) };
+  }
   return { state: "signedIn", me: (await r.json()) as Me };
 }
 
+function brandRefused(body: string): string | undefined {
+  try {
+    const b = JSON.parse(body) as { error?: unknown; brand?: unknown };
+    return b.error === "brand_not_in_roles" && typeof b.brand === "string" ? b.brand : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Whether the operator lost the brand: refused it now, having been let in earlier. The page then signs
+ * them out and says why (edge case 1).
+ */
+export function afterRead(before: MeState | undefined, now: MeState): MeState {
+  if (now.state === "notInBrand" && (before?.state === "signedIn" || (before?.state === "notInBrand" && before.lost)))
+    return { ...now, lost: true };
+  return now;
+}
+
 export function useMe(): MeState {
-  const q = useQuery({ queryKey: ["me"], queryFn: () => readMe(), staleTime: 10_000, refetchInterval: 30_000 });
+  const last = useRef<MeState | undefined>(undefined);
+  const q = useQuery({
+    queryKey: ["me"],
+    queryFn: async () => (last.current = afterRead(last.current, await readMe())),
+    staleTime: 10_000,
+    refetchInterval: (query) => (query.state.data?.state === "notInBrand" ? false : 30_000),
+  });
   return q.data ?? { state: "loading" };
 }
 

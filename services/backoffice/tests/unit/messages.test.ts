@@ -9,7 +9,7 @@ import { OperatorBags } from "./bags.ts";
 describe("the catalogue", () => {
   test("every message parses and renders with its values", () => {
     for (const key of Object.keys(en) as (keyof typeof en)[]) {
-      expect(() => t(key, { permission: "p", roles: "r", source: "s", code: "c", given: "g", detail: "d", module: "m", minor: "1", currency: "EUR", zone: "UTC", name: "n", modules: "core" }), key).not.toThrow();
+      expect(() => t(key, { permission: "p", roles: "r", source: "s", code: "c", given: "g", detail: "d", module: "m", minor: "1", currency: "EUR", zone: "UTC", name: "n", modules: "core", brand: "b", role: "brand_b" }), key).not.toThrow();
     }
   });
 

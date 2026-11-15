@@ -19,6 +19,12 @@ export const en = {
   "frame.modulesWhy": "An area is shown only when the brand runs its module. This brand runs: {modules}.",
   "frame.modulesUnknown": "The brand's modules could not be read, so every area is shown.",
   "frame.skip": "Skip to the page",
+  // areas/access: an operator whose roles do not name the brand
+  "access.needRole": "To work in {brand} you need the role {role}.",
+  "access.askAdmin": "Ask an admin of {brand} to give it to you, then sign in again.",
+  "access.lost": "Your roles no longer name {brand}, so you have been signed out of it.",
+  "access.signIn": "Sign in again",
+  "access.otherOperator": "Sign in as someone else",
 
   // the areas, as the rail and each page's heading name them
   "area.worklist": "Worklist",
