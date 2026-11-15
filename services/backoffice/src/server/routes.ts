@@ -162,6 +162,8 @@ export const table: readonly Row[] = [
   // responsible-gambling: OperatorEndpoint at /v1/casino/backoffice/<slug>/rg
   r("GET", "responsible-gambling", "/settings", `${P}/rg/settings`, "protection.read"),
   r("PUT", "responsible-gambling", "/settings", `${P}/rg/settings`, "config.brand"),
+  // the brand's cases by status, oldest first (G2); a literal segment, so before the player's row
+  r("GET", "responsible-gambling", "/cases", `${P}/rg/cases`, "protection.read"),
   r("GET", "responsible-gambling", "/{player}", `${P}/rg/{player}`, "protection.read"),
   r("PUT", "responsible-gambling", "/{player}/limits/{type}", `${P}/rg/{player}/limits/{type}`, "protection.change"),
   r("DELETE", "responsible-gambling", "/{player}/limits/{type}", `${P}/rg/{player}/limits/{type}`, "protection.change"),
@@ -193,6 +195,9 @@ export const table: readonly Row[] = [
   r("GET", "game-provider", "/rounds/by-transaction/{transactionId}", `${P}/game-provider/rounds/by-transaction/{transactionId}`, "player.read"),
   // one route per configured adapter (`rounds/<adapter>/{roundId}`); the adapter's name is the parameter here
   r("GET", "game-provider", "/rounds/{provider}/{roundId}", `${P}/game-provider/rounds/{provider}/{roundId}`, "player.read"),
+
+  // engagement: BackofficeEndpoint at /v1/casino/backoffice/<slug>
+  r("GET", "engagement", "/parked-sends", `${P}/parked-sends`, "send.release"),
 
   // rewards (reads only): RewardAdminEndpoint at /v1/casino/brands/<slug>/reward-grants
   r("GET", "rewards", "/reward-grants", `${B}/reward-grants`, "reward.read"),
