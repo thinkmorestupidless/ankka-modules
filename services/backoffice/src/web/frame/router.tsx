@@ -9,6 +9,7 @@ import { Shell } from "./Frame.tsx";
 import { ModulesPage, NotFound, Placeholder } from "./pages.tsx";
 import { PreferencesPage } from "../areas/preferences/PreferencesPage.tsx";
 import { TeamPage } from "../areas/team/TeamPage.tsx";
+import { JobsPage } from "../areas/jobs/JobsPage.tsx";
 import { IdentityQueuePage } from "../areas/identity/queue.tsx";
 import { IdentityTab, ProtectionTab } from "../areas/players/tabs.tsx";
 import { ProtectionCasesPage } from "../areas/protection/cases.tsx";
@@ -44,7 +45,7 @@ export const Pages: [string, Page][] = [
   ["/team/roles", () => <TeamPage />],
   ["/affiliates", page("area.affiliates")],
   ["/affiliates/$area", page("area.affiliates")],
-  ["/jobs", page("area.jobs")],
+  ["/jobs", () => <JobsPage />],
   ["/preferences", () => <PreferencesPage />],
 ];
 

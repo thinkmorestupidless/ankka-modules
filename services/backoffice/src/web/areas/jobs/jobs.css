@@ -1,0 +1,24 @@
+/* The jobs page, a job's line beside the report it exports, and the notices a job leaves. */
+.bo-jobs { display: grid; gap: 16px; }
+
+.bo-job-line {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  font-size: 13px;
+}
+
+.bo-job-notices {
+  display: grid;
+  gap: 1px;
+}
+
+.bo-job-notices .bo-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.bo-job-notices .bo-notice > svg { color: var(--primary); }

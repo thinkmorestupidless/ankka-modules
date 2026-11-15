@@ -5,6 +5,7 @@ import { t } from "../../shared/messages/index.ts";
 import type { Me } from "../../shared/access.ts";
 import { render } from "../../shared/messages/index.ts";
 import { NotInBrand } from "../areas/access/NotInBrand.tsx";
+import { JobNotices } from "../areas/jobs/notices.tsx";
 import { areaOf, areasFor } from "./areas.ts";
 import { MeContext, ReadOnlyContext } from "./context.ts";
 import { useEvents } from "./events.ts";
@@ -34,6 +35,7 @@ export function Frame({ me, readOnly, children }: { me: Me; readOnly: boolean; c
                 {t("frame.readOnly")}
               </p>
             ) : null}
+            <JobNotices />
             <main id="page" className="bo-page" tabIndex={-1}>
               {children ?? <Outlet />}
             </main>

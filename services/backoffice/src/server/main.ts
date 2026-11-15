@@ -15,6 +15,7 @@ import { eventRoutes } from "./events.ts";
 import { search } from "./composite/search.ts";
 import { viewDocument } from "./composite/document.ts";
 import { freshness, named } from "./composite/freshness.ts";
+import { kept, start as startJob, states as jobStates } from "./composite/jobs.ts";
 import { brandReads, inBrand, permissionsOf, PlatformAdmin, type BrandReads } from "./roles.ts";
 
 export interface Deps {
@@ -184,7 +185,40 @@ export function createApp(deps: Deps): Hono<Env> {
     return c.json({ services: await freshness({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 3_000) }, services, c.get("token").accessToken) });
   });
 
-  eventRoutes(app, { brand: deps.brand, tokens, reads, everyMs: deps.eventsEveryMs ?? 5_000 });
+  // The operator's started jobs (FR-029): kept in their preferences, each job the owner's.
+  const jobDeps = () => ({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 5_000) });
+  const jobsOf = async (accessToken: string, withinMs?: number) => {
+    const subject = claimsOf(accessToken).sub;
+    if (!subject) return [];
+    const jobs = kept(await deps.state.preferences(subject));
+    const now = deps.now();
+    return jobStates(jobDeps(), withinMs === undefined ? jobs : jobs.filter((j) => now - Date.parse(j.startedAt) < withinMs), accessToken);
+  };
+  app.get("/api/jobs", async (c) => {
+    c.set("logPath", "/api/jobs");
+    try {
+      return c.json({ jobs: await jobsOf(c.get("token").accessToken) });
+    } catch (e) {
+      c.set("why", e instanceof Error ? e.name : "unknown");
+      return unavailable("backoffice-state");
+    }
+  });
+  app.post("/api/jobs", async (c) => {
+    c.set("logPath", "/api/jobs");
+    const token = c.get("token");
+    const subject = claimsOf(token.accessToken).sub;
+    if (!subject) return c.json({ error: "signed_out" }, 401);
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "invalid_job", message: "the body is not a JSON object" }, 400);
+    }
+    const started = await startJob({ ...deps, timeoutMs: deps.timeoutMs }, subject, token.accessToken, body);
+    return started.ok ? c.json({ job: started.job, kept: started.kept }) : started.response;
+  });
+
+  eventRoutes(app, { brand: deps.brand, tokens, reads, everyMs: deps.eventsEveryMs ?? 5_000, jobs: jobsOf });
 
   // The brand's roles as players holds them now, so the page can name a role that would give a permission.
   app.get("/api/permissions", async (c) => {

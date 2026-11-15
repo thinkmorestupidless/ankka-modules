@@ -6,6 +6,11 @@
 // behind its facts, and only reporting can say it is rebuilding. So a list is provisional when a view
 // says it is rebuilding or when its service's status cannot be read; it is never made provisional
 // by the age of `asOf`, which on a quiet brand is old and right.
+//
+// reporting answers its views in its own shape, `{name, completeFrom, rebuilding}` (spec 015 FR-004):
+// it cannot say when a view last applied a change, only the first day from which its figures are
+// complete. Its views are read here as they are given: `asOf` null, `completeFrom` the day, and the
+// service's `completeFrom` the latest of its views' (the first day every one of them is complete).
 import { match, type Row } from "../routes.ts";
 import { pass, type ProxyDeps } from "../proxy.ts";
 
@@ -13,10 +18,12 @@ export interface View {
   name: string;
   asOf: string | null;
   rebuilding: boolean;
+  /** reporting's: the first reporting day the view's figures are complete from; null while unknown. */
+  completeFrom?: string | null;
 }
 
 export type ServiceFreshness =
-  | { service: string; state: "ok"; views: View[]; asOf: string | null; provisional: boolean }
+  | { service: string; state: "ok"; views: View[]; asOf: string | null; completeFrom?: string; provisional: boolean }
   | { service: string; state: "unavailable"; reason: string; provisional: true };
 
 export interface FreshnessDeps extends ProxyDeps {
@@ -36,10 +43,18 @@ function viewsOf(body: unknown): View[] | undefined {
   const views = (body as { views?: unknown })?.views;
   if (!Array.isArray(views)) return undefined;
   return views.flatMap((v) => {
-    const o = v as { name?: unknown; asOf?: unknown; rebuilding?: unknown };
+    const o = v as { name?: unknown; asOf?: unknown; rebuilding?: unknown; completeFrom?: unknown };
     if (typeof o?.name !== "string") return [];
-    return [{ name: o.name, asOf: typeof o.asOf === "string" ? o.asOf : null, rebuilding: o.rebuilding === true }];
+    const view: View = { name: o.name, asOf: typeof o.asOf === "string" ? o.asOf : null, rebuilding: o.rebuilding === true };
+    if ("completeFrom" in o) view.completeFrom = typeof o.completeFrom === "string" ? o.completeFrom : null;
+    return [view];
   });
+}
+
+/** The latest day any view is complete from (the first day every view of the service is); null when none says, and then not answered. */
+function completeFrom(views: View[]): string | null {
+  const days = views.map((v) => v.completeFrom).filter((d): d is string => typeof d === "string").sort();
+  return days.at(-1) ?? null;
 }
 
 /** The oldest time any view of the service last applied a change; null while none has. */
@@ -61,7 +76,8 @@ export async function freshness(deps: FreshnessDeps, services: string[], accessT
         }
         const views = viewsOf(await response.json());
         if (views === undefined) return { service, state: "unavailable", reason: "unreadable", provisional: true };
-        return { service, state: "ok", views, asOf: oldest(views), provisional: views.some((v) => v.rebuilding) };
+        const from = completeFrom(views);
+        return { service, state: "ok", views, asOf: oldest(views), ...(from !== null ? { completeFrom: from } : {}), provisional: views.some((v) => v.rebuilding) };
       } catch {
         return { service, state: "unavailable", reason: "unreadable", provisional: true };
       }
