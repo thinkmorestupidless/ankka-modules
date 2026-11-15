@@ -6,6 +6,7 @@ import com.thinkmorestupidless.ankka.auth.oidc.Oidc
 import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, HttpServer}
 import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime}
+import io.eitheror.casino.contract.access.RoleBags
 
 /** Every component of the service (plan.md's structure), registered by the service and by its test kit alike. */
 object SupportService:
@@ -33,9 +34,9 @@ object SupportService:
   ) ++ agents.descriptors
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one. */
-  def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] = Seq(
+  def endpoints(authenticate: () => Acl, bags: Option[EndpointClients => RoleBags] = None): Seq[EndpointClients => HttpEndpoint] = Seq(
     clients => api.ChatEndpoint(api.Ctx(authenticate, clients)),
-    clients => api.ConfigEndpoint(api.Ctx(authenticate, clients)),
+    clients => api.ConfigEndpoint(api.Ctx(authenticate, clients, bags)),
     clients => api.ServiceEndpoint(api.Ctx(authenticate, clients))
   )
 

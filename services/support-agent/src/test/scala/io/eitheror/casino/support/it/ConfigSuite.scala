@@ -63,23 +63,27 @@ class ConfigSuite extends munit.FunSuite with io.eitheror.casino.support.it.Held
     val unknown = put("""{"colour": "blue"}""")
     assertEquals((unknown.status, unknown.str("error"), unknown.str("field")), (400, "unknown_field", "colour"))
 
-  test("the prompt and the personal fields are the brand admin's; a resource admin changes the rest"):
-    val prompt = put("""{"prompt": "Be brief."}""", roles = "resource_admin")
-    assertEquals((prompt.status, prompt.str("field")), (403, "prompt"))
-    val fields = put("""{"personalFields": ["email"]}""", roles = "resource_admin")
-    assertEquals((fields.status, fields.str("field")), (403, "personalFields"))
-    assertEquals(put("""{"retentionDays": 30}""", roles = "resource_admin").status, 200)
+  test("every field, the prompt and the personal fields too, is config.agent's; a role without it changes none (spec 030 E1)"):
+    for body <- Vector("""{"prompt": "Be brief."}""", """{"personalFields": ["email"]}""", """{"retentionDays": 30}""") do
+      val refused = put(body, roles = "resource_admin")
+      assertEquals(refused.status, 403, refused.text)
+      assert(refused.text.contains("the config.agent permission is needed"), refused.text)
     assertEquals(put("""{"prompt": "Be brief."}""").status, 200)
+    assertEquals(put("""{"personalFields": ["email"]}""").status, 200)
 
   test("a version not yet made is 404"):
     assertEquals(get(s"/versions/${version + 1}").status, 404)
     assertEquals(get("/versions/x").status, 404)
 
-  test("an operator of another brand, or one with no role the routes name, is refused by the ACL"):
+  test("an operator of another brand, or one whose roles do not carry the route's permission, is refused by the ACL"):
     val other = kit.request("GET", path("/"), headers = Seq(kit.asOperator().head,
       "Authorization" -> "Bearer staff|op-2|brand_other,brand_admin"))
     assertEquals(other.status, 403)
     assertEquals(get("/", roles = "support_agent").status, 403)
+    val support = get("/", roles = "brand_support")
+    assertEquals(support.status, 403)
+    assert(support.text.contains("the config.agent permission is needed"), support.text)
+    assertEquals(get("/conversations", roles = "brand_support").status, 200)
     assertEquals(kit.request("GET", path("/"), headers = kit.asPlayer("p-cfg")).status, 403)
 
   // ── T051 ──────────────────────────────────────────────────────────────────

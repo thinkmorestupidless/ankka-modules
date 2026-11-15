@@ -3,7 +3,6 @@ package io.eitheror.casino.engagement.api
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.http.*
-import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.engagement.{EngagementRuntime, Json}
 import io.eitheror.casino.engagement.clients.{CrmAnswer, CrmCredentials}
 import io.eitheror.casino.engagement.config.*
@@ -13,21 +12,29 @@ import scala.jdk.CollectionConverters.*
 import Answers.*
 
 /**
- * `/v1/casino/crm-config` (FR-004, FR-005; contracts/routes.md): the brand's Customer.io configuration for the
+ * `/v1/casino/crm-config` (FR-004, FR-005; contracts/routes.md), each route `config.crm` (spec 030 amendment E1):
+ * the brand's Customer.io configuration for the
  * console, its three keys shown masked and written to the secret store, never to the entity; and the seed. A
  * `{brand}` other than this one is 404 `wrong_brand`.
  */
 final class ConfigEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/casino/crm-config"):
-  val acl: Acl = Routes.operatorHolding(ctx.slug, "brand_admin", "resource_admin", "platform_admin")(ctx.authenticate())
+  // every route names its own permission (spec 030 amendment E1); this is never reached
+  val acl: Acl = Acl.DenyAll
 
+  withAcl(ctx.may("config.crm")) {
   get("/{brand}") { (brand: String) => if brand != ctx.slug then wrongBrand else ok(CrmConfigRoute.shown(ctx)) }
+  }
 
+  withAcl(ctx.may("config.crm")) {
   putBody("/{brand}") { (brand: String, text: String) =>
     if brand != ctx.slug then wrongBrand
     else Json.parseObject(text).fold(badBody)(b => CrmConfigRoute.put(ctx, b, principal.subject))
   }
+  }
 
+  withAcl(ctx.may("config.crm")) {
   post("/{brand}/seed") { (brand: String) => if brand != ctx.slug then wrongBrand else CrmConfigRoute.seed(ctx) }
+  }
 
 object CrmConfigRoute:
   /** The body's names for the three keys, and the secret each is stored under. */

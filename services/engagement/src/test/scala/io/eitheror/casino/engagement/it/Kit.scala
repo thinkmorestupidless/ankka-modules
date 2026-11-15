@@ -57,9 +57,14 @@ final class Kit(base: Settings = Kit.Base):
   LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).asInstanceOf[Logger].addAppender(log)
 
   private val timers = TimerRuntime(200.millis)
+  /** The brand's roles the operator routes decide from: the role matrix, as a new brand starts. */
+  val roles: io.eitheror.casino.contract.access.RoleBags =
+    io.eitheror.casino.contract.access.RoleBags.fixed(io.eitheror.casino.contract.access.OperatorPermissions.DefaultRoles)
+
   /** The player routes held to the kept description (spec 031 FR-015); `Held` asserts it after each test. */
   val held = io.eitheror.casino.contract.port.HeldToPlayerRoutes(Kit.description, slug)
-  private val server = held.hold(HttpServer.at("127.0.0.1", 0)(EngagementService.endpoints(() => Kit.authenticate, project = "local")*))
+  private val server = held.hold(HttpServer.at("127.0.0.1", 0)(EngagementService.endpoints(() => Kit.authenticate, project = "local",
+    bags = Some(_ => roles))*))
   Kit.started.add(this): Unit
 
   val testKit: AnkkaTestKit = AnkkaTestKit.start(
