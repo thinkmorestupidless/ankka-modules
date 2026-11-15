@@ -13,7 +13,8 @@
     "typecheck": "tsc",
     "test": "vitest run --dir tests/unit",
     "features": "bddgen --config tests/features/playwright.config.ts && playwright test --config tests/features/playwright.config.ts",
-    "a11y": "playwright test --config tests/a11y/playwright.config.ts"
+    "a11y": "playwright test --config tests/a11y/playwright.config.ts",
+    "lint": "eslint src tests"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.8",
