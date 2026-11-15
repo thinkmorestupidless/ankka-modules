@@ -9,6 +9,7 @@ import { Shell } from "./Frame.tsx";
 import { ModulesPage, NotFound, Placeholder } from "./pages.tsx";
 import { PreferencesPage } from "../areas/preferences/PreferencesPage.tsx";
 import { TeamPage } from "../areas/team/TeamPage.tsx";
+import { WorklistPage } from "../areas/worklist/WorklistPage.tsx";
 import { JobsPage } from "../areas/jobs/JobsPage.tsx";
 import { DashboardPage } from "../areas/dashboard/DashboardPage.tsx";
 import { ReportPage } from "../areas/reports/ReportsPage.tsx";
@@ -23,7 +24,7 @@ const page = (label: MessageKey): Page => () => <Placeholder label={label} />;
 
 /** Path → the page; an area's task puts its own component here. */
 export const Pages: [string, Page][] = [
-  ["/", page("area.worklist")],
+  ["/", () => <WorklistPage />],
   ["/search", page("area.search")],
   ["/players", page("area.players")],
   ["/players/$player", page("area.players")],
