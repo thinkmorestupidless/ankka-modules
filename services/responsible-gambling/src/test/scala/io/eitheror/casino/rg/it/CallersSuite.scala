@@ -2,6 +2,7 @@ package io.eitheror.casino.rg.it
 
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.rg.Json
+import io.eitheror.casino.rg.Json.*
 import io.eitheror.casino.rg.it.Callers.Read
 import io.eitheror.casino.rg.it.Callers.Read.*
 
@@ -37,10 +38,10 @@ class CallersSuite extends munit.FunSuite with LogCapturing:
   private def limit(p: String, t: String, v: String, c: Option[String] = Some("EUR")) =
     assertEquals(kit.json("PUT", kit.playerPath(s"/$p/limits/$t"), Json.obj("value" -> v, "currency" -> c), kit.asPlayer(p)).status, 200)
 
-  test("status (G4, F): no view backs an operator list yet, so no entry; for protection.read and the project's services"):
+  test("status (G4, F): the brand's cases' view (G2), for protection.read and the project's services"):
     val status = kit.servicePath("/status")
     val r = kit.request("GET", status, None, kit.asOperator())
-    assertEquals((r.status, r.text), (200, """{"views":[]}"""))
+    assertEquals((r.status, r.json.objects("views").flatMap(_.text("name"))), (200, Vector("rg-cases")), r.text)
     assertEquals(kit.request("GET", status, None, kit.asService("backoffice")).status, 200)
     assertEquals(kit.request("GET", status, None, kit.asOperator(roles = s"brand_${kit.slug},resource_finance")).status, 403)
     assertEquals(kit.request("GET", status, None, kit.asPlayer(player())).status, 403)
