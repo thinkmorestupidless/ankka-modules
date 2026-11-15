@@ -11,6 +11,7 @@ import { dropSession, sessionOf, stateClient, TokenCache, type StateClient, type
 import { match, table as routeTable, type Row } from "./routes.ts";
 import { pass, unavailable } from "./proxy.ts";
 import { authRoutes, type Realm } from "./auth.ts";
+import { eventRoutes } from "./events.ts";
 import { brandReads, inBrand, permissionsOf, PlatformAdmin, type BrandReads } from "./roles.ts";
 
 export interface Deps {
@@ -34,6 +35,8 @@ export interface Deps {
   address: string;
   /** The brand's roles and modules from players; made from the calling address when not given. */
   reads?: BrandReads;
+  /** How often `/api/events` compares the operator's permissions; 5 s when not given. */
+  eventsEveryMs?: number;
 }
 
 /** The claims of the realm's token, read without checking it: it came from `backoffice-state`. */
@@ -118,6 +121,8 @@ export function createApp(deps: Deps): Hono<Env> {
       permissions: permissionsOf(token.roles, bags ?? {}),
     });
   });
+
+  eventRoutes(app, { brand: deps.brand, tokens, reads, everyMs: deps.eventsEveryMs ?? 5_000 });
 
   // The brand's roles as players holds them now, so the page can name a role that would give a permission.
   app.get("/api/permissions", async (c) => {
