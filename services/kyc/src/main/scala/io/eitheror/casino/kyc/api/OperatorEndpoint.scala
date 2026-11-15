@@ -83,16 +83,26 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
 
   private def operatorId = principal.subject
 
-  /** The queue (FR-035): a filter's rows, oldest first by its time unless `sort=newest`, and every filter's live count. */
+  /**
+   * The queue (FR-035): a filter's rows, oldest first by its time unless `sort=newest`, the filter's `total` and
+   * every filter's live count. `page` and `pageSize` page it (spec 030 K2) and are answered back; with neither,
+   * the first `QueueLimit` rows are listed as before.
+   */
   withAcl(may("identity.review")) {
   get("/queue") { () =>
     KycQueue.Filter.of(request.query.raw("filter"), request.query.raw("reason")) match
       case None => refused("invalid_filter")
       case Some(filter) =>
-        val queue = ctx.views.forView(KycQueue)
-        val now   = ctx.now()
-        val shown = filter.rows(queue, OperatorEndpoint.QueueLimit, request.query.raw("sort").contains("newest"))
-        ok(Json.obj("rows" -> Json.arr(shown.map(Render.queueRow(_, filter.since, now))*), "counts" -> Json.obj(KycQueue.counts(queue)*)))
+        OperatorEndpoint.paging(request.query.raw) match
+          case Left(field) => refused("invalid_page", "field" -> field)
+          case Right(paging) =>
+            val queue  = ctx.views.forView(KycQueue)
+            val now    = ctx.now()
+            val newest = request.query.raw("sort").contains("newest")
+            val shown  = paging.fold(filter.rows(queue, OperatorEndpoint.QueueLimit, newest))((p, size) => filter.page(queue, p, size, newest))
+            val paged  = paging.toSeq.flatMap((p, size) => Seq[(String, Any)]("page" -> p, "pageSize" -> size))
+            ok(Json.obj((Seq[(String, Any)]("rows" -> Json.arr(shown.map(Render.queueRow(_, filter.since, now))*),
+              "total" -> filter.total(queue)) ++ paged ++ Seq("counts" -> Json.obj(KycQueue.counts(queue)*)))*))
   }
   }
 
@@ -195,6 +205,23 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
 object OperatorEndpoint:
   /** The most rows one read of the queue lists. */
   val QueueLimit = 1000
+
+  val MaxPageSize = 200
+
+  /**
+   * The queue's `page` (from 1) and `pageSize` (1 to 200, 50 by default), when either is given; with neither,
+   * none. Left names the first that is not valid.
+   */
+  def paging(q: String => Option[String]): Either[String, Option[(Int, Int)]] =
+    def opt(name: String) = q(name).map(_.trim).filter(_.nonEmpty)
+    def number(name: String, default: Int, max: Int) =
+      opt(name).fold[Either[String, Int]](Right(default))(v => v.toIntOption.filter(n => n >= 1 && n <= max).toRight(name))
+    if opt("page").isEmpty && opt("pageSize").isEmpty then Right(None)
+    else
+      for
+        page <- number("page", 1, Int.MaxValue / MaxPageSize)
+        size <- number("pageSize", 50, MaxPageSize)
+      yield Some((page, size))
 
   /** What `PUT /status` sets; `POST /override` sets the other two. */
   val Settable: Set[Status]    = Set(Status.Pending, Status.Verified)

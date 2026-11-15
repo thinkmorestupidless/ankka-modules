@@ -89,6 +89,38 @@ class QueueSuite extends munit.FunSuite with LogCapturing:
     assertEquals(order("filter=awaiting"), Vector(first, second))
     assertEquals(order("filter=awaiting&sort=newest"), Vector(second, first))
 
+  test("a filter pages with page and pageSize, answered back with its total and the counts kept (spec 030 K2)"):
+    val players = Vector.fill(3)(newPlayer())
+    players.foreach { p => submit(p); kit.advance(java.time.Duration.ofMinutes(1)) }
+    players.foreach(listedUnder("filter=awaiting", _))
+    // Rows of the earlier tests may still be arriving: the whole list and its pages are read again until they agree.
+    def pass() =
+      val whole = queue("filter=awaiting")
+      val one   = queue("filter=awaiting&page=1&pageSize=2")
+      val two   = queue("filter=awaiting&page=2&pageSize=2")
+      (whole, one, two)
+    val (whole, one, two) = kit.eventually("the pages are slices of the whole") {
+      Some(pass()).filter { (w, a, b) =>
+        ids(w).size >= 3 && ids(a) == ids(w).take(2) && ids(b) == ids(w).slice(2, 4) &&
+          Seq(w, a, b).forall(_.long("total").contains(ids(w).size.toLong))
+      }
+    }
+    assertEquals((whole.get("page"), whole.get("pageSize")), (null, null))
+    assertEquals((one.long("page"), one.long("pageSize"), two.long("page")), (Some(1L), Some(2L), Some(2L)))
+    assert(one.get("counts").get("awaiting").asLong >= 3L, one.toString)
+    val past = queue(s"filter=awaiting&page=${whole.long("total").get + 1}&pageSize=1")
+    assertEquals(ids(past), Vector.empty)
+    assertEquals(queue("filter=awaiting&pageSize=200").long("page"), Some(1L))
+    // Every reason at once: a player with two flags is one row, and one in the total.
+    val f = newPlayer(); flag(f)
+    listedUnder("filter=flagged", f)
+    kit.eventually("flagged's total is its rows")(Some(queue("filter=flagged")).filter(q => q.long("total").contains(ids(q).size.toLong)))
+
+  test("a page or pageSize out of range is invalid_page, naming it (spec 030 K2)"):
+    for (query, field) <- Seq("page=0" -> "page", "page=x" -> "page", "pageSize=0" -> "pageSize", "pageSize=201" -> "pageSize") do
+      val r = kit.request("GET", kit.operatorPath(s"/queue?filter=awaiting&$query"), None, kit.asOperator())
+      assertEquals((r.status, r.str("error"), r.str("field")), (400, "invalid_page", field), query)
+
   test("the policy flagger's searches find players over the amount, not verified or not cleared"):
     val p = newPlayer(); flag(p)
     def found(search: PolicyFlagger.Search) = KycRuntime.queue().find(search)
