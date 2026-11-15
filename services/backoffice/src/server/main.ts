@@ -12,6 +12,7 @@ import { match, table as routeTable, type Row } from "./routes.ts";
 import { pass, unavailable } from "./proxy.ts";
 import { authRoutes, type Realm } from "./auth.ts";
 import { eventRoutes } from "./events.ts";
+import { search } from "./composite/search.ts";
 import { brandReads, inBrand, permissionsOf, PlatformAdmin, type BrandReads } from "./roles.ts";
 
 export interface Deps {
@@ -147,6 +148,18 @@ export function createApp(deps: Deps): Hono<Env> {
       c.set("why", e instanceof Error ? e.name : "unknown");
       return unavailable("backoffice-state");
     }
+  });
+
+  // The one search (contracts/sources.md): asked only of the resolvers its shape can match, as the operator.
+  app.get("/api/search", async (c) => {
+    c.set("logPath", "/api/search");
+    const q = c.req.query("q") ?? "";
+    if (q.trim() === "") return c.json({ matches: [], asked: [], unavailable: [] });
+    if (q.length > 256) return c.json({ error: "invalid_search", message: "a search is at most 256 characters" }, 400);
+    const token = c.get("token");
+    const bags = await reads.bags.get();
+    const held = new Set(permissionsOf(token.roles, bags ?? {}));
+    return c.json(await search({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 3_000) }, q, token.accessToken, (p) => held.has(p)));
   });
 
   eventRoutes(app, { brand: deps.brand, tokens, reads, everyMs: deps.eventsEveryMs ?? 5_000 });

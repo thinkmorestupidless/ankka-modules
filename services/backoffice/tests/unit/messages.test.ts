@@ -59,7 +59,8 @@ describe("a refusal shown", () => {
   });
 });
 
-describe("the page's lint", () => {
+// ESLint loads its parser and plugins on the first lint: seconds on a busy machine.
+describe("the page's lint", { timeout: 30_000 }, () => {
   const eslint = new ESLint({ cwd: fileURLToPath(new URL("../..", import.meta.url)) });
   const lint = async (code: string) => (await eslint.lintText(code, { filePath: "src/web/Lint.tsx" }))[0]!.messages;
 
