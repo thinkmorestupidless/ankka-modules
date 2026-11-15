@@ -2,6 +2,7 @@ package io.eitheror.casino.players.api
 
 import com.thinkmorestupidless.ankka.http.*
 import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.players.PlayersRuntime
 import io.eitheror.casino.players.clients.Geo
 
 import Answers.{notYet, refusal}
@@ -221,6 +222,21 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
   get("/allow-list") { () => status.config("allow-list") }
   putBody("/allow-list") { (text: String) => status.setAllowList(text) }
 
+  // spec 030 P12, P13: the brand's roles, each route requiring its permission
+  private val roles = RolesRoutes(ctx)
+  private def may(permission: String) = Routes.operatorMay(ctx.slug, permission, PlayersRuntime.bags, ctx.authenticate())
+  withAcl(may("roles.read")) {
+    get("/roles") { () => roles.list }
+  }
+  withAcl(may("roles.change")) {
+    putBody("/roles/{name}") { (name: String, text: String) => roles.set(principal, name, text) }
+    delete("/roles/{name}") { (name: String) => roles.delete(principal, name) }
+    post("/roles/{name}/reset") { (name: String) => roles.reset(principal, name) }
+  }
+  withAcl(may("roles.give")) {
+    putBody("/role-assignments/{operator}") { (operator: String, text: String) => roles.give(principal, operator, text) }
+  }
+
 /** `/v1/casino/brands/<slug>/modules`: spec 021's operator modules page, through the vendor's agent. */
 final class ModulesEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${ctx.slug}/modules"):
   val acl: Acl = Routes.operator(ctx.slug, ctx.authenticate())
@@ -256,6 +272,8 @@ final class ServiceEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/$
     postBody("/{playerId}/messages") { (id: String, text: String) => OperatorProfileRoutes(ctx).crmMessage(id, text) }
   }
   get("/config/{name}") { (name: String) => OperatorStatusRoutes(ctx).config(name) }
+  // spec 030: every service of the brand reads the brand's roles here, every 10 seconds (contract.access.RoleBags)
+  get("/roles") { () => RolesRoutes(ctx).list }
   withAcl(Routes.serviceOf("players")) {
     post("/erasure/players/{playerId}") { (id: String) => ErasureRoutes(ctx).eraseOwn(id) }
     get("/exports/players/{playerId}") { (id: String) => ErasureRoutes(ctx).ownPart(id) }

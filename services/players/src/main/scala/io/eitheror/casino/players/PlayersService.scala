@@ -26,6 +26,8 @@ object PlayersService:
     MessageEntity.descriptor,
     NoteEntity.descriptor,
     FraudCaseEntity.descriptor,
+    io.eitheror.casino.players.roles.Role.descriptor,
+    io.eitheror.casino.players.roles.RoleAssignment.descriptor,
     LookupIndexEntity.descriptor,
     PendingRegistration.descriptor,
     RegistrationWorkflow.descriptor,
@@ -41,6 +43,7 @@ object PlayersService:
     MessagesView.descriptor,
     NotesView.descriptor,
     FraudCasesView.descriptor,
+    io.eitheror.casino.players.roles.Roles.descriptor,
     WalletSummaryView.descriptor,
     RecentlyPlayedView.descriptor,
     ActivityView.descriptor,
@@ -60,6 +63,8 @@ object PlayersService:
     MessageAudit.descriptor,
     NoteAudit.descriptor,
     FraudCaseAudit.descriptor,
+    RoleAudit.descriptor,
+    RoleAssignmentAudit.descriptor,
     GameSessionAudit.descriptor,
     RgLimitsConsumer.descriptor,
     KycFactsConsumer.descriptor,
@@ -83,11 +88,21 @@ object PlayersService:
       c => GeoEndpoint(ctx(c))
     )
 
-  /** Once the service has started: the timers reachable from the consumers, and the realm's reconciler. */
-  def started(timers: TimerRuntime, views: com.thinkmorestupidless.ankka.runtime.ViewClient): Unit =
+  /**
+   * Once the service has started: the timers reachable from the consumers, the realm's reconciler, the
+   * role matrix's roles a brand does not yet have (spec 030 P12), and the service's own copy of the
+   * brand's roles, read from its view every 10 seconds and at once after each change.
+   */
+  def started(timers: TimerRuntime, views: com.thinkmorestupidless.ankka.runtime.ViewClient,
+      components: com.thinkmorestupidless.ankka.sdk.ComponentClient): Unit =
     PlayersRuntime.timers = () => timers.timerScheduler
     PlayersRuntime.views = () => views
     RealmReconcile.schedule(timers.timerScheduler)
+    io.eitheror.casino.players.api.RolesRoutes.seed(components, PlayersRuntime.now())
+    PlayersRuntime.rolesRead = () =>
+      Right(io.eitheror.casino.contract.access.RoleBags.render(io.eitheror.casino.players.roles.Roles.bags(views)))
+    PlayersRuntime.bags.stop()
+    PlayersRuntime.bags.start(): Unit
 
 @main def run(): Unit =
   val settings = Settings.fromEnvironment().fold(e => throw IllegalStateException(e), identity)
@@ -107,6 +122,6 @@ object PlayersService:
     .withExtension(timers)
     .withExtension(HttpServer.of(PlayersService.endpoints(() => Oidc.authenticate())*))
     .start(name = "players") // the name the local console and `ankka mcp` list it under
-  PlayersService.started(timers, service.viewClient)
+  PlayersService.started(timers, service.viewClient, service.componentClient)
   sys.addShutdownHook(service.terminate())
   scala.concurrent.Await.result(service.whenTerminated, scala.concurrent.duration.Duration.Inf): Unit

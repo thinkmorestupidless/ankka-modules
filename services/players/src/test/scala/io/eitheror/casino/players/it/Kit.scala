@@ -84,7 +84,7 @@ final class Kit(base: Settings = Kit.Base):
 
   Kit.Secrets.foreach((name, value) => testKit.secrets.put(name, value))
   testKit.secrets.put(Secrets.RealmAdmin, Json.render(Json.obj("clientId" -> realm.adminClient, "clientSecret" -> realm.adminSecret)))
-  PlayersService.started(timers, testKit.service.viewClient)
+  PlayersService.started(timers, testKit.service.viewClient, testKit.componentClient)
 
   def components = testKit.componentClient
   def views      = testKit.service.viewClient
@@ -101,12 +101,12 @@ final class Kit(base: Settings = Kit.Base):
   /** Points the process-wide runtime at this kit again (its clock, timers and views), after another kit took it. */
   def adopt(): Unit =
     rewire()
-    PlayersService.started(timers, views)
+    PlayersService.started(timers, views, components)
 
   /** Stops the service and starts it again over the same database, as a crash and a redeploy would. */
   def restart(): Unit =
     testKit.restartService()
-    PlayersService.started(timers, views)
+    PlayersService.started(timers, views, components)
 
   def stop(): Unit =
     Kit.started.remove(this)

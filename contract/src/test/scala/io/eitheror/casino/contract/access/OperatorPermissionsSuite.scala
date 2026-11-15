@@ -47,6 +47,17 @@ class OperatorPermissionsSuite extends munit.FunSuite:
     assert(!reserved("vip_desk"))
   }
 
+  test("every realm role but the defaults is reserved, so a brand role never carries a realm role's meaning") {
+    val file  = java.nio.file.Paths.get("brands/_realm/eitheror-operators.json")
+    val realm = com.fasterxml.jackson.databind.ObjectMapper().readTree(java.nio.file.Files.readString(file))
+    val names = scala.jdk.CollectionConverters.IteratorHasAsScala(realm.path("roles").path("realm").elements()).asScala
+      .map(_.path("name").asText).toSet
+    assertEquals(RealmRoles, names, s"$file and OperatorPermissions.RealmRoles differ")
+    for r <- names -- DefaultRoles.keySet do assert(reserved(r), r)
+    for r <- Vector("audit_compliance", "audit_compliance_goldvibe", "reidentify_goldvibe", "affiliate_manager", "api_keys", "markets")
+    do assert(reserved(r), r)
+  }
+
   test("platform_admin carries every permission whatever a brand's roles say") {
     assertEquals(permissionsOf(Set(PlatformAdmin), Map.empty), All.toSet)
     assertEquals(permissionsOf(Set(PlatformAdmin), Map("brand_admin" -> Set.empty)), All.toSet)
