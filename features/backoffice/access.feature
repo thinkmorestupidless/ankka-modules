@@ -1,19 +1,21 @@
-Feature: Who works in the backoffice, in which brand, and what they may do
-  An operator signs in once and works in one brand at a time, among the brands their roles name.
-  What they may do is decided by the same roles the owning services check, so nothing is offered
-  that would then be refused for a role, and every refusal says why.
+Feature: Who works in a brand's backoffice, and what they may do
+  Each brand has its own backoffice. An operator signs in once and works in the brand the
+  backoffice is for. What they may do is decided by the same permissions the owning services check,
+  so nothing is offered that would then be refused, and every refusal says why.
 
-  Scenario: an operator sees only the brands their roles name and works in one at a time
-    Given an operator whose roles name the brands "goldvibe" and "spinvibe"
+  Scenario: an operator whose roles name the brand works in it, and sees no other brand
+    Given the backoffice of the brand "goldvibe"
+    And an operator whose roles name the brands "goldvibe" and "spinvibe"
     When the operator signs in to the backoffice
-    Then the operator is offered "goldvibe" and "spinvibe" and no other brand
-    And everything the operator sees and does is in the one brand they picked
+    Then everything the operator sees and does is in "goldvibe"
+    And no other brand is offered
 
-  Scenario: an operator with no brand role is told which role they need and sees no brand
-    Given an operator whose roles name no brand
+  Scenario: an operator whose roles do not name the brand is told which role they need and sees nothing
+    Given the backoffice of the brand "goldvibe"
+    And an operator whose roles name only the brand "spinvibe"
     When the operator signs in to the backoffice
-    Then the operator is told a brand role is needed
-    And no brand is shown
+    Then the operator is told the role for "goldvibe" is needed
+    And nothing of the brand is shown
 
   Scenario: an action the operator's roles do not admit is shown with the role it needs and cannot be started
     Given a compliance operator of a brand and a withdrawal request pending review

@@ -29,3 +29,20 @@ Feature: Operators of the shared payments are provisioned, invited and placed at
     Given an operator disabled at the sign-in
     When the sign-in is mirrored
     Then the operator reads as disabled
+
+  Scenario: a brand's request sets an operator's roles for that brand
+    Given an operator invited by the shared payments
+    When the brand "goldvibe" asks for that operator to hold the roles "brand_support" and "vip_host"
+    Then the operator holds those roles and the role naming the brand "goldvibe"
+    And a role that did not exist in the realm is created there
+
+  Scenario: a brand's request for a payments role or the platform administrator's role is refused
+    Given an operator invited by the shared payments
+    When the brand "goldvibe" asks for that operator to hold the role "platform_admin"
+    Then the request is refused and the operator's roles are unchanged
+
+  Scenario: a brand's request changes no role another brand's request gave
+    Given an operator holding the role naming the brand "spinvibe"
+    When the brand "goldvibe" asks for that operator to hold the role "brand_support"
+    Then the operator still holds the role naming the brand "spinvibe"
+

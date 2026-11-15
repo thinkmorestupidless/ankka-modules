@@ -59,24 +59,28 @@ they are refused**. Everything else follows from the eight findings above.
 
 ### Where it runs
 
-A shared project, `backoffice`, beside `payments`, `programme`, `reasoner`, `games` and `tools`.
-It holds no brand's player data (constitution III): it stores nothing about a player, and what it
-shows it reads, as the signed-in operator, from the brand's and the shared projects' own operator
-routes. It serves the operator's browser one address; the browser never calls a brand service.
-Every call it makes for an operator carries that operator's own sign-in, so each owning service
-decides, as it does today, whether this person may do this to this brand. The backoffice decides
-nothing a service would refuse, and adds no rule a service does not hold.
+In each brand's own project, as the module `backoffice`: one backoffice per brand, for that brand
+and no other (clarified 2026-11-15; a brand is deployed on its own, and its backoffice with it).
+The module is two services: the web-hosted program that serves the operator's browser, and a small
+service that keeps the operator's sign-in and preferences. It stores nothing about a player. What
+it shows it reads, as the signed-in operator, from the brand's own services, and for payments
+administration, the affiliate programme and the audit, from the shared projects' operator routes.
+It serves the operator's browser one address; the browser never calls another service. Every call
+it makes for an operator carries that operator's own sign-in, so each owning service decides, as it
+does today, whether this person may do this. The backoffice decides nothing a service would refuse,
+and adds no rule a service does not hold. An operator who works in two brands opens each brand's
+backoffice at its own address, signed in once at the realm.
 
 ### Constitution amendment
 
 The constitution's *Scope* says the operator console is out of scope and changes only base URLs.
 This spec needs amendment 1.3.0, made on this branch: the operator console is in scope as this
-spec; the player site and the affiliate portal stay out of scope. Principle III gains how the
-backoffice reaches a brand: as the signed-in operator, never by a grant or its own identity.
-Principle VI is met as written: the program that serves the
-browser speaks HTTP to other services and to the browser and holds no money path and no state that
-must be atomic, so TypeScript is its reason-given language; anything that keeps state (an
-operator's preferences) is a Scala service.
+spec, a module of each brand's project; the player site and the affiliate portal stay out of scope.
+Principle III gains how the backoffice reaches a shared project: as the signed-in operator, never
+by a grant or its own identity. Principle VI is met as written: the program that serves the browser
+speaks HTTP to other services and to the browser and holds no money path and no state that must be
+atomic, so TypeScript is its reason-given language; anything that keeps state (an operator's
+sign-in and preferences) is a Scala service.
 
 ## Clarifications
 
@@ -100,10 +104,21 @@ operator's preferences) is a Scala service.
   games panel, the devices tab, deposit bounds per method, a test payment, viewing the
   portal as an affiliate). Which are built? → A: All six, each as an amendment to its owning
   service's spec ([parity.md](parity.md)).
+- Q: Is the backoffice one shared project for every brand, or one per brand? → A: One per brand, in
+  the brand's own project; no brand list and no switch (FR-001, FR-004). A brand in another cluster
+  is served by its own backoffice.
+- Q: Where are the roles' bags kept, and how are they changed? → A: In the brand, at run time: the
+  brand's `players` service holds each role and its permissions; a brand administrator creates and
+  changes roles in the backoffice; every service of the brand takes the change within seconds, with
+  no deployment (FR-008b, FR-008d).
+- Q: Who gives a role to an operator? → A: The shared payments' merchant service, which owns the
+  operators: it sets an operator's roles at the brand's request, once the brand has checked that
+  the giver holds every permission the roles carry (FR-008c).
 - Q: How are roles and actions related? → A: Each action requires one permission; a role is a bag
-  of permissions; a token carries roles only, never permissions; the owning services and the
-  backoffice's server open the bags from the one table the contract holds, and the page asks the
-  backoffice which permissions the operator has (FR-005, FR-008).
+  of permissions; a token carries roles only, never permissions; the brand's services and the
+  backoffice's server open the bags the brand holds, and the page asks the backoffice which
+  permissions the operator has (FR-005, FR-008). The contract holds the permissions' names and the
+  default bags a brand starts with.
 - Q: Are the scenarios for the amendments to the owning services written in design, and the one
   scenario that named a fraud role corrected? → A: Yes (*Amendments to the owning services*).
 - Q: Do the proposed glossary terms worklist, timeline, adjustment batch and merge tag stand? → A:
@@ -116,27 +131,29 @@ operator's preferences) is a Scala service.
 Priorities follow the phases in FR-045. Each story names the original screens it replaces in
 [parity.md](parity.md).
 
-### User Story 1 - An operator signs in and works in a brand, seeing only what they may do (Priority: P1)
+### User Story 1 - An operator signs in to their brand's backoffice, seeing only what they may do (Priority: P1)
 
-An operator signs in once at the `eitheror` realm. The backoffice lists the brands their roles name
-(`brand_<slug>`, or every brand for `platform_admin`) and opens the last one they used, or the only
-one. The brand they are working in is always visible and changed in one step; nothing they see or
-do crosses into another brand. Every action they are not permitted is either absent or shown
-disabled with the role it needs, decided per action from the same roles the owning service checks;
-nothing is offered and then refused for a role the screen already knew about. Every list and figure
-says how fresh it is.
+An operator signs in once at the `eitheror` realm and is in their brand's backoffice: the brand is
+the one this backoffice was deployed for, always visible, and nothing they see or do is another
+brand's. An operator whose roles do not name the brand is told the role they need and sees
+nothing. Every action they are not permitted is either absent or shown disabled with a role that
+would permit it, decided per action from the same permissions the owning service checks; nothing is
+offered and then refused for a permission the screen already knew about. Every list and figure says
+how fresh it is.
 
 **Why this priority**: Nothing else works without it, and the original's brand picker and drifted
 role checks broke pages for whole roles.
 
-**Independent Test**: Sign in as operators holding one brand, two brands, `platform_admin`, and a
-role with no brand; check the brand list, the switch, and that each action's availability matches
-what the owning service admits for that role.
+**Independent Test**: Sign in as an operator of the brand in each role, as `platform_admin`, and as
+an operator of another brand only; check who is let in, and that each action's availability matches
+what the owning service admits for that operator's permissions.
 
 **Acceptance Scenarios**:
 
-- added `features/backoffice/access.feature`: an operator sees only the brands their roles name and works in one at a time
-- added `features/backoffice/access.feature`: an operator with no brand role is told which role they need and sees no brand
+- added `features/backoffice/access.feature`: an operator whose roles name the brand works in it, and sees no other brand
+- added `features/backoffice/access.feature`: an operator whose roles do not name the brand is told which role they need and sees nothing
+- added `features/backoffice/roles.feature`: a brand administrator creates a role from permissions and it can be given to an operator
+- added `features/backoffice/roles.feature`: a role's changed permissions change what its operators are offered without their signing in again
 - added `features/backoffice/access.feature`: an action the operator's roles do not admit is shown with the role it needs and cannot be started
 - added `features/backoffice/access.feature`: a refusal the owning service gives is shown with its reason and the next step, never as a generic error
 - added `features/backoffice/access.feature`: the operator's sign-in never reaches the browser's scripts
@@ -329,8 +346,8 @@ deposit and wagering settings, the game catalogue, the support agent, the module
 021) and sees which values differ from the brand's defaults. A payments administrator, at their
 operator level, manages holdings, companies and sub-brands, payment provider configurations and
 terminals, routing rules (draft, simulate, deploy, roll back) and deposit bounds per method.
-Administrators
-invite operators with a role at or below their own, resend, reset and revoke.
+Administrators invite operators, resend, reset and revoke; create roles and change what each may
+do; and give an operator roles, never one that carries a permission they do not hold themselves.
 
 **Why this priority**: Infrequent, high-consequence work; parity matters more than redesign.
 
@@ -342,7 +359,7 @@ see it refused.
 
 - added `features/backoffice/configuration.feature`: a configuration value that differs from the brand's default is marked
 - added `features/backoffice/configuration.feature`: a routing rule is simulated before it is deployed and can be rolled back
-- added `features/backoffice/configuration.feature`: an operator cannot invite a role above their own
+- added `features/backoffice/configuration.feature`: a payments operator cannot invite a payments role above their own
 
 ---
 
@@ -359,7 +376,7 @@ with a reason.
 
 **Acceptance Scenarios**:
 
-- added `features/backoffice/affiliates.feature`: a manager sees only the programme, and only the brands their roles name
+- added `features/backoffice/affiliates.feature`: a manager sees only the programme of the backoffice's brand
 - added `features/backoffice/affiliates.feature`: dismissing a fraud flag records the reason
 
 ---
@@ -389,16 +406,16 @@ who may take each action there, by the role matrix (FR-008), and the routes and 
 
 **Acceptance Scenarios**:
 
-- added `features/attribution/operator-roles.feature`: each action on attribution is admitted to the roles the role matrix names and refused to the others
+- added `features/attribution/operator-roles.feature`: each action on attribution is admitted to the default roles that carry its permission and refused to the others
 - added `features/attribution/operator-roles.feature`: an operator holding only a payments role is refused every action on attribution
 - added `features/attribution/operator-roles.feature`: a platform administrator is admitted to every action on attribution
-- added `features/engagement/operator-roles.feature`: each action on engagement is admitted to the roles the role matrix names and refused to the others
+- added `features/engagement/operator-roles.feature`: each action on engagement is admitted to the default roles that carry its permission and refused to the others
 - added `features/engagement/operator-roles.feature`: an operator holding only a payments role is refused every action on engagement
 - added `features/engagement/operator-roles.feature`: a platform administrator is admitted to every action on engagement
-- added `features/game-provider/operator-roles.feature`: each action on the game provider part is admitted to the roles the role matrix names and refused to the others
+- added `features/game-provider/operator-roles.feature`: each action on the game provider part is admitted to the default roles that carry its permission and refused to the others
 - added `features/game-provider/operator-roles.feature`: an operator holding only a payments role is refused every action on the game provider part
 - added `features/game-provider/operator-roles.feature`: a platform administrator is admitted to every action on the game provider part
-- added `features/kyc/operator-roles.feature`: each action on a player's identity is admitted to the roles the role matrix names and refused to the others
+- added `features/kyc/operator-roles.feature`: each action on a player's identity is admitted to the default roles that carry its permission and refused to the others
 - added `features/kyc/operator-roles.feature`: an operator holding only a payments role is refused every action on a player's identity
 - added `features/kyc/operator-roles.feature`: a platform administrator is admitted to every action on a player's identity
 - added `features/payments/deposit-bounds.feature`: a payments operator sets a method's deposit bounds and they are read back
@@ -408,7 +425,7 @@ who may take each action there, by the role matrix (FR-008), and the routes and 
 - added `features/payments/deposit-bounds.feature`: a test payment answers the provider's outcome and credits no wallet
 - added `features/payments/deposit-bounds.feature`: a brand's operator reads the deposits of the sub-brand naming their brand, and no other's
 - added `features/payments/deposit-bounds.feature`: a deposit is found by its payment reference
-- added `features/payouts/operator-roles.feature`: each action on a withdrawal request is admitted to the roles the role matrix names and refused to the others
+- added `features/payouts/operator-roles.feature`: each action on a withdrawal request is admitted to the default roles that carry its permission and refused to the others
 - added `features/payouts/operator-roles.feature`: an operator holding only a payments role is refused every action on a withdrawal request
 - added `features/payouts/operator-roles.feature`: a platform administrator is admitted to every action on a withdrawal request
 - added `features/players/devices.feature`: a log-in from a new device adds a seen device
@@ -426,22 +443,22 @@ who may take each action there, by the role matrix (FR-008), and the routes and 
 - added `features/players/lists.feature`: an operator finds a player's bets by round, by transaction or by status, with what was staked and won
 - added `features/players/manager-tags.feature`: an admin operator sets a player's manager tags and they are read with the player
 - added `features/players/manager-tags.feature`: a manager tag longer than forty characters is refused
-- added `features/players/operator-roles.feature`: each action on a player is admitted to the roles the role matrix names and refused to the others
+- added `features/players/operator-roles.feature`: each action on a player is admitted to the default roles that carry its permission and refused to the others
 - added `features/players/operator-roles.feature`: an operator holding only a payments role is refused every action on a player
 - added `features/players/operator-roles.feature`: a platform administrator is admitted to every action on a player
-- added `features/reporting/operator-roles.feature`: each action on the reports is admitted to the roles the role matrix names and refused to the others
+- added `features/reporting/operator-roles.feature`: each action on the reports is admitted to the default roles that carry its permission and refused to the others
 - added `features/reporting/operator-roles.feature`: an operator holding only a payments role is refused every action on the reports
 - added `features/reporting/operator-roles.feature`: a platform administrator is admitted to every action on the reports
-- added `features/responsible-gambling/operator-roles.feature`: each action on a player's protections is admitted to the roles the role matrix names and refused to the others
+- added `features/responsible-gambling/operator-roles.feature`: each action on a player's protections is admitted to the default roles that carry its permission and refused to the others
 - added `features/responsible-gambling/operator-roles.feature`: an operator holding only a payments role is refused every action on a player's protections
 - added `features/responsible-gambling/operator-roles.feature`: a platform administrator is admitted to every action on a player's protections
-- added `features/rewards/operator-roles.feature`: each action on a reward is admitted to the roles the role matrix names and refused to the others
+- added `features/rewards/operator-roles.feature`: each action on a reward is admitted to the default roles that carry its permission and refused to the others
 - added `features/rewards/operator-roles.feature`: an operator holding only a payments role is refused every action on a reward
 - added `features/rewards/operator-roles.feature`: a platform administrator is admitted to every action on a reward
-- added `features/support-agent/operator-roles.feature`: each action on the support agent is admitted to the roles the role matrix names and refused to the others
+- added `features/support-agent/operator-roles.feature`: each action on the support agent is admitted to the default roles that carry its permission and refused to the others
 - added `features/support-agent/operator-roles.feature`: an operator holding only a payments role is refused every action on the support agent
 - added `features/support-agent/operator-roles.feature`: a platform administrator is admitted to every action on the support agent
-- added `features/wallet/operator-roles.feature`: each action on a wallet is admitted to the roles the role matrix names and refused to the others
+- added `features/wallet/operator-roles.feature`: each action on a wallet is admitted to the default roles that carry its permission and refused to the others
 - added `features/wallet/operator-roles.feature`: an operator holding only a payments role is refused every action on a wallet
 - added `features/wallet/operator-roles.feature`: a platform administrator is admitted to every action on a wallet
 - added `features/wallet/adjustments.feature`: an operator's adjustment carries its cause and answers the balance before and after
@@ -452,6 +469,21 @@ who may take each action there, by the role matrix (FR-008), and the routes and 
 - added `features/kyc/reads.feature`: an operator reads a player's decisions in order, each with who made it
 - added `features/game-provider/reads.feature`: a round is found by its id whatever its game provider
 - added `features/game-provider/reads.feature`: a round is found by the id of one of its transactions
+- added `features/players/roles.feature`: a new brand starts with the default roles and their default permissions
+- added `features/players/roles.feature`: a role's change is in force in every part of the brand within fifteen seconds and no part is deployed again
+- added `features/players/roles.feature`: every change to a role is recorded with who made it
+- added `features/players/roles.feature`: a role naming a permission the contract does not know is refused
+- added `features/players/roles.feature`: the last role that may change roles cannot lose that permission
+- added `features/players/roles.feature`: a default role is reset to its default permissions and cannot be deleted
+- added `features/players/roles.feature`: a role the brand created is deleted and no longer admits anyone
+- added `features/players/roles.feature`: a platform administrator holds every permission whatever the brand's roles say
+- added `features/players/roles.feature`: a part that has not yet read the brand's roles answers that it is unavailable
+- added `features/players/roles.feature`: a part that cannot reach the brand's roles keeps using the last it read
+- added `features/players/roles.feature`: giving a role is refused when the giver lacks a permission the role carries
+- added `features/players/roles.feature`: giving a role the giver holds every permission of asks the shared payments to set it
+- added `features/payments/operators.feature`: a brand's request sets an operator's roles for that brand
+- added `features/payments/operators.feature`: a brand's request for a payments role or the platform administrator's role is refused
+- added `features/payments/operators.feature`: a brand's request changes no role another brand's request gave
 - added `features/migration/operator-roles.feature`: the mapping of the original's operators to roles is published for review before the migration runs
 - added `features/migration/operator-roles.feature`: an operator of the original is given the role their original role maps to
 - added `features/migration/operator-roles.feature`: an operator whose original roles map to more than one role is given the support role and listed
@@ -459,8 +491,8 @@ who may take each action there, by the role matrix (FR-008), and the routes and 
 
 ### Edge Cases
 
-- An operator's roles change while they are signed in: the next call is decided on the new roles;
-  a brand they lost is closed and they are told why.
+- An operator's roles, or a role's permissions, change while they are signed in: the next call is
+  decided on the new permissions; an operator who lost the brand is signed out of it and told why.
 - A brand's views are rebuilding: lists show what they have, marked provisional, with the
   freshness; nothing is shown as empty that is only late.
 - Two operators act on the same item: the second is refused by the owning service on its state,
@@ -484,42 +516,60 @@ who may take each action there, by the role matrix (FR-008), and the routes and 
 
 **Placement and access**
 
-- **FR-001**: The backoffice MUST run in a shared project, `backoffice`, as a web-hosted service
-  that serves the operator's browser one address, and MUST hold no player's data at rest.
+- **FR-001**: The backoffice MUST run in each brand's own project, as the module `backoffice`, for
+  that brand alone: a web-hosted service that serves the operator's browser one address, and a
+  service that keeps the operator's sign-in and preferences. It MUST hold no player's data at rest.
 - **FR-002**: The browser MUST call only the backoffice; the backoffice MUST make every call to a
-  brand's or a shared project's service on the operator's behalf, carrying the operator's own
-  sign-in, so that the owning service admits or refuses the operator as it would any caller.
+  service of its brand's project or of a shared project on the operator's behalf, carrying the
+  operator's own sign-in, so that the owning service admits or refuses the operator as it would any
+  caller.
 - **FR-003**: An operator's sign-in MUST be held by the backoffice's server and MUST NOT be
   readable by the page's scripts; the browser holds only a session that expires when the sign-in
   does, and signing out ends both.
-- **FR-004**: The backoffice MUST list the brands the operator's realm roles name
-  (`brand_<slug>`, or every brand for `platform_admin`), MUST work in exactly one brand at a time,
-  and MUST show which. It MUST NOT offer a holding, company or sub-brand picker for casino work;
-  payments administration acts at the operator's level as spec 004 defines it.
+- **FR-004**: A backoffice MUST serve exactly one brand, the one its project is, and MUST show
+  which. It MUST admit an operator whose realm roles name that brand (`brand_<slug>`, or
+  `platform_admin`), and MUST tell any other operator the role they need and show nothing. It MUST
+  NOT offer a brand list, a brand switch, or a holding, company or sub-brand picker for casino
+  work; payments administration acts at the operator's level as spec 004 defines it.
 - **FR-005**: Each operator action MUST require one permission, and a role MUST be a bag of
-  permissions held once in this repository's contract. An operator's sign-in MUST carry roles only.
-  The backoffice MUST decide which actions to offer from the permissions its server opens from the
-  operator's roles with that same table, never from a rule written again in the page; an action
-  the operator may not take MUST be shown with the role it needs, or not at all, never offered and
-  then refused for a reason the backoffice already knew.
+  permissions. An operator's sign-in MUST carry roles only. The backoffice MUST decide which actions
+  to offer from the permissions its server opens from the operator's roles with the brand's own
+  bags (FR-008b), never from a rule written again in the page; an action the operator may not take
+  MUST be shown with a role that would permit it, or not at all, never offered and then refused for
+  a reason the backoffice already knew.
 - **FR-006**: Every refusal from an owning service MUST be shown with its reason in the domain's
   words and, where one exists, the next step; a refusal code the backoffice does not know MUST be
   shown as given.
 - **FR-007**: The backoffice MUST add no rule a service does not hold and MUST NOT work around a
   missing route; a capability with no route in the owning service is a change to that service's
   spec (see [parity.md](parity.md)).
-- **FR-008**: The roles that admit each action MUST be original spec 135's matrix, carried into the
-  owning services by this spec as amendments to them: a realm role `brand_support` that reads a
-  brand's players, wallets, rounds, withdrawals and rewards and writes notes and messages only;
-  adjustments admitted to `brand_finance` and `brand_admin`; limits, breaks, self-exclusion,
-  suspension, reinstatement, closing and reopening an account admitted to `brand_compliance` and
-  `brand_admin`; withdrawal review admitted to `brand_finance` and `brand_admin`; configuration
-  admitted to `brand_admin`; `platform_admin` admitted everywhere. `brand_finance` and
-  `brand_compliance` MUST be realm roles. No other role confers a casino action: the payments roles
-  (`resource_*`, `compliance_officer`, `fraud_analyst`, `support_agent`) that services admitted to
-  casino actions MUST stop conferring them and confer payments administration only (spec 004).
-  Each owning service's acceptance scenarios MUST state the
-  roles it admits per route, and the contract MUST hold the matrix once (FR-005).
+- **FR-008**: Every operator route of a brand's services MUST require one permission, named in this
+  repository's contract, and MUST name no role. A brand MUST start with original spec 135's matrix
+  as its default roles: `brand_support` reads a brand's players, wallets, rounds, withdrawals and
+  rewards and writes notes and messages only; adjustments and withdrawal review in `brand_finance`
+  and `brand_admin`; limits, breaks, self-exclusion, suspension, reinstatement, closing and
+  reopening an account in `brand_compliance` and `brand_admin`; configuration in `brand_admin`.
+  `platform_admin` MUST hold every permission and MUST NOT be changeable by a brand. The payments
+  roles (`resource_*`, `compliance_officer`, `fraud_analyst`, `support_agent`) that services
+  admitted to casino actions MUST stop conferring them and confer payments administration only
+  (spec 004). Each owning service's acceptance scenarios MUST state what each default role is
+  admitted to per route.
+- **FR-008b**: A brand's roles MUST be kept in the brand, by its `players` service: each role's
+  name, description and permissions. An operator holding the permission to change roles MUST be
+  able to create a role, change its permissions and delete a role the brand created, from the
+  backoffice, and every change MUST be recorded with who made it. A change MUST be in force in every
+  service of the brand within 15 seconds, with no deployment and no restart, and without the
+  operators it affects signing in again.
+- **FR-008c**: An operator holding the permission to give roles MUST be able to give and take away
+  an operator's roles for the brand from the backoffice. The brand MUST refuse when the giver does
+  not hold every permission the roles carry; the shared payments' merchant service, which owns the
+  operators, MUST then set the roles, and MUST refuse a payments role or `platform_admin` asked for
+  by a brand.
+- **FR-008d**: The roles MUST never lock a brand out: the last role that carries the permission to
+  change roles MUST NOT lose it or be deleted, and a default role MUST be resettable to its default
+  permissions. A service that has not yet read the brand's roles MUST answer that it is unavailable
+  and MUST NOT admit or refuse on a guess; one that cannot reach them MUST keep using the last it
+  read.
 - **FR-008a**: At spec 019's cutover every operator of the original MUST be given the roles their
   original role maps to, by a mapping the migration publishes for review before it runs; an
   operator whose mapping is ambiguous MUST be given `brand_support` and listed.
@@ -612,15 +662,14 @@ who may take each action there, by the role matrix (FR-008), and the routes and 
   and the notice MUST open the player; messages MUST be previewed with merge tags filled before
   they are sent.
 - **FR-037**: The affiliate programme's management screens MUST call the programme wherever it is
-  deployed (a shared project today; ankka-affiliates if spec 028 moves it) and MUST admit managers
-  to the programme only.
+  deployed (a shared project today; ankka-affiliates if spec 028 moves it), for this backoffice's
+  brand, and MUST admit managers to the programme only.
 
 **Operator preferences**
 
-- **FR-038**: An operator's preferences (theme, last brand, worklist kinds shown, online notices, and the references of the jobs they
-  started)
-  MUST be kept per operator by a service of the `backoffice` project and MUST hold nothing about
-  any player.
+- **FR-038**: An operator's preferences (theme, worklist kinds shown, online notices, and the
+  references of the jobs they started) MUST be kept per operator by a service of the brand's
+  `backoffice` module and MUST hold nothing about any player.
 
 **Look and use**
 
@@ -647,7 +696,7 @@ who may take each action there, by the role matrix (FR-008), and the routes and 
   backoffice serves brands on ankka and MUST NOT be required by any route of another spec.
 - **FR-045**: The backoffice MUST be built in one task list and one build that covers all six
   phases, in phase order, each phase usable on its own when its tasks are done: (1) access,
-  worklist and investigation (stories 1 to 3); (2) withdrawals and corrections (4, 5); (3) rewards
+  roles, worklist and investigation (stories 1 to 3); (2) withdrawals and corrections (4, 5); (3) rewards
   and compliance (6, 7); (4) dashboard and reports (8); (5) configuration, payments and team (9);
   (6) the affiliate programme and outreach (10, 11).
 
@@ -681,9 +730,12 @@ forms keep the inspiration's colours, radii and type, at the density FR-020 need
   cause, and the sources that could not be read.
 - **Reference**: anything an operator pastes to find a record; resolved by kind to every match.
 - **Adjustment batch**: one reason and cause applied as one adjustment per row; its rows' outcomes.
-- **Operator preferences**: theme, last brand, worklist kinds, online notices, started jobs'
-  references; per operator, in the
-  `backoffice` project.
+- **Operator preferences**: theme, worklist kinds, online notices, started jobs' references; per
+  operator, in the brand's `backoffice` module.
+- **Permission**: one action an operator may take on a brand; what a route requires. Named in the
+  contract.
+- **Role**: a bag of permissions, kept by the brand and changeable at run time; what an operator's
+  sign-in carries.
 
 ## Success Criteria *(mandatory)*
 
@@ -712,17 +764,17 @@ forms keep the inspiration's colours, radii and type, at the density FR-020 need
   dashboard is one step away.
 - **Investigation as one view**: one search for any reference; one timeline from every source, with
   causes and gaps; drill-down from round to bet, deposit to payment, reward to record.
-- **Brand, not hierarchy, for casino work**: the brand comes from the operator's roles; the
-  holding, company and sub-brand picker and its impersonation banner are gone from casino work and
-  stay only in payments administration, where operator levels are spec 004's.
-- **Role checks from the contract**: one source for what each role may do, so screen and service
-  cannot drift; `casino_admin` is gone, and `brand_finance` becomes a realm role that confers what
-  it is checked for.
-- **Spec 135's roles in the services** (FR-008): a read-only `brand_support`; adjustments,
+- **One backoffice per brand**: deployed with the brand, in its project; the holding, company and
+  sub-brand picker and its impersonation banner are gone from casino work and stay only in payments
+  administration, where operator levels are spec 004's.
+- **Permissions, and roles as bags of them**: every route requires one permission; roles are kept
+  by the brand and changed at run time by its administrators, so screen and service cannot drift
+  and a new role needs no deployment; `casino_admin` is gone.
+- **Spec 135's roles as the defaults** (FR-008): a read-only `brand_support`; adjustments,
   standing and withdrawal review restricted, where the original's backend admitted any operator of
-  the brand. This amends specs 001 (realm roles), 002 (adjustments), 007 (withdrawal review), 008
-  (account standing), 009 and 010 (identity and responsible gambling) and 019 (role mapping at
-  cutover).
+  the brand. This amends specs 001 (realm roles), 002 (adjustments), 004 (giving roles), 007
+  (withdrawal review), 008 (account standing, and the roles themselves), 009 and 010 (identity and
+  responsible gambling) and 019 (role mapping at cutover).
 - **The sign-in stays on the server**: the original kept the token in the page.
 - **Lists paged by the services, newest first, with totals and freshness**: the capped, oldest
   first, browser-filtered lists are gone.
@@ -760,12 +812,17 @@ per screen, per role) as the *before* that the plan's design is compared with.
   routes to them only where [parity.md](parity.md) marks a gap, each as an amendment to that
   service's spec.
 - ankka's web hosting (ankka 021, in every release from 0.11.0) passes the operator's
-  `Authorization` header unchanged on calls the backoffice makes to services of other projects, and
-  the services' `Oidc.authenticate()` admits such a call by the token whoever the calling service is.
-  The first task of phase 1 proves this on a local installation; if it does not hold, it is an
-  ankka request, not a workaround.
-- Operators keep signing in at the `eitheror` realm; the backoffice is a new client of that realm.
-- The brand list of the original's operators maps to `brand_<slug>` roles as spec 001 lays them out.
+  `Authorization` header unchanged on calls the backoffice makes to services of its own project and
+  of the shared projects, and the services' `Oidc.authenticate()` admits such a call by the token
+  whoever the calling service is. The first task proves both on a local installation; if the first
+  does not hold it is an ankka request and the build stops; if only the second does not, the
+  screens that read a shared project wait for it.
+- A brand and the shared projects it uses are in one installation, as the brand's own services
+  already assume when they call the shared payments.
+- Operators keep signing in at the `eitheror` realm; each brand's backoffice is a client of that
+  realm.
+- Role names are the realm's and are shared by every brand that uses the realm; what a role may do
+  is each brand's own. An operator of two brands holds the same roles in both.
 - Long work runs as jobs in the owning services where they have them (exports, reports); a batch of
   adjustments is the backoffice's own sequence of single adjustments and holds no state beyond the
   operator's session; if it is interrupted, repeating it makes nothing twice (FR-028).
@@ -773,7 +830,8 @@ per screen, per role) as the *before* that the plan's design is compared with.
 ## Dependencies
 
 - Constitution amendment 1.3.0 (*Context*).
-- Amendments to specs 001, 002, 007, 008, 009, 010 and 019 for the role matrix (FR-008, FR-008a),
+- Amendments to specs 001, 002, 004, 007, 008, 009, 010 and 019 for permissions and roles (FR-008
+  to FR-008d),
   and to every spec whose service has an operator route, for the routes [parity.md](parity.md)
   marks as gaps and for paging, totals and freshness (FR-009, FR-011); the plan's
   `contracts/amendments.md` lists each.
@@ -785,6 +843,8 @@ per screen, per role) as the *before* that the plan's design is compared with.
 
 - Content editing and the choice of content system (decided after this spec is drafted).
 - The player site, the affiliate portal and the vendor's console.
+- One backoffice for several brands, a brand switch, and a different role per brand for one
+  operator.
 - An operator assistant inside the backoffice (the original's spec 258 phase 2): a later spec, once
   the investigation view shows what it still cannot answer.
 - Retiring the original backoffice, which ends with spec 019.

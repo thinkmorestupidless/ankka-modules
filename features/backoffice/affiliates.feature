@@ -1,8 +1,9 @@
 Feature: Running the affiliate programme from the backoffice
   Managers run the programme and see nothing else of a brand.
 
-  Scenario: a manager sees only the programme, and only the brands their roles name
-    Given a manager whose roles name the brand "goldvibe"
+  Scenario: a manager sees only the programme of the backoffice's brand
+    Given the backoffice of the brand "goldvibe"
+    And a manager whose roles name the brand "goldvibe"
     When the manager signs in to the backoffice
     Then the manager sees the programme for "goldvibe" only
     And sees no player, wallet or withdrawal request
