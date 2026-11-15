@@ -3,6 +3,7 @@
   "service": {
     "image": "backoffice-state:latest",
     "runtime": "0.16.3",
+    "personal": true,
     "env": {
       "ANKKA_HTTP_PORT": "9030",
       "CASINO_BRAND": "goldvibe",
