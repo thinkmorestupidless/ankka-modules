@@ -292,7 +292,7 @@ refused.
 payout period, dismiss a fraud flag with a reason.
 
 - [ ] T115 [US10] Bind `features/backoffice/affiliates.feature` (2 scenarios) in `t/features/steps/affiliates.steps.ts`, failing first
-- [ ] T116 [P] [US10] `svc/affiliate-programme/` A1, A2: `{items, total}` on `accounts`; `accounts/{a}/portal/{view}` for managers, read-only and audited as `VIEWED_AS`, binding the existing scenario "a manager's read-only view of an affiliate shows what the affiliate sees and changes nothing" in `features/programme/managers.feature`; amends spec 013
+- [X] T116 [P] [US10] `svc/affiliate-programme/` A1, A2: `{items, total}` on `accounts`; `accounts/{a}/portal/{view}` for managers, read-only and audited as `VIEWED_AS`, binding the existing scenario "a manager's read-only view of an affiliate shows what the affiliate sees and changes nothing" in `features/programme/managers.feature`; amends spec 013
 - [ ] T117 [US10] Extend `s/routes.ts` with the programme's rows (the project's address is a value of the brand, so spec 028 can move it); a manager sees the programme only, for this backoffice's brand
 - [ ] T118 [P] [US10] Implement `w/areas/affiliates/dashboard.tsx`, `plans.tsx`, `links.tsx`, `creatives.tsx`, `settings.tsx`, `messages.tsx`, `managers.tsx`
 - [ ] T119 [US10] Implement `w/areas/affiliates/accounts.tsx` and `account.tsx` (create, approve, reject, status, edit, notes, audit, password, email, network, reparent, adjustments, view as the affiliate), `payouts.tsx` (by period: close, status, export), `fraud.tsx` (dismiss with a reason)
