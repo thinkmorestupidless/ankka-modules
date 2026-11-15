@@ -1502,19 +1502,19 @@ Avoid: generated SDK, codegen client
 ## The backoffice
 
 ### worklist
-*Proposed.* An operator's open items in one brand that their roles let them act on: withdrawal requests pending review, withdrawal payments needing review, identity documents awaiting review, players flagged for review, open cases and fraud cases, unacknowledged provider callbacks, undelivered facts and parked sends; oldest first, read from the owning services and never stored.
+An operator's open items in one brand that their roles let them act on: withdrawal requests pending review, withdrawal payments needing review, identity documents awaiting review, players flagged for review, open cases and fraud cases, unacknowledged provider callbacks, undelivered facts and parked sends; oldest first, read from the owning services and never stored.
 
 Avoid: task list, to-do list
 
 ### timeline
-*Proposed.* Everything that happened to one player, from every owning service, in the order it happened: each event with its actor (the player, an operator by name, the system or a provider) and its cause where the fact carries one, and any source that could not be read named with the period it is missing.
+Everything that happened to one player, from every owning service, in the order it happened: each event with its actor (the player, an operator by name, the system or a provider) and its cause where the fact carries one, and any source that could not be read named with the period it is missing.
 
 Avoid: activity feed, audit trail
 
 ### adjustment batch
-*Proposed.* One reason and one cause applied to many players as one adjustment per player, each under its own key, so that repeating the batch makes none twice; each row ends made, refused with its reason, or already made.
+One reason and one cause applied to many players as one adjustment per player, each under its own key, so that repeating the batch makes none twice; each row ends made, refused with its reason, or already made.
 
 Avoid: bulk adjustment, compensation run
 
 ### merge tag
-*Proposed.* A placeholder in an operator's send, such as the player's first name, that the brand fills from the player's record when the inbox item is previewed and when it is sent.
+A placeholder in an operator's send, such as the player's first name, that the brand fills from the player's record when the inbox item is previewed and when it is sent.
