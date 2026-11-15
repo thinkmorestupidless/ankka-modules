@@ -147,6 +147,7 @@ class OperatorSuite extends munit.FunSuite:
     try
       val r = give(paths.newPlayer("op-p"), "offerId" -> paths.noDeposit())
       assertEquals((r.status, r.str("status"), r.str("reason")), (409, "ineligible", "BONUS_ALREADY_ACTIVE"), r.text)
+      assertEquals(r.json.strings("allowedBy"), Vector("open_reward_ended", "brand_limit_raised"), r.text)
     finally kit.wallet.clearRoute("awards")
 
   // ── the award: a free bonus ───────────────────────────────────────────────────────────────────
@@ -175,6 +176,7 @@ class OperatorSuite extends munit.FunSuite:
     paths.flagged(p)
     val r = give(p, "bonusAmount" -> 2000L, "wager" -> 5, "currency" -> "EUR")
     assertEquals((r.status, r.str("status"), r.str("reason")), (409, "ineligible", "SUSPECTED_DUPLICATE"), r.text)
+    assertEquals(r.json.strings("allowedBy"), Vector("fraud_flag_cleared", "brand_detection_off"), r.text)
 
   test("a free bonus with no currency named is in the player's currency, and refused when it is unknown"):
     val r = give(paths.newPlayer("op-p"), "bonusAmount" -> 2000L, "wager" -> 5)

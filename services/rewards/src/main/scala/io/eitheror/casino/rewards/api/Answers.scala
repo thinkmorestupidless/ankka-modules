@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.http.{Bytes, Respond}
 import io.eitheror.casino.contract.money.AmountNotWhole
 import io.eitheror.casino.rewards.Json
+import io.eitheror.casino.rewards.eligibility.AllowedBy
 import io.eitheror.casino.rewards.offers.Refusal
 import io.eitheror.casino.rewards.reward.Refused
 
@@ -33,8 +34,12 @@ object Answers:
   /** A reward's refusal, with its message, at the status the endpoint's table gives its code. */
   def refused(r: Refused, table: Table): Reply = refusal(table.status(r.code), r.code, "message" -> r.message)
 
-  /** The evaluator's decline, as the original answered it (contracts/routes.md, 409). */
-  def ineligible(reason: String): Reply = json(409, Json.obj("status" -> "ineligible", "reason" -> reason))
+  /**
+   * The evaluator's decline, as the original answered it (contracts/routes.md, 409), with what would allow the grant
+   * beside the reason (spec 030 RW2, `AllowedBy`; empty when nothing it can name would).
+   */
+  def ineligible(reason: String): Reply =
+    json(409, Json.obj("status" -> "ineligible", "reason" -> reason, "allowedBy" -> AllowedBy.of(reason)))
 
   /** A code preview that matches nothing: 200, as the original's (contracts/routes.md, `POST …/codes/preview`). */
   val codeNotFound: Reply = ok(Json.obj("valid" -> false, "error" -> "code_not_found"))
