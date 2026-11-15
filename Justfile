@@ -620,3 +620,9 @@ describe-check service:
 descriptions:
     for s in {{described}}; do just describe "$s"; done
     npm run generate -w sdk/player
+
+# Spec 030's V1 probe: a web-hosted service in a brand's project that calls an owner with the
+# operator's token it was given (tests/spikes/backoffice-v1/README.md). kind only.
+backoffice-spike brand="goldvibe":
+    cd tests/spikes/backoffice-v1 && docker build -q -t backoffice-probe:v1 . && kind load docker-image backoffice-probe:v1 --name ankka
+    cd tests/spikes/backoffice-v1 && ankka services apply -f service.json --project {{brand}} && ankka services expose backoffice-probe --project {{brand}}
