@@ -271,6 +271,7 @@ Unchanged:
 | Switching to automatic recomputes at once | FR-015 | `KycRecordSuite`; scenario 28's mode recording, marked if it differs |
 | The status is derived with the change that causes it | FR-012 | `KycRecordSuite`; scenario 28's reads right after a confirm, marked: the original's rollup ran after its answer, so its suite read the status before it |
 | The player's read shows each category's current document | FR-036 | `DocumentsSuite`; scenario 28's replacement recording, marked: the original listed the rejected document beside its replacement |
+| An operator's view is the document's bytes (spec 030 K5) | spec 030 FR-031: the backoffice follows no address | `DocumentsSuite`; `review.feature`; scenario 28's operator view, marked: the original answered `{url, expiresAt}` |
 | Another player's id is `player_id_mismatch` | FR-002, contracts/routes.md | `DocumentsSuite`; scenario 28's view by another player, marked: the original answered `forbidden` |
 | `PUT status pending` is `player_kyc_pending` (reason `agent`); required categories publish `player_kyc_pending` | FR-014, FR-017 | `PublishersSuite`; the recordings' facts are not replayed |
 | One player view route; every issue an event and an audit record | FR-037 | `DocumentsSuite`; `WireTranslation` maps both original routes |

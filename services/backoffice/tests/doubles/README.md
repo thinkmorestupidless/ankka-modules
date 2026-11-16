@@ -3,9 +3,8 @@
 One process at the calling address. The first path segment names the owner, as the platform's proxy
 reads it: `/players/…` is the brand's `players`, `/merchant.payments/…` is the shared project's
 `merchant`. There is one owner for every service the route table (`src/server/routes.ts`) names, and
-one for `backoffice-state`, and `document-store`: the brand's object store that kyc's signed links name (the
-server follows a link only under `BACKOFFICE_DOCUMENT_STORE`, which `env.ts` sets to
-`/document-store/<brand>/` here). An unknown segment gets the proxy's answer: `503`, `X-Ankka-Answered-By: proxy`.
+one for `backoffice-state`. There is no document store: kyc answers an identity document's bytes itself
+(amendment K5), so its double does too. An unknown segment gets the proxy's answer: `503`, `X-Ankka-Answered-By: proxy`.
 
 ```bash
 npm run doubles                               # DOUBLES_PORT, 4710 by default

@@ -7,7 +7,6 @@ import io.eitheror.casino.contract.personal.Personal
 import io.eitheror.casino.kyc.Json.*
 import io.eitheror.casino.kyc.record.*
 
-import java.net.URI
 import java.time.Instant
 
 /**
@@ -328,9 +327,13 @@ class ReviewFeatures extends KycFeatures("review.feature"):
     last = kit.request("GET", kit.operatorPath(s"/$player/views/$documentId"), None, kit.asOperator(subject, roles))
   }
 
-  Then("they are given a view address valid for {string} minutes") { (minutes: String) =>
+  // spec 030 K5: the bytes put through the upload's link (`put`'s 512 sevens), of the type the upload was offered
+  Then("they are shown the document as it was uploaded, not to be cached") { () =>
     assertEquals(last.status, 200, last.text)
-    assert(URI.create(last.str("url")).getQuery.contains(s"X-Amz-Expires=${minutes.toInt * 60}"), last.str("url"))
+    assertEquals(last.bytes.toVector, Vector.fill(512)(7.toByte))
+    assertEquals(last.header("Content-Type"), Some("image/png"))
+    assertEquals(last.header("Content-Disposition"), Some("inline"))
+    assertEquals(last.header("Cache-Control"), Some("no-store"))
   }
 
   Then("the view is recorded with their id") { () =>

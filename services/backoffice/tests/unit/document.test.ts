@@ -1,42 +1,63 @@
 // T094: an identity document is streamed for the operator from kyc's view of it, the two ids the only
-// inputs (FR-031). No address in the page's request is ever fetched, and kyc's link is followed only
-// when it is an address in the brand's document store: no URL the page or an owner's body supplies
-// sends the backoffice anywhere else.
+// inputs (FR-031). kyc answers the document's bytes (amendment K5) and the backoffice passes them
+// through: no address in the page's request, or in kyc's answer, is ever fetched. The only call made is
+// kyc's view route, as the operator.
 import { describe, expect, test } from "vitest";
-import { inStore } from "../../src/server/composite/document.ts";
 import { table } from "../../src/server/routes.ts";
 import { Brand, harness, SecretToken } from "./support.ts";
 
-const Store = "https://objects.example.test/goldvibe-kyc/";
 const Player = "8b0f4c1e-35a6-4b8e-9d3b-1c2f0a9e7d11";
 const Doc = "1de8118c-ca16-49f7-99b5-ae7322e0ed1f";
-const Signed = `${Store}players/${Player}/${Doc}?X-Amz-Signature=abc`;
 const View = `/api/kyc/${Player}/documents/${Doc}/view`;
 const KycView = `http://services.local/kyc/v1/casino/backoffice/${Brand}/kyc/${Player}/views/${Doc}`;
+const Pdf = "%PDF-1.4 the document";
 
-/** The app with kyc answering `link` for the view, and the store answering a PDF. */
-function app(link: unknown = Signed, over: Parameters<typeof harness>[0] = {}) {
-  const h = harness({ table, documentStore: Store, ...over });
-  h.answer((call) => {
-    if (call.url.startsWith("http://services.local/kyc/")) return Response.json({ url: link, expiresAt: "2026-11-15T12:15:00Z" });
-    if (call.url.startsWith(Store)) return new Response("%PDF-1.4 the document", { headers: { "Content-Type": "application/pdf", "Content-Length": "21" } });
-    return Response.json({ error: "not_found" }, { status: 404 });
-  });
+const kycHeaders = { "Content-Type": "application/pdf", "Content-Length": "21", "Content-Disposition": "inline", "Cache-Control": "no-store" };
+
+/** The app with kyc answering `answer` for the view: the document's bytes unless given another. */
+function app(answer: () => Response = () => new Response(Pdf, { headers: kycHeaders })) {
+  const h = harness({ table });
+  h.answer((call) => (call.url.startsWith("http://services.local/kyc/") ? answer() : Response.json({ error: "not_found" }, { status: 404 })));
   return h;
 }
 
 describe("a document viewed", () => {
-  test("is kyc's view asked as the operator, then the object streamed with no token sent to the store", async () => {
+  test("is kyc's bytes, asked as the operator and passed through, with nothing else asked", async () => {
     const h = app();
     const r = await h.ask("GET", View, { session: "s-1" });
     expect(r.status).toBe(200);
-    expect(await r.text()).toBe("%PDF-1.4 the document");
+    expect(await r.text()).toBe(Pdf);
     expect(r.headers.get("content-type")).toBe("application/pdf");
+    expect(r.headers.get("content-disposition")).toBe("inline");
+    expect(r.headers.get("content-length")).toBe("21");
     expect(r.headers.get("cache-control")).toContain("no-store");
     expect(r.headers.get("x-content-type-options")).toBe("nosniff");
-    expect(h.calls.map((c) => c.url)).toEqual([KycView, Signed]);
+    expect(h.calls.map((c) => c.url)).toEqual([KycView]);
     expect(h.calls[0]!.headers.get("authorization")).toBe(`Bearer ${SecretToken}`);
-    expect(h.calls[1]!.headers.get("authorization")).toBeNull();
+  });
+
+  test("is streamed: the first bytes reach the page before kyc has sent the rest", async () => {
+    let finish: () => void = () => {};
+    const rest = new Promise<void>((resolve) => (finish = resolve));
+    const h = app(() => {
+      const body = new ReadableStream<Uint8Array>({
+        async start(c) {
+          c.enqueue(new TextEncoder().encode("%PDF-1.4 "));
+          await rest;
+          c.enqueue(new TextEncoder().encode("the rest"));
+          c.close();
+        },
+      });
+      return new Response(body, { headers: { "Content-Type": "application/pdf" } });
+    });
+    const r = await h.ask("GET", View, { session: "s-1" });
+    const reader = r.body!.getReader();
+    const first = await reader.read();
+    expect(new TextDecoder().decode(first.value)).toBe("%PDF-1.4 ");
+    finish();
+    let tail = "";
+    for (let c = await reader.read(); !c.done; c = await reader.read()) tail += new TextDecoder().decode(c.value);
+    expect(tail).toBe("the rest");
   });
 
   test("is refused, and nothing asked, for an operator whose roles do not name the brand", async () => {
@@ -48,64 +69,57 @@ describe("a document viewed", () => {
     expect(h.calls).toHaveLength(0);
   });
 
-  test("is kyc's refusal as kyc gave it, and the store is not asked", async () => {
-    const h = harness({ table, documentStore: Store });
-    h.answer(() => Response.json({ error: "forbidden", message: "forbidden: the identity.review permission is needed" }, { status: 403 }));
+  test.each([
+    [403, "forbidden"],
+    [404, "document_not_found"],
+    [410, "document_erased"],
+    [503, "storage_unavailable"],
+  ])("is kyc's refusal %i as kyc gave it", async (status, error) => {
+    const h = app(() => Response.json({ error, message: "kyc's words" }, { status }));
     const r = await h.ask("GET", View, { session: "s-1" });
-    expect(r.status).toBe(403);
-    expect(h.calls).toHaveLength(1);
+    expect(r.status).toBe(status);
+    expect((await r.json()) as unknown).toMatchObject({ error });
+    expect(h.calls.map((c) => c.url)).toEqual([KycView]);
   });
 
   test("a type a browser would run is given as a file, not shown", async () => {
-    const h = harness({ table, documentStore: Store });
-    h.answer((call) =>
-      call.url.startsWith(Store) ? new Response("<script>1</script>", { headers: { "Content-Type": "text/html" } }) : Response.json({ url: Signed }),
-    );
+    const h = app(() => new Response("<script>1</script>", { headers: { "Content-Type": "text/html" } }));
     const r = await h.ask("GET", View, { session: "s-1" });
     expect(r.headers.get("content-type")).toBe("application/octet-stream");
     expect(r.headers.get("content-disposition")).toBe("attachment");
   });
 });
 
-describe("no address in a request is ever fetched", () => {
+describe("no address is ever fetched beyond kyc's view route", () => {
   test("an address in the page's query is neither fetched nor passed to kyc", async () => {
     const h = app();
     await h.ask("GET", `${View}?url=${encodeURIComponent("http://169.254.169.254/latest/meta-data")}&redirect=http://evil.example`, { session: "s-1" });
-    expect(h.calls.map((c) => c.url)).toEqual([KycView, Signed]);
+    expect(h.calls.map((c) => c.url)).toEqual([KycView]);
   });
 
   test("an address in the page's headers is not followed", async () => {
     const h = app();
     await h.ask("GET", View, { session: "s-1", headers: { Referer: "http://evil.example/", "X-Forwarded-For": "http://evil.example", Location: "http://evil.example/" } });
-    expect(h.calls.map((c) => c.url)).toEqual([KycView, Signed]);
-  });
-
-  test.each([
-    ["a host of the page's choosing", "http://evil.example/players/x"],
-    ["the services' own address", `http://services.local/players/v1/casino/backoffice/${Brand}/players`],
-    ["the metadata address", "http://169.254.169.254/latest/meta-data/"],
-    ["the store's host on another port", "https://objects.example.test:8443/goldvibe-kyc/players/x"],
-    ["the store's host under another bucket", "https://objects.example.test/another-brand-kyc/players/x"],
-    ["a way out of the store's path", "https://objects.example.test/goldvibe-kyc/../another-brand-kyc/x"],
-    ["an encoded way out of the store's path", "https://objects.example.test/goldvibe-kyc/%2e%2e/another-brand-kyc/x"],
-    ["credentials in the address", "https://user:pass@objects.example.test/goldvibe-kyc/x"],
-    ["the store's host as a user name", "https://objects.example.test@evil.example/goldvibe-kyc/x"],
-    ["another scheme", "file:///etc/passwd"],
-    ["the store's path itself", Store],
-    ["a relative address", "/goldvibe-kyc/x"],
-    ["no address", null],
-  ])("kyc's link to %s is refused and not fetched", async (_, link) => {
-    const h = app(link);
-    const r = await h.ask("GET", View, { session: "s-1" });
-    expect(r.status).toBe(502);
     expect(h.calls.map((c) => c.url)).toEqual([KycView]);
   });
 
-  test("with no document store given, no link is followed", async () => {
-    const h = app(Signed, { documentStore: undefined });
+  test.each([
+    ["a signed link, as kyc answered before K5", () => Response.json({ url: "https://objects.example.test/goldvibe-kyc/x?X-Amz-Signature=abc", expiresAt: "2026-11-15T12:15:00Z" })],
+    ["a link to the services' own address", () => Response.json({ url: `http://services.local/players/v1/casino/backoffice/${Brand}/players` })],
+    ["the metadata address", () => Response.json({ url: "http://169.254.169.254/latest/meta-data/" })],
+  ])("an address in kyc's body (%s) is not fetched; the body is passed as kyc's answer", async (_, answer) => {
+    const h = app(answer);
     const r = await h.ask("GET", View, { session: "s-1" });
-    expect(r.status).toBe(503);
-    expect((await r.json()) as unknown).toMatchObject({ error: "document_store_unconfigured" });
+    expect(r.headers.get("content-type")).toBe("application/octet-stream");
+    expect(r.headers.get("content-disposition")).toBe("attachment");
+    expect(h.calls.map((c) => c.url)).toEqual([KycView]);
+  });
+
+  test.each([301, 302, 303, 307, 308])("a redirect %i from kyc is neither followed nor passed on", async (status) => {
+    const h = app(() => new Response(null, { status, headers: { Location: "http://evil.example/" } }));
+    const r = await h.ask("GET", View, { session: "s-1" });
+    expect(r.status).toBe(502);
+    expect(r.headers.get("location")).toBeNull();
     expect(h.calls.map((c) => c.url)).toEqual([KycView]);
   });
 
@@ -116,22 +130,5 @@ describe("no address in a request is ever fetched", () => {
       expect(r.status).toBe(404);
     }
     expect(h.calls).toHaveLength(0);
-  });
-
-  test("a redirect from the store is not followed", async () => {
-    const h = harness({ table, documentStore: Store });
-    h.answer((call) => (call.url.startsWith(Store) ? new Response(null, { status: 302, headers: { Location: "http://evil.example/" } }) : Response.json({ url: Signed })));
-    const r = await h.ask("GET", View, { session: "s-1" });
-    expect(r.status).toBe(503);
-    expect(h.calls.map((c) => c.url)).toEqual([KycView, Signed]);
-  });
-});
-
-describe("an address in the store", () => {
-  test("is one under its path, on its host", () => {
-    expect(inStore(Store, Signed)).toBe(Signed);
-    expect(inStore("https://objects.example.test/goldvibe-kyc", `${Store}x`)).toBe(`${Store}x`);
-    expect(inStore("https://objects.example.test/goldvibe-kyc", "https://objects.example.test/goldvibe-kycx/y")).toBeUndefined();
-    expect(inStore(undefined, Signed)).toBeUndefined();
   });
 });

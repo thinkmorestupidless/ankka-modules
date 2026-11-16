@@ -2,13 +2,14 @@ package io.eitheror.casino.kyc.api
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.core.EntityId
-import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, Respond}
+import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, Respond, Streamed}
 import io.eitheror.casino.contract.access.RoleBags
 import io.eitheror.casino.kyc.{Json, KycRuntime, Settings}
 import io.eitheror.casino.kyc.documents.Store
 import io.eitheror.casino.kyc.policy.{Policy, PolicyEntity}
 import io.eitheror.casino.kyc.record.{KycRecord, KycState, Refusal}
 
+import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets.UTF_8
 import java.time.Instant
 import io.eitheror.casino.contract.http.Json as JsonBody
@@ -22,6 +23,10 @@ object Answers:
 
   def json(status: Int, body: JsonNode): Reply = Respond(JsonBody(Json.render(body).getBytes(UTF_8)), status, Vector.empty)
   def ok(body: JsonNode): Reply             = json(200, body)
+
+  /** A whole answer on a route that streams (spec 030 K5): the same status, headers and bytes. */
+  def whole(r: Reply): Respond[Streamed] =
+    Respond(Streamed(r.body.contentType, Some(r.body.body.length.toLong), ByteArrayInputStream(r.body.body)), r.status, r.headers)
 
   def refusal(status: Int, error: String, message: String, fields: (String, Any)*): Reply =
     json(status, Json.obj((Seq[(String, Any)]("error" -> error, "message" -> message) ++ fields)*))

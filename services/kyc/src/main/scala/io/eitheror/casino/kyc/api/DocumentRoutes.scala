@@ -1,18 +1,21 @@
 package io.eitheror.casino.kyc.api
 
 import com.fasterxml.jackson.databind.JsonNode
+import com.thinkmorestupidless.ankka.http.{Respond, Streamed}
 import io.eitheror.casino.kyc.Json
 import io.eitheror.casino.kyc.Json.*
 import io.eitheror.casino.kyc.record.*
 
 import java.util.UUID
+import scala.util.control.NonFatal
 
 import Answers.*
 
 /**
  * Uploads, confirmations, views and the read, as the player's and the operator's routes share them
- * (FR-004 to FR-008). The store is asked only for what the record cannot decide: a signed link, and at
- * confirm the object's size and type. A store that cannot be reached is `503 storage_unavailable`.
+ * (FR-004 to FR-008). The store is asked only for what the record cannot decide: a signed link, at
+ * confirm the object's size and type, and an operator's view of the object's bytes (spec 030 K5). A store
+ * that cannot be reached is `503 storage_unavailable`.
  */
 final class DocumentRoutes(ctx: Ctx):
 
@@ -83,5 +86,43 @@ final class DocumentRoutes(ctx: Ctx):
           url => issue().refusal.fold(ok(Json.obj("url" -> url, "expiresAt" -> at.plus(ctx.settings.viewLink).toString)))(refused)
         )
 
+  /**
+   * The document's bytes to an operator (spec 030 K5): read from the store as they arrive, under the type
+   * the record checked at confirm, inline and never cached. The view is recorded once the store has the
+   * object open, and refused as the signed link's is (erased, not found); an object the store no longer
+   * holds is `document_not_found` and no view is recorded.
+   */
+  def stream(playerId: String, documentId: String, requester: Actor): Respond[Streamed] =
+    val at = ctx.now()
+    val document = ctx.state(playerId) match
+      case s if s.erased => None
+      case s             => s.document(documentId)
+    def issue(): KycAnswer = ctx.record(playerId).call(KycRecord.issueView).invoke(IssueView(documentId, requester, at))
+    document match
+      case None => whole(issue().refusal.fold(refused("document_not_found"))(refused))
+      case Some(d) =>
+        ctx.store.get(d.objectName) match
+          case Left(_)     => whole(storageUnavailable)
+          case Right(None) => whole(refused("document_not_found"))
+          case Right(Some(o)) =>
+            val recorded =
+              try issue()
+              catch
+                case NonFatal(e) =>
+                  o.body.close()
+                  throw e
+            recorded.refusal match
+              case Some(r) =>
+                o.body.close()
+                whole(refused(r))
+              case None =>
+                val kind = Seq(d.contentType, o.contentType).find(_.nonEmpty).getOrElse("application/octet-stream")
+                Respond(Streamed(kind, Option.when(o.length >= 0)(o.length), o.body), 200, DocumentRoutes.Viewed)
+
   private def withDocument(s: KycState, documentId: String): Reply =
     ok(Json.obj("document" -> s.document(documentId).map(Render.document(_, latest = true)), "status" -> s.status.wire))
+
+object DocumentRoutes:
+  /** The headers of a document's bytes (spec 030 K5): shown where it is opened, never kept by a cache, never sniffed. */
+  val Viewed: Vector[(String, String)] =
+    Vector("Content-Disposition" -> "inline", "Cache-Control" -> "no-store", "X-Content-Type-Options" -> "nosniff")

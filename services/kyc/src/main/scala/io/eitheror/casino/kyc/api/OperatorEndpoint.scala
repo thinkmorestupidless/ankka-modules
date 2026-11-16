@@ -73,9 +73,10 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
   withAcl(may("identity.review")) {
   postBody("/{playerId}/documents") { (p: String, text: String) => body(text)(documents.confirm(p, _)) }
   }
+  /** The document's bytes, streamed from the store, the view recorded with the operator (spec 030 K5). */
   withAcl(may("identity.review")) {
   get("/{playerId}/views/{documentId}") { (p: String, d: String) =>
-    documents.view(p, d, Actor.operator(principal.subject))
+    documents.stream(p, d, Actor.operator(principal.subject))
   }
   }
 

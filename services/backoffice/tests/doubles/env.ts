@@ -21,7 +21,6 @@ export const serverEnv: Record<string, string> = {
   BACKOFFICE_SHARED_PROJECTS: "payments=payments,programme=programme,reasoner=reasoner,games=games",
   ANKKA_AUTH_STAFF_ISSUER: `${DoublesUrl}/realms/eitheror`,
   BACKOFFICE_HOST: BackofficeUrl,
-  BACKOFFICE_DOCUMENT_STORE: `http://127.0.0.1:${DoublesPort}/document-store/${Brand}/`,
   NODE_ENV: "development",
 };
 

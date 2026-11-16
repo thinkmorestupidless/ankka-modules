@@ -25,7 +25,9 @@ import scala.concurrent.duration.*
 import scala.jdk.CollectionConverters.*
 
 /** An HTTP answer from the service. */
-final case class Reply(status: Int, text: String):
+final case class Reply(status: Int, text: String, bytes: Array[Byte] = Array.emptyByteArray, headers: Map[String, String] = Map.empty):
+  /** A response header by its name in any case. */
+  def header(name: String): Option[String] = headers.collectFirst { case (k, v) if k.equalsIgnoreCase(name) => v }
   def json: JsonNode             = Json.parse(text).getOrElse(throw AssertionError(s"not JSON ($status): $text"))
   def str(field: String): String = Json.parse(text).flatMap(n => Option(n.get(field))).filterNot(_.isNull).map(_.asText).getOrElse("")
 
@@ -133,8 +135,9 @@ final class Kit(base: Settings = Kit.Base):
       .method(method, body.fold(HttpRequest.BodyPublishers.noBody())(t => HttpRequest.BodyPublishers.ofString(t)))
     if body.isDefined then b.header("Content-Type", "application/json")
     headers.foreach((k, v) => b.header(k, v))
-    val r = http.send(b.build(), HttpResponse.BodyHandlers.ofString())
-    Reply(r.statusCode, r.body)
+    val r     = http.send(b.build(), HttpResponse.BodyHandlers.ofByteArray())
+    val heads = r.headers.map.asScala.toMap.collect { case (k, v) if !v.isEmpty => k -> v.get(0) }
+    Reply(r.statusCode, String(r.body, UTF_8), r.body, heads)
 
   def json(method: String, path: String, body: JsonNode, headers: Seq[(String, String)]): Reply =
     request(method, path, Some(Json.render(body)), headers)

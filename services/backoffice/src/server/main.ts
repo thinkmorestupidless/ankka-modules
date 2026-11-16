@@ -43,8 +43,6 @@ export interface Deps {
   reads?: BrandReads;
   /** How often `/api/events` compares the operator's permissions; 5 s when not given. */
   eventsEveryMs?: number;
-  /** `BACKOFFICE_DOCUMENT_STORE`: the store's address and path that kyc's signed links name (FR-031). */
-  documentStore?: string;
 }
 
 /** The claims of the realm's token, read without checking it: it came from `backoffice-state`. */
@@ -348,7 +346,6 @@ async function main(): Promise<void> {
     dist: production ? path.join(root, "dist") : undefined,
     realm: { issuer: required("ANKKA_AUTH_STAFF_ISSUER").replace(/\/$/, ""), clientId: `backoffice-${required("CASINO_BRAND")}` },
     address: required("BACKOFFICE_HOST").replace(/\/$/, ""),
-    documentStore: process.env.BACKOFFICE_DOCUMENT_STORE,
   });
   const serve = getRequestListener(app.fetch);
   let page: ((req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void) | undefined;

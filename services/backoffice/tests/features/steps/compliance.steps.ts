@@ -5,7 +5,6 @@
 // features hold them. Here the backoffice is what is shown and asked.
 import { t } from "../../../src/shared/messages/index.ts";
 import { formatMoney, parseMoney } from "../../../src/shared/money.ts";
-import { DoublesPort } from "../../doubles/env.ts";
 import { expect, Given, Then, When, type World } from "../world.ts";
 
 /** What a scenario keeps between its steps. */
@@ -87,14 +86,12 @@ Given("an identity document of a player", async ({ world }) => {
   const player = world.brand.players[0]!.playerId;
   const id = "0b6f1f9e-7a43-4c55-b0c1-2f9d6a1e3c77";
   state(world).document = { player, id };
-  const object = `/document-store/${world.brand.slug}/players/${player}/${id}`;
+  // kyc answers the document's bytes itself to an operator it admits (amendment K5)
   await world.doubles.fixtures("kyc", {
     "GET /v1/casino/backoffice/{brand}/kyc/{playerId}/views/{documentId}": {
-      body: { url: `http://127.0.0.1:${DoublesPort}${object}?X-Amz-Signature=double`, expiresAt: "2026-11-15T12:15:00Z" },
+      body: "%PDF-1.4 the player's identity document",
+      headers: { "Content-Type": "application/pdf", "Content-Disposition": "inline", "Cache-Control": "no-store" },
     },
-  });
-  await world.doubles.fixtures("document-store", {
-    "GET /{brand}/players/{player}/{document}": { anonymous: true, body: "%PDF-1.4 the player's identity document", headers: { "Content-Type": "application/pdf" } },
   });
 });
 
@@ -110,7 +107,6 @@ Then("the document is not shown", async ({ world }) => {
   expect(answer.status).toBe(403);
   expect(answer.body).not.toContain("%PDF");
   expect(JSON.parse(answer.body)).toMatchObject({ error: "brand_not_in_roles" });
-  expect(await world.doubles.calls("document-store"), "the store was not asked").toHaveLength(0);
   expect(await world.doubles.calls("kyc", { path: /\/views\// }), "kyc was not asked for a view").toHaveLength(0);
 });
 
