@@ -1,0 +1,187 @@
+/* The player's page (contracts/design.md): the standing as compact cards that fit 1440 by 900 above the
+   tabs (FR-020), 13 px text, tabular figures; the tabs as pills; the timeline a line per event. */
+
+.bo-player h1 {
+  font-size: 20px;
+  margin: 0 0 8px;
+}
+
+.bo-standing {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.bo-standing-part {
+  background: var(--surface-1);
+  border-radius: 12px;
+  padding: 8px 12px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.bo-standing-part[data-part="account"] {
+  grid-row: span 2;
+}
+
+.bo-standing-part h2 {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: none;
+  margin: 0 0 4px;
+}
+
+.bo-standing-part p {
+  margin: 0 0 4px;
+}
+
+.bo-standing-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 2px 8px;
+  margin: 0;
+}
+
+.bo-standing-fields dt {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.bo-standing-fields dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.bo-standing-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bo-standing-part .bo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.bo-standing-part .bo-button {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.bo-chip {
+  display: inline-block;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.bo-player-tabs ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+.bo-pill {
+  display: inline-block;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 4px 12px;
+  text-decoration: none;
+  border: 1px solid transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.bo-pill[aria-current="page"],
+.bo-pill[aria-pressed="true"] {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.bo-timeline-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 8px;
+}
+
+.bo-timeline-filters fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.bo-timeline-kind {
+  font-size: 13px;
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  margin-right: 6px;
+}
+
+.bo-timeline-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bo-timeline-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-height: 36px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--surface-2);
+}
+
+.bo-timeline-gaps {
+  background: var(--surface-2);
+  border-left: 3px solid var(--danger);
+  padding: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.bo-session,
+.bo-round {
+  background: var(--surface-1);
+  border-radius: 12px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.bo-notes {
+  list-style: none;
+  padding: 0;
+}
+
+.bo-notes li {
+  background: var(--surface-1);
+  border-radius: 12px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.bo-players-filters,
+.bo-profile-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 8px;
+}

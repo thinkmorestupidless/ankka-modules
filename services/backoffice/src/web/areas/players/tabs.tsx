@@ -1,10 +1,22 @@
-// The player's identity, protection and withdrawals tabs as routes of their own (`/players/$player/identity`,
-// `/players/$player/protection`, `/players/$player/withdrawals`) until the player's page (T075) puts them in its tabs.
+// The tabs other areas add to the player's page (`page.tsx`, T075): an area's tab is listed in `ExtraTabs`
+// and shown under the player's standing at `/players/$player/<id>`. The identity, protection and withdrawals
+// tabs below are the page's own now; their wrappers stay for a route that shows one alone.
+import type { ReactNode } from "react";
 import { useParams } from "@tanstack/react-router";
+import type { MessageKey } from "../../../shared/messages/index.ts";
 import { PlayerIdentity } from "./identity.tsx";
 import { PlayerProtection } from "./protection.tsx";
 import { PlayerRewards } from "./rewards.tsx";
 import { PlayerWithdrawals } from "./withdrawals.tsx";
+
+export interface ExtraTab {
+  id: string;
+  label: MessageKey;
+  show(player: string): ReactNode;
+}
+
+/** Other areas' tabs of the player's page, in the order shown after withdrawals. */
+export const ExtraTabs: ExtraTab[] = [{ id: "rewards", label: "players.tab.rewards", show: (player) => <PlayerRewards player={player} /> }];
 
 const usePlayer = () => (useParams({ strict: false }) as { player?: string }).player;
 
