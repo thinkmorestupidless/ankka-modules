@@ -3,7 +3,7 @@
 // values counted by players (`facets=true`) so an operator sees how many each would leave. The place
 // (filters, page, scroll) is in the URL; a row opens the player.
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useId } from "react";
 import { t, type MessageKey } from "../../../shared/messages/index.ts";
 import { players } from "../../../shared/owners/index.ts";
@@ -93,6 +93,11 @@ export function PlayersListPage() {
   return (
     <section>
       <h1>{t("area.players")}</h1>
+      <p>
+        <Link className="bo-link" to="/players/sessions">
+          {t("sessions.brand.link")}
+        </Link>
+      </p>
       <form role="search" className="bo-players-filters" onSubmit={(e) => {
         e.preventDefault();
         const v = new FormData(e.currentTarget).get("search");
