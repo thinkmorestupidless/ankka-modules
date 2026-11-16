@@ -4,6 +4,8 @@
 export interface Options {
   query?: Record<string, string>;
   body?: unknown;
+  /** Sent as `Idempotency-Key`, for an owner that reads one: the same key for one write tried again. */
+  idempotencyKey?: string;
 }
 
 function call(method: string, path: string, options: Options): Promise<Response> {
@@ -11,6 +13,7 @@ function call(method: string, path: string, options: Options): Promise<Response>
   const headers: Record<string, string> = {};
   if (method !== "GET") headers["X-Backoffice"] = "1";
   if (options.body !== undefined) headers["Content-Type"] = "application/json";
+  if (options.idempotencyKey !== undefined) headers["Idempotency-Key"] = options.idempotencyKey;
   return fetch(path + query, {
     method,
     headers,

@@ -117,3 +117,54 @@ describe("the token", () => {
     expect(h.logs.join("\n")).not.toContain("p-42");
   });
 });
+
+describe("the Idempotency-Key", () => {
+  const programme = () => harness({ table, sharedProjects: { programme: "affiliates-eu" } });
+  const adjust = (h: ReturnType<typeof harness>, key?: string) =>
+    h.ask("POST", "/api/s/affiliate-programme/accounts/a-1/adjustments", {
+      session: "s-1",
+      headers: { ...write, ...(key === undefined ? {} : { "Idempotency-Key": key }) },
+      body: '{"type":"CREDIT","amount":1000,"currency":"EUR","reason":"kit"}',
+    });
+
+  test("is passed on to the owner as the page sent it", async () => {
+    const h = programme();
+    const r = await adjust(h, "programme-adjust/0b6f2a4e-3c1d-4e8f-9a7b-5c6d7e8f9a0b");
+    expect(r.status).toBe(200);
+    expect(h.calls[0]!.url).toBe(`http://services.local/affiliate-programme.affiliates-eu/v1/affiliates/${Brand}/accounts/a-1/adjustments`);
+    expect(h.calls[0]!.headers.get("idempotency-key")).toBe("programme-adjust/0b6f2a4e-3c1d-4e8f-9a7b-5c6d7e8f9a0b");
+  });
+
+  test("is not invented when the page sent none", async () => {
+    const h = programme();
+    await adjust(h);
+    expect(h.calls[0]!.headers.get("idempotency-key")).toBeNull();
+  });
+
+  test("of 200 printable characters is passed on", async () => {
+    const h = programme();
+    const key = `${"k".repeat(199)}~`;
+    await adjust(h, key);
+    expect(h.calls[0]!.headers.get("idempotency-key")).toBe(key);
+  });
+
+  test.each([
+    ["longer than 200 characters", "k".repeat(201)],
+    ["empty", ""],
+    ["not ASCII", "clé"],
+    ["holding a control character", "a\tb"],
+  ])("%s is refused with 400, and the owner is not called", async (_, key) => {
+    const h = programme();
+    const r = await adjust(h, key);
+    expect(r.status).toBe(400);
+    expect(await r.json()).toMatchObject({ error: "invalid_idempotency_key" });
+    expect(h.calls).toEqual([]);
+  });
+
+  test("is checked on any write it comes with", async () => {
+    const h = harness();
+    const r = await h.ask("PATCH", "/api/s/players/players/p-1/suspend", { session: "s-1", headers: { ...write, "Idempotency-Key": "x".repeat(201) }, body: "{}" });
+    expect(r.status).toBe(400);
+    expect(h.calls).toEqual([]);
+  });
+});

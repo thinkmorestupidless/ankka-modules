@@ -1,5 +1,6 @@
 // The pass-through (contracts/routes.md): a matched row is called at the owner's calling address with
-// the operator's token, and the owner's answer is returned as it gave it. The body is not parsed.
+// the operator's token, and the owner's answer is returned as it gave it. The body is not parsed. A write's
+// `Idempotency-Key` is passed on (the affiliate programme's adjustments read it), once it is checked.
 import { type Matched, upstreamPath } from "./routes.ts";
 
 export interface ProxyDeps {
@@ -15,6 +16,15 @@ export interface ProxyDeps {
 const Answered = ["content-type", "content-disposition", "content-length", "retry-after", "location"];
 /** The headers of the page's request an owner may need. */
 const Asked = ["content-type", "accept", "accept-language", "traceparent", "tracestate"];
+
+/** The longest `Idempotency-Key` passed on, and what one may hold: printable ASCII only. */
+export const IdempotencyKeyMax = 200;
+const Printable = /^[\x20-\x7e]+$/;
+
+/** Whether a page's `Idempotency-Key` may be passed on: 1 to 200 printable ASCII characters. */
+export function idempotencyKeyValid(key: string): boolean {
+  return key.length <= IdempotencyKeyMax && Printable.test(key);
+}
 
 export function unavailable(source: string): Response {
   return Response.json({ error: "source_unavailable", source }, { status: 503 });
@@ -38,6 +48,15 @@ export async function pass(deps: ProxyDeps, m: Matched, req: Request, accessToke
   for (const h of Asked) {
     const v = req.headers.get(h);
     if (v !== null) headers.set(h, v);
+  }
+  const key = req.headers.get("idempotency-key");
+  if (key !== null) {
+    if (!idempotencyKeyValid(key))
+      return {
+        response: Response.json({ error: "invalid_idempotency_key", message: `Idempotency-Key must be 1 to ${IdempotencyKeyMax} printable ASCII characters` }, { status: 400 }),
+        why: "idempotency-key",
+      };
+    headers.set("idempotency-key", key);
   }
   const body = req.method === "GET" || req.method === "HEAD" ? undefined : await req.arrayBuffer();
   let answer: Response;
