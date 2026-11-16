@@ -73,7 +73,20 @@ var NotDriven = map[string]string{
 	"a withdrawal payment in doubt to a provider that only sends webhooks is marked needs review after the provider's window [morphosis]":       "the provider's window (5 days) is not waited by a run",
 	"a withdrawal payment the gateway cannot answer is in doubt and reconciled, never awaiting manual payment [cannot be reached]":              "needs psp-gateway down mid-run, which a run against the shared kind stack does not do",
 	"a withdrawal payment the gateway cannot answer is in doubt and reconciled, never awaiting manual payment [answers something unrecognised]": "psp-gateway answers only the statuses it knows; nothing on the stack answers otherwise",
+	// spec 030's amendments: new behaviour of the service, not the original's
+	"a platform administrator is admitted to every action on a withdrawal request":                                                                                              spec030,
+	"a withdrawal payment confirmed by hand names the operator who confirmed it":                                                                                                spec030,
+	"a withdrawal request keeps the balances it was made at":                                                                                                                    spec030,
+	"an operator holding only a payments role is refused every action on a withdrawal request":                                                                                  spec030,
+	"each action on a withdrawal request is admitted to the default roles that carry its permission and refused to the others [approve or reject a withdrawal request]":         spec030,
+	"each action on a withdrawal request is admitted to the default roles that carry its permission and refused to the others [change the brand's withdrawal settings]":         spec030,
+	"each action on a withdrawal request is admitted to the default roles that carry its permission and refused to the others [confirm a withdrawal payment or mark it failed]": spec030,
+	"each action on a withdrawal request is admitted to the default roles that carry its permission and refused to the others [read the queue and a withdrawal request]":        spec030,
+	"the queue answers how many requests are pending review and how many payments need review":                                                                                  spec030,
 }
+
+// spec030 is why spec 030's amendment scenarios are not driven against the original.
+const spec030 = "spec 030 amends the service with it: the original has no such behaviour; the service's bound features hold it"
 
 // Scenarios is every recording the driver makes, in the features' order.
 func Scenarios() []Def {

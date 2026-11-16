@@ -76,7 +76,16 @@ var NotDriven = map[string]string{
 	"the same request again under the same key makes no send and answers the first outcome":                                                   sendRec,
 	"a trigger with no transactional id and no fallback sends nothing and answers not configured":                                             "the send route's answers are this port's: the original's sends are in-process calls that answer nothing",
 	"a request from a caller that is not a part of the brand is refused":                                                                      "the send route is this port's (001 FR-020 service class): the original's sends are in-process calls",
+	// spec 030's amendments: new behaviour of the service, not the original's
+	"a platform administrator is admitted to every action on engagement":                                                                              spec030,
+	"an operator holding only a payments role is refused every action on engagement":                                                                  spec030,
+	"each action on engagement is admitted to the default roles that carry its permission and refused to the others [change the CRM configuration]":   spec030,
+	"each action on engagement is admitted to the default roles that carry its permission and refused to the others [read who is online]":             spec030,
+	"each action on engagement is admitted to the default roles that carry its permission and refused to the others [retry or discard a parked send]": spec030,
 }
+
+// spec030 is why spec 030's amendment scenarios are not driven against the original.
+const spec030 = "spec 030 amends the service with it: the original has no such behaviour; the service's bound features hold it"
 
 // Scenarios is every recording the driver makes, in the features' order, then the unfeatured ones.
 func Scenarios() []Def {
