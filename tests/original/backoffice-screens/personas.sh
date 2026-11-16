@@ -17,9 +17,12 @@ k() { KUBECONFIG="$dir/kubeconfig" kubectl --context kind-eitheror-dev -n either
 
 kc=${KEYCLOAK_URL:-https://auth.eitheror.local}
 admin_password=$(k get secret eitheror-bundle-keycloak -o jsonpath='{.data.admin-password}' | base64 -d)
-token=$(curl -sk "$kc/realms/master/protocol/openid-connect/token" \
-  -d grant_type=password -d client_id=admin-cli -d username=admin --data-urlencode "password=$admin_password" |
-  python3 -c 'import sys,json; print(json.load(sys.stdin)["access_token"])')
+# master-realm admin tokens last about a minute: a fresh one for each persona
+refresh() {
+  token=$(curl -sk "$kc/realms/master/protocol/openid-connect/token" \
+    -d grant_type=password -d client_id=admin-cli -d username=admin --data-urlencode "password=$admin_password" |
+    python3 -c 'import sys,json; print(json.load(sys.stdin)["access_token"])')
+}
 api() { curl -sk -H "Authorization: Bearer $token" -H 'Content-Type: application/json' "$@"; }
 
 # persona role: the realm roles it holds (the role first; `operator` is not given, so only the role
@@ -42,6 +45,7 @@ for entry in "${personas[@]}"; do
   role=${entry%%:*}
   roles=${entry#*:}
   user="screens-${role//_/-}"
+  refresh
   id=$(api "$kc/admin/realms/eitheror/users?username=$user&exact=true" | python3 -c 'import sys,json; u=json.load(sys.stdin); print(u[0]["id"] if u else "")')
   if [ -z "$id" ]; then
     api -X POST "$kc/admin/realms/eitheror/users" -d "{\"username\":\"$user\",\"email\":\"$user@eitheror.test\",\"firstName\":\"Screens\",\"lastName\":\"$role\",\"enabled\":true,\"emailVerified\":true,\"attributes\":{\"eitheror_scope_level\":[\"platform\"],\"eitheror_scope_id\":[\"*\"]}}"
