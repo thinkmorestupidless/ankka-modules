@@ -405,6 +405,7 @@ export const en = {
   "reports.at": "When",
   "reports.amount": "Amount",
   "reports.reference": "Reference {reference}",
+  "reports.referenceHeading": "Reference",
   "reports.transaction": "Transaction",
   "reports.offer": "Offer",
   "reports.grants": "Granted",
