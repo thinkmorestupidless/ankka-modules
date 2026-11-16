@@ -1,18 +1,22 @@
 // Responsible gambling cases (T096; US7, parity *Cases list; notes; close*). A player's cases come with
 // responsible-gambling's read of the player: each with its notes, a note added, and closed with an
-// optional note; a case opened by the operator. The brand-wide list of open cases is responsible-
-// gambling's `cases?status=` (amendment G2), which it does not answer yet: the `/protection` page says
-// so and opens a player's cases by id until it does.
+// optional note; a case opened by the operator. `/protection` is the brand's cases, responsible-
+// gambling's `cases?status=` (amendment G2), open ones by default and oldest first as it answers them,
+// each linking to the player's protection, where its notes are, and closed from the list.
 import { useId, useState } from "react";
-import { useRouter } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { t } from "../../../shared/messages/index.ts";
 import { responsibleGambling as rg } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
-import { Action } from "../../components/action/index.ts";
-import { DateTime } from "../../components/date.tsx";
+import { Action, RefusalNotice } from "../../components/action/index.ts";
+import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { useFreshness } from "../../components/freshness.tsx";
+import { RecordLink } from "../../components/links.tsx";
+import { completeOf, List, useListState, useRouterListStore, type Column } from "../../components/list/index.ts";
 import { Status } from "../../components/status.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
+import { readJson, refusalOf } from "../corrections/shared.tsx";
 import { word } from "../word.ts";
 import { CaseTypes, type Case } from "./rg.ts";
 
@@ -128,32 +132,105 @@ export function PlayerCases({ player, cases, done }: { player: string; cases: re
   );
 }
 
-/** `/protection`: the brand-wide list waits on responsible-gambling (G2); a player's cases are opened by id. */
+/** A case as responsible-gambling lists the brand's (`GET cases`): no notes, which the player's read carries. */
+export interface ListedCase {
+  caseId: string;
+  playerId: string;
+  caseType: string;
+  trigger: string;
+  status: string;
+  openedAt: string;
+  closesAt: string | null;
+  closedAt: string | null;
+  closeReason: string | null;
+}
+
+const PageSize = 50;
+/** The `status` filter: open (the default here, as the original's pending cases), closed, or every case. */
+const Shown = ["open", "closed", "all"] as const;
+
+/** `/protection`: the brand's cases (G2), the filter and page in the URL. */
 export function ProtectionCasesPage() {
-  const router = useRouter();
-  const playerId = useId();
-  const [player, setPlayer] = useState("");
-  const go = () => {
-    const p = player.trim();
-    if (p !== "") void router.navigate({ to: "/players/$player/protection", params: { player: p } } as never);
-  };
+  const tz = zone();
+  const me = useOperator();
+  const bags = useBags();
+  const readOnly = useReadOnlyMode();
+  const client = useQueryClient();
+  const list = useListState(useRouterListStore());
+  const freshness = useFreshness(["responsible-gambling"]);
+  const statusId = useId();
+  const status = list.state.filters.status ?? "open";
+  const query = { status, page: String(list.state.page), pageSize: String(PageSize) };
+  const q = useQuery({
+    queryKey: ["responsible-gambling", "cases", query],
+    queryFn: () => readJson<{ cases: ListedCase[]; total: number }>(rg.getCases({ query })),
+    placeholderData: (prev) => prev,
+  });
+  const done = () => void client.invalidateQueries({ queryKey: ["responsible-gambling"] });
+  const columns: Column<ListedCase>[] = [
+    { id: "player", header: "protection.cases.player", cell: (c) => <RecordLink to={{ kind: "case", player: c.playerId, id: c.caseId }}>{c.playerId}</RecordLink> },
+    { id: "type", header: "protection.case.type", cell: (c) => word("protection.case", c.caseType) },
+    { id: "trigger", header: "protection.case.trigger", cell: (c) => word("protection.trigger", c.trigger) },
+    { id: "opened", header: "protection.case.opened", cell: (c) => <DateTime instant={c.openedAt} zone={tz} /> },
+    {
+      id: "closes",
+      header: "protection.case.closed",
+      cell: (c) =>
+        c.closedAt ? (
+          <DateTime instant={c.closedAt} zone={tz} />
+        ) : c.closesAt ? (
+          <span>
+            {t("protection.case.closes")} <DateTime instant={c.closesAt} zone={tz} />
+          </span>
+        ) : null,
+    },
+    { id: "status", header: "protection.case.status", cell: (c) => <Status value={c.status} /> },
+    {
+      id: "actions",
+      header: "identity.document.actions",
+      cell: (c) =>
+        readOnly ? null : (
+          <Action
+            action={Actions["protection.closeCase"]}
+            me={me}
+            bags={bags}
+            state={c.status}
+            subject={<p>{word("protection.case", c.caseType)} · {c.playerId}</p>}
+            run={(reason) => rg.postCasesClose({ player: c.playerId, caseId: c.caseId }, { body: reason ? { reason } : {} })}
+            onDone={done}
+          />
+        ),
+    },
+  ];
   return (
     <section>
       <h1>{t("area.protection")}</h1>
-      <p role="note">{t("protection.cases.brandWideGap")}</p>
-      <form
-        className="bo-field"
-        onSubmit={(e) => {
-          e.preventDefault();
-          go();
-        }}
-      >
-        <label htmlFor={playerId}>{t("protection.cases.player")}</label>
-        <input id={playerId} value={player} onChange={(e) => setPlayer(e.target.value)} />
-        <button type="submit" className="bo-button" disabled={player.trim() === ""}>
-          {t("protection.cases.open")}
-        </button>
-      </form>
+      <div role="search" className="bo-players-filters">
+        <div className="bo-field">
+          <label htmlFor={statusId}>{t("protection.case.status")}</label>
+          <select id={statusId} value={status} onChange={(e) => list.setFilter("status", e.target.value === "open" ? undefined : e.target.value)}>
+            {Shown.map((s) => (
+              <option key={s} value={s}>
+                {t(`protection.cases.shown.${s}`)}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <ZoneNote zone={tz} />
+      {q.isError ? <RefusalNotice refusal={refusalOf(q.error)} /> : null}
+      <List
+        caption="protection.cases.caption"
+        columns={columns}
+        rows={q.data?.cases}
+        rowKey={(c) => c.caseId}
+        total={q.data?.total}
+        complete={q.data ? completeOf({ page: list.state.page, pageSize: PageSize, total: q.data.total }) : false}
+        fetching={q.isFetching}
+        freshness={freshness}
+        zone={tz}
+        list={list}
+      />
     </section>
   );
 }

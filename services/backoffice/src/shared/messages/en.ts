@@ -736,9 +736,7 @@ export const en = {
   // responsible gambling cases
   "protection.cases": "Cases",
   "protection.cases.none": "No cases.",
-  "protection.cases.brandWideGap": "responsible-gambling does not list the brand's open cases yet. Open a player's cases by their id.",
-  "protection.cases.player": "Player id",
-  "protection.cases.open": "Open",
+  "protection.cases.player": "Player",
   "protection.case.type": "Case",
   "protection.case.status": "Status",
   "protection.case.trigger": "Opened",
@@ -2157,6 +2155,11 @@ export const en = {
   "action.player.forceEndGameSession.effect": "The game session ends now and the game stops taking bets in it. The player stays signed in; the end names you.",
   "action.player.forceEndAllGameSessions.label": "End all game sessions",
   "action.player.forceEndAllGameSessions.effect": "Every game session the player has open ends now. The player stays signed in; each end names you.",
+  // T129: the brand's protection cases (responsible-gambling G2)
+  "protection.cases.caption": "The brand's protection cases",
+  "protection.cases.shown.open": "Open",
+  "protection.cases.shown.closed": "Closed",
+  "protection.cases.shown.all": "Every case",
   // end of US3
   // US9: areas/configuration/crm.tsx, sends.tsx, agent.tsx, attribution.tsx (T111)
   "config.crm.status": "What engagement is doing",
