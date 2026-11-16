@@ -187,6 +187,9 @@ object Facts:
       case e: NoDepositBlockCleared =>
         op("no-deposit-block-clear", Some(e.actorId), None, Vector(change("noDepositOfferBlocked", "true", "false")), e.at)
       case e: ResetLinkSent => op("reset-password", Some(e.operatorId), None, Vector(named("password")), e.at)
+      case e: ManagerTagsSet =>
+        def listed(ts: Vector[String]) = Option.when(ts.nonEmpty)(ts.mkString(", "))
+        op("manager-tags", Some(e.actorId), None, Vector(f.AuditChange("managerTags", listed(e.previous), listed(e.tags))), e.at)
       case _ => None
     action.map(record(brand, eventId("audit/player", playerId, sequence), _))
 

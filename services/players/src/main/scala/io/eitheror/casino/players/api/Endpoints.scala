@@ -256,6 +256,13 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
   withAcl(may("tier.change")) {
   putBody(s"$P/pot-vip") { (id: String, text: String) => status.potVip(principal, id, text) }
   }
+  // spec 030 P7: the player's manager tags, read with the player and set by tier.change
+  withAcl(may("player.read")) {
+  get(s"$P/tags") { (id: String) => status.managerTags(id) }
+  }
+  withAcl(may("tier.change")) {
+  putBody(s"$P/tags") { (id: String, text: String) => status.setManagerTags(principal, id, text) }
+  }
   withAcl(may("profile.change")) {
   post(s"$P/reset-password") { (id: String) => account.resetPassword(principal, id) }
   }

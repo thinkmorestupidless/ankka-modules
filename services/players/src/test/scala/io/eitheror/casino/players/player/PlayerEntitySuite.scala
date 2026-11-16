@@ -359,6 +359,28 @@ class PlayerEntitySuite extends munit.FunSuite with LogCapturing with io.eithero
     assert(!kit.currentState.testAccount)
   }
 
+  test("SetManagerTags (spec 030 P7): the whole list, trimmed and without a repeat in another case, with who and when; the list held is no event") {
+    val kit = active
+    val set = kit.call(PlayerEntity.setManagerTags)(SetManagerTags(Vector(" host: ana ", "high value", "HIGH VALUE", ""), "op-1", later(1)))
+    assertEquals(set.events, Vector(ManagerTagsSet(Vector("host: ana", "high value"), Vector.empty, "op-1", later(1))))
+    assertEquals(kit.currentState.managerTags, ManagerTags(Vector("host: ana", "high value"), "op-1", Some(later(1))))
+    assert(!kit.call(PlayerEntity.setManagerTags)(SetManagerTags(Vector("host: ana", "high value"), "op-2", later(2))).persisted)
+    assertEquals(kit.call(PlayerEntity.setManagerTags)(SetManagerTags(Vector.empty, "op-2", later(3))).events,
+      Vector(ManagerTagsSet(Vector.empty, Vector("host: ana", "high value"), "op-2", later(3))))
+    assertEquals(kit.currentState.managerTags.tags, Vector.empty)
+  }
+
+  test("SetManagerTags refuses a tag over 40 characters naming it, more than 20 tags, and no player") {
+    val kit  = active
+    val long = "x" * 41
+    val d    = kit.call(PlayerEntity.setManagerTags)(SetManagerTags(Vector("ok", long), "op-1", at)).replyValue
+    assertEquals(d.refusal, Some(Refusal("invalid_tag", Map("tag" -> long, "maxLength" -> "40"))))
+    assert(!kit.call(PlayerEntity.setManagerTags)(SetManagerTags(Vector("x" * 40), "op-1", at)).replyValue.refusal.isDefined)
+    assertEquals(code(kit.call(PlayerEntity.setManagerTags)(SetManagerTags((1 to 21).map(i => s"t$i").toVector, "op-1", at)).replyValue),
+      Some("too_many_tags"))
+    assertEquals(code(fresh.call(PlayerEntity.setManagerTags)(SetManagerTags(Vector("a"), "op-1", at)).replyValue), Some("player_not_found"))
+  }
+
   test("FlagDuplicate is idempotent under the case id; ClearDuplicate removes the flag with its last case") {
     val kit = active
     assert(kit.call(PlayerEntity.flagDuplicate)(FlagDuplicate("c-1", Set("p-1", "p-9"), Set("identity"), at)).persisted)
@@ -422,6 +444,7 @@ class PlayerEntitySuite extends munit.FunSuite with LogCapturing with io.eithero
     kit.call(PlayerEntity.addEmail)(Address("two@example.test", at)): Unit
     kit.call(PlayerEntity.recordCookieDecision)(RecordCookieDecision(Some("d-1"), Some(true), Some(true), Some("v1"), Some("t"), at)): Unit
     kit.call(PlayerEntity.addFavourite)(Favourite("g-1", at)): Unit
+    kit.call(PlayerEntity.setManagerTags)(SetManagerTags(Vector("host: ana"), "op-1", at)): Unit
     kit.call(PlayerEntity.close)(Close(Actor.Player, Some("p-1"), "leaving", at)): Unit
     kit.call(PlayerEntity.fileErasure)(FileErasure("corr-1", later(60), later(1))): Unit
     assertEquals(kit.currentState.status, Status.ErasurePending)
@@ -433,6 +456,7 @@ class PlayerEntitySuite extends munit.FunSuite with LogCapturing with io.eithero
     assert(s.emails.forall(_.address.reveal.isEmpty))
     assertEquals(s.emails.size, before.emails.size)
     assertEquals(s.cookieDecisions, Map.empty)
+    assertEquals(s.managerTags, ManagerTags())
     assertEquals((s.registration.networkAddress, s.registration.deviceFingerprint), (None, None))
     assertEquals((s.registeredAt, s.closedAt, s.favourites, s.currency, s.registration.tag),
       (before.registeredAt, before.closedAt, before.favourites, before.currency, before.registration.tag))
