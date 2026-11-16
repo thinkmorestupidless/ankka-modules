@@ -170,6 +170,16 @@ object RoundTotals:
   def of(rows: Vector[RoundRow]): Vector[RoundTotals] =
     rows.groupBy(_.currency).toVector.sortBy(_._1).map((c, rs) => RoundTotals(c, rs.size, rs.map(_.stake).sum, rs.map(_.win).sum, rs.map(_.net).sum))
 
+/** One game as a player played it in one currency (spec 030 P9): its rounds and what they staked, won and netted. */
+final case class GamePlayed(gameId: String, currency: String, rounds: Int, staked: Long, won: Long, net: Long, lastPlayedAt: Long)
+
+object GamePlayed:
+  /** Per game and currency, most rounds first, then the one played last, then by game. */
+  def of(rows: Vector[RoundRow]): Vector[GamePlayed] =
+    rows.groupBy(r => (r.gameId, r.currency)).toVector.map { case ((game, currency), rs) =>
+      GamePlayed(game, currency, rs.size, rs.map(_.stake).sum, rs.map(_.win).sum, rs.map(_.net).sum, rs.map(_.at).max)
+    }.sortBy(g => (-g.rounds, -g.lastPlayedAt, g.gameId, g.currency))
+
 // ── a game session's wagering, from the wallet's bets ───────────────────────────────────────────────────
 
 /**
