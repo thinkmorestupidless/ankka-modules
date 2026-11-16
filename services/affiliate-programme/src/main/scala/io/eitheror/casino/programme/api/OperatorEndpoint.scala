@@ -122,6 +122,8 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
     get("/{brand}/revenue/geo") { (brand: String) =>
       attempt(reading.range(query.raw("period"))((_, r) => ok(Reports.geo(reading.rows(None, Vector(brand), r)._2))))
     }
+    // spec 030 A3: the brand's traffic for a period, per affiliate and link.
+    get("/{brand}/traffic") { (brand: String) => attempt(reading.traffic(brand, query.raw("period"))) }
   }
 
   withAcl(api.access.manager) {

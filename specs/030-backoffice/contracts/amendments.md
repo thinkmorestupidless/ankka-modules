@@ -126,6 +126,7 @@ Three kinds recur and are named by letter:
 |---|---|
 | A1 | `accounts`: answers `{items, total}` |
 | A2 | `accounts/{a}/portal/{view}` GET for managers: the data the affiliate's own portal routes answer, read-only, audited as `VIEWED_AS`; no token of the affiliate's is made |
+| A3 | `traffic?period=` GET for managers (DR-19): the brand's clicks, registrations, first deposits and qualified first deposits for the period, for the brand, per affiliate and per link, counted from the `Clicks` and `PlayerFacts` views; a click in the period of its time in the brand's reporting zone. Impressions and unique clicks are not counted: nothing the programme receives carries them |
 
 ## The modules tool, realm and delivery (specs 001, 021)
 

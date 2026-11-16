@@ -32,7 +32,8 @@ class ManagersSuite extends munit.FunSuite with LogCapturing:
     val silver = Scene(kit, "silvervibe")
     val mine = kit.eventually("gold listed")(Option(listed(get("/goldvibe/accounts"))).filter(_.exists(_.get("account").get("affiliateId").asText == gold.affiliate)))
     assert(!mine.exists(_.get("account").get("affiliateId").asText == silver.affiliate))
-    for path <- Seq("/silvervibe/accounts", "/silvervibe/revenue?period=all", "/silvervibe/payouts", "/silvervibe/fraud-flags") do
+    for path <- Seq("/silvervibe/accounts", "/silvervibe/revenue?period=all", "/silvervibe/traffic?period=all", "/silvervibe/payouts",
+        "/silvervibe/fraud-flags") do
       val r = get(path)
       assertEquals(r.status, 403, s"$path: ${r.text}")
       assert(r.json.get("error").asText.startsWith("brand_not_held"), r.text)
@@ -43,6 +44,33 @@ class ManagersSuite extends munit.FunSuite with LogCapturing:
       assertEquals(r.status, 200, r.text)
       val figures = r.json.get("figures").elements().asScala.toVector
       assert(figures.forall(_.get("brandId").asText == brand), r.text)
+  }
+
+  test("a brand's traffic counts its clicks, registrations, first deposits and qualified first deposits per affiliate and link (spec 030 A3)") {
+    val s      = Scene(kit, planType = Plan.Cpa, cpa = 5_000, minimumDeposit = 1_000)
+    val at     = java.time.Instant.parse("2026-08-20T10:00:00Z")
+    s.send(s.facts.copy(clickId = Some(kit.fresh("clk"))).click(at)): Unit
+    s.send(s.facts.click(at.plusSeconds(5))): Unit
+    val small = s.player(at)
+    s.send(s.facts.firstDeposit(small, 500, at.plusSeconds(60))): Unit
+    val big = s.player(at)
+    s.send(s.facts.firstDeposit(big, 1_000, at.plusSeconds(60))): Unit
+    // September's click counts in a range that reaches September, not in August.
+    s.send(s.facts.click(java.time.Instant.parse("2026-09-01T00:00:00Z"))): Unit
+    val answer = kit.eventually("the traffic") {
+      val r = get("/goldvibe/traffic?period=2026-08")
+      assertEquals(r.status, 200, r.text)
+      r.json.get("affiliates").elements().asScala.find(_.get("affiliateId").asText == s.affiliate)
+        .filter(a => a.get("qftdCount").asLong == 1L)
+    }
+    assertEquals((answer.get("clickCount").asLong, answer.get("registrationCount").asLong, answer.get("ftdCount").asLong), (2L, 2L, 2L))
+    val link = answer.get("links").elements().asScala.toVector
+    assertEquals(link.map(_.get("btag").asText), Vector(s.link))
+    val ranged = get("/goldvibe/traffic?period=2026-08-20..2026-09-01").json.get("affiliates").elements().asScala
+      .find(_.get("affiliateId").asText == s.affiliate).get
+    assertEquals(ranged.get("clickCount").asLong, 3L)
+    val bad = get("/goldvibe/traffic?period=August")
+    assertEquals((bad.status, bad.json.get("error").asText), (400, "invalid_period"), bad.text)
   }
 
   test("a plan is made once by name, changed and listed, and both are audited") {
