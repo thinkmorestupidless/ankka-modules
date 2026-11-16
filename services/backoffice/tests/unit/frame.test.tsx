@@ -40,6 +40,10 @@ describe("the rail's areas", () => {
     expect(ids).not.toContain("fraud");
   });
 
+  it("shows a programme manager the affiliate programme and nothing else (FR-037)", () => {
+    expect(areasFor(me({ roles: ["brand_spinvibe", "affiliate_manager"], permissions: ["programme.manage"] })).map((a) => a.id)).toEqual(["affiliates"]);
+  });
+
   it("shows every area held when the modules are not known", () => {
     expect(areasFor(me({ brand: { slug: "s", name: "s", modules: null } })).map((a) => a.id)).toContain("rewards");
   });

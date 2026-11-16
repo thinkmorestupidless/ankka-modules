@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { holds, rolesGiving, runs } from "../../src/shared/access.ts";
+import { holds, programmePermissionsOf, rolesGiving, runs } from "../../src/shared/access.ts";
 import { OperatorBags } from "./bags.ts";
 
 describe("holding a permission", () => {
@@ -17,6 +17,13 @@ describe("the role a disabled action needs", () => {
   test("the brand's own roles after, by name, from the bags as they are now", () => {
     const bags = { ...OperatorBags, brand_vip_desk: ["tier.change"], brand_a_team: ["tier.change"] };
     expect(rolesGiving("tier.change", bags)).toEqual(["brand_admin", "brand_a_team", "brand_vip_desk"]);
+  });
+
+  test("a programme permission names the realm roles that give it, whatever the bags", () => {
+    expect(rolesGiving("programme.manage", OperatorBags)).toEqual(["affiliate_manager", "brand_admin", "platform_admin"]);
+    expect(rolesGiving("programme.managers", {})).toEqual(["brand_admin", "platform_admin"]);
+    expect(programmePermissionsOf(["brand_goldvibe", "affiliate_manager"])).toEqual(["programme.manage"]);
+    expect(programmePermissionsOf(["brand_goldvibe", "brand_support"])).toEqual([]);
   });
 
   test("none when no role carries it", () => {

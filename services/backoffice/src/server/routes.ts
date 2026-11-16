@@ -73,6 +73,8 @@ const r = (method: Method, service: string, path: string, upstream: string, perm
 // before a parameter in the same place, as `match` takes the first row that fits.
 const P = "/v1/casino/backoffice/{brand}";
 const B = "/v1/casino/brands/{brand}";
+/** The affiliate programme's manager routes, for this brand. */
+const A = "/v1/affiliates/{brand}";
 
 /** The route table; `npm run owners` makes the typed clients in src/shared/owners/ from it. */
 export const table: readonly Row[] = [
@@ -368,6 +370,61 @@ export const table: readonly Row[] = [
   // synchronous limits and each document kind's lifetime
   r("GET", "reporting", "/settings", `${B}/reporting/settings`, "config.brand"),
   r("PUT", "reporting", "/settings", `${B}/reporting/settings`, "config.brand"),
+
+  // affiliate-programme (shared `programme`, US10): OperatorEndpoint at /v1/affiliates/<slug>, the project
+  // where the brand's values put it (`backoffice-shared-projects`, so spec 028 can move it). The programme
+  // admits a manager by realm role (`Access.manager`: affiliate_manager, brand_admin, platform_admin) holding
+  // this brand, the managers' routes brand_admin and platform_admin only (`Access.managerAdmin`).
+  r("GET", "affiliate-programme", "/revenue", `${A}/revenue`, "programme.manage", "programme"),
+  r("GET", "affiliate-programme", "/revenue/by-campaign", `${A}/revenue/by-campaign`, "programme.manage", "programme"),
+  r("GET", "affiliate-programme", "/revenue/geo", `${A}/revenue/geo`, "programme.manage", "programme"),
+  r("GET", "affiliate-programme", "/commission-plans", `${A}/commission-plans`, "programme.manage", "programme"),
+  r("POST", "affiliate-programme", "/commission-plans", `${A}/commission-plans`, "programme.manage", "programme"),
+  r("PATCH", "affiliate-programme", "/commission-plans/{plan}", `${A}/commission-plans/{plan}`, "programme.manage", "programme"),
+  r("GET", "affiliate-programme", "/accounts", `${A}/accounts`, "programme.manage", "programme"),
+  r("POST", "affiliate-programme", "/accounts", `${A}/accounts`, "programme.manage", "programme"),
+  r("GET", "affiliate-programme", "/accounts/{affiliate}", `${A}/accounts/{affiliate}`, "programme.manage", "programme"),
+  r("PATCH", "affiliate-programme", "/accounts/{affiliate}", `${A}/accounts/{affiliate}`, "programme.manage", "programme"),
+  r("POST", "affiliate-programme", "/accounts/{affiliate}/approve", `${A}/accounts/{affiliate}/approve`, "programme.manage", "programme"),
+  r("POST", "affiliate-programme", "/accounts/{affiliate}/reject", `${A}/accounts/{affiliate}/reject`, "programme.manage", "programme"),
+  r("POST", "affiliate-programme", "/accounts/{affiliate}/resend-invitation", `${A}/accounts/{affiliate}/resend-invitation`, "programme.manage", "programme"),
+  r("POST", "affiliate-programme", "/accounts/{affiliate}/reset-password", `${A}/accounts/{affiliate}/reset-password`, "programme.manage", "programme"),
+  r("POST", "affiliate-programme", "/accounts/{affiliate}/update-email", `${A}/accounts/{affiliate}/update-email`, "programme.manage", "programme"),
+  r("GET", "affiliate-programme", "/accounts/{affiliate}/revenue", `${A}/accounts/{affiliate}/revenue`, "programme.manage", "programme"),
+  r("GET", "affiliate-programme", "/accounts/{affiliate}/network-health", `${A}/accounts/{affiliate}/network-health`, "programme.manage", "programme"),
+  r("GET", "affiliate-programme", "/accounts/{affiliate}/network", `${A}/accounts/{affiliate}/network`, "programme.manage", "programme"),
+  r("GET", "affiliate-programme", "/accounts/{affiliate}/sub-affiliates", `${A}/accounts/{affiliate}/sub-affiliates`, "programme.manage", "programme"),
+  r("GET", "affiliate-programme", "/accounts/{affiliate}/notes", `${A}/accounts/{affiliate}/notes`, "programme.manage", "programme"),
+  r("POST", "affiliate-programme", "/accounts/{affiliate}/notes", `${A}/accounts/{affiliate}/notes`, "programme.manage", "programme"),
+  r("GET", "affiliate-programme", "/accounts/{affiliate}/audit", `${A}/accounts/{affiliate}/audit`, "programme.manage", "programme"),
+  r("POST", "affiliate-programme", "/accounts/{affiliate}/adjustments", `${A}/accounts/{affiliate}/adjustments`, "programme.manage", "programme"),
+  // what the affiliate's portal shows, read by the manager (A2): each answered read audited `VIEWED_AS`; no write under it
+  r("GET", "affiliate-programme", "/accounts/{affiliate}/portal/{view}", `${A}/accounts/{affiliate}/portal/{view}`, "programme.manage", "programme"),
+  // a membership's status at the brand (O11–O13; O19 is not served): the sub's id is the account's
+  r("POST", "affiliate-programme", "/network/{sub}/approve", `${A}/network/{sub}/approve`, "programme.manage", "programme"),
+  r("POST", "affiliate-programme", "/network/{sub}/suspend", `${A}/network/{sub}/suspend`, "programme.manage", "programme"),
+  r("POST", "affiliate-programme", "/network/{sub}/reactivate", `${A}/network/{sub}/reactivate`, "programme.manage", "programme"),
+  r("GET", "affiliate-programme", "/tracking-links", `${A}/tracking-links`, "programme.manage", "programme"),
+  r("POST", "affiliate-programme", "/tracking-links", `${A}/tracking-links`, "programme.manage", "programme"),
+  r("GET", "affiliate-programme", "/creatives", `${A}/creatives`, "programme.manage", "programme"),
+  r("POST", "affiliate-programme", "/creatives", `${A}/creatives`, "programme.manage", "programme"),
+  r("DELETE", "affiliate-programme", "/creatives/{creative}", `${A}/creatives/{creative}`, "programme.manage", "programme"),
+  // a period's payouts (`?period=yyyy-MM`): closing it, each payout's status, the CSV export
+  r("POST", "affiliate-programme", "/payouts/close", `${A}/payouts/close`, "programme.manage", "programme"),
+  r("GET", "affiliate-programme", "/payouts/export", `${A}/payouts/export`, "programme.manage", "programme"),
+  r("GET", "affiliate-programme", "/payouts", `${A}/payouts`, "programme.manage", "programme"),
+  r("PATCH", "affiliate-programme", "/payouts/{payout}/status", `${A}/payouts/{payout}/status`, "programme.manage", "programme"),
+  r("GET", "affiliate-programme", "/fraud-flags", `${A}/fraud-flags`, "programme.manage", "programme"),
+  r("PATCH", "affiliate-programme", "/fraud-flags/{flag}/dismiss", `${A}/fraud-flags/{flag}/dismiss`, "programme.manage", "programme"),
+  r("POST", "affiliate-programme", "/messages", `${A}/messages`, "programme.manage", "programme"),
+  r("GET", "affiliate-programme", "/settings", `${A}/settings`, "programme.manage", "programme"),
+  r("PUT", "affiliate-programme", "/settings", `${A}/settings`, "programme.manage", "programme"),
+  r("GET", "affiliate-programme", "/programme", `${A}/programme`, "programme.manage", "programme"),
+  r("PUT", "affiliate-programme", "/programme", `${A}/programme`, "programme.manage", "programme"),
+  r("GET", "affiliate-programme", "/managers", `${A}/managers`, "programme.managers", "programme"),
+  r("POST", "affiliate-programme", "/managers", `${A}/managers`, "programme.managers", "programme"),
+  r("POST", "affiliate-programme", "/managers/{user}/reset-password", `${A}/managers/{user}/reset-password`, "programme.managers", "programme"),
+  r("DELETE", "affiliate-programme", "/managers/{user}", `${A}/managers/{user}`, "programme.managers", "programme"),
 
   // each service's views' freshness (amendment F, T051): its service endpoint, the permission that opens its lists
   r("GET", "players", "/status", `${B}/players/status`, "player.read"),

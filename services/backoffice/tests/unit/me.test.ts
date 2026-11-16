@@ -44,7 +44,13 @@ describe("/api/me", () => {
   test("platform_admin carries every permission", async () => {
     const h = as(["platform_admin"]);
     const me = (await (await h.ask("GET", "/api/me", { session: "s-me" })).json()) as { permissions: string[] };
-    expect(me.permissions).toEqual([...AllPermissions]);
+    expect(me.permissions).toEqual([...AllPermissions, "programme.manage", "programme.managers"]);
+  });
+
+  test("a programme manager carries the programme's permission, from the realm role, and none of a bag", async () => {
+    const h = as([`brand_${Brand}`, "affiliate_manager"]);
+    const me = (await (await h.ask("GET", "/api/me", { session: "s-me" })).json()) as { permissions: string[] };
+    expect(me.permissions).toEqual(["programme.manage"]);
   });
 
   test("an operator whose roles do not name the brand is refused brand_not_in_roles", async () => {
