@@ -1,0 +1,41 @@
+/* areas/rewards and players/rewards (US6, contracts/design.md): a player's rewards as cards, each
+   record's facts then its actions; the brand's rewards and offers above their lists; an award's and an
+   offer's form in a column. */
+.bo-rewards { display: grid; gap: 12px; }
+.bo-rewards-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.bo-reward-list { display: grid; gap: var(--gap-card); }
+.bo-reward {
+  border: 1px solid var(--surface-2);
+  border-radius: var(--radius-card);
+  background: var(--surface-1);
+  padding: 12px 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 12px 24px;
+}
+.bo-reward[aria-current="true"] { box-shadow: inset 3px 0 0 var(--primary); }
+.bo-reward h2 { grid-column: 1 / -1; font-size: 15px; margin: 0; }
+.bo-reward-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px 16px; margin: 0; }
+.bo-reward-facts dt { font-size: 12px; color: var(--text-muted); }
+.bo-reward-facts dd { margin: 0; font-variant-numeric: tabular-nums; }
+.bo-reward-facts progress { width: 64px; vertical-align: middle; }
+.bo-reward-actions h3 { font-size: 13px; margin: 0 0 6px; }
+.bo-reward-actions ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.bo-reward-actions li p { margin: 2px 0 0; font-size: 12px; }
+.bo-rewards-filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.bo-rewards-filters form[role="search"] { display: flex; gap: 8px; align-items: end; }
+.bo-grant { display: grid; gap: 4px; justify-items: start; }
+.bo-grant-form { display: grid; gap: 10px; min-width: 360px; }
+.bo-grant-form fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 12px; }
+.bo-grant-form legend { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; width: 100%; }
+.bo-choice { display: inline-flex; gap: 6px; align-items: center; }
+.bo-offers table td[data-actions] { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.bo-offers-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.bo-offer-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px 16px; }
+.bo-offer-form fieldset { grid-column: 1 / -1; border: 1px solid var(--surface-2); border-radius: var(--radius-card); padding: 8px 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px 16px; }
+.bo-offer-form .bo-wide { grid-column: 1 / -1; }
+.bo-dependants { margin: 4px 0 0; padding-inline-start: 20px; }
+.bo-games { max-height: 160px; overflow: auto; margin: 4px 0 0; padding: 0; list-style: none; }
+@media (max-width: 960px) {
+  .bo-reward { grid-template-columns: minmax(0, 1fr); }
+}
