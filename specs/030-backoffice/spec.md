@@ -359,7 +359,7 @@ see it refused.
 
 - added `features/backoffice/configuration.feature`: a configuration value that differs from the brand's default is marked
 - added `features/backoffice/configuration.feature`: a routing rule is simulated before it is deployed and can be rolled back
-- added `features/backoffice/configuration.feature`: a payments operator cannot invite a payments role above their own
+- added `features/backoffice/configuration.feature`: a payments operator is not offered a payments role above their own, and asking for it anyway is refused
 
 ---
 
