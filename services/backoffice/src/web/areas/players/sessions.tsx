@@ -1,6 +1,8 @@
 // A player's sessions (T076; FR-023, P5): each player session with its game sessions, and a gap players
 // found in a game session's data (what was wagered against what its rounds staked) named with both
-// figures. A game session opened (`?gameSession=`) shows its rounds; an active session can be closed.
+// figures. A game session opened (`?gameSession=`) shows its bets (P6) with their totals per currency; an
+// active session can be closed.
+import { useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { t } from "../../../shared/messages/index.ts";
@@ -8,13 +10,13 @@ import { players } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
 import { DateTime, ZoneNote } from "../../components/date.tsx";
-import { useListState, useRouterListStore, completeOf } from "../../components/list/index.ts";
+import { completeOf, List, memoryStore, useListState, useRouterListStore } from "../../components/list/index.ts";
 import { Money } from "../../components/money.tsx";
 import { Status } from "../../components/status.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 import { readJson, refusalOf } from "../corrections/shared.tsx";
-import { PlayerRounds } from "./rounds.tsx";
+import { BetTotals, betColumns, OpenRound, useOpenRound, type Bet, type BetSummary } from "./rounds.tsx";
 
 const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 const PageSize = 25;
@@ -42,6 +44,45 @@ interface PlayerSession {
   gameSessions: GameSession[];
 }
 
+/** A game session's bets (P6): its rounds as players read them, newest first, with what they staked, won and netted. */
+function SessionBets({ player, sessionId, tz }: { player: string; sessionId: string; tz: string }) {
+  const store = useMemo(() => memoryStore(), []);
+  const list = useListState(store);
+  const open = useOpenRound();
+  const opened = useRouterState({ select: (s) => (s.location.search as Record<string, unknown>).round });
+  const q = useQuery({
+    queryKey: ["players", "session-bets", player, sessionId, list.state.page],
+    queryFn: () =>
+      readJson<{ bets: Bet[]; summary: BetSummary; total: number }>(
+        players.getPlayersSessionsBets({ playerId: player, sessionId }, { query: { page: String(list.state.page), pageSize: String(BetsPageSize) } }),
+      ),
+    placeholderData: (prev) => prev,
+  });
+  return (
+    <section aria-labelledby="session-bets-title" data-session-bets={sessionId}>
+      <h3 id="session-bets-title">{t("sessions.gameRounds")}</h3>
+      {q.isError ? <RefusalNotice refusal={refusalOf(q.error)} /> : null}
+      <BetTotals summary={q.data?.summary} />
+      <List
+        caption="sessions.bets"
+        columns={betColumns(tz)}
+        rows={q.data?.bets}
+        rowKey={(b) => b.roundId}
+        total={q.data?.total}
+        complete={q.data ? completeOf({ page: list.state.page, pageSize: BetsPageSize, total: q.data.total }) : false}
+        fetching={q.isFetching}
+        zone={tz}
+        list={list}
+        onOpen={(b) => open(b.roundId)}
+        current={typeof opened === "string" ? opened : undefined}
+      />
+      {typeof opened === "string" && opened !== "" ? <OpenRound id={opened} tz={tz} /> : null}
+    </section>
+  );
+}
+
+const BetsPageSize = 50;
+
 const amount = (minor: number | null | undefined, currency: string | null | undefined) => (minor != null && currency ? <Money value={{ minor, currency }} /> : null);
 
 export function PlayerSessions({ player }: { player: string }) {
@@ -58,7 +99,7 @@ export function PlayerSessions({ player }: { player: string }) {
     queryFn: () => readJson<{ sessions: PlayerSession[]; total: number }>(players.getPlayersPlayerSessions({ playerId: player }, { query: { page: String(list.state.page), pageSize: String(PageSize) } })),
     enabled: player !== "",
   });
-  const open = (id: string) => void navigate({ to: ".", search: (prev: Record<string, unknown>) => ({ ...prev, gameSession: id }) } as never);
+  const open = (id: string) => void navigate({ to: ".", search: (prev: Record<string, unknown>) => ({ ...prev, gameSession: id, round: undefined }) } as never);
   return (
     <section aria-labelledby="sessions-title">
       <h2 id="sessions-title">{t("players.tab.sessions")}</h2>
@@ -133,10 +174,7 @@ export function PlayerSessions({ player }: { player: string }) {
         </button>
       ) : null}
       {typeof opened === "string" && opened !== "" ? (
-        <section aria-label={t("sessions.gameRounds")}>
-          <h3>{t("sessions.gameRounds")}</h3>
-          <PlayerRounds player={player} sessionId={opened} />
-        </section>
+        <SessionBets key={opened} player={player} sessionId={opened} tz={tz} />
       ) : null}
     </section>
   );
