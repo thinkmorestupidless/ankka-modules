@@ -75,6 +75,16 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
   integration suites need Docker. In ankka (0.13) a route takes at most two path parameters and no two
   endpoints may share a prefix, so a service groups its endpoints by prefix and sets each route's
   audience with `withAcl`.
+- The backoffice (spec 030) is the brand's `backoffice` module, two services. `services/backoffice/`
+  is the one service that is not an sbt build: TypeScript, web-hosted (`hosting: "web"`), a React
+  page and the Node server that signs the operator in and calls the owners as them, only through the
+  rows of `src/server/routes.ts` (`npm run owners` makes the typed clients from it). Its README says
+  how to run and test it. `services/backoffice-state/` (Scala) keeps the sign-ins and preferences.
+  `just backoffice-test`, `backoffice-features` (the scenarios over the service doubles),
+  `backoffice-a11y`, `backoffice-run`, `backoffice-contract` (copies the contract's published
+  permissions and currencies into the page), `backoffice-state-it` and `backoffice-spike` (the V1
+  probe) drive them; `backoffice-seed`, `backoffice-it` and `backoffice-record-original` are declared
+  for scripts not yet written (spec 030 T123 to T128, T131).
 - The module model (spec 021, decision 0055): a brand project runs `core` and the modules its
   entitlement at ankka-vendor names. Each module is one manifest, `modules/<module>/module.json`, in
   the vendor's format (the schema is vendored in `tools/modules/src/main/resources/`); a brand
