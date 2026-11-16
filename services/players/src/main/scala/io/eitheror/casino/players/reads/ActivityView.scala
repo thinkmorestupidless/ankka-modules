@@ -231,3 +231,44 @@ object ActivityView extends View.Companion[ActivityViewRows, ActivityRow, Activi
   def ofPlayer(views: ViewClient, playerId: String, category: Option[String], offset: Int, limit: Int): Vector[ActivityRow] =
     views.forView(ActivityView).ask(byPlayer, limit, "player" -> playerId, "category" -> category.getOrElse(""),
       "offset" -> offset.max(0).toString)
+
+  /**
+   * A player's lines in one category or every one, within `[from, to)` in epoch milliseconds, after a cursor's
+   * line when one is given (spec 030 P3): newest first, the row key breaking a tie, as [[byPlayer]].
+   */
+  final case class Period(playerId: String, category: Option[String] = None, from: Option[Long] = None, to: Option[Long] = None,
+      after: Option[(Long, String)] = None):
+    import com.thinkmorestupidless.ankka.runtime.SqlFragment
+    import com.thinkmorestupidless.ankka.runtime.SqlSyntax.sql
+
+    private val at = SqlFragment.raw("(payload::jsonb->>'at')::bigint")
+
+    /** The lines of the period, the cursor left out: what `total` counts. */
+    def counted: SqlFragment =
+      val terms = Vector(SqlFragment.raw("payload::jsonb->>'playerId' = ") ++ sql"$playerId") ++
+        category.map(c => SqlFragment.raw("payload::jsonb->>'category' = ") ++ sql"$c") ++
+        from.map(f => at ++ sql" >= $f") ++ to.map(t => at ++ sql" < $t")
+      terms.tail.foldLeft(terms.head)((acc, t) => acc ++ SqlFragment.raw(" AND ") ++ t)
+
+    def condition: SqlFragment =
+      after.fold(counted) { (a, key) =>
+        counted ++ SqlFragment.raw(" AND (") ++ at ++ sql" < $a" ++ SqlFragment.raw(" OR (") ++ at ++ sql" = $a" ++
+          SqlFragment.raw(" AND row_key > ") ++ sql"$key" ++ SqlFragment.raw("))")
+      }
+
+  def inPeriod(views: ViewClient, p: Period, offset: Int, limit: Int): Vector[ActivityRow] =
+    // the view client puts its LIMIT after the order, and Postgres takes OFFSET and LIMIT in either order
+    views.forView(ActivityView).ordered(p.condition,
+      com.thinkmorestupidless.ankka.runtime.SqlFragment.raw(s"(payload::jsonb->>'at')::bigint DESC, row_key ASC OFFSET ${offset.max(0)}"), limit)
+
+  def total(views: ViewClient, p: Period): Long = views.forView(ActivityView).count(p.counted)
+
+  /** A line's place, as the `after` cursor names it: base64url of `<at>|<row key>`. */
+  def cursor(r: ActivityRow): String =
+    java.util.Base64.getUrlEncoder.withoutPadding.encodeToString(s"${r.at}|${r.factId}".getBytes(java.nio.charset.StandardCharsets.UTF_8))
+
+  def place(cursor: String): Option[(Long, String)] =
+    scala.util.Try(String(java.util.Base64.getUrlDecoder.decode(cursor.trim), java.nio.charset.StandardCharsets.UTF_8)).toOption
+      .flatMap(t => t.split("\\|", 2) match
+        case Array(a, k) if k.nonEmpty => a.toLongOption.map(_ -> k)
+        case _                         => None)

@@ -248,15 +248,30 @@ final class OperatorStatusRoutes(ctx: Ctx):
         "currency" -> w.map(_.currency).getOrElse(s.currency)))
     }
 
-  /** The original's operator activity: `category`, `page` from 0, 50 a page, `{events, page, pageSize, hasMore}`. */
-  def activity(playerId: String, category: Option[String], page: Option[String]): Reply =
-    known(playerId) { _ =>
-      val cat  = category.map(_.trim.toLowerCase(java.util.Locale.ROOT)).filter(ActivityCategory.all.contains)
-      val n    = page.flatMap(_.toIntOption).filter(_ >= 0).getOrElse(0)
-      val rows = ActivityView.ofPlayer(views, playerId, cat, n * ActivityPage, ActivityPage + 1)
-      ok(Json.obj("events" -> Json.arr(rows.take(ActivityPage).map(ProfileRoutes.event)*), "page" -> n, "pageSize" -> ActivityPage,
-        "hasMore" -> (rows.size > ActivityPage)))
-    }
+  /**
+   * The original's operator activity: `category`, `page` from 0, 50 a page, `{events, page, pageSize, hasMore}`;
+   * spec 030 P3 adds `from` and `to` (ISO instants, or dates: `to`'s day is included), `after` (the `next` of an
+   * earlier page: the lines after it, `page` then unused) and `total`, the period's lines in the category.
+   * `from` after `to` is `400 invalid_date_range`; a value that does not parse is no bound.
+   */
+  def activity(playerId: String, category: Option[String], page: Option[String], from: Option[String] = None,
+      to: Option[String] = None, after: Option[String] = None): Reply =
+    val f = from.flatMap(OperatorStatusRoutes.bound(_, end = false))
+    val t = to.flatMap(OperatorStatusRoutes.bound(_, end = true))
+    if f.zip(t).exists((a, b) => a >= b) then refusal(400, "invalid_date_range", "from is not before to")
+    else
+      known(playerId) { _ =>
+        val cat    = category.map(_.trim.toLowerCase(java.util.Locale.ROOT)).filter(ActivityCategory.all.contains)
+        val cursor = after.map(_.trim).filter(_.nonEmpty).flatMap(ActivityView.place)
+        val n      = if cursor.nonEmpty then 0 else page.flatMap(_.toIntOption).filter(_ >= 0).getOrElse(0)
+        val period = ActivityView.Period(playerId, cat, f, t, cursor)
+        val rows   = ActivityView.inPeriod(views, period, n * ActivityPage, ActivityPage + 1)
+        val shown  = rows.take(ActivityPage)
+        val more   = rows.size > ActivityPage
+        ok(Json.obj("events" -> Json.arr(shown.map(ProfileRoutes.event)*), "page" -> n, "pageSize" -> ActivityPage,
+          "hasMore" -> more, "total" -> ActivityView.total(views, period),
+          "next" -> (if more then shown.lastOption.map(ActivityView.cursor).orNull else null)))
+      }
 
   /** The settled rounds from the activity, `fromDate`/`toDate` as ISO dates; `400 invalid_date_range`. */
   def bets(playerId: String, from: Option[String], to: Option[String], limit: Option[String], offset: Option[String]): Reply =
@@ -300,6 +315,26 @@ final class OperatorStatusRoutes(ctx: Ctx):
       else
         val (id, n) = writeNote(playerId, content, author(p), b.bool("pinImmediately").getOrElse(false))
         json(201, Json.obj("noteId" -> id, "createdAt" -> n.createdAt.map(_.toString).orNull))
+    }
+
+  /**
+   * Spec 030 P4: the player's notes, pinned first, then newest first, each with its text and author:
+   * `{notes, total}`, and `page` (from 1) and `pageSize` (1 to 200, 25) answered back when either is given,
+   * as the fraud cases; with neither, the first 1,000.
+   */
+  def notes(playerId: String, page: Option[String], pageSize: Option[String]): Reply =
+    known(playerId) { _ =>
+      val all = NotesView.ofPlayer(views, playerId)
+      def wire(r: NoteRow): ObjectNode =
+        val n = components.forKeyValueEntity(EntityId(r.noteId)).call(NoteEntity.get).invoke()
+        Json.obj("noteId" -> r.noteId, "text" -> n.text.reveal, "author" -> r.author, "pinned" -> r.pinned,
+          "createdAt" -> n.createdAt.map(_.toString).orNull, "updatedAt" -> n.updatedAt.map(_.toString).orNull)
+      if page.forall(_.trim.isEmpty) && pageSize.forall(_.trim.isEmpty) then
+        ok(Json.obj("notes" -> Json.arr(all.map(wire)*), "total" -> all.size))
+      else
+        val n    = page.flatMap(_.trim.toIntOption).filter(n => n >= 1 && n <= 1_000_000).getOrElse(1)
+        val size = pageSize.flatMap(_.trim.toIntOption).filter(s => s >= 1 && s <= 200).getOrElse(25)
+        ok(Json.obj("notes" -> Json.arr(all.slice((n - 1) * size, n * size).map(wire)*), "total" -> all.size, "page" -> n, "pageSize" -> size))
     }
 
   def pin(playerId: String, noteId: String, pinned: Boolean): Reply =
@@ -466,6 +501,15 @@ object OperatorStatusRoutes:
   val ListLimit: Int               = 10000
   val AgentBound: FiniteDuration   = 5.seconds
   val FacetsBound: FiniteDuration  = 10.seconds
+
+  /**
+   * A period's bound in epoch milliseconds: an ISO instant as given, or a date's start (`from`) or the next day's
+   * start (`to`, so the day is included), in UTC; `None` for anything else.
+   */
+  def bound(text: String, end: Boolean): Option[Long] =
+    val t = text.trim
+    Try(Instant.parse(t).toEpochMilli).toOption.orElse(
+      Try(LocalDate.parse(t)).toOption.map(d => (if end then d.plusDays(1) else d).atStartOfDay(java.time.ZoneOffset.UTC).toInstant.toEpochMilli))
 
   /** The players list's query parameters, as given (spec 030 P2). */
   final case class PlayersQuery(

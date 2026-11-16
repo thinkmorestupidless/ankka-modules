@@ -110,7 +110,10 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
   get(s"$P/wallet") { (id: String) => status.wallet(id) }
   }
   withAcl(may("player.read")) {
-  get(s"$P/activity") { (id: String) => status.activity(id, query.raw("category"), query.raw("page")) }
+  get(s"$P/activity") { (id: String) =>
+    val q = query
+    status.activity(id, q.raw("category"), q.raw("page"), q.raw("from"), q.raw("to"), q.raw("after"))
+  }
   }
   withAcl(may("player.read")) {
   get(s"$P/bets") { (id: String) =>
@@ -155,6 +158,9 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
   }
   withAcl(may("session.end")) {
   post(s"$P/sessions/force-end-all") { (playerId: String) => games.forceEndAll(principal, playerId) }
+  }
+  withAcl(may("player.read")) {
+  get(s"$P/notes") { (id: String) => status.notes(id, query.raw("page"), query.raw("pageSize")) }
   }
   withAcl(may("note.write")) {
   postBody(s"$P/notes") { (id: String, text: String) => status.note(principal, id, text) }
