@@ -11,6 +11,7 @@
 // those tasks define them.
 import { has, render, t, type MessageKey } from "../../../src/shared/messages/index.ts";
 import { explain } from "../../../src/shared/refusals.ts";
+import { word } from "../../../src/web/areas/word.ts";
 import { Actions, type ActionDescription } from "../../../src/web/actions/index.ts";
 import type { Identity } from "../../doubles/realm.ts";
 import { expect, Given, Then, When, type World } from "../world.ts";
@@ -140,19 +141,29 @@ Given("an operator holding the {string} role", async ({ world }, role: string) =
   await world.signInAs(who, { to: "/team" });
 });
 
-When("the operator invites a person with the {string} role", async ({ world }, role: string) => {
+When("the operator starts an invitation", async ({ world }) => {
   const invite = action("operator.invite", "T114");
   await main(world).getByRole("button", { name: t(invite.label) }).first().click();
-  const dialog = world.page.getByRole("dialog");
-  await expect(dialog).toContainText(t(invite.effect));
-  await dialog.getByLabel(message("team.invite.email", "T114")).fill("new.operator@example.test");
-  await dialog.getByLabel(message("team.invite.role", "T114")).selectOption(role);
-  await dialog.getByRole("button", { name: t("action.confirm") }).click();
+  await expect(world.page.getByRole("dialog")).toContainText(t(invite.effect));
 });
 
-Then("the invitation is refused because the role is above the operator's own", async ({ world }) => {
-  const dialog = world.page.getByRole("dialog");
-  await expect(dialog).toContainText(render(explain(403, Escalation).message));
-  const asked = await world.doubles.calls("merchant.payments", { method: "POST", path: "/v1/operators" });
-  expect(asked.map((c) => (JSON.parse(c.body) as { role?: string }).role)).toEqual(["resource_admin"]);
+Then("the {string} role is not offered, and the page says it is not below the operator's own", async ({ world }, role: string) => {
+  const option = world.page.getByRole("dialog").getByLabel(message("team.invite.role", "T114")).locator(`option[value="${role}"]`);
+  await expect(option).toBeDisabled();
+  await expect(option).toHaveText(t("team.invite.roleAbove", { role: word("team.role", role) }));
 });
+
+Then(
+  "an invitation with the {string} role asked for directly, not through the page, is refused because the role is above the operator's own",
+  async ({ world }, role: string) => {
+    // the page offers no such invitation; asked anyway through the backoffice's relay, merchant decides
+    const answer = await world.page.request.post(new URL("/api/s/merchant/operators", world.page.url()).href, {
+      headers: { "Content-Type": "application/json", "X-Backoffice": "1", Origin: new URL(world.page.url()).origin },
+      data: { email: "new.operator@example.test", role, scopeLevel: "platform", scopeId: "*" },
+    });
+    expect(answer.status()).toBe(403);
+    expect(render(explain(403, await answer.text()).message)).toBe(render(explain(403, Escalation).message));
+    const asked = await world.doubles.calls("merchant.payments", { method: "POST", path: "/v1/operators" });
+    expect(asked.map((c) => (JSON.parse(c.body) as { role?: string }).role)).toEqual([role]);
+  },
+);

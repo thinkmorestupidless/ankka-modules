@@ -13,7 +13,8 @@ Feature: Configuring a brand, its payments and its team
     Then simulating it showed which terminal each deposit it was tried with would reach
     And the rule in force is the one before it
 
-  Scenario: a payments operator cannot invite a payments role above their own
+  Scenario: a payments operator is not offered a payments role above their own, and asking for it anyway is refused
     Given an operator holding the "resource_operator" role
-    When the operator invites a person with the "resource_admin" role
-    Then the invitation is refused because the role is above the operator's own
+    When the operator starts an invitation
+    Then the "resource_admin" role is not offered, and the page says it is not below the operator's own
+    And an invitation with the "resource_admin" role asked for directly, not through the page, is refused because the role is above the operator's own
