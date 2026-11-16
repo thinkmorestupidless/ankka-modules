@@ -871,3 +871,14 @@ seeded brand fills in the rest.
   allow it is the text beside it, which a screen reader reads.
 - FR-044's check of the original's record is narrowed to recordings: a driver may name the new
   scenarios it does not drive, and T131 adds recordings.
+
+### The original's screens and the design review, 2026-11-16 (T131)
+
+- R19's roles: each role whose realm roles change what the original draws (platform_admin,
+  brand_admin, brand_compliance, resource_finance standing in for brand_finance, support_agent,
+  affiliate_manager, affiliate), each holding the platform's scope so the role is the only difference.
+- Decision (Trevor): DR-19 is closed by amending the affiliate programme (spec 013) to count traffic
+  per period, then building the original's whole affiliate dashboard, not by deriving rates from what
+  the programme answered nor by dropping the figures.
+- The other findings (DR-01 to DR-18) were defects and are fixed; DR-08 needed only the doubles to
+  answer players' facets. Times are in the brand's reporting zone, which `/api/me` now answers.
