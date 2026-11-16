@@ -13,10 +13,10 @@ Feature: Compliance work on identity and responsible gambling
     When a support operator of another brand asks to view it
     Then the document is not shown
 
-  Scenario: a limit raised takes effect later and the page shows when
-    Given a player with a daily deposit limit of "100.00 EUR"
-    When a compliance operator raises it to "200.00 EUR"
-    Then the operator is shown the limit is still "100.00 EUR" until the time the brand's rules set
+  Scenario: a player's raise of a limit is a pending change and the page shows when it applies
+    Given a player with a daily deposit limit of "100.00 EUR" who has asked to raise it to "200.00 EUR"
+    When a compliance operator opens the player's protection
+    Then the operator is shown the limit is still "100.00 EUR" and "200.00 EUR" as a pending change with the time it applies
 
   Scenario: dismissing a fraud case clears the flags it set
     Given a fraud case that flagged two players as suspected duplicates

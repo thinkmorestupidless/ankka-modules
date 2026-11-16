@@ -314,7 +314,7 @@ see its pending change; start and lift a break; dismiss a fraud case and confirm
 
 - added `features/backoffice/compliance.feature`: the identity queue is first-in first-out and keeps the operator's place
 - added `features/backoffice/compliance.feature`: an identity document is viewed only by an operator the brand admits
-- added `features/backoffice/compliance.feature`: a limit raised takes effect later and the page shows when
+- added `features/backoffice/compliance.feature`: a player's raise of a limit is a pending change and the page shows when it applies
 - added `features/backoffice/compliance.feature`: dismissing a fraud case clears the flags it set
 
 ---
