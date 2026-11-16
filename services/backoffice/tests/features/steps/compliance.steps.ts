@@ -1,6 +1,6 @@
 // features/backoffice/compliance.feature (T093): a compliance operator works the identity queue in
 // arrival order and keeps their place; an identity document reaches only an operator the brand admits;
-// a limit change shows what applies now and when the pending change takes effect; a fraud case
+// a player's raise of a limit shows what applies now and when the pending change applies; a fraud case
 // dismissed clears the flags it set. kyc, responsible-gambling and players decide each rule; their own
 // features hold them. Here the backoffice is what is shown and asked.
 import { t } from "../../../src/shared/messages/index.ts";
@@ -8,7 +8,7 @@ import { formatMoney, parseMoney } from "../../../src/shared/money.ts";
 import { expect, Given, Then, When, type World } from "../world.ts";
 
 /** What a scenario keeps between its steps. */
-const kept = new WeakMap<World, { order?: string[]; document?: { player: string; id: string }; answer?: { status: number; body: string }; player?: string; limit?: { minor: bigint; currency: string }; appliesAt?: string; fraudCase?: string; flagged?: string[]; note?: string }>();
+const kept = new WeakMap<World, { order?: string[]; document?: { player: string; id: string }; answer?: { status: number; body: string }; player?: string; limit?: { minor: bigint; currency: string }; raised?: { minor: bigint; currency: string }; appliesAt?: string; fraudCase?: string; flagged?: string[]; note?: string }>();
 const state = (w: World) => kept.get(w) ?? (kept.set(w, {}), kept.get(w)!);
 
 const main = (w: World) => w.page.getByRole("main");
@@ -110,61 +110,70 @@ Then("the document is not shown", async ({ world }) => {
   expect(await world.doubles.calls("kyc", { path: /\/views\// }), "kyc was not asked for a view").toHaveLength(0);
 });
 
-// --- a limit raised ---------------------------------------------------------------------------------
+// --- a player's raise, pending ---------------------------------------------------------------------
 
-/** responsible-gambling's operator read of the player (Render.full), with the limits and pending changes given. */
-const protection = (limits: unknown[], pendingChanges: unknown[]) => ({
-  limits, pendingChanges, usedAmounts: [], isCoolingOff: false, activeRestrictions: [], coolingOffUntil: null, realityCheckIntervalMinutes: null,
-  exclusion: null, returnRequest: null, cases: [], history: [],
-});
+/**
+ * responsible-gambling's operator read of a player (`Render.full`) whose daily deposit limit of `limit`
+ * they asked to raise to `raised`: the limit in force under `limits` (minor units), the raise under
+ * `pendingChanges` (`pendingValue` in minor units as text, `appliesAt` 24 hours after the ask), the
+ * usage of every money limit in the currency (major units), and the history newest first.
+ */
+function pendingRaise(limit: { minor: bigint; currency: string }, raised: { minor: bigint }, askedAt: string, appliesAt: string, setAt: string) {
+  const c = limit.currency;
+  const used = ["DEPOSIT_DAILY", "DEPOSIT_WEEKLY", "DEPOSIT_MONTHLY", "LOSS_DAILY", "LOSS_WEEKLY", "LOSS_MONTHLY"].map((limitType) => ({ limitType, currency: c, usedAmount: 0 }));
+  return {
+    limits: [{ limitType: "DEPOSIT_DAILY", value: Number(limit.minor), currency: c }],
+    pendingChanges: [{ limitType: "DEPOSIT_DAILY", appliesAt, currency: c, pendingValue: String(raised.minor) }],
+    usedAmounts: used,
+    isCoolingOff: false,
+    activeRestrictions: [],
+    coolingOffUntil: null,
+    realityCheckIntervalMinutes: null,
+    exclusion: null,
+    returnRequest: null,
+    cases: [],
+    history: [
+      { eventType: "deposit_limit_change_requested", actor: "player", occurredAt: askedAt, description: `DEPOSIT_DAILY (${c}) change requested: ${raised.minor}`, limitType: "DEPOSIT_DAILY", previousValue: String(limit.minor), newValue: String(raised.minor) },
+      { eventType: "deposit_limit_set", actor: "player", occurredAt: setAt, description: `DEPOSIT_DAILY (${c}) set: ${limit.minor}`, limitType: "DEPOSIT_DAILY", previousValue: null, newValue: String(limit.minor) },
+    ],
+  };
+}
 
-Given("a player with a daily deposit limit of {string}", async ({ world }, limit: string) => {
+/** An instant as responsible-gambling writes one (`Instant.toString`, whole seconds here). */
+const instant = (ms: number) => new Date(Math.floor(ms / 1000) * 1000).toISOString().replace(".000Z", "Z");
+
+Given("a player with a daily deposit limit of {string} who has asked to raise it to {string}", async ({ world }, limit: string, raised: string) => {
   const a = amount(limit);
+  const to = amount(raised);
   const player = world.brand.players.find((p) => p.currency === a.currency)!.playerId;
-  Object.assign(state(world), { player, limit: a });
+  const now = Date.now();
+  // responsible-gambling applies a player's raise 24 hours after they ask (the pending change)
+  const appliesAt = instant(now + 23 * 3_600_000);
+  Object.assign(state(world), { player, limit: a, raised: to, appliesAt });
   await world.doubles.fixtures("responsible-gambling", {
     "GET /v1/casino/backoffice/{brand}/rg/settings": { body: { minSessionMinutes: 60, maxBreakDays: 42 } },
     "GET /v1/casino/brands/{brand}/rg/status": { body: { views: [] } },
-    "GET /v1/casino/backoffice/{brand}/rg/{player}": { body: protection([{ limitType: "DEPOSIT_DAILY", value: Number(a.minor), currency: a.currency }], []) },
+    "GET /v1/casino/backoffice/{brand}/rg/{player}": { body: pendingRaise(a, to, instant(now - 3_600_000), appliesAt, instant(now - 30 * 86_400_000)) },
   });
 });
 
-When("a compliance operator raises it to {string}", async ({ world }, raised: string) => {
-  const s = state(world);
-  const to = amount(raised);
-  await world.signInAs("brand_compliance", { to: `/players/${s.player}/protection` });
-  const row = main(world).locator(`tr[data-limit="DEPOSIT_DAILY/${to.currency}"]`);
-  await expect(row).toContainText(formatMoney(s.limit!));
-  await row.getByRole("button", { name: t("action.protection.setLimit.label") }).click();
-  const dialog = world.page.getByRole("dialog");
-  await dialog.getByLabel(t("protection.limit.value")).fill(raised.split(/\s+/)[0]!);
-  // responsible-gambling stages the raise until the brand's delay passes (its `appliesAt`)
-  const appliesAt = new Date(Date.now() + 24 * 3_600_000).toISOString().replace(/\.\d+Z$/, "Z");
-  s.appliesAt = appliesAt;
-  const after = protection(
-    [{ limitType: "DEPOSIT_DAILY", value: Number(s.limit!.minor), currency: to.currency }],
-    [{ limitType: "DEPOSIT_DAILY", appliesAt, currency: to.currency, pendingValue: String(to.minor) }],
-  );
-  await world.doubles.fixtures("responsible-gambling", {
-    "PUT /v1/casino/backoffice/{brand}/rg/{player}/limits/{type}": { body: after },
-    "GET /v1/casino/backoffice/{brand}/rg/{player}": { body: after },
-  });
-  await dialog.getByRole("button", { name: t("action.confirm") }).click();
-  await expect(dialog).toHaveCount(0);
-  const put = await world.doubles.calls("responsible-gambling", { method: "PUT", path: `/v1/casino/backoffice/${world.brand.slug}/rg/${s.player}/limits/DEPOSIT_DAILY` });
-  expect(put).toHaveLength(1);
-  expect(JSON.parse(put[0]!.body)).toEqual({ value: String(to.minor), currency: to.currency });
+When("a compliance operator opens the player's protection", async ({ world }) => {
+  await world.signInAs("brand_compliance", { to: `/players/${state(world).player}/protection` });
 });
 
-Then("the operator is shown the limit is still {string} until the time the brand's rules set", async ({ world }, still: string) => {
+Then("the operator is shown the limit is still {string} and {string} as a pending change with the time it applies", async ({ world }, still: string, raised: string) => {
   const s = state(world);
   const a = amount(still);
+  const to = amount(raised);
   const row = main(world).locator(`tr[data-limit="DEPOSIT_DAILY/${a.currency}"]`);
   await expect(row.locator("[data-current]")).toHaveText(formatMoney(a));
   const pending = row.locator("[data-pending]");
   await expect(pending).toBeVisible();
+  await expect(pending).toContainText(formatMoney(to));
   await expect(pending).toHaveAttribute("data-applies-at", s.appliesAt!);
   await expect(pending.locator("time")).toHaveAttribute("datetime", new Date(s.appliesAt!).toISOString());
+  // nothing was changed to show it
+  expect(await world.doubles.calls("responsible-gambling", { method: "PUT" })).toHaveLength(0);
 });
 
 // --- a fraud case dismissed -------------------------------------------------------------------------
