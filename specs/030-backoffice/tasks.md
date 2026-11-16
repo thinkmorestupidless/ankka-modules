@@ -172,7 +172,7 @@ exactly its kinds, oldest first; acting on one removes it and keeps the place.
 **Goal**: FR-019 to FR-024. **Independent test**: find a seeded player by each kind of reference;
 read the timeline end to end; stop one source and see it named.
 
-- [ ] T065 [US3] Bind `features/backoffice/investigation.feature` (5 scenarios) in `t/features/steps/investigation.steps.ts`, failing first
+- [X] T065 [US3] Bind `features/backoffice/investigation.feature` (5 scenarios) in `t/features/steps/investigation.steps.ts`, failing first
 - [X] T066 [P] [US3] `svc/players/` P2: the list as a view query with paging, total, the filters and `facets=true`, binding `features/players/lists.feature`, with a suite at 10,000 rows
 - [X] T067 [P] [US3] `svc/players/` P3, P4: `from`, `to`, `after`, `total` on `activity`; `GET notes`, with tests
 - [X] T068 [P] [US3] `svc/players/` P5, P6, P10: a player's sessions with their game sessions and gaps, the brand-wide sessions list, force-close; a session's bets (no more `501`); `bets` filters and `staked`, `won`, `net`, with tests
@@ -180,11 +180,11 @@ read the timeline end to end; stop one source and see it named.
 - [X] T070 [P] [US3] `svc/kyc/` K3 and `svc/responsible-gambling/` G3: `{p}/decisions` and the operator's `{p}/history`, with tests
 - [X] T071 [P] [US3] `svc/merchant/` H1, H2: an operator holding `brand_<slug>` reads the sub-brand that names that brand, and no other, on `/v1/payments/cashier`, `/cashier/summary`, `/v1/payments/{id}`; `?reference=`, with tests; amends spec 004
 - [X] T072 [US3] Implement `s/composite/search.ts` and its classifier from contracts/sources.md, with `t/unit/search.test.ts` (free text is never sent as an id; every match listed by kind; a value of two shapes asked of both)
-- [ ] T073 [US3] Implement `s/composite/standing.ts` (the parts in parallel, each with its own state) and `s/composite/timeline.ts` (the k-way merge by cursor, gaps named, actors' names from merchant's operators, lines as message keys), with `t/unit/timeline.test.ts` covering order, a late source and a failed source
-- [ ] T074 [US3] Implement `w/areas/search/` (the one search in the top bar and its results by kind) and `w/areas/players/list.tsx` (the list with facets)
-- [ ] T075 [US3] Implement `w/areas/players/page.tsx`: the standing fitting 1440 by 900 (FR-020) with an erased player shown under the pseudonym only (edge case 5), and the tabs' frame
-- [ ] T076 [US3] Implement `w/areas/players/timeline.tsx` (filter by kind and period, gaps named, export as the owner's job: FR-021, FR-022) and `w/areas/players/rounds.tsx`, `sessions.tsx`, `wallets.tsx` (a round's bets and wins with staked, won, net and *unsettled*; a game session's rounds; a player session's game sessions and gaps: FR-023)
-- [ ] T077 [US3] Implement `w/areas/players/profile.tsx`, `notes.tsx`, and the standing actions (suspend, reinstate, close, reopen, reset password, verification link, clear flags, erasure request, date of birth, consents) through `w/actions/`
+- [X] T073 [US3] Implement `s/composite/standing.ts` (the parts in parallel, each with its own state) and `s/composite/timeline.ts` (the k-way merge by cursor, gaps named, actors' names from merchant's operators, lines as message keys), with `t/unit/timeline.test.ts` covering order, a late source and a failed source
+- [X] T074 [US3] Implement `w/areas/search/` (the one search in the top bar and its results by kind) and `w/areas/players/list.tsx` (the list with facets)
+- [X] T075 [US3] Implement `w/areas/players/page.tsx`: the standing fitting 1440 by 900 (FR-020) with an erased player shown under the pseudonym only (edge case 5), and the tabs' frame
+- [X] T076 [US3] Implement `w/areas/players/timeline.tsx` (filter by kind and period, gaps named, export as the owner's job: FR-021, FR-022) and `w/areas/players/rounds.tsx`, `sessions.tsx`, `wallets.tsx` (a round's bets and wins with staked, won, net and *unsettled*; a game session's rounds; a player session's game sessions and gaps: FR-023)
+- [X] T077 [US3] Implement `w/areas/players/profile.tsx`, `notes.tsx`, and the standing actions (suspend, reinstate, close, reopen, reset password, verification link, clear flags, erasure request, date of birth, consents) through `w/actions/`
 
 **Checkpoint**: phase 1 of FR-045 is usable: access, worklist, investigation. Run quickstart §5 and
 the moderated test for SC-002.
@@ -224,11 +224,11 @@ refused; repeat and nothing is made twice.
 **Goal**: FR-026 for rewards. **Independent test**: a record in each state shows its actions and
 explanations; a grant to a suspected duplicate shows why; a forfeit closes the record.
 
-- [ ] T088 [US6] Bind `features/backoffice/rewards.feature` (3 scenarios) in `t/features/steps/rewards.steps.ts`, failing first
+- [X] T088 [US6] Bind `features/backoffice/rewards.feature` (3 scenarios) in `t/features/steps/rewards.steps.ts`, failing first
 - [X] T089 [US6] `svc/rewards/` RW2: `allowedBy` beside `reason` on an ineligible grant, with tests
-- [ ] T090 [US6] Extend `s/routes.ts` with rewards' and offers' rows; implement `w/areas/rewards/list.tsx` (brand-wide, search and state) and `w/areas/players/rewards.tsx` (state in the glossary's words, wagering progress, open rounds, free rounds used of given as the player sees them, the state's actions with their effects)
-- [ ] T091 [US6] Implement `w/areas/rewards/grant.tsx` (from an offer or by hand; the refusal with its reason and what would allow it)
-- [ ] T092 [US6] Implement `w/areas/rewards/offers.tsx` (create, edit, order, deactivate, free rounds values, the games picker, dependants named before a change)
+- [X] T090 [US6] Extend `s/routes.ts` with rewards' and offers' rows; implement `w/areas/rewards/list.tsx` (brand-wide, search and state) and `w/areas/players/rewards.tsx` (state in the glossary's words, wagering progress, open rounds, free rounds used of given as the player sees them, the state's actions with their effects)
+- [X] T091 [US6] Implement `w/areas/rewards/grant.tsx` (from an offer or by hand; the refusal with its reason and what would allow it)
+- [X] T092 [US6] Implement `w/areas/rewards/offers.tsx` (create, edit, order, deactivate, free rounds values, the games picker, dependants named before a change)
 
 ---
 
@@ -269,15 +269,15 @@ figures and five countries on the map; each report exports with its reference.
 shows as differing; a routing rule simulated and deployed; an invitation above the inviter's role
 refused.
 
-- [ ] T103 [US9] Bind `features/backoffice/configuration.feature` (3 scenarios) in `t/features/steps/configuration.steps.ts`, failing first
+- [X] T103 [US9] Bind `features/backoffice/configuration.feature` (3 scenarios) in `t/features/steps/configuration.steps.ts`, failing first
 - [X] T104 [P] [US9] `svc/wallet/` W3: `PUT wallet-config/rewards`, with tests
-- [ ] T105 [P] [US9] `svc/players/` P7, P8, P9: manager tags; seen devices recorded at log-in as `Personal` under the player's subject and erased with the player; what a player plays; binding `features/players/manager-tags.feature`, `devices.feature`, `games-played.feature`
+- [X] T105 [P] [US9] `svc/players/` P7, P8, P9: manager tags; seen devices recorded at log-in as `Personal` under the player's subject and erased with the player; what a player plays; binding `features/players/manager-tags.feature`, `devices.feature`, `games-played.feature`
 - [X] T106 [P] [US9] `svc/merchant/` H3: deposit bounds per method and currency, enforced by the deposit workflow, binding `features/payments/deposit-bounds.feature`
 - [ ] T107 [P] [US9] `svc/merchant/` H4, H5 and `svc/psp-gateway/` T2: the test payment through the gateway, never crediting a wallet; paging on `/v1/operators`, with tests; amends specs 004, 005
-- [ ] T108 [US9] Extend `s/routes.ts` with the configuration, merchant, psp-gateway, ingest, attribution, support-agent and engagement rows; implement `w/components/config-form.tsx` that marks each value differing from the brand's default or its licence profile (FR-034)
-- [ ] T109 [P] [US9] Implement `w/areas/configuration/brand.tsx` (sites, countries, currencies and zone, withdrawal, wagering and reward settings, reporting settings, the modules page with why a module is off)
-- [ ] T110 [P] [US9] Implement `w/areas/configuration/games.tsx` (providers, provider configuration and catalogue refresh, developers, categories, per-game overrides) and `callbacks.tsx` (unacknowledged calls: replay, resolve)
-- [ ] T111 [P] [US9] Implement `w/areas/configuration/crm.tsx`, `agent.tsx`, `attribution.tsx` (networks, webhooks, signing keys, undelivered facts: resend, discard), `sends.tsx` (parked sends: retry, discard)
+- [X] T108 [US9] Extend `s/routes.ts` with the configuration, merchant, psp-gateway, ingest, attribution, support-agent and engagement rows; implement `w/components/config-form.tsx` that marks each value differing from the brand's default or its licence profile (FR-034)
+- [X] T109 [P] [US9] Implement `w/areas/configuration/brand.tsx` (sites, countries, currencies and zone, withdrawal, wagering and reward settings, reporting settings, the modules page with why a module is off)
+- [X] T110 [P] [US9] Implement `w/areas/configuration/games.tsx` (providers, provider configuration and catalogue refresh, developers, categories, per-game overrides) and `callbacks.tsx` (unacknowledged calls: replay, resolve)
+- [X] T111 [P] [US9] Implement `w/areas/configuration/crm.tsx`, `agent.tsx`, `attribution.tsx` (networks, webhooks, signing keys, undelivered facts: resend, discard), `sends.tsx` (parked sends: retry, discard)
 - [ ] T112 [US9] Implement `w/areas/payments/hierarchy.tsx`, `providers.tsx` (configurations: create, edit, activate, disable, delete, test payment), `terminals.tsx`, `deposit-bounds.tsx`, `merchant.tsx`, with the level picker and banner kept here only (FR-004)
 - [ ] T113 [US9] Implement `w/areas/payments/routing.tsx` (the tree as the original draws it; draft, simulate, deploy, retire, roll back: FR-035), `outcomes.tsx` (undelivered and refused outcomes, redrive), `lost-answers.tsx`, `deposits.tsx` (list, detail, analytics, uncredited and retry)
 - [ ] T114 [US9] Implement `w/areas/team/operators.tsx` (list, invite with a payments role at or below one's own and a level, resend, reset, revoke, rescope; an operator's roles for the brand through T055's screen) and `w/areas/players/devices.tsx`, `games.tsx`, the tags and VIP tier controls
@@ -291,11 +291,11 @@ refused.
 **Goal**: FR-037, parity's phase 6. **Independent test**: approve an account, attach a plan, close a
 payout period, dismiss a fraud flag with a reason.
 
-- [ ] T115 [US10] Bind `features/backoffice/affiliates.feature` (2 scenarios) in `t/features/steps/affiliates.steps.ts`, failing first
+- [X] T115 [US10] Bind `features/backoffice/affiliates.feature` (2 scenarios) in `t/features/steps/affiliates.steps.ts`, failing first
 - [X] T116 [P] [US10] `svc/affiliate-programme/` A1, A2: `{items, total}` on `accounts`; `accounts/{a}/portal/{view}` for managers, read-only and audited as `VIEWED_AS`, binding the existing scenario "a manager's read-only view of an affiliate shows what the affiliate sees and changes nothing" in `features/programme/managers.feature`; amends spec 013
-- [ ] T117 [US10] Extend `s/routes.ts` with the programme's rows (the project's address is a value of the brand, so spec 028 can move it); a manager sees the programme only, for this backoffice's brand
-- [ ] T118 [P] [US10] Implement `w/areas/affiliates/dashboard.tsx`, `plans.tsx`, `links.tsx`, `creatives.tsx`, `settings.tsx`, `messages.tsx`, `managers.tsx`
-- [ ] T119 [US10] Implement `w/areas/affiliates/accounts.tsx` and `account.tsx` (create, approve, reject, status, edit, notes, audit, password, email, network, reparent, adjustments, view as the affiliate), `payouts.tsx` (by period: close, status, export), `fraud.tsx` (dismiss with a reason)
+- [X] T117 [US10] Extend `s/routes.ts` with the programme's rows (the project's address is a value of the brand, so spec 028 can move it); a manager sees the programme only, for this backoffice's brand
+- [X] T118 [P] [US10] Implement `w/areas/affiliates/dashboard.tsx`, `plans.tsx`, `links.tsx`, `creatives.tsx`, `settings.tsx`, `messages.tsx`, `managers.tsx`
+- [X] T119 [US10] Implement `w/areas/affiliates/accounts.tsx` and `account.tsx` (create, approve, reject, status, edit, notes, audit, password, email, network, reparent, adjustments, view as the affiliate), `payouts.tsx` (by period: close, status, export), `fraud.tsx` (dismiss with a reason)
 
 ---
 
@@ -304,9 +304,9 @@ payout period, dismiss a fraud flag with a reason.
 **Goal**: FR-036. **Independent test**: turn the notice on, bring a player online, open them from
 the notice, send a previewed message.
 
-- [ ] T120 [US11] Bind `features/backoffice/outreach.feature` (2 scenarios) in `t/features/steps/outreach.steps.ts`, failing first
-- [ ] T121 [US11] Extend `s/events.ts`: for an operator who asked, take engagement's ticket, read its `agent-stream`, and relay `player_online` for the current brand; reconnect and re-read `presence` after an overflow
-- [ ] T122 [US11] Implement `w/areas/outreach/` (the notice that opens the player; who is online) and `w/areas/players/messages.tsx` (merge tags, the preview with tags filled before sending, the player's sends)
+- [X] T120 [US11] Bind `features/backoffice/outreach.feature` (2 scenarios) in `t/features/steps/outreach.steps.ts`, failing first
+- [X] T121 [US11] Extend `s/events.ts`: for an operator who asked, take engagement's ticket, read its `agent-stream`, and relay `player_online` for the current brand; reconnect and re-read `presence` after an overflow
+- [X] T122 [US11] Implement `w/areas/outreach/` (the notice that opens the player; who is online) and `w/areas/players/messages.tsx` (merge tags, the preview with tags filled before sending, the player's sends)
 
 **Checkpoint**: phase 6 of FR-045; every row of parity.md not dropped or moved is reachable (SC-001).
 

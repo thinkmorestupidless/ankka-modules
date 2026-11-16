@@ -707,3 +707,80 @@ amendment (K5 in contracts/amendments.md). The document route passes kyc's bytes
 - Gap: the wallet records a configuration change only as `updatedBy` and `updatedAt`, for the turnover
   terms as for the rewards. Neither reaches `platform.audit`, as engagement's, support-agent's and
   payouts' configuration changes do. Raised for a follow-up covering both.
+
+### The player page, 2026-11-16 (T065, T073–T077)
+
+- The timeline is newest first, as the original's `PlayerTimelineTab`. Its period (30 days by default;
+  1, 7, 30, 90 or 365 days) and kinds live in the URL. A source holding more than it gave stops the
+  merge at its oldest line, and `next` starts the following page there. A gap names its source and
+  period; a source the operator's roles do not open is skipped, not a gap.
+- players' activity is read as four sources (payments, rounds, rewards, account); bets, wins and
+  adjustments come from the rounds and the wallet.
+- Actors' names come from merchant's `/v1/operators`, kept 5 minutes. merchant lists operators to
+  payments operators only, so a brand operator sees subjects, and their own name from their sign-in.
+- An erased player (`erased` or `erasure_pending`) is shown under the player id as the pseudonym,
+  with the personal fields and pinned notes dropped.
+- The tabs (identity, protection, withdrawals, wallets, rewards, messages) live at
+  `/players/$player/$tab`. They are a `group`, not a `navigation`.
+- Reinstating asks no reason, because players reads none.
+
+### Rewards, 2026-11-16 (T088–T092)
+
+- Forfeit and reclaim are offered on active rewards only, because rewards' revoke refuses every other
+  state. Each takes an optional reason, which rewards keeps.
+- Decision (Trevor): the refused-award scenario is reworded to a refusal an operator's award really
+  gets, a suspected duplicate, allowed by clearing the fraud flag or by the brand turning detection
+  off. The example "awaiting its cap | forfeit" becomes "awaiting its cap | nothing", unless the
+  original let an operator end a pending cap.
+- rewards' `GET /offers` admits only `offer.manage`, so an operator awarding without it types the
+  offer's id. A rewards amendment admitting `reward.grant` there would fix it.
+- Withdrawing an offer deactivates it, which rewards never lets you undo, and the effect says so.
+  The offers that exclude or conflict with an offer are named before it is edited or withdrawn.
+
+### Configuration, 2026-11-16 (T103, T108–T111)
+
+- `config-form.tsx` marks a value against the owner's empty-state default. No owner gives
+  licence-profile values, so nothing is marked against a profile yet.
+- merchant's rows name the least payments role admitted (`resource_viewer`), since merchant admits any
+  payments role at a level and compares roles only on an invitation.
+- attribution's resend and discard are addressed `/webhooks/undelivered/{subscription}/{fact}/…`,
+  because the relay refuses an encoded `/` in one segment.
+- game-provider requires the operator's private key on every provider PUT and never answers it, so a
+  provider's form starts with that field blank.
+- configuration.feature's first scenario names a "minimum withdrawal", which no owner and not the
+  original holds; it is bound to the wallet's withdrawal turnover multiplier.
+
+### The affiliate programme, 2026-11-16 (T115, T117–T119)
+
+- The programme admits callers by realm role, so the backoffice derives two permissions of its own:
+  `programme.manage` (affiliate_manager, brand_admin, platform_admin) and `programme.managers`
+  (brand_admin, platform_admin).
+- `/` takes an operator without the worklist to the first area they hold, so a manager lands on
+  `/affiliates`. The frame reads an area's freshness only for an operator who holds that area.
+- View as the affiliate reads `accounts/{a}/portal/{view}`, and the page says before and during the
+  view that the programme records it as VIEWED_AS.
+- No password field exists anywhere: resets send the programme's emailed link. The Customer.io key is
+  write-only.
+- Gaps needing a programme change: an active account cannot be reparented (`AccountPatch` has no
+  parent); a payout's approval cannot carry an override figure; the network tree is not drawn.
+
+### Outreach, 2026-11-16 (T120–T122)
+
+- `/api/events` relays engagement's `player_online` only for an operator who asked, is of this brand
+  and holds `presence.read`. The ticket is taken with the operator's token. The reconnect backs off
+  from 1 s to 60 s, a stream silent for 45 s is reopened, and after a reconnect `presence` is re-read.
+  engagement's stream ends with the operator's.
+- Who is online is at `/players/online`. A notice also shows as the desktop's where the operator gave
+  the browser permission, asked from a button, never by itself.
+- A message is sent only for the exact text previewed, under one key per composition.
+
+### players' tags, devices and games, 2026-11-16 (T105)
+
+- Manager tags are trimmed, deduplicated ignoring case, at most 20 of at most 40 characters, and
+  cleared on erasure. Each change is one audit record holding the list before and after, and a note
+  per tag added or removed, as the original wrote.
+- A seen device is `Personal` under the player's subject, identified by a digest of its fingerprint
+  (or by its type, platform and browser); neither the fingerprint nor the user agent is stored. At
+  most 50 are kept. Erasure empties them, and an erased player records no new one. The journal still
+  holds the earlier events until ankka 042 (R8), as for every personal field.
+- What a player plays counts settled rounds only, per game and currency, all time unless bounded.
