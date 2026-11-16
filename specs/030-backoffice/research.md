@@ -801,3 +801,16 @@ amendment (K5 in contracts/amendments.md). The document route passes kyc's bytes
 - `/v1/operators` is paged newest first, `pageSize` 1 to 200 (25 by default).
 - Decision (Trevor): configuration.feature's first scenario is reworded from a "minimum withdrawal" to
   the withdrawal turnover multiplier, which is what exists.
+
+### Polish, 2026-11-16 (T129, T130, T132, T135)
+
+- T129's parity test fails a row with no route, a missing page, a page that calls none of its routes,
+  or a route of a service its Owner does not name. FR-044 is read as: nothing else depends on the
+  `backoffice` module or its values, no other service names it, the backoffice never names
+  `eitheror-platform`, and the branch leaves `tests/original/` unchanged.
+- Spec 019 has no tool or tests yet, so X1 is its spec's FR-038 to FR-040 and User Story 7 carrying
+  `operator-roles.feature`'s scenarios. Its assumption that the operator console only changes its base
+  URLs now says the console is replaced by the brand's backoffice.
+- SC-002 is ten searches per operator (FR-019's nine reference kinds and a second name), passed at
+  9 of 10; SC-003 is three approvable requests per `brand_finance` operator, every one to pass, and
+  approving a request the page shows should not be approved is a fail.
