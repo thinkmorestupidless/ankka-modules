@@ -17,7 +17,9 @@ import { WalletsTab } from "../areas/corrections/adjust.tsx";
 import { AccountsPage } from "../areas/corrections/accounts.tsx";
 import { BatchPage } from "../areas/corrections/batch.tsx";
 import { IdentityQueuePage } from "../areas/identity/queue.tsx";
-import { IdentityTab, ProtectionTab } from "../areas/players/tabs.tsx";
+import { IdentityTab, ProtectionTab, WithdrawalsTab } from "../areas/players/tabs.tsx";
+import { WithdrawalsQueuePage } from "../areas/withdrawals/queue.tsx";
+import { WithdrawalRequestPage } from "../areas/withdrawals/request.tsx";
 import { ProtectionCasesPage } from "../areas/protection/cases.tsx";
 import { FraudCasesPage } from "../areas/fraud/cases.tsx";
 import { IdentityPolicyPage } from "../areas/configuration/identity-policy.tsx";
@@ -34,9 +36,10 @@ export const Pages: [string, Page][] = [
   // until the player's page (T075) puts them in its tabs
   ["/players/$player/identity", IdentityTab],
   ["/players/$player/protection", ProtectionTab],
+  ["/players/$player/withdrawals", WithdrawalsTab],
   ["/players/$player/wallets", WalletsTab],
-  ["/withdrawals", page("area.withdrawals")],
-  ["/withdrawals/$request", page("area.withdrawals")],
+  ["/withdrawals", () => <WithdrawalsQueuePage />],
+  ["/withdrawals/$request", () => <WithdrawalRequestPage />],
   ["/adjustments/batch", () => <BatchPage />],
   ["/adjustments/accounts", () => <AccountsPage />],
   ["/rewards", page("area.rewards")],

@@ -22,7 +22,8 @@ export interface ActionDescription {
 
 export const Actions = {
   // payouts: a withdrawal request (WithdrawalRequest.scala: approve and reject only while pending review;
-  // the payout settled or failed only once approved)
+  // the payout settled or failed by hand only while awaiting manual payout or once its payment needs review,
+  // WithdrawalWorkflow.manual: `needs_review` is the state `actionStateOf` names an approved request in then)
   "withdrawal.approve": {
     label: "action.withdrawal.approve.label",
     effect: "action.withdrawal.approve.effect",
@@ -43,14 +44,14 @@ export const Actions = {
     permission: "withdrawal.review",
     reason: "optional",
     reasonField: "note",
-    offeredIn: ["approved", "awaiting_manual_payout"],
+    offeredIn: ["awaiting_manual_payout", "needs_review"],
   },
   "withdrawal.markPayoutFailed": {
     label: "action.withdrawal.markPayoutFailed.label",
     effect: "action.withdrawal.markPayoutFailed.effect",
     permission: "withdrawal.review",
     reason: "required",
-    offeredIn: ["approved", "awaiting_manual_payout"],
+    offeredIn: ["awaiting_manual_payout", "needs_review"],
   },
 
   // wallet: an adjustment (FR-027: a reason from the brand's list, refused, not reduced, past the balance)

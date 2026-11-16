@@ -32,6 +32,10 @@ describe("the actions' descriptions", () => {
     expect(offeredIn(Actions["withdrawal.approve"], "approved")).toBe(false);
     expect(offeredIn(Actions["withdrawal.approve"], undefined)).toBe(false);
     expect(offeredIn(Actions["wallet.adjust"], undefined)).toBe(true);
+    // a payment settled by hand only while it waits for one (WithdrawalWorkflow.manual), never while in flight
+    expect(offeredIn(Actions["withdrawal.confirmPayout"], "needs_review")).toBe(true);
+    expect(offeredIn(Actions["withdrawal.markPayoutFailed"], "awaiting_manual_payout")).toBe(true);
+    expect(offeredIn(Actions["withdrawal.confirmPayout"], "approved")).toBe(false);
   });
 
   test("a required reason must be more than blanks; it goes in the owner's field", () => {
@@ -77,7 +81,7 @@ describe("an action offered", () => {
   });
 
   test("an optional note may be left empty", async () => {
-    render(<Action action={Actions["withdrawal.confirmPayout"]} me={finance} bags={OperatorBags} state="approved" run={ok} />);
+    render(<Action action={Actions["withdrawal.confirmPayout"]} me={finance} bags={OperatorBags} state="awaiting_manual_payout" run={ok} />);
     await openDialog("Confirm payout");
     expect(screen.getByLabelText("Note (optional)")).toBeTruthy();
     expect(confirmButton().disabled).toBe(false);
