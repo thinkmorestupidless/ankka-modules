@@ -57,6 +57,15 @@ export function upstreamPath(m: Matched, brand: string): string {
   );
 }
 
+/**
+ * The payments roles (contract `Routes.PaymentsRoles`): a payments route (`where` not the brand) names
+ * the least of them its ACL admits, since `Routes.paymentsOperator` admits by role and no bag gives one.
+ */
+export const PaymentsRoles: readonly string[] = [
+  "resource_viewer", "resource_developer", "resource_finance", "resource_operator", "support_agent",
+  "resource_admin", "resource_owner", "fraud_analyst", "compliance_officer", "platform_admin",
+];
+
 const r = (method: Method, service: string, path: string, upstream: string, permission: string, where: Where = "brand"): Row =>
   ({ method, service, path, upstream, where, permission });
 
@@ -135,6 +144,8 @@ export const table: readonly Row[] = [
   r("POST", "wallet", "/accounts/{kind}/{name}/adjustments", `${P}/accounts/{kind}/{name}/adjustments`, "adjustment.make"),
   r("GET", "wallet", "/accounts/{kind}/{name}/balance", `${P}/accounts/{kind}/{name}/balance`, "wallet.read"),
   r("PUT", "wallet", "/wallet-config/turnover", `${P}/wallet-config/turnover`, "config.brand"),
+  // W3 (T104, not built yet): the brand's reward settings; the page is built against the amendment and a double
+  r("PUT", "wallet", "/wallet-config/rewards", `${P}/wallet-config/rewards`, "config.brand"),
   r("GET", "wallet", "/wallet-config", `${P}/wallet-config`, "wallet.read"),
 
   // payouts: OperatorEndpoint, PlayerEndpoint's operator read and ConfigEndpoint, under /v1/casino/brands/<slug>
@@ -206,15 +217,124 @@ export const table: readonly Row[] = [
 
   // engagement: BackofficeEndpoint at /v1/casino/backoffice/<slug>
   r("GET", "engagement", "/parked-sends", `${P}/parked-sends`, "send.release"),
+  r("POST", "engagement", "/parked-sends/{sendId}/retry", `${P}/parked-sends/{sendId}/retry`, "send.release"),
+  r("POST", "engagement", "/parked-sends/{sendId}/discard", `${P}/parked-sends/{sendId}/discard`, "send.release"),
+  r("GET", "engagement", "/engagement/status", `${P}/engagement/status`, "config.crm"),
+  r("GET", "engagement", "/players/{player}/sends", `${P}/players/{player}/sends`, "player.read"),
+  r("GET", "engagement", "/presence", `${P}/presence`, "presence.read"),
+  r("POST", "engagement", "/agent-stream/ticket", `${P}/agent-stream/ticket`, "presence.read"),
+  // engagement's ConfigEndpoint at /v1/casino/crm-config/<slug>: the CRM's connection and the transactional sends' ids
+  r("GET", "engagement", "/crm-config", "/v1/casino/crm-config/{brand}", "config.crm"),
+  r("PUT", "engagement", "/crm-config", "/v1/casino/crm-config/{brand}", "config.crm"),
+  r("POST", "engagement", "/crm-config/seed", "/v1/casino/crm-config/{brand}/seed", "config.crm"),
+
+  // support-agent: ConfigEndpoint at /v1/casino/agent-config/<slug> (Motoko's configuration, its versions and status)
+  r("GET", "support-agent", "/config", "/v1/casino/agent-config/{brand}", "config.agent"),
+  r("PUT", "support-agent", "/config", "/v1/casino/agent-config/{brand}", "config.agent"),
+  r("GET", "support-agent", "/config/status", "/v1/casino/agent-config/{brand}/status", "config.agent"),
+  r("GET", "support-agent", "/config/versions/{version}", "/v1/casino/agent-config/{brand}/versions/{version}", "config.agent"),
+  r("GET", "support-agent", "/conversations", "/v1/casino/agent-config/{brand}/conversations", "player.read"),
+
+  // attribution: BackofficeEndpoint at /v1/casino/backoffice/<slug>/attribution, WebhooksEndpoint at …/attribution-webhooks
+  r("GET", "attribution", "/settings", `${P}/attribution/settings`, "config.attribution"),
+  r("PUT", "attribution", "/settings", `${P}/attribution/settings`, "config.attribution"),
+  r("GET", "attribution", "/status", `${P}/attribution/status`, "config.attribution"),
+  r("GET", "attribution", "/networks", `${P}/attribution/networks`, "config.attribution"),
+  r("POST", "attribution", "/networks", `${P}/attribution/networks`, "config.attribution"),
+  r("GET", "attribution", "/networks/{id}", `${P}/attribution/networks/{id}`, "config.attribution"),
+  r("PUT", "attribution", "/networks/{id}", `${P}/attribution/networks/{id}`, "config.attribution"),
+  r("DELETE", "attribution", "/networks/{id}", `${P}/attribution/networks/{id}`, "config.attribution"),
+  r("POST", "attribution", "/networks/{id}/pseudonym-key", `${P}/attribution/networks/{id}/pseudonym-key`, "config.attribution"),
+  r("GET", "attribution", "/records/{player}", `${P}/attribution/records/{player}`, "player.read"),
+  r("GET", "attribution", "/signing-keys", `${P}/attribution/signing-keys`, "config.attribution"),
+  r("POST", "attribution", "/signing-keys", `${P}/attribution/signing-keys`, "config.attribution"),
+  r("DELETE", "attribution", "/signing-keys/{kid}", `${P}/attribution/signing-keys/{kid}`, "config.attribution"),
+  // `undelivered` needs `network=`; a delivery id is `<subscription>/<factId>`, sent percent-encoded. Literal, before `{id}`
+  r("GET", "attribution", "/webhooks/undelivered", `${P}/attribution-webhooks/undelivered`, "fact.redeliver"),
+  r("POST", "attribution", "/webhooks/undelivered/{delivery}/resend", `${P}/attribution-webhooks/undelivered/{delivery}/resend`, "fact.redeliver"),
+  r("POST", "attribution", "/webhooks/undelivered/{delivery}/discard", `${P}/attribution-webhooks/undelivered/{delivery}/discard`, "fact.redeliver"),
+  r("GET", "attribution", "/webhooks", `${P}/attribution-webhooks`, "config.attribution"),
+  r("POST", "attribution", "/webhooks", `${P}/attribution-webhooks`, "config.attribution"),
+  r("GET", "attribution", "/webhooks/{id}", `${P}/attribution-webhooks/{id}`, "config.attribution"),
+  r("PUT", "attribution", "/webhooks/{id}", `${P}/attribution-webhooks/{id}`, "config.attribution"),
+  r("DELETE", "attribution", "/webhooks/{id}", `${P}/attribution-webhooks/{id}`, "config.attribution"),
 
   // rewards (reads only): RewardAdminEndpoint at /v1/casino/brands/<slug>/reward-grants
   r("GET", "rewards", "/reward-grants", `${B}/reward-grants`, "reward.read"),
   r("GET", "rewards", "/reward-grants/{rewardId}", `${B}/reward-grants/{rewardId}`, "reward.read"),
 
   // merchant (shared `payments`): PaymentsEndpoint at /v1/payments; admits a brand's operator once amendment H1, H2 (T071) lands
+  // merchant (shared `payments`), US9 (T108): the hierarchy, provider configurations, terminals, keys, routing
+  // rules, deposits and operators, each admitted by `Routes.paymentsOperator` (any payments role at a level;
+  // only an invitation compares roles, `Privilege.canAssignRole`), so the column names the least role admitted
+  r("POST", "merchant", "/holdings", "/v1/holdings", "resource_viewer", "payments"),
+  r("GET", "merchant", "/holdings", "/v1/holdings", "resource_viewer", "payments"),
+  r("GET", "merchant", "/holdings/{id}", "/v1/holdings/{id}", "resource_viewer", "payments"),
+  r("PUT", "merchant", "/holdings/{id}/status", "/v1/holdings/{id}/status", "resource_viewer", "payments"),
+  r("GET", "merchant", "/holdings/{id}/companies", "/v1/holdings/{id}/companies", "resource_viewer", "payments"),
+  r("POST", "merchant", "/companies", "/v1/companies", "resource_viewer", "payments"),
+  r("GET", "merchant", "/companies", "/v1/companies", "resource_viewer", "payments"),
+  r("GET", "merchant", "/companies/{id}", "/v1/companies/{id}", "resource_viewer", "payments"),
+  r("PUT", "merchant", "/companies/{id}/status", "/v1/companies/{id}/status", "resource_viewer", "payments"),
+  r("POST", "merchant", "/sub-brands", "/v1/sub-brands", "resource_viewer", "payments"),
+  r("GET", "merchant", "/sub-brands", "/v1/sub-brands", "resource_viewer", "payments"),
+  r("GET", "merchant", "/sub-brands/{id}", "/v1/sub-brands/{id}", "resource_viewer", "payments"),
+  r("PUT", "merchant", "/sub-brands/{id}/status", "/v1/sub-brands/{id}/status", "resource_viewer", "payments"),
+  r("POST", "merchant", "/sub-brands/{id}/psp-credentials", "/v1/sub-brands/{id}/psp-credentials", "resource_viewer", "payments"),
+  r("GET", "merchant", "/sub-brands/{id}/psp-credentials", "/v1/sub-brands/{id}/psp-credentials", "resource_viewer", "payments"),
+  r("GET", "merchant", "/sub-brands/{id}/psp-credentials/{provider}", "/v1/sub-brands/{id}/psp-credentials/{provider}", "resource_viewer", "payments"),
+  r("PUT", "merchant", "/sub-brands/{id}/psp-credentials/{provider}", "/v1/sub-brands/{id}/psp-credentials/{provider}", "resource_viewer", "payments"),
+  r("DELETE", "merchant", "/sub-brands/{id}/psp-credentials/{provider}", "/v1/sub-brands/{id}/psp-credentials/{provider}", "resource_viewer", "payments"),
+  r("POST", "merchant", "/sub-brands/{id}/psp-credentials/{provider}/activate", "/v1/sub-brands/{id}/psp-credentials/{provider}/activate", "resource_viewer", "payments"),
+  r("POST", "merchant", "/sub-brands/{id}/psp-credentials/{provider}/disable", "/v1/sub-brands/{id}/psp-credentials/{provider}/disable", "resource_viewer", "payments"),
+  r("GET", "merchant", "/sub-brands/{id}/gateway-config", "/v1/sub-brands/{id}/gateway-config", "resource_viewer", "payments"),
+  r("GET", "merchant", "/sub-brands/{id}/deposit-bounds", "/v1/sub-brands/{id}/deposit-bounds", "resource_viewer", "payments"),
+  r("PUT", "merchant", "/sub-brands/{id}/deposit-bounds", "/v1/sub-brands/{id}/deposit-bounds", "resource_viewer", "payments"),
+  r("GET", "merchant", "/merchants/{id}", "/v1/merchants/{id}", "resource_viewer", "payments"),
+  r("POST", "merchant", "/merchants/{id}/keys", "/v1/merchants/{id}/keys", "resource_viewer", "payments"),
+  r("GET", "merchant", "/merchants/{id}/keys", "/v1/merchants/{id}/keys", "resource_viewer", "payments"),
+  r("POST", "merchant", "/merchants/{id}/keys/{keyId}/disable", "/v1/merchants/{id}/keys/{keyId}/disable", "resource_viewer", "payments"),
+  r("GET", "merchant", "/merchants/{id}/psp-configurations", "/v1/merchants/{id}/psp-configurations", "resource_viewer", "payments"),
+  r("POST", "merchant", "/merchants/{id}/gateways/{gateway}/integrations", "/v1/merchants/{id}/gateways/{gateway}/integrations", "resource_viewer", "payments"),
+  r("GET", "merchant", "/merchants/{id}/gateways/integrations", "/v1/merchants/{id}/gateways/integrations", "resource_viewer", "payments"),
+  r("GET", "merchant", "/merchants/{id}/gateways/integrations/{tid}", "/v1/merchants/{id}/gateways/integrations/{tid}", "resource_viewer", "payments"),
+  r("PUT", "merchant", "/merchants/{id}/gateways/integrations/{tid}/properties", "/v1/merchants/{id}/gateways/integrations/{tid}/properties", "resource_viewer", "payments"),
+  r("PUT", "merchant", "/merchants/{id}/gateways/integrations/{tid}/capability", "/v1/merchants/{id}/gateways/integrations/{tid}/capability", "resource_viewer", "payments"),
+  r("POST", "merchant", "/merchants/{id}/gateways/integrations/{tid}/activate", "/v1/merchants/{id}/gateways/integrations/{tid}/activate", "resource_viewer", "payments"),
+  r("POST", "merchant", "/merchants/{id}/gateways/integrations/{tid}/disable", "/v1/merchants/{id}/gateways/integrations/{tid}/disable", "resource_viewer", "payments"),
+  r("DELETE", "merchant", "/merchants/{id}/gateways/integrations/{tid}", "/v1/merchants/{id}/gateways/integrations/{tid}", "resource_viewer", "payments"),
+  r("GET", "merchant", "/merchants/{id}/gateway-config", "/v1/merchants/{id}/gateway-config", "resource_viewer", "payments"),
+  r("GET", "merchant", "/catalog/gateway/{gateway}", "/v1/catalog/gateway/{gateway}", "resource_viewer", "payments"),
+  r("GET", "merchant", "/payments/cashier/uncredited", "/v1/payments/cashier/uncredited", "resource_viewer", "payments"),
+  r("POST", "merchant", "/payments/cashier/{paymentId}/retry-credit", "/v1/payments/cashier/{paymentId}/retry-credit", "resource_viewer", "payments"),
+  r("GET", "merchant", "/payments/routing-rules/state", "/v1/payments/routing-rules/state", "resource_viewer", "payments"),
+  r("POST", "merchant", "/payments/routing-rules", "/v1/payments/routing-rules", "resource_viewer", "payments"),
+  r("POST", "merchant", "/payments/routing-rules/deploy", "/v1/payments/routing-rules/deploy", "resource_viewer", "payments"),
+  r("POST", "merchant", "/payments/routing-rules/simulate", "/v1/payments/routing-rules/simulate", "resource_viewer", "payments"),
+  r("POST", "merchant", "/payments/routing-rules/rollback/{version}", "/v1/payments/routing-rules/rollback/{version}", "resource_viewer", "payments"),
+  r("POST", "merchant", "/payments/routing-rules/retire", "/v1/payments/routing-rules/retire", "resource_viewer", "payments"),
+  r("GET", "merchant", "/payments/terminals", "/v1/payments/terminals", "resource_viewer", "payments"),
+  // an invitation is refused `403 PRIVILEGE_ESCALATION` for a role the inviter does not strictly outrank
+  r("POST", "merchant", "/operators", "/v1/operators", "resource_viewer", "payments"),
+  r("POST", "merchant", "/operators/{id}/resend-invitation", "/v1/operators/{id}/resend-invitation", "resource_viewer", "payments"),
+  r("POST", "merchant", "/operators/{id}/reset-password", "/v1/operators/{id}/reset-password", "resource_viewer", "payments"),
+  r("PUT", "merchant", "/operators/{id}/scope", "/v1/operators/{id}/scope", "resource_viewer", "payments"),
+  r("DELETE", "merchant", "/operators/{id}", "/v1/operators/{id}", "resource_viewer", "payments"),
   r("GET", "merchant", "/cashier", "/v1/payments/cashier", "wallet.read", "payments"),
   r("GET", "merchant", "/cashier/summary", "/v1/payments/cashier/summary", "wallet.read", "payments"),
   r("GET", "merchant", "/{paymentId}", "/v1/payments/{paymentId}", "wallet.read", "payments"),
+
+  // psp-gateway (shared `payments`): OutcomesEndpoint at /v1/psp/outcomes, `Routes.paymentsOperator`
+  r("GET", "psp-gateway", "/psp/outcomes/undelivered", "/v1/psp/outcomes/undelivered", "resource_viewer", "payments"),
+  r("GET", "psp-gateway", "/psp/outcomes/refused", "/v1/psp/outcomes/refused", "resource_viewer", "payments"),
+  r("POST", "psp-gateway", "/psp/outcomes/{reference}/redrive", "/v1/psp/outcomes/{reference}/redrive", "resource_viewer", "payments"),
+
+  // ingest (shared `payments`): the merchant edge's request log, rate limits and lost answers, `Routes.paymentsOperator`
+  r("GET", "ingest", "/ingest/sub-brands/{subBrand}/requests", "/v1/ingest/sub-brands/{subBrand}/requests", "resource_viewer", "payments"),
+  r("GET", "ingest", "/ingest/sub-brands/{subBrand}/rate", "/v1/ingest/sub-brands/{subBrand}/rate", "resource_viewer", "payments"),
+  r("PUT", "ingest", "/ingest/sub-brands/{subBrand}/rate", "/v1/ingest/sub-brands/{subBrand}/rate", "resource_viewer", "payments"),
+  r("GET", "ingest", "/ingest/lost-answers", "/v1/ingest/lost-answers", "resource_viewer", "payments"),
+  r("POST", "ingest", "/ingest/lost-answers/{recordId}/seen", "/v1/ingest/lost-answers/{recordId}/seen", "resource_viewer", "payments"),
 
   // reporting: ReportingEndpoint at /v1/casino/brands/<slug>/reporting, each route's permission its `Access`'s.
   // A `format=csv` read is an export (a document, `202 {reference}` over the synchronous limit); the page
@@ -242,6 +362,11 @@ export const table: readonly Row[] = [
   r("GET", "reporting", "/players/{playerId}/dispute-report", `${B}/reporting/players/{playerId}/dispute-report`, "export.player"),
   r("GET", "reporting", "/documents", `${B}/reporting/documents`, "report.read"),
   r("GET", "reporting", "/documents/{reference}", `${B}/reporting/documents/{reference}`, "report.read"),
+
+  // reporting's settings (Access.settings): the reports tab, test accounts, the default currency, the
+  // synchronous limits and each document kind's lifetime
+  r("GET", "reporting", "/settings", `${B}/reporting/settings`, "config.brand"),
+  r("PUT", "reporting", "/settings", `${B}/reporting/settings`, "config.brand"),
 
   // each service's views' freshness (amendment F, T051): its service endpoint, the permission that opens its lists
   r("GET", "players", "/status", `${B}/players/status`, "player.read"),
