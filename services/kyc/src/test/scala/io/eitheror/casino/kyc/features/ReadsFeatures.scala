@@ -16,10 +16,6 @@ import java.time.Instant
  */
 class ReadsFeatures extends KycFeatures("reads.feature"):
 
-  // spec 030 K3: bound by T070, with the decisions read
-  override protected def ranElsewhere: Map[String, String] = Map(
-    "an operator reads a player's decisions in order, each with who made it" -> "T070 (pending)")
-
   /** The brand's players, one per state, named by the state. */
   private var players: Map[String, String] = Map.empty
   private var read: JsonNode               = null
@@ -161,4 +157,34 @@ class ReadsFeatures extends KycFeatures("reads.feature"):
     eventually("the pending fact")(kit.facts(CasinoPlayers).collectFirst { case f: PlayerKycPending if f.playerId == player => f })
     val v = eventually("the verified fact")(kit.facts(CasinoPlayers).collectFirst { case f: PlayerKycVerified if f.playerId == player => f })
     assertEquals((v.previousValue, v.newValue, v.actor, v.actorId), ("pending", "verified", "operator", Some("op-1")))
+  }
+
+  // ── the player's decisions (spec 030 K3) ──────────────────────────────────────────────────────
+
+  private var rejectedDoc = ""
+  private var approvedDoc = ""
+
+  Given("a player whose document was rejected and then approved") { () =>
+    rejectedDoc = submit("identity_front")
+    assertEquals(kit.json("POST", kit.operatorPath(s"/$player/reviews/$rejectedDoc"), json("outcome" -> "rejected", "reasonCode" -> "document_unclear"),
+      kit.asOperator(subject = "op-first")).status, 200)
+    approvedDoc = submit("identity_front")
+    assertEquals(kit.json("POST", kit.operatorPath(s"/$player/reviews/$approvedDoc"), json("outcome" -> "approved"),
+      kit.asOperator(subject = "op-second")).status, 200)
+  }
+
+  When("an operator reads the player's decisions") { () =>
+    val r = kit.request("GET", kit.operatorPath(s"/$player/decisions"), None, kit.asOperator())
+    assertEquals(r.status, 200, r.text)
+    read = r.json
+  }
+
+  Then("both decisions are listed in order, each with the operator who made it and when") { () =>
+    val reviews = read.objects("decisions").filter(_.text("kind").contains("document_reviewed"))
+    assertEquals(reviews.map(d => (d.text("documentId"), d.text("outcome"), d.get("actor").text("kind"), d.get("actor").text("id"))),
+      Vector((Some(rejectedDoc), Some("rejected"), Some("operator"), Some("op-first")), (Some(approvedDoc), Some("approved"), Some("operator"), Some("op-second"))))
+    assertEquals(reviews.head.text("reasonCode"), Some("document_unclear"))
+    val times = reviews.flatMap(_.text("at")).map(Instant.parse)
+    assertEquals(times.size, 2)
+    assert(!times(1).isBefore(times(0)), times.toString)
   }

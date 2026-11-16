@@ -115,6 +115,21 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
   }
   }
 
+  /**
+   * The player's decisions (spec 030 K3), oldest first, each with who made it and when; `from` (inclusive) and
+   * `to` (exclusive), ISO instants, bound them. A reader without `identity.review` is shown them without the
+   * document ids, as the identity status is shown without the documents.
+   */
+  withAcl(may("identity.read")) {
+  get("/{playerId}/decisions") { (p: String) =>
+    OperatorEndpoint.period(request.query.raw) match
+      case Left(field) => refused("invalid_time", "field" -> field)
+      case Right((from, to)) =>
+        val shown = ctx.state(p).decisions.filter(d => from.forall(!d.at.isBefore(_)) && to.forall(d.at.isBefore))
+        ok(Json.obj("decisions" -> Json.arr(shown.map(Render.decision(_, withDocument = holds("identity.review")))*)))
+  }
+  }
+
   /** The reason code is checked before the document (R8); an outcome neither approved nor rejected is not a review. */
   withAcl(may("identity.review")) {
   postBody("/{playerId}/reviews/{documentId}") { (p: String, d: String, text: String) =>
@@ -223,6 +238,12 @@ object OperatorEndpoint:
         page <- number("page", 1, Int.MaxValue / MaxPageSize)
         size <- number("pageSize", 50, MaxPageSize)
       yield Some((page, size))
+
+  /** `from` and `to` as instants when given; Left names the first that is not one. */
+  def period(q: String => Option[String]): Either[String, (Option[java.time.Instant], Option[java.time.Instant])] =
+    def instant(name: String): Either[String, Option[java.time.Instant]] =
+      q(name).map(_.trim).filter(_.nonEmpty).fold(Right(None))(v => scala.util.Try(java.time.Instant.parse(v)).toOption.map(Some(_)).toRight(name))
+    for f <- instant("from"); t <- instant("to") yield (f, t)
 
   /** What `PUT /status` sets; `POST /override` sets the other two. */
   val Settable: Set[Status]    = Set(Status.Pending, Status.Verified)

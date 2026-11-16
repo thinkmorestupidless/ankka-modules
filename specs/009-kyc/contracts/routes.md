@@ -47,6 +47,7 @@ ACL: `Routes.operator(slug)`. Each route also checks a role:
 | `GET /{playerId}` | — | the player read plus the operator's fields: reviewer per document, deadline, `sof`, `depositsByCurrency`, flags, `readyAt` | 404 `player_not_found` |
 | `POST /{playerId}/uploads` | `{category, contentType, reason}` | as the player's | as the player's; 400 `reason_required` |
 | `POST /{playerId}/documents` | `{documentId}` | as the player's | as the player's |
+| `GET /{playerId}/decisions?from=&to=` | — | `{decisions: [{kind, actor: {kind, id}, at, documentId?, category?, outcome?, reasonCode?, from?, to?, cause?}]}`, oldest first; `identity.read`, document ids only with `identity.review` (spec 030 K3) | 400 `invalid_time` naming `field` |
 | `GET /{playerId}/views/{documentId}` | — | the document's bytes, streamed: its type, `Content-Disposition: inline`, `Cache-Control: no-store`, `X-Content-Type-Options: nosniff` (spec 030 K5) | as the player's; 404 `document_not_found` also when the store no longer holds the object |
 | `POST /{playerId}/reviews/{documentId}` | `{outcome: approved|rejected, reasonCode?}` | `{document, status}` | 400 `invalid_rejection_reason`, 404 `document_not_found`, 409 `document_already_reviewed` |
 | `PUT /{playerId}/mode` | `{mode}` | `{mode, status, readyAt}` | 400 `invalid_mode` |

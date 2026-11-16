@@ -34,6 +34,7 @@ activeRestrictions: ["COOLING_OFF"|"SELF_EXCLUDED"], realityCheckIntervalMinutes
 | Route | Body | Answer | Refusals |
 |---|---|---|---|
 | `GET /{player}` | — | 200 the full state: the status, the exclusion, the return request, cases, history | — |
+| `GET /{player}/history?from=&to=` | — | 200 the player's `{player}/history`, newest first; `from` (inclusive) and `to` (exclusive) ISO instants bound it (spec 030 G3, `protection.read`) | 400 `invalid_request` naming `field`, 503 |
 | `PUT /{player}/limits/{type}` | `value`, `currency?` | 200 the status | 400 as the player's, no minimum |
 | `DELETE /{player}/limits/{type}` | — | 200 the status | 404 `no_limit` |
 | `PUT /{player}/cooling-off` | `until` | 200 the status | as the player's, no `break_active` (an operator may replace) |

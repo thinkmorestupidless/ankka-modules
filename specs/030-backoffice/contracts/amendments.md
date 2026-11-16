@@ -65,7 +65,7 @@ Three kinds recur and are named by letter:
 |---|---|
 | K1 | M, in the ACL; `identity.read` admits a reader to `GET /{p}` without documents |
 | K2 | `queue`: L (`counts` kept) |
-| K3 | `{p}/decisions` GET: the player's reviews and decisions with actor and time |
+| K3 | `{p}/decisions` GET (`identity.read`; document ids with `identity.review`): the player's reviews and decisions with actor and time, oldest first, `from`/`to` (`{decisions: [{kind, actor, at, …}]}`, spec 009 routes.md) |
 | K4 | F |
 | K5 | `GET /{p}/views/{d}` (`identity.review`) answers the document's bytes, streamed from the store, with the type checked at confirm, `Content-Disposition: inline`, `Cache-Control: no-store` and `X-Content-Type-Options: nosniff`, in place of `{url, expiresAt}`; the view is recorded with the operator once the store has the object open; refused as before (404 `document_not_found`, also for an object gone from the store, 410 `document_erased`, 503 `storage_unavailable`). The player's `views/{d}` keeps its signed link. The backoffice passes the bytes through and follows no address (FR-031; research, *Identity documents are streamed by kyc*) |
 
@@ -75,7 +75,7 @@ Three kinds recur and are named by letter:
 |---|---|
 | G1 | M |
 | G2 | `cases?status=` brand-wide, L, oldest first |
-| G3 | `{p}/history` for operators (the player's own route's data) |
+| G3 | `{p}/history` for operators (the player's own route's data, `protection.read`), `from`/`to` |
 | G4 | F |
 
 ## rewards (spec 011)
