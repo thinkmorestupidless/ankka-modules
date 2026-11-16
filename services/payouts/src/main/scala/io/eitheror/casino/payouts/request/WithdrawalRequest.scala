@@ -30,7 +30,7 @@ final class WithdrawalRequest(@scala.annotation.unused context: EventSourcedEnti
   def open(c: Open): Effect[RequestAnswer] =
     if currentState.opened then same
     else write(Opened(c.requestId, c.playerId, c.amount, c.paidAmount, c.currency, c.terminal, c.payee, c.forfeit, c.kyc, c.at,
-      c.voidedAmount))
+      c.voidedAmount, c.balancesAtRequest, c.restrictedAtRequest))
 
   def cancel(c: Cancel): Effect[RequestAnswer] = opened { s =>
     s.status match
@@ -130,10 +130,42 @@ object WithdrawalRequest
   val erase             = command("erase")(_.erase)
   val get               = query("get")(_.get)
 
-  def applied(s: RequestState, event: RequestEvent): RequestState = event match
+  /** Who a settlement came from: the operator who made it by hand, else the provider or the workflow. */
+  private def settledBy(source: Source, operatorId: Option[String]): (String, Option[String]) =
+    operatorId match
+      case Some(op) => ("operator", Some(op))
+      case None => source match
+        case Source.Workflow => ("system", None)
+        case Source.Operator => ("operator", None)
+        case _               => ("provider", None)
+
+  def applied(s: RequestState, event: RequestEvent): RequestState =
+    val next = state(s, event)
+    transition(event).fold(next)(t => next.copy(transitions = next.transitions :+ t))
+
+  /** The state the event moved the request to, and who moved it; none for an event that moves no state. */
+  private def transition(event: RequestEvent): Option[Transition] = event match
+    case e: Opened                       => Some(Transition(Status.PendingReview.wire, e.at, "player"))
+    case Cancelled(by, code, at)         => Some(Transition(Status.Cancelled.wire, at, by.wire, reason = code))
+    case Approved(op, at)                => Some(Transition(Status.Approved.wire, at, "operator", Some(op)))
+    case Rejected(op, _, at)             => Some(Transition(Status.Rejected.wire, at, "operator", Some(op)))
+    case AwaitingManualPayout(why, at)   => Some(Transition(Status.AwaitingManualPayout.wire, at, "system", reason = Some(why)))
+    case PayoutInitiated(answer, _, at)  => Some(Transition(PayoutStatus.Initiated.wire, at, "system", reason = Some(answer)))
+    case MarkedNeedsReview(why, at)      => Some(Transition(PayoutStatus.NeedsReview.wire, at, "system", reason = Some(why)))
+    case Completed(source, _, _, at, op) =>
+      val (by, id) = settledBy(source, op)
+      Some(Transition(Status.Completed.wire, at, by, id))
+    case Failed(source, code, _, at, op) =>
+      val (by, id) = settledBy(source, op)
+      Some(Transition(Status.Failed.wire, at, by, id, Some(code)))
+    case Reversed(code, _, at)           => Some(Transition(Status.Reversed.wire, at, "provider", reason = Some(code)))
+    case _                               => None
+
+  private def state(s: RequestState, event: RequestEvent): RequestState = event match
     case e: Opened =>
       s.copy(opened = true, requestId = e.requestId, playerId = e.playerId, amount = e.amount, paidAmount = e.paidAmount,
-        voidedAmount = e.voidedAmount, currency = e.currency, terminal = Some(e.terminal), payee = e.payee, forfeit = e.forfeit, kyc = e.kyc, createdAt = e.at)
+        voidedAmount = e.voidedAmount, currency = e.currency, terminal = Some(e.terminal), payee = e.payee, forfeit = e.forfeit, kyc = e.kyc, createdAt = e.at,
+        balancesAtRequest = e.balancesAtRequest, restrictedAtRequest = e.restrictedAtRequest)
     case Cancelled(_, _, at)       => s.copy(status = Status.Cancelled, settledAt = Some(at))
     case Approved(op, at)          => s.copy(status = Status.Approved, decisions = s.decisions :+ Decision(true, op, None, at))
     case Rejected(op, reason, at)  =>
@@ -143,11 +175,14 @@ object WithdrawalRequest
       s.copy(payoutStatus = PayoutStatus.Initiated, providerReference = ref.orElse(s.providerReference), initiatedAt = Some(at))
     case OutcomeRecorded(r)        => s.copy(outcomes = s.outcomes :+ r)
     case MarkedNeedsReview(_, _)   => s.copy(payoutStatus = PayoutStatus.NeedsReview)
-    case Completed(_, ref, _, at, _) =>
+    // A settlement by hand is kept with the other outcomes, naming the operator (spec 030 Y3); the gateway's and a
+    // poll's were recorded as they came.
+    case Completed(source, ref, note, at, op) =>
       s.copy(status = Status.Completed, payoutStatus = PayoutStatus.Resolved, providerReference = ref.orElse(s.providerReference),
-        settledAt = Some(at))
-    case Failed(_, _, _, at, _) =>
-      s.copy(status = Status.Failed, payoutStatus = PayoutStatus.Resolved, settledAt = Some(at))
+        settledAt = Some(at), outcomes = s.outcomes ++ op.map(id => OutcomeRecord(source, "completed", None, ref, note, at, Some(id))))
+    case Failed(source, code, note, at, op) =>
+      s.copy(status = Status.Failed, payoutStatus = PayoutStatus.Resolved, settledAt = Some(at),
+        outcomes = s.outcomes ++ op.map(id => OutcomeRecord(source, "failed", Some(code), None, note, at, Some(id))))
     case Reversed(_, ref, at)      => s.copy(status = Status.Reversed, providerReference = ref.orElse(s.providerReference), settledAt = Some(at))
     case ReferenceMismatched(_, _) => s
     case Erased(_) =>

@@ -122,3 +122,51 @@ class WithdrawalRequestSuite extends munit.FunSuite:
     assertEquals((s.payee, s.decisions.map(_.reason), s.outcomes.map(_.note)), (Payee(destinationId = Some("d-1")), Vector(None), Vector(None)))
     assertEquals((s.status, s.amount, s.erased), (Status.Rejected, 5000L, true))
     assertEquals(kit.call(WithdrawalRequest.erase)(Erase(at)).events.toVector, Vector.empty)
+
+  // ── spec 030 Y3 ──────────────────────────────────────────────────────────────────────────────
+
+  test("Y3: a confirmation or failure by hand is kept with the outcomes, naming the operator; the gateway's is not doubled"):
+    val manual = approved
+    manual.call(WithdrawalRequest.awaitManual)(AwaitManual("x", at)): Unit
+    manual.call(WithdrawalRequest.complete)(Complete(Source.Operator, None, Some(Personal("paid")), at, Some("op-2"))): Unit
+    assertEquals(manual.currentState.outcomes.map(o => (o.source, o.answer, o.operatorId)), Vector((Source.Operator, "completed", Some("op-2"))))
+    val failed = approved
+    failed.call(WithdrawalRequest.fail)(Fail(Source.Operator, "manual_payout_failed", None, at, Some("op-3"))): Unit
+    assertEquals(failed.currentState.outcomes.map(o => (o.answer, o.reasonCode, o.operatorId)),
+      Vector(("failed", Some("manual_payout_failed"), Some("op-3"))))
+    val paid = approved
+    paid.call(WithdrawalRequest.complete)(Complete(Source.Outcome, Some("uf-1"), None, at)): Unit
+    assertEquals(paid.currentState.outcomes, Vector.empty)
+
+  test("Y3: the balances the request was made at are kept; a request opened without them has none"):
+    val kit = fresh
+    kit.call(WithdrawalRequest.open)(opening.copy(balancesAtRequest = Some(100000L), restrictedAtRequest = Some(20000L))): Unit
+    assertEquals((kit.currentState.balancesAtRequest, kit.currentState.restrictedAtRequest), (Some(100000L), Some(20000L)))
+    assertEquals((opened.currentState.balancesAtRequest, opened.currentState.restrictedAtRequest), (None, None))
+
+  test("Y3: an Opened event written before the balances were recorded still reads, with none"):
+    val codec = io.eitheror.casino.payouts.PayoutsCodecs.stored[RequestEvent]
+    val now   = com.github.plokhotnyuk.jsoniter_scala.core.writeToString[RequestEvent](RequestEvent.Opened("r-1", "p-1", 5000L, 4800L, "EUR",
+      terminal, Payee(), Forfeit(), "verified", at, 200L, Some(1L), Some(2L)))(using codec)
+    val older = now.replace(""","balancesAtRequest":1""", "").replace(""","restrictedAtRequest":2""", "")
+    assert(!older.contains("AtRequest"), older)
+    com.github.plokhotnyuk.jsoniter_scala.core.readFromString[RequestEvent](older)(using codec) match
+      case e: RequestEvent.Opened => assertEquals((e.voidedAmount, e.balancesAtRequest, e.restrictedAtRequest), (200L, None, None))
+      case other                  => fail(s"read $other")
+
+  test("Y3: every state the request passed through, with when and who moved it"):
+    val kit = approved
+    kit.call(WithdrawalRequest.awaitManual)(AwaitManual("no_automated_payout", at)): Unit
+    kit.call(WithdrawalRequest.complete)(Complete(Source.Operator, None, None, at, Some("op-2"))): Unit
+    assertEquals(kit.currentState.transitions.map(t => (t.status, t.by, t.operatorId, t.reason)), Vector(
+      ("pending_review", "player", None, None), ("approved", "operator", Some("op-1"), None),
+      ("awaiting_manual_payout", "system", None, Some("no_automated_payout")), ("completed", "operator", Some("op-2"), None)))
+    val polled = approved
+    polled.call(WithdrawalRequest.initiated)(Initiated("initiated", Some("uf-1"), at)): Unit
+    polled.call(WithdrawalRequest.needsReview)(NeedsReview("no_record", at)): Unit
+    polled.call(WithdrawalRequest.fail)(Fail(Source.Poll, "provider_failed", None, at)): Unit
+    assertEquals(polled.currentState.transitions.drop(2).map(t => (t.status, t.by, t.reason)), Vector(
+      ("initiated", "system", Some("initiated")), ("needs_review", "system", Some("no_record")), ("failed", "provider", Some("provider_failed"))))
+    val cancelled = opened
+    cancelled.call(WithdrawalRequest.cancel)(Cancel(Actor.Player, None, at)): Unit
+    assertEquals(cancelled.currentState.transitions.last.copy(at = at), Transition("cancelled", at, "player"))
