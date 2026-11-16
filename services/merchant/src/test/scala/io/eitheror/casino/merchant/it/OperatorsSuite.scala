@@ -26,9 +26,32 @@ class OperatorsSuite extends SharedKitSuite:
     assertEquals((u.emailVerified, u.requiredActions), (false, Vector("VERIFY_EMAIL")))
     val invite = kit.invitations.to(e).head
     assertEquals((invite.kind, invite.link), (Invitation.Kind.Invite, s"https://payments.example/accept-invitation?token=${invite.token}"))
-    val listed = kit.eventually("listed")(Option(kit.request("GET", "/v1/operators", None, kit.asOperator())).filter(_.text.contains(id)))
+    val listed = kit.eventually("listed")(Option(kit.request("GET", "/v1/operators?pageSize=200", None, kit.asOperator())).filter(_.text.contains(id)))
     val row = listed.json.get("operators").elements.asScala.find(_.textOr("operatorId", "") == id).get
     assertEquals((row.bool("pending"), row.textOr("email", "")), (Some(true), e))
+  }
+
+  test("the list is paged newest first within the caller's scope, with its total (spec 030 H5)") {
+    val r   = kit.subBrand()
+    val ids = (1 to 3).map { _ =>
+      val c = create(kit.asOperator(), email, "resource_viewer", "sub_brand", r.subBrandId)
+      assertEquals(c.status, 201, c.text)
+      Thread.sleep(5)
+      c.str("operatorId")
+    }
+    val scoped = kit.asOperator(level = "sub_brand", scopeId = r.subBrandId, roles = "resource_admin", subject = "lister")
+    def page(q: String) = kit.request("GET", s"/v1/operators$q", None, scoped)
+    def listed(reply: Reply) = reply.json.get("operators").elements.asScala.map(_.textOr("operatorId", "")).toVector
+    val all = kit.eventually("all three listed")(Option(page("")).filter(r => r.json.long("total").contains(3L)))
+    assertEquals((all.json.long("page"), all.json.long("pageSize")), (Some(1L), Some(25L)))
+    assertEquals(listed(all), ids.reverse.toVector, "newest first")
+    val first  = page("?page=1&pageSize=2")
+    val second = page("?page=2&pageSize=2")
+    assertEquals((listed(first), listed(second)), (ids.reverse.take(2).toVector, Vector(ids.head)))
+    assertEquals((second.json.long("total"), second.json.long("page"), second.json.long("pageSize")), (Some(3L), Some(2L), Some(2L)))
+    assertEquals(listed(page("?page=3&pageSize=2")), Vector.empty)
+    assertEquals(page("?pageSize=500").json.long("pageSize"), Some(25L), "a size over 200 is the default")
+    assertEquals(page("?page=0").json.long("page"), Some(1L))
   }
 
   test("accepting the invitation sets the password once; a second accept with the same token is refused") {

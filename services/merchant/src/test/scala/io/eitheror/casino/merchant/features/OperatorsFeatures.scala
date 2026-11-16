@@ -77,7 +77,7 @@ class OperatorsFeatures extends MerchantFeatures("operators.feature"):
   Then("the operator reads as disabled") { () =>
     kit.eventually("disabled")(Option(kit.components.forEventSourcedEntity(EntityId(id)).call(Operator.get).invoke()).filter(!_.enabled))
     import scala.jdk.CollectionConverters.*
-    kit.eventually("listed as disabled")(Option(kit.request("GET", "/v1/operators", None, kit.asOperator()))
+    kit.eventually("listed as disabled")(Option(kit.request("GET", "/v1/operators?pageSize=200", None, kit.asOperator()))
       .flatMap(_.json.get("operators").elements.asScala.find(_.textOr("operatorId", "") == id)).filter(_.bool("enabled").contains(false)))
   }
 
