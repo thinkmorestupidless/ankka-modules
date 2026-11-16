@@ -191,6 +191,13 @@ export const Actions = {
   "config.reportingSettings": { label: "action.config.reportingSettings.label", effect: "action.config.reportingSettings.effect", permission: "config.brand", reason: "none" },
   // a module is asked of the vendor with a note, kept with the request (players' moduleRequest)
   "module.request": { label: "action.module.request.label", effect: "action.module.request.effect", permission: "modules.request", reason: "none" },
+  // game-provider: a provider's configuration replaced whole, the catalogue read again, its configuration;
+  // an unacknowledged call replayed (no reason) or resolved with the reason game-provider requires
+  "games.configureProvider": { label: "action.games.configureProvider.label", effect: "action.games.configureProvider.effect", permission: "config.games", reason: "none" },
+  "games.refreshCatalogue": { label: "action.games.refreshCatalogue.label", effect: "action.games.refreshCatalogue.effect", permission: "config.games", reason: "none" },
+  "games.catalogue": { label: "action.games.catalogue.label", effect: "action.games.catalogue.effect", permission: "config.games", reason: "none" },
+  "callback.replay": { label: "action.callback.replay.label", effect: "action.callback.replay.effect", permission: "callback.resolve", reason: "none" },
+  "callback.resolve": { label: "action.callback.resolve.label", effect: "action.callback.resolve.effect", permission: "callback.resolve", reason: "required" },
 } as const satisfies Record<string, ActionDescription>;
 
 export type ActionId = keyof typeof Actions;

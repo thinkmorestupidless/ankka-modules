@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import type { Me } from "../../src/shared/access.ts";
 import { t } from "../../src/shared/messages/index.ts";
 import { rewardBody, whyOff, WithdrawalSettingsPage } from "../../src/web/areas/configuration/brand.tsx";
+import { overridden, toggled } from "../../src/web/areas/configuration/games.tsx";
 import { MeContext, ReadOnlyContext } from "../../src/web/frame/context.ts";
 
 afterEach(() => {
@@ -85,5 +86,17 @@ describe("why a module is off", () => {
     expect(whyOff({ module: "casino", status: "disabled" }, false)).toBe(t("config.modules.why.disabled"));
     expect(whyOff(undefined, false)).toBe(t("config.modules.why.notEntitled"));
     expect(whyOff(undefined, true)).toBe(t("config.modules.why.requested"));
+  });
+});
+
+describe("the catalogue's configuration (game-provider)", () => {
+  const held = { disabledDevelopers: ["pragmatic"], disabledCategories: [], gameOverrides: { sweet_bonanza: false } };
+  it("turns a developer or category on and off", () => {
+    expect(toggled(held, "disabledDevelopers", "pragmatic", true).disabledDevelopers).toEqual([]);
+    expect(toggled(held, "disabledCategories", "live", false).disabledCategories).toEqual(["live"]);
+  });
+  it("keys a game's own setting `<provider>/<code>`, dropping the bare code the original wrote", () => {
+    expect(overridden(held, { provider: "st8", code: "sweet_bonanza" }, true).gameOverrides).toEqual({ "st8/sweet_bonanza": true });
+    expect(overridden(held, { provider: "st8", code: "sweet_bonanza" }, undefined).gameOverrides).toEqual({});
   });
 });

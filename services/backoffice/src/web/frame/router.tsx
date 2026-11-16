@@ -26,6 +26,8 @@ import { ProtectionCasesPage } from "../areas/protection/cases.tsx";
 import { FraudCasesPage } from "../areas/fraud/cases.tsx";
 import { IdentityPolicyPage } from "../areas/configuration/identity-policy.tsx";
 import { ProtectionSettingsPage } from "../areas/configuration/protection-settings.tsx";
+import { GamesPage } from "../areas/configuration/games.tsx";
+import { CallbacksPage } from "../areas/configuration/callbacks.tsx";
 import { BrandSitePage, ConfigurationIndexPage, CountriesPage, CurrenciesPage, ModulesRoute, ReportingSettingsPage, RewardSettingsPage, WithdrawalSettingsPage } from "../areas/configuration/brand.tsx";
 
 const page = (label: MessageKey): Page => () => <Placeholder label={label} />;
@@ -62,6 +64,8 @@ export const Pages: [string, Page][] = [
   ["/configuration/withdrawals", () => <WithdrawalSettingsPage />],
   ["/configuration/rewards", () => <RewardSettingsPage />],
   ["/configuration/reporting", () => <ReportingSettingsPage />],
+  ["/configuration/games", () => <GamesPage />],
+  ["/configuration/callbacks", () => <CallbacksPage />],
   ["/configuration/identity-policy", () => <IdentityPolicyPage />],
   ["/configuration/protection-settings", () => <ProtectionSettingsPage />],
   ["/configuration/$area", page("area.configuration")],
