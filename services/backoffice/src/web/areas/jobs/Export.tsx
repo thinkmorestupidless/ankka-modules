@@ -43,7 +43,7 @@ export function Export({ kind, params, label, unavailable, onRefused, start = st
       {unavailable ? (
         <span className="bo-muted">{unavailable}</span>
       ) : (
-        <button type="button" className="bo-button" data-variant="primary" disabled={state.at === "working"} onClick={() => void run()}>
+        <button type="button" className="bo-button" disabled={state.at === "working"} onClick={() => void run()}>
           {state.at === "working" ? t("action.working") : (label ?? t("reports.export"))}
         </button>
       )}
