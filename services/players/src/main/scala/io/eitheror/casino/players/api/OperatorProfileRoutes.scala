@@ -166,6 +166,8 @@ final class OperatorProfileRoutes(ctx: Ctx):
     }
     // spec 011 FR-036: shown as the flag is, only while it holds (the original's `noDepositOfferBlocked`)
     if s.noDepositBlocked then o.put("noDepositOfferBlocked", true)
+    // spec 030 P7: as the original's `managerTags`, only when the player carries one
+    if s.managerTags.tags.nonEmpty then o.set[JsonNode]("managerTags", Json.arr(s.managerTags.tags*))
     o
 
 object OperatorProfileRoutes:

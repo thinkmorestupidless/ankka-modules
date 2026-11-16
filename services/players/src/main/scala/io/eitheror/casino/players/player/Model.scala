@@ -92,6 +92,18 @@ final case class VerificationEmail(lastSentAt: Option[Instant] = None, pending: 
 
 final case class Suspension(reason: String, at: Instant)
 
+/**
+ * An operator's own short labels on a player (spec 030 P7; the original's `manager_tags`), with who last set
+ * them and when. Read with the player; they change nothing about what the player may do.
+ */
+final case class ManagerTags(tags: Vector[String] = Vector.empty, setBy: String = "", setAt: Option[Instant] = None)
+
+object ManagerTags:
+  /** A tag's most characters (spec 030 P7). */
+  val MaxLength: Int = 40
+  /** The most tags a player carries. */
+  val MaxCount: Int = 20
+
 /** `stages`: the erasure's states already recorded for the audit beyond `filed` (spec 018 FR-019). */
 final case class ErasureFiling(correlationId: String, holdUntil: Instant, stages: Set[String] = Set.empty)
 
@@ -133,7 +145,8 @@ final case class PlayerState(
     exclusionAt: Option[Instant] = None,
     exclusionUntil: Option[Instant] = None,
     erasure: Option[ErasureFiling] = None,
-    withdrawalsOpen: Set[String] = Set.empty
+    withdrawalsOpen: Set[String] = Set.empty,
+    managerTags: ManagerTags = ManagerTags()
 ):
   def exists: Boolean = status.nonEmpty
   def primary: Option[EmailAddress] = emails.find(_.primary)
@@ -219,6 +232,9 @@ object PlayerEvent:
   /** A status carried over from the original by the migration (spec 019), `blocked` among them; no command persists it. */
   final case class StatusImported(status: String, at: Instant)                                     extends PlayerEvent
 
+  /** An operator set the player's manager tags (spec 030 P7): the whole list, and the one before it. */
+  final case class ManagerTagsSet(tags: Vector[String], previous: Vector[String], actorId: String, at: Instant) extends PlayerEvent
+
   /** An operator sent the realm's reset link (FR-033): audited, not a trail entry, and it changes nothing on the player. */
   final case class ResetLinkSent(operatorId: String, at: Instant)                                  extends PlayerEvent
 
@@ -279,3 +295,4 @@ final case class Withdrawal(withdrawalId: String, at: Instant)
 final case class FileErasure(correlationId: String, holdUntil: Instant, at: Instant)
 final case class ErasureStage(stage: String, at: Instant)
 final case class SendResetLink(operatorId: String, at: Instant)
+final case class SetManagerTags(tags: Vector[String], actorId: String, at: Instant)

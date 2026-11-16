@@ -19,6 +19,7 @@ import java.time.{Duration, Instant, LocalDate}
 import java.util.UUID
 import scala.concurrent.Await
 import scala.concurrent.duration.*
+import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
 import Answers.*
@@ -161,6 +162,35 @@ final class OperatorStatusRoutes(ctx: Ctx):
       if d.changed then
         writeNote(playerId, s"PotVIP status ${if flag then "enabled" else "disabled"} by ${author(p)}", author(p), pinned = false): Unit
       ok(Json.obj("potVip" -> flag))
+    }
+
+  /** `GET players/{p}/tags` (spec 030 P7): `{tags, setBy, setAt}`, `setBy` and `setAt` `null` until first set. */
+  def managerTags(playerId: String): Reply = known(playerId)(s => ok(OperatorStatusRoutes.tagsOf(s.managerTags)))
+
+  /**
+   * `PUT players/{p}/tags` (`tier.change`, spec 030 P7): `{"tags": [..]}` replaces the list, recorded with the
+   * operator and the time; each tag added or removed is also a note, as the original wrote one. A tag over 40
+   * characters is `400 invalid_tag` naming it (`tag`, `maxLength`), more than 20 `400 too_many_tags`, no
+   * `tags` array of strings `400 missing_fields`. Answers as `GET`.
+   */
+  def setManagerTags(p: Principal, playerId: String, text: String): Reply =
+    known(playerId) { before =>
+      val b = body(text)
+      Option(b.get("tags")).filter(n => n.isArray && n.elements.asScala.forall(_.isTextual)) match
+        case None => refusal(400, "missing_fields", "tags is required, an array of strings", "fields" -> Json.arr("tags"))
+        case Some(_) =>
+          val d = player(playerId).call(PlayerEntity.setManagerTags).invoke(SetManagerTags(b.strings("tags"), p.subject, now()))
+          answer(d) {
+            val after = stateOf(playerId).managerTags
+            if d.changed then
+              def lower(ts: Vector[String]) = ts.map(_.toLowerCase(java.util.Locale.ROOT)).toSet
+              val (was, is) = (before.managerTags.tags, after.tags)
+              is.filterNot(t => lower(was)(t.toLowerCase(java.util.Locale.ROOT))).foreach(t =>
+                writeNote(playerId, s"Manager tag \"$t\" added by ${author(p)}", author(p), pinned = false): Unit)
+              was.filterNot(t => lower(is)(t.toLowerCase(java.util.Locale.ROOT))).foreach(t =>
+                writeNote(playerId, s"Manager tag \"$t\" removed by ${author(p)}", author(p), pinned = false): Unit)
+            ok(OperatorStatusRoutes.tagsOf(after))
+          }
     }
 
   /**
@@ -474,6 +504,10 @@ final class OperatorStatusRoutes(ctx: Ctx):
       case Some(r)                      => json(r.status, r.body.getOrElse(Json.obj()))
 
 object OperatorStatusRoutes:
+  /** The manager tags as `GET` and `PUT players/{p}/tags` answer them (spec 030 P7). */
+  def tagsOf(t: ManagerTags): ObjectNode =
+    Json.obj("tags" -> Json.arr(t.tags*), "setBy" -> Option(t.setBy).filter(_.nonEmpty).orNull, "setAt" -> t.setAt.map(_.toString).orNull)
+
   /** The hold a closure starts when the brand names no `retentionDays`: 5 years. */
   val DefaultRetentionDays: Int    = 1825
   val DefaultSuspendReason: String = "Suspended by operator"

@@ -23,3 +23,11 @@ class AuditMappingSuite extends munit.FunSuite:
     assertEquals(changes.map(_.field).distinct.sorted, Vector("consent.email", "consent.phone", "consent.push", "consent.sms"))
     assert(changes.forall(c => !PersonalFields.names(c.field)), changes.map(_.field).toString)
   }
+
+  test("manager tags set (spec 030 P7) are one record with the operator, the player, and the list before and after") {
+    val r = Facts.playerAudit("goldvibe", "p-1", 4, PlayerEvent.ManagerTagsSet(Vector("host: ana", "high value"), Vector("vip"), "op-1", at))
+      .map(_.fact).getOrElse(fail("no record"))
+    assertEquals((r.action, r.actorId, r.subjectId, r.occurredAt), ("manager-tags", "op-1", "p-1", at))
+    assertEquals(r.changes.map(c => (c.field, c.before, c.after)), Vector(("managerTags", Some("vip"), Some("host: ana, high value"))))
+    assert(r.changes.forall(c => !PersonalFields.names(c.field)))
+  }
