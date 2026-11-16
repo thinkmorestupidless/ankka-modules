@@ -44,11 +44,11 @@ interface BrandConfig {
 }
 
 const SiteFields: ConfigField[] = [
-  { name: "name", label: "config.brand.name", kind: "text", default: "" },
-  { name: "legalName", label: "config.brand.legalName", kind: "text", default: "" },
+  { name: "name", label: "config.brand.name", kind: "text", default: "", hint: "config.brand.name.hint" },
+  { name: "legalName", label: "config.brand.legalName", kind: "text", default: "", hint: "config.brand.legalName.hint" },
   { name: "playerSiteBase", label: "config.brand.playerSiteBase", kind: "text", default: "", hint: "config.brand.playerSiteBase.hint" },
-  { name: "singleSession", label: "config.brand.singleSession", kind: "boolean", default: false },
-  { name: "multiAccountDetection", label: "config.brand.multiAccountDetection", kind: "boolean", default: true },
+  { name: "singleSession", label: "config.brand.singleSession", kind: "boolean", default: false, hint: "config.brand.singleSession.hint" },
+  { name: "multiAccountDetection", label: "config.brand.multiAccountDetection", kind: "boolean", default: true, hint: "config.brand.multiAccountDetection.hint" },
   { name: "retentionDays", label: "config.brand.retentionDays", kind: "whole", optional: true, default: null, hint: "config.brand.retentionDays.hint" },
 ];
 
@@ -114,7 +114,7 @@ interface CurrencyConfig {
 
 const CurrencyFields: ConfigField[] = [
   { name: "offered", label: "config.currencies.offered", kind: "list", default: [], hint: "config.currencies.offered.hint" },
-  { name: "defaultCurrency", label: "config.currencies.default", kind: "text", optional: true, default: null },
+  { name: "defaultCurrency", label: "config.currencies.default", kind: "text", optional: true, default: null, hint: "config.currencies.default.hint" },
 ];
 const ZoneFields: ConfigField[] = [{ name: "reportingZone", label: "config.currencies.zone", kind: "text", default: "UTC", hint: "config.currencies.zone.hint" }];
 
@@ -143,7 +143,7 @@ export function CurrenciesPage() {
       <h2>{t("config.currencies.zone")}</h2>
       <Loaded q={brand}>
         {(b) => (
-          <ConfigForm key={keyOf(b.reportingZone)} fields={ZoneFields} values={{ reportingZone: b.reportingZone }} action={Actions["config.zone"]} save={put(players.putBrandConfig)} onDone={saved} />
+          <ConfigForm primary={false} key={keyOf(b.reportingZone)} fields={ZoneFields} values={{ reportingZone: b.reportingZone }} action={Actions["config.zone"]} save={put(players.putBrandConfig)} onDone={saved} />
         )}
       </Loaded>
     </ConfigPage>
@@ -162,13 +162,13 @@ interface WalletConfig {
 
 const TurnoverFields: ConfigField[] = [
   { name: "multiplier", label: "config.withdrawals.multiplier", kind: "whole", default: 1, hint: "config.withdrawals.multiplier.hint" },
-  { name: "definition", label: "config.withdrawals.definition", kind: "choice", choices: ["gross_wagered", "net_loss"], choicePrefix: "config.withdrawals.definition", default: "gross_wagered" },
+  { name: "definition", label: "config.withdrawals.definition", kind: "choice", choices: ["gross_wagered", "net_loss"], choicePrefix: "config.withdrawals.definition", default: "gross_wagered", hint: "config.withdrawals.definition.hint" },
 ];
 
 function limitFields(currencies: readonly string[]): ConfigField[] {
   return currencies.flatMap((c): ConfigField[] => [
-    { name: `${c}.weekly`, label: "config.withdrawals.weekly", kind: "money", currency: c, optional: true, default: null },
-    { name: `${c}.monthly`, label: "config.withdrawals.monthly", kind: "money", currency: c, optional: true, default: null },
+    { name: `${c}.weekly`, label: "config.withdrawals.weekly", kind: "money", currency: c, optional: true, default: null, hint: "config.withdrawals.weekly.hint" },
+    { name: `${c}.monthly`, label: "config.withdrawals.monthly", kind: "money", currency: c, optional: true, default: null, hint: "config.withdrawals.monthly.hint" },
   ]);
 }
 
@@ -205,7 +205,7 @@ export function WithdrawalSettingsPage() {
           if (currencies.length === 0) return <p>{t("config.withdrawals.noCurrencies")}</p>;
           const values = Object.fromEntries(currencies.flatMap((cur) => [[`${cur}.weekly`, limits.limits[cur]?.weekly ?? null], [`${cur}.monthly`, limits.limits[cur]?.monthly ?? null]]));
           return (
-            <ConfigForm
+            <ConfigForm primary={false}
               key={keyOf(values)}
               fields={limitFields(currencies)}
               values={values}
@@ -228,8 +228,8 @@ export const GameTypes = ["slots", "table", "live_dealer", "poker", "bingo", "sp
 
 const RewardFields: ConfigField[] = [
   ...GameTypes.map((g): ConfigField => ({ name: `rate.${g}`, label: `config.rewards.rate.${g}` as const, kind: "whole", default: 100 })),
-  { name: "bonusWageringCounts", label: "config.rewards.bonusWageringCounts", kind: "boolean", default: true },
-  { name: "partialSplitsAllowed", label: "config.rewards.partialSplitsAllowed", kind: "boolean", default: true },
+  { name: "bonusWageringCounts", label: "config.rewards.bonusWageringCounts", kind: "boolean", default: true, hint: "config.rewards.bonusWageringCounts.hint" },
+  { name: "partialSplitsAllowed", label: "config.rewards.partialSplitsAllowed", kind: "boolean", default: true, hint: "config.rewards.partialSplitsAllowed.hint" },
   { name: "maxConcurrentAwards", label: "config.rewards.maxConcurrentAwards", kind: "whole", optional: true, default: null, hint: "config.rewards.maxConcurrentAwards.hint" },
 ];
 
@@ -276,9 +276,9 @@ interface ReportingSettings {
 const DocumentKinds = ["report-export", "dispute-report", "day-end-export", "compliance-export"] as const;
 
 const ReportingFields: ConfigField[] = [
-  { name: "reportsTab", label: "config.reporting.reportsTab", kind: "boolean", default: true },
-  { name: "excludeTestAccounts", label: "config.reporting.excludeTestAccounts", kind: "boolean", default: false },
-  { name: "defaultCurrency", label: "config.reporting.defaultCurrency", kind: "text", optional: true, default: null },
+  { name: "reportsTab", label: "config.reporting.reportsTab", kind: "boolean", default: true, hint: "config.reporting.reportsTab.hint" },
+  { name: "excludeTestAccounts", label: "config.reporting.excludeTestAccounts", kind: "boolean", default: false, hint: "config.reporting.excludeTestAccounts.hint" },
+  { name: "defaultCurrency", label: "config.reporting.defaultCurrency", kind: "text", optional: true, default: null, hint: "config.reporting.defaultCurrency.hint" },
   { name: "syncRows", label: "config.reporting.syncRows", kind: "whole", default: 500, hint: "config.reporting.syncRows.hint" },
   { name: "syncDays", label: "config.reporting.syncDays", kind: "whole", default: 7, hint: "config.reporting.syncDays.hint" },
   ...DocumentKinds.map((k): ConfigField => ({ name: `lifetime.${k}`, label: `config.reporting.lifetime.${k}` as const, kind: "whole", default: 24 })),

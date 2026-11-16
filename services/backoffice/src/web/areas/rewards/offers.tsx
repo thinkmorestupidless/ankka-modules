@@ -483,7 +483,7 @@ export function OffersPage() {
       {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
       {readOnly ? null : (
         <div className="bo-offers-bar">
-          <button type="button" className="bo-button" onClick={() => setEditing({})}>
+          <button type="button" className="bo-button" data-variant="primary" onClick={() => setEditing({})}>
             {t("offers.new")}
           </button>
           {changed ? (

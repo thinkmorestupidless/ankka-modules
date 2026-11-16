@@ -48,6 +48,8 @@ export interface ConfigFormProps {
   /** Sends the change: the changed fields by name, and every field's value after it (for owners that take a whole object). */
   save(change: Record<string, ConfigValue>, next: Record<string, ConfigValue>): Promise<Response>;
   onDone?(): void;
+  /** Its save is the screen's primary action (true unless the screen holds another form whose save is). */
+  primary?: boolean;
 }
 
 /** Two values the same: lists as sets, numbers and their text alike. */
@@ -112,17 +114,24 @@ export function shown(f: ConfigField, v: ConfigValue | undefined): string {
   return String(v);
 }
 
-/** The marks for a held value: differing from the default, from the licence profile. */
+/** Whether a value is one: a default of none (null, blank, an empty list) is no default to differ from. */
+const isValue = (v: ConfigValue | undefined): boolean => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0);
+
+/**
+ * The marks for a held value: differing from the default, from the licence profile. Said only where the
+ * default is a value (a field filled where the default is none is not news, DR-11), in the muted tone:
+ * a choice made, not a warning.
+ */
 export function Marks({ field, value }: { field: ConfigField; value: ConfigValue | undefined }) {
   return (
     <>
-      {field.default !== undefined && !same(value, field.default) ? (
-        <span className="bo-status" data-tone="warning" data-differs="default">
+      {isValue(field.default) && !same(value, field.default) ? (
+        <span className="bo-status" data-tone="neutral" data-differs="default">
           {t("config.form.differsFromDefault", { value: shown(field, field.default) })}
         </span>
       ) : null}
-      {field.profile !== undefined && !same(value, field.profile) ? (
-        <span className="bo-status" data-tone="warning" data-differs="profile">
+      {isValue(field.profile) && !same(value, field.profile) ? (
+        <span className="bo-status" data-tone="neutral" data-differs="profile">
           {t("config.form.differsFromProfile", { value: shown(field, field.profile) })}
         </span>
       ) : null}
@@ -130,7 +139,7 @@ export function Marks({ field, value }: { field: ConfigField; value: ConfigValue
   );
 }
 
-export function ConfigForm({ fields, values, action, save, onDone }: ConfigFormProps) {
+export function ConfigForm({ fields, values, action, save, onDone, primary = true }: ConfigFormProps) {
   const me = useOperator();
   const bags = useBags();
   const readOnly = useReadOnlyMode();
@@ -207,6 +216,7 @@ export function ConfigForm({ fields, values, action, save, onDone }: ConfigFormP
             subject={<p>{changed.length === 0 ? t("config.nothingChanged") : t("config.changes", { fields: changed.map((f) => `${t(f.label, f.labelValues)}: ${shown(f, parsed[f.name])}`).join("; ") })}</p>}
             run={() => save(change, next)}
             onDone={() => onDone?.()}
+            primary={primary}
           />
         </div>
       )}

@@ -33,9 +33,9 @@ interface Status {
 }
 
 const Connection: ConfigField[] = [
-  { name: "siteId", label: "config.crm.siteId", kind: "text", default: "" },
-  { name: "region", label: "config.crm.region", kind: "choice", choices: ["us", "eu"], choicePrefix: "config.crm.region", default: "us" },
-  { name: "fromEmail", label: "config.crm.fromEmail", kind: "text", default: "" },
+  { name: "siteId", label: "config.crm.siteId", kind: "text", default: "", hint: "config.crm.siteId.hint" },
+  { name: "region", label: "config.crm.region", kind: "choice", choices: ["us", "eu"], choicePrefix: "config.crm.region", default: "us", hint: "config.crm.region.hint" },
+  { name: "fromEmail", label: "config.crm.fromEmail", kind: "text", default: "", hint: "config.crm.fromEmail.hint" },
   { name: "trackApiKey", label: "config.crm.trackApiKey", kind: "text", default: "", hint: "config.crm.key.hint" },
   { name: "appApiKey", label: "config.crm.appApiKey", kind: "text", default: "", hint: "config.crm.key.hint" },
   { name: "webhookSigningKey", label: "config.crm.webhookSigningKey", kind: "text", default: "", hint: "config.crm.key.hint" },
@@ -45,7 +45,7 @@ const Connection: ConfigField[] = [
 export function crmFields(c: CrmConfig): ConfigField[] {
   return [
     ...Connection,
-    ...Object.keys(c.triggers).map((tr): ConfigField => ({ name: `trigger.${tr}`, label: "config.crm.transactionalId", labelValues: { name: word("config.crm.trigger", tr) }, kind: "text", default: "" })),
+    ...Object.keys(c.triggers).map((tr): ConfigField => ({ name: `trigger.${tr}`, label: "config.crm.transactionalId", labelValues: { name: word("config.crm.trigger", tr) }, kind: "text", default: "", hint: "config.crm.transactionalId.hint" })),
   ];
 }
 

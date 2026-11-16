@@ -29,22 +29,22 @@ interface AgentStatus {
 
 /** support-agent's ConfigBody (config/Model.scala), in the order an administrator reads it. */
 export const AgentFields: Omit<ConfigField, "default">[] = [
-  { name: "enabled", label: "config.agent.enabled", kind: "boolean" },
-  { name: "model", label: "config.agent.model", kind: "text" },
-  { name: "prompt", label: "config.agent.prompt", kind: "longtext" },
+  { name: "enabled", label: "config.agent.enabled", kind: "boolean", hint: "config.agent.enabled.hint" },
+  { name: "model", label: "config.agent.model", kind: "text", hint: "config.agent.model.hint" },
+  { name: "prompt", label: "config.agent.prompt", kind: "longtext", hint: "config.agent.prompt.hint" },
   { name: "handOffMessage", label: "config.agent.handOffMessage", kind: "longtext", hint: "config.agent.handOffMessage.hint" },
-  { name: "supportHours", label: "config.agent.supportHours", kind: "text" },
-  { name: "unavailableMessage", label: "config.agent.unavailableMessage", kind: "longtext" },
-  { name: "closingMessage", label: "config.agent.closingMessage", kind: "longtext" },
-  { name: "safeguardingOptIn", label: "config.agent.safeguardingOptIn", kind: "boolean" },
-  { name: "safeguardingMessage", label: "config.agent.safeguardingMessage", kind: "longtext", optional: true },
-  { name: "helpline", label: "config.agent.helpline", kind: "text", optional: true },
+  { name: "supportHours", label: "config.agent.supportHours", kind: "text", hint: "config.agent.supportHours.hint" },
+  { name: "unavailableMessage", label: "config.agent.unavailableMessage", kind: "longtext", hint: "config.agent.unavailableMessage.hint" },
+  { name: "closingMessage", label: "config.agent.closingMessage", kind: "longtext", hint: "config.agent.closingMessage.hint" },
+  { name: "safeguardingOptIn", label: "config.agent.safeguardingOptIn", kind: "boolean", hint: "config.agent.safeguardingOptIn.hint" },
+  { name: "safeguardingMessage", label: "config.agent.safeguardingMessage", kind: "longtext", optional: true, hint: "config.agent.safeguardingMessage.hint" },
+  { name: "helpline", label: "config.agent.helpline", kind: "text", optional: true, hint: "config.agent.helpline.hint" },
   { name: "personalFields", label: "config.agent.personalFields", kind: "list", hint: "config.agent.personalFields.hint" },
-  { name: "maxInputChars", label: "config.agent.maxInputChars", kind: "whole" },
-  { name: "turnsPerMinute", label: "config.agent.turnsPerMinute", kind: "whole" },
-  { name: "dailyTokens", label: "config.agent.dailyTokens", kind: "whole" },
-  { name: "approvalMinutes", label: "config.agent.approvalMinutes", kind: "whole" },
-  { name: "retentionDays", label: "config.agent.retentionDays", kind: "whole" },
+  { name: "maxInputChars", label: "config.agent.maxInputChars", kind: "whole", hint: "config.agent.maxInputChars.hint" },
+  { name: "turnsPerMinute", label: "config.agent.turnsPerMinute", kind: "whole", hint: "config.agent.turnsPerMinute.hint" },
+  { name: "dailyTokens", label: "config.agent.dailyTokens", kind: "whole", hint: "config.agent.dailyTokens.hint" },
+  { name: "approvalMinutes", label: "config.agent.approvalMinutes", kind: "whole", hint: "config.agent.approvalMinutes.hint" },
+  { name: "retentionDays", label: "config.agent.retentionDays", kind: "whole", hint: "config.agent.retentionDays.hint" },
 ];
 
 /** The fields with their defaults from version 0; a field version 0 lacks has none. */

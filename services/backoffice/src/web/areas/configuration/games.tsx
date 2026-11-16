@@ -64,15 +64,15 @@ export interface CatalogueConfig {
 
 /** The fields game-provider requires of a provider's configuration (ProviderConfiguration.problem). */
 const ProviderFields: ConfigField[] = [
-  { name: "apiUrl", label: "config.games.apiUrl", kind: "text" },
-  { name: "site", label: "config.games.site", kind: "text" },
+  { name: "apiUrl", label: "config.games.apiUrl", kind: "text", hint: "config.games.apiUrl.hint" },
+  { name: "site", label: "config.games.site", kind: "text", hint: "config.games.site.hint" },
   { name: "operatorPrivateKey", label: "config.games.operatorPrivateKey", kind: "text", hint: "config.games.operatorPrivateKey.hint" },
   { name: "providerPublicKey", label: "config.games.providerPublicKey", kind: "text", optional: true, hint: "config.games.providerKey.hint" },
-  { name: "providerKeyDocumentUrl", label: "config.games.providerKeyDocumentUrl", kind: "text", optional: true },
-  { name: "jurisdiction", label: "config.games.jurisdiction", kind: "text" },
-  { name: "lobbyUrl", label: "config.games.lobbyUrl", kind: "text" },
-  { name: "depositUrl", label: "config.games.depositUrl", kind: "text" },
-  { name: "walletUrl", label: "config.games.walletUrl", kind: "text", optional: true },
+  { name: "providerKeyDocumentUrl", label: "config.games.providerKeyDocumentUrl", kind: "text", optional: true, hint: "config.games.providerKeyDocumentUrl.hint" },
+  { name: "jurisdiction", label: "config.games.jurisdiction", kind: "text", hint: "config.games.jurisdiction.hint" },
+  { name: "lobbyUrl", label: "config.games.lobbyUrl", kind: "text", hint: "config.games.lobbyUrl.hint" },
+  { name: "depositUrl", label: "config.games.depositUrl", kind: "text", hint: "config.games.depositUrl.hint" },
+  { name: "walletUrl", label: "config.games.walletUrl", kind: "text", optional: true, hint: "config.games.walletUrl.hint" },
 ];
 
 function ProviderConfig({ p, done }: { p: Provider; done(): void }) {
@@ -222,7 +222,7 @@ function Catalogue() {
                 <label key={n}>
                   <input type="checkbox" checked={on} disabled={!editable} onChange={(e) => setDraft(toggled(c, kind, n, e.target.checked))} /> <span>{n}</span>{" "}
                   {held[kind].includes(n) ? (
-                    <span className="bo-status" data-tone="warning" data-differs="default">
+                    <span className="bo-status" data-tone="neutral" data-differs="default">
                       {t("config.games.offDiffers")}
                     </span>
                   ) : null}
@@ -279,7 +279,7 @@ function Catalogue() {
                               <option value="false">{t("config.games.override.off")}</option>
                             </select>{" "}
                             {overrideOf(held, g) !== undefined ? (
-                              <span className="bo-status" data-tone="warning" data-differs="default">
+                              <span className="bo-status" data-tone="neutral" data-differs="default">
                                 {t("config.games.overrideDiffers")}
                               </span>
                             ) : null}

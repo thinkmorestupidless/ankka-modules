@@ -122,6 +122,7 @@ function Invite({ done }: { done(): void }) {
   return (
     <Action
       action={Actions["operator.invite"]}
+      primary
       me={me}
       bags={bags}
       ready={ready}

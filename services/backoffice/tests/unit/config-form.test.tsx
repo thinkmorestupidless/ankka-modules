@@ -52,8 +52,10 @@ describe("the configuration form", () => {
     const multiplier = screen.getByLabelText(t("config.form.none")).closest("[data-field]") as HTMLElement;
     expect(within(multiplier).getByText(t("config.form.differsFromDefault", { value: "1" }))).toBeTruthy();
     const limit = screen.getByLabelText(`${t("config.form.yes")} (EUR)`).closest("[data-field]") as HTMLElement;
-    expect(limit.querySelector('[data-differs="default"]')).not.toBeNull();
+    // the limit's default is none: a limit set is not marked against it (DR-11); it is the profile's
+    expect(limit.querySelector('[data-differs="default"]')).toBeNull();
     expect(limit.querySelector('[data-differs="profile"]')).toBeNull();
+    expect(multiplier.querySelector('[data-differs="default"]')!.getAttribute("data-tone")).toBe("neutral");
     const on = screen.getByLabelText(t("config.form.no")).closest("[data-field]") as HTMLElement;
     expect(on.querySelector("[data-differs]")).toBeNull();
   });

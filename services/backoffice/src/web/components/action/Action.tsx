@@ -26,11 +26,13 @@ export interface ActionProps {
   onDone?(answer: Response): void;
   /** Whether what the subject asks for (an amount, a choice) is given; confirming waits for it. */
   ready?: boolean;
+  /** The screen's one primary action, drawn in --primary (contracts/design.md); the rest are not. */
+  primary?: boolean;
 }
 
 type Shown = { message: Message; next?: Message };
 
-export function Action({ action, me, bags, state, subject, run, onDone, ready }: ActionProps) {
+export function Action({ action, me, bags, state, subject, run, onDone, ready, primary }: ActionProps) {
   const needsId = useId();
   if (!offeredIn(action, state)) return null;
 
@@ -49,7 +51,7 @@ export function Action({ action, me, bags, state, subject, run, onDone, ready }:
       </span>
     );
   }
-  return <ActionDialog action={action} bags={bags} subject={subject} run={run} onDone={onDone} ready={ready} />;
+  return <ActionDialog action={action} bags={bags} subject={subject} run={run} onDone={onDone} ready={ready} primary={primary} />;
 }
 
 export interface ActionDialogProps {
@@ -59,10 +61,11 @@ export interface ActionDialogProps {
   run(reason: string | undefined): Promise<Response>;
   onDone?(answer: Response): void;
   ready?: boolean;
+  primary?: boolean;
 }
 
 /** The button that opens the confirmation, and the confirmation. */
-export function ActionDialog({ action, bags, subject, run, onDone, ready = true }: ActionDialogProps) {
+export function ActionDialog({ action, bags, subject, run, onDone, ready = true, primary }: ActionDialogProps) {
   const reasonId = useId();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
@@ -100,7 +103,7 @@ export function ActionDialog({ action, bags, subject, run, onDone, ready = true 
   return (
     <Dialog.Root open={open} onOpenChange={(next) => !pending && reset(next)}>
       <Dialog.Trigger asChild>
-        <button type="button" className="bo-button">
+        <button type="button" className="bo-button" data-variant={primary ? "primary" : undefined}>
           {t(action.label)}
         </button>
       </Dialog.Trigger>
