@@ -410,6 +410,10 @@ async function seedPlayer(world: World) {
     "GET /v1/casino/backoffice/{brand}/players/{playerId}/messages": { body: { items: [], total: 0, page: 1, pageSize: 20 } },
     "GET /v1/casino/backoffice/{brand}/players/{playerId}/crm": { body: { emailMarketingConsent: false, smsMarketingConsent: false, messageSuppressed: false } },
     "GET /v1/casino/backoffice/{brand}/merge-tags": { body: { tags: [] } },
+    // the games played, devices, and tier and tags tabs (T114)
+    "GET /v1/casino/backoffice/{brand}/players/{playerId}/games": { body: { games: [], truncated: false } },
+    "GET /v1/casino/backoffice/{brand}/players/{playerId}/devices": { body: { devices: [] } },
+    "GET /v1/casino/backoffice/{brand}/players/{playerId}/tags": { body: { tags: [], setBy: null, setAt: null } },
   });
   await world.doubles.fixtures("engagement", {
     "GET /v1/casino/backoffice/{brand}/players/{player}/sends": { body: { sends: [], total: 0 } },

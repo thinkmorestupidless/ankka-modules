@@ -9,6 +9,9 @@ import { PlayerMessages } from "./messages.tsx";
 import { PlayerProtection } from "./protection.tsx";
 import { PlayerRewards } from "./rewards.tsx";
 import { PlayerWithdrawals } from "./withdrawals.tsx";
+import { PlayerDevices } from "./devices.tsx";
+import { PlayerGamesPlayed } from "./games.tsx";
+import { PlayerTier } from "./tier.tsx";
 
 export interface ExtraTab {
   id: string;
@@ -20,6 +23,10 @@ export interface ExtraTab {
 export const ExtraTabs: ExtraTab[] = [
   { id: "rewards", label: "players.tab.rewards", show: (player) => <PlayerRewards player={player} /> },
   { id: "messages", label: "players.tab.messages", show: (player) => <PlayerMessages player={player} /> },
+  // T114: what the player plays, their devices, their VIP tier and manager tags (players P7 to P9)
+  { id: "played", label: "players.tab.played", show: (player) => <PlayerGamesPlayed player={player} /> },
+  { id: "devices", label: "players.tab.devices", show: (player) => <PlayerDevices player={player} /> },
+  { id: "tier", label: "players.tab.tier", show: (player) => <PlayerTier player={player} /> },
 ];
 
 const usePlayer = () => (useParams({ strict: false }) as { player?: string }).player;
