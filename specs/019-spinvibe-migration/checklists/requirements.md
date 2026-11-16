@@ -44,3 +44,4 @@
   in the spec until the batch pass.
 
 - Reconciliation 3 (2026-10-08, after specs 014–019): changes recorded under the spec's Clarifications; the checklist above still holds.
+- Amended by spec 030 (2026-11-16, X1): the operators' role mapping (FR-038 to FR-040, User Story 7, `features/migration/operator-roles.feature`); the checklist above still holds.
