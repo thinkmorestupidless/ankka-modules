@@ -7,6 +7,7 @@ import type { Locator } from "@playwright/test";
 import { t, type MessageKey } from "../../../src/shared/messages/index.ts";
 import { formatMoney, parseMoney } from "../../../src/shared/money.ts";
 import { describe, type ActionId } from "../../../src/web/actions/index.ts";
+import { offeringOf, type Offering } from "../offered.ts";
 import { expect, Given, Then, When, type World } from "../world.ts";
 
 const B = "/v1/casino/brands/{brand}";
@@ -134,14 +135,18 @@ Given("a withdrawal request that is {string}", async ({ world }, state: string) 
 
 const actions = (w: World) => main(w).getByRole("region", { name: t("withdrawals.request.actions") });
 
+/** A withdrawal request's actions; another feature's record sets its own (`offerIn`, rewards.steps.ts). */
+const RequestActions: Offering = { region: actions, named: Named, none: "withdrawals.request.noActions" };
+
 Then("the operator is offered {string}", async ({ world }, words: string) => {
-  const wanted = words === "nothing" ? [] : words.split(",").map((w) => describe(Named[w.trim()] ?? (() => { throw new Error(`no such action: ${w}`); })()).label);
-  const region = actions(world);
+  const { region: of, named, none } = offeringOf(world, RequestActions);
+  const wanted = words === "nothing" ? [] : words.split(",").map((w) => describe(named[w.trim()] ?? (() => { throw new Error(`no such action: ${w}`); })()).label);
+  const region = of(world);
   await expect(region).toBeVisible();
   const buttons = region.getByRole("button");
   await expect(buttons).toHaveCount(wanted.length);
   expect(await buttons.allTextContents()).toEqual(wanted.map((l) => t(l)));
-  if (wanted.length === 0) await expect(region).toContainText(t("withdrawals.request.noActions"));
+  if (wanted.length === 0) await expect(region).toContainText(t(none));
 });
 
 Then("each action says what it will do before it is done", async ({ world }) => {

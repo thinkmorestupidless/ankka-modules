@@ -161,6 +161,18 @@ export const Actions = {
   "config.identityProfile": { label: "action.config.identityProfile.label", effect: "action.config.identityProfile.effect", permission: "config.brand", reason: "none" },
   "config.protectionSettings": { label: "action.config.protectionSettings.label", effect: "action.config.protectionSettings.effect", permission: "config.brand", reason: "none" },
 
+  // rewards: a reward revoked (RewardAdminEndpoint.Revocations: funds and free rounds only while ACTIVE, a pending
+  // cap among the refused, NO_ACTIVE_BONUS; the reason kept if given); an operator's award (OperatorAwards: it
+  // records the operator and no reason); the brand's offers (OffersEndpoint: an offer is never removed, a delete
+  // deactivates it; the operator is recorded on every change, with no reason)
+  "reward.forfeit": { label: "action.reward.forfeit.label", effect: "action.reward.forfeit.effect", permission: "reward.revoke", reason: "optional", offeredIn: ["active"] },
+  "reward.reclaim": { label: "action.reward.reclaim.label", effect: "action.reward.reclaim.effect", permission: "reward.revoke", reason: "optional", offeredIn: ["active"] },
+  "reward.grant": { label: "action.reward.grant.label", effect: "action.reward.grant.effect", permission: "reward.grant", reason: "none" },
+  "offer.create": { label: "action.offer.create.label", effect: "action.offer.create.effect", permission: "offer.manage", reason: "none" },
+  "offer.edit": { label: "action.offer.edit.label", effect: "action.offer.edit.effect", permission: "offer.manage", reason: "none" },
+  "offer.deactivate": { label: "action.offer.deactivate.label", effect: "action.offer.deactivate.effect", permission: "offer.manage", reason: "none", offeredIn: ["active"] },
+  "offer.reorder": { label: "action.offer.reorder.label", effect: "action.offer.reorder.effect", permission: "offer.manage", reason: "none" },
+
   // players: the brand's roles (RolesRoutes.scala records the change and who made it, and no reason)
   "role.create": { label: "action.role.create.label", effect: "action.role.create.effect", permission: "roles.change", reason: "none" },
   "role.change": { label: "action.role.change.label", effect: "action.role.change.effect", permission: "roles.change", reason: "none" },
