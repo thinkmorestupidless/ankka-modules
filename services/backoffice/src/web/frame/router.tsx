@@ -14,11 +14,12 @@ import { AffiliatesArea } from "../areas/affiliates/area.tsx";
 import { JobsPage } from "../areas/jobs/JobsPage.tsx";
 import { DashboardPage } from "../areas/dashboard/DashboardPage.tsx";
 import { ReportPage } from "../areas/reports/ReportsPage.tsx";
-import { WalletsTab } from "../areas/corrections/adjust.tsx";
 import { AccountsPage } from "../areas/corrections/accounts.tsx";
 import { BatchPage } from "../areas/corrections/batch.tsx";
 import { IdentityQueuePage } from "../areas/identity/queue.tsx";
-import { IdentityTab, ProtectionTab, RewardsTab, WithdrawalsTab } from "../areas/players/tabs.tsx";
+import { PlayerPage } from "../areas/players/page.tsx";
+import { PlayersListPage } from "../areas/players/list.tsx";
+import { SearchPage } from "../areas/search/SearchPage.tsx";
 import { RewardsPage } from "../areas/rewards/list.tsx";
 import { OffersPage } from "../areas/rewards/offers.tsx";
 import { WithdrawalsQueuePage } from "../areas/withdrawals/queue.tsx";
@@ -36,15 +37,11 @@ const page = (label: MessageKey): Page => () => <Placeholder label={label} />;
 /** Path → the page; an area's task puts its own component here. */
 export const Pages: [string, Page][] = [
   ["/", () => <Home />],
-  ["/search", page("area.search")],
-  ["/players", page("area.players")],
-  ["/players/$player", page("area.players")],
-  // until the player's page (T075) puts them in its tabs
-  ["/players/$player/identity", IdentityTab],
-  ["/players/$player/protection", ProtectionTab],
-  ["/players/$player/withdrawals", WithdrawalsTab],
-  ["/players/$player/rewards", RewardsTab],
-  ["/players/$player/wallets", WalletsTab],
+  ["/search", () => <SearchPage />],
+  ["/players", () => <PlayersListPage />],
+  ["/players/$player", () => <PlayerPage />],
+  // a tab of the player's page (page.tsx); a tab another area routes on its own stays before it
+  ["/players/$player/$tab", () => <PlayerPage />],
   ["/withdrawals", () => <WithdrawalsQueuePage />],
   ["/withdrawals/$request", () => <WithdrawalRequestPage />],
   ["/adjustments/batch", () => <BatchPage />],

@@ -76,11 +76,12 @@ export const Actions = {
     reason: "required",
     offeredIn: ["active"],
   },
+  // reinstate reads no reason (OperatorStatusRoutes.reinstate); only a suspended player is reinstated
   "player.reinstate": {
     label: "action.player.reinstate.label",
     effect: "action.player.reinstate.effect",
     permission: "standing.change",
-    reason: "required",
+    reason: "none",
     offeredIn: ["suspended"],
   },
   "player.close": {
@@ -88,7 +89,7 @@ export const Actions = {
     effect: "action.player.close.effect",
     permission: "standing.change",
     reason: "required",
-    offeredIn: ["active", "suspended", "blocked"],
+    offeredIn: ["pending_email_verification", "active", "suspended", "self_excluded", "blocked"],
   },
   "player.reopen": {
     label: "action.player.reopen.label",
@@ -109,6 +110,21 @@ export const Actions = {
     permission: "session.end",
     reason: "none",
   },
+
+  // US3: players, the rest of a player's standing (OperatorStatusRoutes, OperatorProfileRoutes, ErasureRoutes):
+  // a reset link and the verification link take no reason; clearing a flag records who and when; an
+  // erasure is filed only for a closed account; the profile's and the consents' edits record who, no reason
+  "player.resetPassword": { label: "action.player.resetPassword.label", effect: "action.player.resetPassword.effect", permission: "profile.change", reason: "none" },
+  "player.verificationLink": { label: "action.player.verificationLink.label", effect: "action.player.verificationLink.effect", permission: "profile.change", reason: "none", offeredIn: ["pending_email_verification"] },
+  "player.clearSuspectFlag": { label: "action.player.clearSuspectFlag.label", effect: "action.player.clearSuspectFlag.effect", permission: "flag.clear", reason: "none", offeredIn: ["flagged"] },
+  "player.clearNoDepositBlock": { label: "action.player.clearNoDepositBlock.label", effect: "action.player.clearNoDepositBlock.effect", permission: "flag.clear", reason: "none", offeredIn: ["blocked"] },
+  "player.requestErasure": { label: "action.player.requestErasure.label", effect: "action.player.requestErasure.effect", permission: "erasure.request", reason: "none", offeredIn: ["closed"] },
+  "player.editProfile": { label: "action.player.editProfile.label", effect: "action.player.editProfile.effect", permission: "profile.change", reason: "none" },
+  "player.consents": { label: "action.player.consents.label", effect: "action.player.consents.effect", permission: "profile.change", reason: "none" },
+  "player.forceCloseSession": { label: "action.player.forceCloseSession.label", effect: "action.player.forceCloseSession.effect", permission: "session.end", reason: "none", offeredIn: ["active"] },
+  "note.write": { label: "action.note.write.label", effect: "action.note.write.effect", permission: "note.write", reason: "none" },
+  "note.pin": { label: "action.note.pin.label", effect: "action.note.pin.effect", permission: "note.write", reason: "none", offeredIn: ["unpinned"] },
+  "note.unpin": { label: "action.note.unpin.label", effect: "action.note.unpin.effect", permission: "note.write", reason: "none", offeredIn: ["pinned"] },
 
   // responsible-gambling: a break lifted is recorded with its reason (ProfileRoutes.scala)
   "protection.liftBreak": {
