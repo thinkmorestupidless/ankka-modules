@@ -29,6 +29,10 @@ import { FraudCasesPage } from "../areas/fraud/cases.tsx";
 import { IdentityPolicyPage } from "../areas/configuration/identity-policy.tsx";
 import { ProtectionSettingsPage } from "../areas/configuration/protection-settings.tsx";
 import { GamesPage } from "../areas/configuration/games.tsx";
+import { CrmPage } from "../areas/configuration/crm.tsx";
+import { SendsPage } from "../areas/configuration/sends.tsx";
+import { AgentPage } from "../areas/configuration/agent.tsx";
+import { AttributionPage } from "../areas/configuration/attribution.tsx";
 import { CallbacksPage } from "../areas/configuration/callbacks.tsx";
 import { BrandSitePage, ConfigurationIndexPage, CountriesPage, CurrenciesPage, ModulesRoute, ReportingSettingsPage, RewardSettingsPage, WithdrawalSettingsPage } from "../areas/configuration/brand.tsx";
 
@@ -64,6 +68,10 @@ export const Pages: [string, Page][] = [
   ["/configuration/reporting", () => <ReportingSettingsPage />],
   ["/configuration/games", () => <GamesPage />],
   ["/configuration/callbacks", () => <CallbacksPage />],
+  ["/configuration/crm", () => <CrmPage />],
+  ["/configuration/sends", () => <SendsPage />],
+  ["/configuration/agent", () => <AgentPage />],
+  ["/configuration/attribution", () => <AttributionPage />],
   ["/configuration/identity-policy", () => <IdentityPolicyPage />],
   ["/configuration/protection-settings", () => <ProtectionSettingsPage />],
   ["/configuration/$area", page("area.configuration")],

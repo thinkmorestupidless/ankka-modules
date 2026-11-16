@@ -6,7 +6,7 @@
 // neither is not marked; the page says so (as the identity policy and protection settings do).
 import { useId, useState } from "react";
 import { holds } from "../../shared/access.ts";
-import { t, type MessageKey } from "../../shared/messages/index.ts";
+import { t, type MessageKey, type Values } from "../../shared/messages/index.ts";
 import { decimalOf, formatMoney, parseMoney } from "../../shared/money.ts";
 import type { ActionDescription } from "../actions/index.ts";
 import { word } from "../areas/word.ts";
@@ -20,11 +20,14 @@ export interface ConfigField {
   /** The owner's field, as it answers and takes it. */
   name: string;
   label: MessageKey;
+  /** The label's values, for a label naming what the field is for (`{name}`). */
+  labelValues?: Values;
   /**
    * `text`; `whole` (a whole number); `boolean`; `choice` (one of `choices`, worded `<choicePrefix>.<value>`);
-   * `list` (comma-separated text, sent as a list); `money` (minor units of `currency`, typed as an amount).
+   * `list` (comma-separated text, sent as a list); `money` (minor units of `currency`, typed as an amount);
+   * `longtext` (text over several lines).
    */
-  kind: "text" | "whole" | "boolean" | "choice" | "list" | "money";
+  kind: "text" | "longtext" | "whole" | "boolean" | "choice" | "list" | "money";
   choices?: readonly string[];
   choicePrefix?: string;
   currency?: string;
@@ -78,7 +81,8 @@ export function parse(f: ConfigField, d: Draft): ConfigValue | undefined {
   if (f.kind === "boolean") return d === true;
   const text = String(d).trim();
   if (f.kind === "list") return text === "" ? [] : text.split(/[\s,]+/).filter((s) => s !== "");
-  if (text === "") return f.optional ? null : f.kind === "text" || f.kind === "choice" ? "" : undefined;
+  if (text === "") return f.optional ? null : f.kind === "text" || f.kind === "longtext" || f.kind === "choice" ? "" : undefined;
+  if (f.kind === "longtext") return String(d);
   if (f.kind === "whole") return /^\d+$/.test(text) ? Number(text) : undefined;
   if (f.kind === "money") {
     if (!f.currency) return undefined;
@@ -159,6 +163,8 @@ export function ConfigForm({ fields, values, action, save, onDone }: ConfigFormP
                 </option>
               ))}
             </select>
+          ) : f.kind === "longtext" ? (
+            <textarea id={id} className="bo-input" rows={6} value={String(d)} disabled={!editable} aria-describedby={marks} onChange={(e) => set(e.target.value)} />
           ) : (
             <input
               id={id}
@@ -174,7 +180,7 @@ export function ConfigForm({ fields, values, action, save, onDone }: ConfigFormP
         return (
           <div key={f.name} className="bo-field" data-field={f.name}>
             <label htmlFor={id}>
-              {t(f.label)}
+              {t(f.label, f.labelValues)}
               {f.kind === "money" && f.currency ? ` (${f.currency})` : ""}
             </label>
             {input}
@@ -190,7 +196,7 @@ export function ConfigForm({ fields, values, action, save, onDone }: ConfigFormP
           </div>
         );
       })}
-      {unreadable.length > 0 ? <p className="bo-field-error">{t("config.form.unreadable", { fields: unreadable.map((f) => t(f.label)).join(", ") })}</p> : null}
+      {unreadable.length > 0 ? <p className="bo-field-error">{t("config.form.unreadable", { fields: unreadable.map((f) => t(f.label, f.labelValues)).join(", ") })}</p> : null}
       {readOnly ? null : (
         <div className="bo-actions">
           <Action
@@ -198,7 +204,7 @@ export function ConfigForm({ fields, values, action, save, onDone }: ConfigFormP
             me={me}
             bags={bags}
             ready={unreadable.length === 0 && changed.length > 0}
-            subject={<p>{changed.length === 0 ? t("config.nothingChanged") : t("config.changes", { fields: changed.map((f) => `${t(f.label)}: ${shown(f, parsed[f.name])}`).join("; ") })}</p>}
+            subject={<p>{changed.length === 0 ? t("config.nothingChanged") : t("config.changes", { fields: changed.map((f) => `${t(f.label, f.labelValues)}: ${shown(f, parsed[f.name])}`).join("; ") })}</p>}
             run={() => save(change, next)}
             onDone={() => onDone?.()}
           />

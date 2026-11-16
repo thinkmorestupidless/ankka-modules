@@ -253,10 +253,12 @@ export const table: readonly Row[] = [
   r("GET", "attribution", "/signing-keys", `${P}/attribution/signing-keys`, "config.attribution"),
   r("POST", "attribution", "/signing-keys", `${P}/attribution/signing-keys`, "config.attribution"),
   r("DELETE", "attribution", "/signing-keys/{kid}", `${P}/attribution/signing-keys/{kid}`, "config.attribution"),
-  // `undelivered` needs `network=`; a delivery id is `<subscription>/<factId>`, sent percent-encoded. Literal, before `{id}`
+  // `undelivered` needs `network=`; a delivery id is `<subscription>/<factId>`, which attribution takes percent-encoded
+  // as one segment. The relay refuses an encoded `/` in a segment, so the browser sends the two halves and the row
+  // joins them. Literal, before `{id}`
   r("GET", "attribution", "/webhooks/undelivered", `${P}/attribution-webhooks/undelivered`, "fact.redeliver"),
-  r("POST", "attribution", "/webhooks/undelivered/{delivery}/resend", `${P}/attribution-webhooks/undelivered/{delivery}/resend`, "fact.redeliver"),
-  r("POST", "attribution", "/webhooks/undelivered/{delivery}/discard", `${P}/attribution-webhooks/undelivered/{delivery}/discard`, "fact.redeliver"),
+  r("POST", "attribution", "/webhooks/undelivered/{subscription}/{fact}/resend", `${P}/attribution-webhooks/undelivered/{subscription}%2F{fact}/resend`, "fact.redeliver"),
+  r("POST", "attribution", "/webhooks/undelivered/{subscription}/{fact}/discard", `${P}/attribution-webhooks/undelivered/{subscription}%2F{fact}/discard`, "fact.redeliver"),
   r("GET", "attribution", "/webhooks", `${P}/attribution-webhooks`, "config.attribution"),
   r("POST", "attribution", "/webhooks", `${P}/attribution-webhooks`, "config.attribution"),
   r("GET", "attribution", "/webhooks/{id}", `${P}/attribution-webhooks/{id}`, "config.attribution"),
