@@ -176,6 +176,10 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
   withAcl(may("tier.change")) {
   putBody(s"$P/tags") { (id: String, text: String) => status.setManagerTags(principal, id, text) }
   }
+  // spec 030 P8: the devices the player logged in from
+  withAcl(may("player.read")) {
+  get(s"$P/devices") { (id: String) => status.devices(id) }
+  }
   withAcl(may("profile.change")) {
   post(s"$P/reset-password") { (id: String) => account.resetPassword(principal, id) }
   }

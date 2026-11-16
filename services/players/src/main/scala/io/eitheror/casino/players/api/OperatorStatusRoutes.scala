@@ -164,6 +164,13 @@ final class OperatorStatusRoutes(ctx: Ctx):
       ok(Json.obj("potVip" -> flag))
     }
 
+  /**
+   * `GET players/{p}/devices` (spec 030 P8): each device the player logged in from, last seen first:
+   * `{devices: [{platform, browser, deviceType, country, firstSeenAt, lastSeenAt}]}`; `country` `null` when the
+   * log-in's address did not resolve. An erased player has none.
+   */
+  def devices(playerId: String): Reply = known(playerId)(s => ok(Json.obj("devices" -> OperatorStatusRoutes.devicesOf(s))))
+
   /** `GET players/{p}/tags` (spec 030 P7): `{tags, setBy, setAt}`, `setBy` and `setAt` `null` until first set. */
   def managerTags(playerId: String): Reply = known(playerId)(s => ok(OperatorStatusRoutes.tagsOf(s.managerTags)))
 
@@ -504,6 +511,12 @@ final class OperatorStatusRoutes(ctx: Ctx):
       case Some(r)                      => json(r.status, r.body.getOrElse(Json.obj()))
 
 object OperatorStatusRoutes:
+  /** A player's seen devices, last seen first (spec 030 P8): the operator's answer, and the player's export. */
+  def devicesOf(s: PlayerState): com.fasterxml.jackson.databind.node.ArrayNode =
+    Json.arr(s.devices.sortBy(d => (-d.lastSeenAt.toEpochMilli, -d.firstSeenAt.toEpochMilli)).map(d =>
+      Json.obj("platform" -> d.platform.reveal, "browser" -> d.browser.reveal, "deviceType" -> d.deviceType.reveal,
+        "country" -> d.country.orNull, "firstSeenAt" -> d.firstSeenAt.toString, "lastSeenAt" -> d.lastSeenAt.toString))*)
+
   /** The manager tags as `GET` and `PUT players/{p}/tags` answer them (spec 030 P7). */
   def tagsOf(t: ManagerTags): ObjectNode =
     Json.obj("tags" -> Json.arr(t.tags*), "setBy" -> Option(t.setBy).filter(_.nonEmpty).orNull, "setAt" -> t.setAt.map(_.toString).orNull)

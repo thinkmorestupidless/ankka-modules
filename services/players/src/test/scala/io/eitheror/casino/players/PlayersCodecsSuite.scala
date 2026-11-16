@@ -45,10 +45,13 @@ class PlayersCodecsSuite extends munit.FunSuite with LogCapturing:
       Suspended(Status.Active, "r", Some("op-1"), at), Closed(Status.Active, Actor.Player, None, "x", at),
       VipTierChanged(None, "gold", None, at), DuplicateFlagged("c-1", Set("p-2"), Set("device"), at),
       ErasureFiled("corr", at, at), ErasureStageReached("corr", "held", at), Erased(at), StatusImported(Status.Blocked, at),
-      TestAccountSet(true, "op-1", at), ManagerTagsSet(Vector("host: ana"), Vector.empty, "op-1", at)
+      TestAccountSet(true, "op-1", at), ManagerTagsSet(Vector("host: ana"), Vector.empty, "op-1", at),
+      DeviceSeen(Personal("fp:ab"), Personal("iOS"), Personal("Safari"), Personal("Mobile"), Some("PT"), at)
     ).foreach(e => roundTrip(e, PlayerEntity.eventSerializer))
     roundTrip(player.copy(testAccount = true), PlayerEntity.stateSerializer)
-    roundTrip(player.copy(managerTags = ManagerTags(Vector("host: ana"), "op-1", Some(at))), PlayerEntity.stateSerializer)
+    roundTrip(player.copy(managerTags = ManagerTags(Vector("host: ana"), "op-1", Some(at)),
+      devices = Vector(SeenDevice(Personal("ua:Desktop/Windows/Chrome"), Personal("Windows"), Personal("Chrome"), Personal("Desktop"), None, at, at))),
+      PlayerEntity.stateSerializer)
   }
 
   test("a state stored before the test-account flag reads as not a test account (spec 015 R11)") {
