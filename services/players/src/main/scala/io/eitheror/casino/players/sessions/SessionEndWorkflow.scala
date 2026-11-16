@@ -24,7 +24,8 @@ object EndReason:
   /** The close reason the facts carry for a status: `completed` was a sign-out. */
   def closeReason(status: String): String = if status == SessionStatus.Completed then Logout else status
 
-final case class StartEnd(reason: String, at: Instant)
+/** `actorId`: the operator who ended it by force (spec 030 P5), named on each game session's end and its audit record. */
+final case class StartEnd(reason: String, at: Instant, actorId: Option[String] = None)
 
 /** The workflow's state: the reason and time, the step, the player, and the game sessions it ended. */
 final case class SessionEndFlow(
@@ -33,7 +34,8 @@ final case class SessionEndFlow(
     step: String = "",
     playerId: String = "",
     gamesEnded: Vector[String] = Vector.empty,
-    done: Boolean = false
+    done: Boolean = false,
+    actorId: Option[String] = None
 ):
   def started: Boolean = reason.isDefined
 
@@ -59,7 +61,7 @@ final class SessionEndWorkflow(context: WorkflowContext) extends Workflow[Sessio
     if currentState.started then effects.reply(currentState)
     else if !EndReason.all(c.reason) then effects.error(s"no such reason: ${c.reason}", com.thinkmorestupidless.ankka.core.ErrorCode.BadRequest)
     else
-      val next = SessionEndFlow(Some(c.reason), Some(c.at), "games")
+      val next = SessionEndFlow(Some(c.reason), Some(c.at), "games", actorId = c.actorId)
       effects.updateState(next).transitionTo(SessionEndWorkflow.games).thenReply(next)
 
   def status: ReadOnlyEffect[SessionEndFlow] = effects.reply(currentState)
@@ -68,7 +70,7 @@ final class SessionEndWorkflow(context: WorkflowContext) extends Workflow[Sessio
     val s     = session.call(PlayerSessionEntity.get).invoke()
     val games = s.gameSessions.distinct.sorted
     val ended = games.filter { g =>
-      val end = components.forEventSourcedEntity(EntityId(g)).call(GameSessionEntity.end).invoke(EndGameSession(reason, at))
+      val end = components.forEventSourcedEntity(EntityId(g)).call(GameSessionEntity.end).invoke(EndGameSession(reason, at, currentState.actorId))
       if s.playerId.nonEmpty then
         components.forEventSourcedEntity(PlayerEntity.id(s.playerId)).call(PlayerEntity.gameSessionEnded).invoke(SessionId(g, at)): Unit
       end.ended
@@ -97,13 +99,14 @@ object SessionEndWorkflow
   def create(context: WorkflowContext) = new SessionEndWorkflow(context)
 
   /** Starts the end, and waits for it when `bound` is given; answers whether it ended within it. */
-  def end(components: ComponentClient, sessionId: String, reason: String, bound: Option[FiniteDuration]): Boolean =
+  def end(components: ComponentClient, sessionId: String, reason: String, bound: Option[FiniteDuration],
+      actorId: Option[String] = None): Boolean =
     val call = components.forWorkflow(EntityId(sessionId)).call(start)
     val at   = PlayersRuntime.now()
     bound match
-      case None => call.invoke(StartEnd(reason, at)).started
+      case None => call.invoke(StartEnd(reason, at, actorId)).started
       case Some(b) =>
-        scala.util.Try(call.thenAwaitEnd[SessionEndFlow](b).invoke(StartEnd(reason, at))).toOption.exists(_.done)
+        scala.util.Try(call.thenAwaitEnd[SessionEndFlow](b).invoke(StartEnd(reason, at, actorId))).toOption.exists(_.done)
 
   val games       = step("games")(_.gamesStep)
   val sessionStep = step("session")(_.sessionStep)

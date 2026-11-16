@@ -5,7 +5,6 @@ import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.players.PlayersRuntime
 import io.eitheror.casino.players.clients.Geo
 
-import Answers.{notYet, refusal}
 
 /*
  * The seven endpoints of contracts/routes.md, one prefix each with the brand's slug as a literal (R14).
@@ -89,6 +88,7 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
   private val account = OperatorProfileRoutes(ctx)
   private val games = GameSessionRoutes(ctx)
   private val status = OperatorStatusRoutes(ctx)
+  private val reads  = OperatorSessionRoutes(ctx)
 
   withAcl(may("player.read")) {
   get("/players") { () =>
@@ -117,11 +117,30 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
   }
   withAcl(may("player.read")) {
   get(s"$P/bets") { (id: String) =>
-    status.bets(id, query.raw("fromDate"), query.raw("toDate"), query.raw("limit"), query.raw("offset"))
+    val q = query
+    reads.bets(id, OperatorSessionRoutes.BetsQuery(q.raw("fromDate"), q.raw("toDate"), q.raw("limit"), q.raw("offset"),
+      q.raw("roundId"), q.raw("transactionId"), q.raw("type"), q.raw("status")))
   }
   }
   withAcl(may("player.read")) {
-  get(s"$P/sessions/{sessionId}/bets") { (_: String, _: String) => notYet("session bets") }
+  get(s"$P/sessions/{sessionId}/bets") { (id: String, sessionId: String) =>
+    reads.sessionBets(id, sessionId, query.raw("page"), query.raw("pageSize"))
+  }
+  }
+  // spec 030 P5: a player's sessions with their game sessions and gaps, the brand's sessions, a session closed by force
+  withAcl(may("player.read")) {
+  get(s"$P/player-sessions") { (id: String) => reads.playerSessions(id, query.raw("page"), query.raw("pageSize")) }
+  }
+  withAcl(may("player.read")) {
+  get("/sessions") { () =>
+    val q = query
+    reads.brandSessions(q.raw("status"), q.raw("from"), q.raw("to"), q.raw("page"), q.raw("pageSize"))
+  }
+  }
+  withAcl(may("session.end")) {
+  post(s"$P/player-sessions/{sessionId}/force-close") { (playerId: String, sessionId: String) =>
+    reads.forceClose(principal, playerId, sessionId)
+  }
   }
   withAcl(may("player.read")) {
   get(s"$P/sessions") { (id: String) => status.sessions(id) }

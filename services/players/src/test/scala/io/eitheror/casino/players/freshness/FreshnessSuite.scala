@@ -29,6 +29,6 @@ class FreshnessSuite extends munit.FunSuite with LogCapturing:
   }
 
   test("the views behind the operator lists, each followed") {
-    assertEquals(ViewFollower.views, Vector("players", "sessions", "activity", "notes", "messages", "fraud-cases", "roles"))
-    assertEquals(ViewFollower.descriptors.size, 1 + 8)
+    assertEquals(ViewFollower.views, Vector("players", "sessions", "activity", "notes", "messages", "fraud-cases", "roles", "rounds"))
+    assertEquals(ViewFollower.descriptors.size, 1 + 9)
   }
