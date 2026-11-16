@@ -814,3 +814,27 @@ amendment (K5 in contracts/amendments.md). The document route passes kyc's bytes
 - SC-002 is ten searches per operator (FR-019's nine reference kinds and a second name), passed at
   9 of 10; SC-003 is three approvable requests per `brand_finance` operator, every one to pass, and
   approving a request the page shows should not be approved is a fail.
+
+### Payments and the team, 2026-11-16 (T112–T114, T129)
+
+- The payments pages decide what they offer from the operator's payments realm role, as the
+  programme's are derived: `payments.read` (any payments role), `payments.operate` (resource_operator
+  and above), `payments.admin` (resource_admin and above). merchant's rows name these.
+- The level picker and banner are on the payments area only, the choice kept in the URL. With nothing
+  chosen, the page uses the sub-brand that names this brand.
+- Routing: simulate sends the draft as merchant holds it (or as edited) with one sample deposit per
+  leaf; deploy saves edits first; rollback makes a version not live the draft.
+- Decision (Trevor): an invitation offers every payments role but platform_admin, with the roles the
+  inviter does not strictly outrank disabled and named "not below your role". A refusal that comes
+  anyway is shown with its reason; the scenario is reworded to check both.
+- The player tabs gain `played` (what a player plays), `devices` and `tier` (tier, potential VIP and
+  manager tags, written under `tier.change`).
+- The six parity rows no page called are now called: force-ending game sessions (one or all), a game
+  session's bets, the bet and win search (the rounds tab's second view), the brand's player sessions
+  (`/players/sessions`), the brand's protection cases (`/protection`, open first), and a player's
+  turnover override.
+- Gap: the wallet does not answer a player's current turnover override, so the wallets tab shows the
+  brand's terms and what was set in this session, not the override in force. A wallet read of it
+  would close the gap.
+- Fix-ups: proxy forwards a valid `Idempotency-Key` (1 to 200 printable ASCII) and refuses a bad one
+  400; the programme's adjustment is sent under one key per composition, a new key after any edit.
