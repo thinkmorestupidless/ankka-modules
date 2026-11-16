@@ -28,7 +28,7 @@ class LayoutSuite extends munit.FunSuite:
   private def of(names: String*) = Layout.Modules.filter(m => names.contains(m.name))
 
   test("the modules are core first, then the product modules of the tree") {
-    assertEquals(Layout.Modules.map(_.name), Vector("core", "casino", "engagement", "player-site", "predictions", "public-api", "reporting", "support"))
+    assertEquals(Layout.Modules.map(_.name), Vector("core", "backoffice", "casino", "engagement", "player-site", "predictions", "public-api", "reporting", "support"))
     assertEquals(Layout.Modules.map(_.kind).distinct, Vector("core", "product"))
   }
 
@@ -37,7 +37,7 @@ class LayoutSuite extends munit.FunSuite:
   test("core and casino run spec 001's services less those now a module of their own or spec 016's") {
     assertEquals(of("core", "casino").flatMap(_.services).toSet,
       spec001Services.toSet -- Set("partner-api", "engagement", "reporting", "support-agent"))
-    assertEquals(Layout.Services.toSet, spec001Services.toSet - "partner-api" + "markets" + "exchange" + "public-api" + "player-site")
+    assertEquals(Layout.Services.toSet, spec001Services.toSet - "partner-api" + "markets" + "exchange" + "public-api" + "player-site" + "backoffice" + "backoffice-state")
     assertEquals(Layout.Services.distinct, Layout.Services, "a service is in one module only")
     assertEquals(Layout.moduleOf("game-provider"), Some("casino"))
   }
