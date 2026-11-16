@@ -694,3 +694,16 @@ amendment (K5 in contracts/amendments.md). The document route passes kyc's bytes
 - `repeated` (7432a7fd) is answered only on the operator's adjustment route; the support agent's route
   strips it, so its answer is unchanged. It is never stored. The batch scenario's refused row is a debit
   larger than the player's real balance (1b391777).
+
+### The wallet's reward settings, 2026-11-16 (T104, W3)
+
+- `PUT wallet-config/rewards` (`config.brand`) replaces the four values whole, as the original's
+  `PUT bonus-config` did: both switches and the rate table are required, and each rate is 0 to 100.
+  `maxConcurrentAwards` is at least 1, or null for no limit, so the page always sends the current
+  value. The limits of 64 characters per game type and 100 keys are this spec's, to keep the stored
+  state bounded.
+- `GET /wallet-config` now answers every field, the defaults included (no limit and an absent
+  `updatedAt` as null), so the page need not know the wallet's defaults.
+- Gap: the wallet records a configuration change only as `updatedBy` and `updatedAt`, for the turnover
+  terms as for the rewards. Neither reaches `platform.audit`, as engagement's, support-agent's and
+  payouts' configuration changes do. Raised for a follow-up covering both.
