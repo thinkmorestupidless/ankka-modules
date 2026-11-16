@@ -9,6 +9,7 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets.UTF_8
 import java.time.{LocalDate, ZoneOffset}
 import java.util.UUID
+import scala.concurrent.duration.*
 import scala.jdk.CollectionConverters.*
 
 /**
@@ -21,8 +22,6 @@ class ListsFeatures extends PlayersFeatures("lists.feature"):
     "a list's status says how fresh its views are" ->
       ("T051 answers each view's asOf (FreshnessSuite); no answer can say the views are catching up while " +
         "rebuilding is always false (ankka 0.16.3 reports no progress, research V2): open for the lead"),
-    "a player's activity is read for a period, page after page, with its total" -> "T067 (pending)",
-    "an operator reads a player's notes" -> "T067 (pending)",
     "an operator reads a player session with its game sessions" -> "T068 (pending)",
     "an operator reads a game session's bets" -> "T068 (pending)",
     "an operator finds a player's bets by round, by transaction or by status, with what was staked and won" -> "T068 (pending)"
@@ -33,10 +32,13 @@ class ListsFeatures extends PlayersFeatures("lists.feature"):
   private var pages   = Vector.empty[JsonNode]
   private var reply: Reply = null
   private var wanted: PlayerRow => Boolean = _ => true
+  private var playerId = ""
+  private var noteIds  = Vector.empty[String]
 
   override def beforeEach(context: BeforeEach): Unit =
     super.beforeEach(context)
     tag = s"List${UUID.randomUUID().toString.take(8)}"; seeded = Vector.empty; pages = Vector.empty; reply = null; wanted = _ => true
+    playerId = ""; noteIds = Vector.empty
 
   private def read(params: (String, String)*): Reply =
     val q = (("search" -> tag) +: params).map((k, v) => s"$k=${URLEncoder.encode(v, UTF_8)}").mkString("&")
@@ -131,4 +133,70 @@ class ListsFeatures extends PlayersFeatures("lists.feature"):
     val narrowed = read("facets" -> "true", "country" -> "BR").json.get("facets")
     assertEquals(narrowed.get("country").get("PT").asLong, 2L)
     assertEquals(narrowed.get("currency").properties().asScala.map(e => e.getKey -> e.getValue.asLong).toMap, Map("BRL" -> 2L, "JPY" -> 1L))
+  }
+
+  // ── activity and notes (T067) ───────────────────────────────────────────────────────────────────
+
+  private def op(method: String, path: String, body: Option[String] = None): Reply =
+    kit.request(method, kit.operatorPath(path), body, kit.asOperator(subject = "op-5"))
+
+  private val march = java.time.Instant.parse("2026-03-01T00:00:00Z")
+
+  Given("a player with activity over a year") { () =>
+    playerId = kit.activePlayer()._2
+    import io.eitheror.casino.players.reads.{ActivityEntry, ActivityRow}
+    // two lines in every month of 2026 but March, and sixty in March: more than a page of fifty
+    val times = (1 to 12).filter(_ != 3).flatMap(m => Vector(5, 20).map(d => java.time.Instant.parse(f"2026-$m%02d-$d%02dT12:00:00Z"))) ++
+      (0 until 60).map(i => march.plusSeconds(3600L * 11 * i + 60))
+    times.zipWithIndex.foreach { (at, i) =>
+      val id = s"test/$playerId/$i"
+      kit.components.forKeyValueEntity(com.thinkmorestupidless.ankka.core.EntityId(id)).call(ActivityEntry.record)
+        .invoke(ActivityRow(playerId, at.toEpochMilli, "account", "profile_updated", "player", description = s"line $i", factId = id)): Unit
+    }
+    kit.eventually("the activity", 30.seconds)(Option.when(
+      op("GET", s"/players/$playerId/activity").json.get("total").asInt == times.size)(()))
+  }
+
+  When("an operator reads the player's activity for one month") { () =>
+    reply = op("GET", s"/players/$playerId/activity?from=2026-03-01&to=2026-03-31")
+  }
+
+  private def times(r: Reply) = r.json.get("events").elements().asScala.map(e => java.time.Instant.parse(e.get("timestamp").asText)).toVector
+
+  Then("only that month's activity is listed, newest first, with its total") { () =>
+    assertEquals(reply.status, 200, reply.text)
+    val ts = times(reply)
+    assertEquals((ts.size, reply.json.get("total").asInt, reply.json.get("hasMore").asBoolean), (50, 60, true))
+    assert(ts.forall(t => !t.isBefore(march) && t.isBefore(java.time.Instant.parse("2026-04-01T00:00:00Z"))), ts.toString)
+    assertEquals(ts, ts.sortBy(_.toEpochMilli).reverse)
+  }
+
+  Then("the next page continues where the first ended") { () =>
+    val next = op("GET", s"/players/$playerId/activity?from=2026-03-01&to=2026-03-31&after=${reply.json.get("next").asText}")
+    val (first, second) = (times(reply), times(next))
+    assertEquals((second.size, next.json.get("hasMore").asBoolean, next.json.get("total").asInt), (10, false, 60))
+    assert(next.json.get("next").isNull, next.text)
+    assert(second.head.isBefore(first.last), s"${first.last} then ${second.head}")
+    val ids = (reply.json.get("events").elements().asScala ++ next.json.get("events").elements().asScala).map(_.get("eventId").asText).toVector
+    assertEquals(ids.distinct.size, 60)
+  }
+
+  Given("a player with two notes, one pinned") { () =>
+    playerId = kit.activePlayer()._2
+    noteIds = Vector("the first", "the pinned").map(t => op("POST", s"/players/$playerId/notes", Some(s"""{"content":"$t"}""")).str("noteId"))
+    assertEquals(op("PATCH", s"/players/$playerId/notes/${noteIds(1)}/pin").status, 200)
+  }
+
+  When("an operator reads the player's notes") { () =>
+    reply = kit.eventually("both notes, one pinned", 30.seconds) {
+      val r = op("GET", s"/players/$playerId/notes")
+      Option.when(r.status == 200 && r.json.get("total").asInt == 2 && r.json.get("notes").get(0).get("pinned").asBoolean)(r)
+    }
+  }
+
+  Then("both are listed with who added each, the pinned one first") { () =>
+    val notes = reply.json.get("notes").elements().asScala.toVector
+    assertEquals(notes.map(_.get("noteId").asText), Vector(noteIds(1), noteIds(0)))
+    assertEquals(notes.map(n => (n.get("text").asText, n.get("author").asText, n.get("pinned").asBoolean)),
+      Vector(("the pinned", "op-5", true), ("the first", "op-5", false)))
   }
