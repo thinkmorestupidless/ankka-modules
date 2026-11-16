@@ -3,10 +3,10 @@
 // an invitation above the inviter's payments role is refused. The owners are the doubles: the wallet and
 // payouts for the withdrawal settings, merchant (shared `payments`) for the routing rules and operators.
 //
-// The first scenario's "minimum withdrawal": no owner keeps one (payouts keeps weekly and monthly limits,
-// the wallet the turnover a deposit needs before it may be withdrawn; neither the original's settings).
-// The value bound is the wallet's withdrawal turnover multiplier, whose default is 1 (TurnoverTerms.Default),
-// on the brand's withdrawal settings. The second and third scenarios wait on the payments pages (T113) and
+// The first scenario's value is the wallet's withdrawal turnover multiplier, whose default is 1
+// (TurnoverTerms.Default), on the brand's withdrawal settings (research, *Configuration*: no owner keeps a
+// minimum withdrawal, which the scenario named before Trevor's decision).
+// The second and third scenarios wait on the payments pages (T113) and
 // the operators page (T114): the actions and messages they name are looked up here and fail by name until
 // those tasks define them.
 import { has, render, t, type MessageKey } from "../../../src/shared/messages/index.ts";
@@ -33,7 +33,7 @@ function message(key: string, task: string): string {
 
 // --- a value that differs from the default --------------------------------------------------------------
 
-Given("a brand whose minimum withdrawal differs from its default", async ({ world }) => {
+Given("a brand whose withdrawal turnover multiplier is set to 3, where its default is 1", async ({ world }) => {
   await world.doubles.fixtures("wallet", {
     [`GET ${P}/wallet-config`]: {
       body: {
@@ -55,7 +55,7 @@ When("a brand administrator opens the brand's withdrawal settings", async ({ wor
   await expect(main(world).getByRole("heading", { level: 1, name: message("config.withdrawals.title", "T109") })).toBeVisible();
 });
 
-Then("the minimum withdrawal is marked as differing from the default", async ({ world }) => {
+Then("the withdrawal turnover multiplier is marked as differing from the default", async ({ world }) => {
   const field = main(world).getByLabel(message("config.withdrawals.multiplier", "T109"));
   await expect(field).toHaveValue("3");
   await expect(field).toHaveAccessibleDescription(new RegExp(t("config.form.differsFromDefault", { value: "1" }).replace(/[()]/g, "\\$&")));
