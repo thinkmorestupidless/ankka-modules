@@ -2,6 +2,7 @@
   "GET /v1/affiliates/{brand}/revenue": { "body": { "period": "2026-11", "figures": [] } },
   "GET /v1/affiliates/{brand}/revenue/by-campaign": { "body": [] },
   "GET /v1/affiliates/{brand}/revenue/geo": { "body": [] },
+  "GET /v1/affiliates/{brand}/traffic": { "body": { "brandId": "goldvibe", "period": "2026-11", "clickCount": 0, "registrationCount": 0, "ftdCount": 0, "qftdCount": 0, "affiliates": [] } },
   "GET /v1/affiliates/{brand}/commission-plans": { "body": [] },
   "GET /v1/affiliates/{brand}/accounts": { "body": { "items": [], "total": 0, "page": 1, "pageSize": 100 } },
   "GET /v1/affiliates/{brand}/tracking-links": { "body": [] },

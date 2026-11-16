@@ -85,6 +85,17 @@
   line-height: 1.15;
 }
 
+/* a traffic card: what a rate is of, then the change on the month before (DR-19) */
+.bo-aff-card .bo-aff-sub {
+  display: block;
+  font-size: 12px;
+  margin: 2px 0 0;
+}
+
+.bo-aff-card .bo-change {
+  margin-top: 6px;
+}
+
 .bo-aff-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

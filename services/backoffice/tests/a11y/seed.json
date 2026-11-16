@@ -372,6 +372,34 @@
      "utmSource": "rio"
     }
    ]
+  },
+  "GET /v1/affiliates/{brand}/traffic": {
+   "body": {
+    "affiliates": [
+     {
+      "affiliateId": "7d0c1b52-3f0e-4c55-9b0e-3a6f2f8c1d11",
+      "clickCount": 180,
+      "ftdCount": 4,
+      "links": [
+       {
+        "btag": "lnk-abcdefghijklmnop",
+        "clickCount": 180,
+        "ftdCount": 4,
+        "qftdCount": 3,
+        "registrationCount": 12
+       }
+      ],
+      "qftdCount": 3,
+      "registrationCount": 12
+     }
+    ],
+    "brandId": "goldvibe",
+    "clickCount": 180,
+    "ftdCount": 4,
+    "period": "2026-11",
+    "qftdCount": 3,
+    "registrationCount": 12
+   }
   }
  },
  "attribution": {

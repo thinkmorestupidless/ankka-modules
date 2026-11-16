@@ -361,7 +361,7 @@ const Reached: Record<string, Reach> = {
 
   // Affiliate programme
   "Programme dashboard; reporting by campaign and country": {
-    routes: ["GET affiliate-programme /revenue", "GET affiliate-programme /revenue/by-campaign", "GET affiliate-programme /revenue/geo"],
+    routes: ["GET affiliate-programme /revenue", "GET affiliate-programme /revenue/by-campaign", "GET affiliate-programme /revenue/geo", "GET affiliate-programme /traffic"],
     pages: ["areas/affiliates/dashboard.tsx"],
   },
   Plans: {
