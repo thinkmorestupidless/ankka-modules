@@ -2,7 +2,6 @@
    with tabular numbers, forms in a two-column grid that falls to one below 1280 px. */
 
 .bo-aff-head h1 {
-  font-size: 20px;
   margin: 0;
 }
 
@@ -77,6 +76,13 @@
   margin: 0;
   font-size: 18px;
   font-variant-numeric: tabular-nums;
+}
+
+/* the dashboard's counts are figures (contracts/design.md, Type: 28 to 40 px) */
+.bo-aff-card[data-count] p {
+  font-size: var(--figure-min);
+  font-weight: 600;
+  line-height: 1.15;
 }
 
 .bo-aff-form {

@@ -172,7 +172,7 @@ export function RolesPage() {
 
   return (
     <section>
-      <h1>{t("roles.title")}</h1>
+      <h2>{t("roles.title")}</h2>
       <table className="bo-table">
         <thead>
           <tr>

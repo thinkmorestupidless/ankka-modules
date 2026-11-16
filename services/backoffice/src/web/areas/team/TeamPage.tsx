@@ -14,7 +14,8 @@ export function TeamPage() {
   const gives = holds(me, "roles.give");
   return (
     <>
-      {holds(me, "roles.read") ? null : <h1>{t("area.team")}</h1>}
+      {/* one h1 a page (DR-15): the area's; each part below is a section under it */}
+      <h1>{t("area.team")}</h1>
       {holds(me, "payments.read") ? <OperatorsPage onRoles={gives ? setOperator : undefined} /> : null}
       {holds(me, "roles.read") ? <RolesPage /> : null}
       {gives ? <AssignPage key={operator ?? ""} operator={operator} /> : null}
