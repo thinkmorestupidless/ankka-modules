@@ -79,7 +79,7 @@
         "expose": true,
         "runtime": "0.18.0",
         "resources": {
-          "instanceType": "medium"
+          "instanceType": "large"
         },
         "env": [
           {
