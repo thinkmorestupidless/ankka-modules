@@ -68,7 +68,7 @@ object RealmClient:
 final class KeycloakRealmClient(settings: Settings, http: HttpClient = KeycloakRealmClient.defaultHttp) extends RealmClient:
   import KeycloakRealmClient.*
 
-  private val logoutUrl = URI.create(s"${settings.realm}/protocol/openid-connect/logout")
+  private val logoutUrl = settings.logoutUrl
 
   private def client: Seq[(String, String)] = Seq("client_id" -> settings.client, "client_secret" -> settings.clientSecret)
 

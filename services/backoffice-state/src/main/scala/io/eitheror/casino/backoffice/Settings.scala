@@ -10,12 +10,20 @@ import scala.util.Try
  * (`BACKOFFICE_CLIENT_SECRET`, a `secretKeyRef` to the project's `tenant-values`). The secret is kept out
  * of `toString`.
  */
-final case class Settings(brand: String, realm: URI, client: String, address: URI, clientSecret: String = ""):
+final case class Settings(brand: String, realm: URI, client: String, address: URI, clientSecret: String = "", backChannel: Option[URI] = None):
   override def toString: String = s"Settings($brand, $realm, $client, $address, secret ${if clientSecret.isEmpty then "unset" else "set"})"
 
+  /**
+   * Where this service itself calls the realm: `KEYCLOAK_URL` with the issuer's realm path when the
+   * installation names an in-cluster address (the issuer's host may be reachable only from outside, as on
+   * kind), else the issuer. The browser is always sent to the issuer.
+   */
+  def realmCalls: URI = backChannel.fold(realm)(b => URI.create(s"${b.toString.stripSuffix("/")}${realm.getRawPath}"))
+
   /** The realm's token, revocation and end-session addresses, by Keycloak's layout. */
-  def tokenUrl: URI      = URI.create(s"$realm/protocol/openid-connect/token")
-  def revokeUrl: URI     = URI.create(s"$realm/protocol/openid-connect/revoke")
+  def tokenUrl: URI      = URI.create(s"$realmCalls/protocol/openid-connect/token")
+  def revokeUrl: URI     = URI.create(s"$realmCalls/protocol/openid-connect/revoke")
+  def logoutUrl: URI     = URI.create(s"$realmCalls/protocol/openid-connect/logout")
   def authorizeUrl: URI  = URI.create(s"$realm/protocol/openid-connect/auth")
   def callback: URI      = URI.create(s"$address/auth/callback")
 
@@ -32,7 +40,10 @@ object Settings:
       address <- required(env, "BACKOFFICE_HOST").flatMap(uri("BACKOFFICE_HOST", _))
       client   = env.get("BACKOFFICE_CLIENT").map(_.trim).filter(_.nonEmpty).getOrElse(s"backoffice-$brand")
       secret   = env.get("BACKOFFICE_CLIENT_SECRET").map(_.trim).getOrElse("")
-    yield Settings(brand, realm, client, address, secret)
+      calls   <- env.get("KEYCLOAK_URL").map(_.trim).filter(_.nonEmpty) match
+                   case Some(v) => uri("KEYCLOAK_URL", v).map(Some(_))
+                   case None    => Right(None)
+    yield Settings(brand, realm, client, address, secret, calls)
 
   private def required(env: Map[String, String], name: String): Either[String, String] =
     env.get(name).map(_.trim).filter(_.nonEmpty).toRight(s"$name is not set: the service is deployed by the modules tool")
