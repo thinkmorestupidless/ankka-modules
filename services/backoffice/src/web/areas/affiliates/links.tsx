@@ -8,11 +8,11 @@ import { t } from "../../../shared/messages/index.ts";
 import { affiliateProgramme as programme } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 import { Read } from "./parts.tsx";
-import { accountName, json, zone, type AccountsPage, type Link } from "./programme.ts";
+import { accountName, json, type AccountsPage, type Link } from "./programme.ts";
 
 const counts = new Intl.NumberFormat("en-GB");
 
@@ -22,7 +22,7 @@ export function useActiveAccounts() {
 }
 
 export function LinksTable({ links, names }: { links: readonly Link[]; names?: ReadonlyMap<string, string> }) {
-  const tz = zone();
+  const tz = useZone();
   if (links.length === 0) return <p className="bo-muted">{t("affiliates.link.none")}</p>;
   return (
     <div className="bo-aff-scroll">
@@ -139,6 +139,7 @@ function NewLink({ done }: { done(): void }) {
 }
 
 export function LinksSection() {
+  const zone = useZone();
   const client = useQueryClient();
   const readOnly = useReadOnlyMode();
   const q = useQuery({ queryKey: ["programme", "links"], queryFn: () => json<Link[]>(programme.getTrackingLinks()) });
@@ -147,7 +148,7 @@ export function LinksSection() {
   return (
     <div>
       <h2>{t("affiliates.section.links")}</h2>
-      <ZoneNote zone={zone()} />
+      <ZoneNote zone={zone} />
       <Read q={q}>{(links) => <LinksTable links={links} names={names} />}</Read>
       {readOnly ? null : (
         <>

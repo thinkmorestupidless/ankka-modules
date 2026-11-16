@@ -11,7 +11,7 @@ import { gameProvider } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action } from "../../components/action/index.ts";
 import { ConfigForm, type ConfigField } from "../../components/config-form.tsx";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { Status } from "../../components/status.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
@@ -61,7 +61,6 @@ export interface CatalogueConfig {
   gameOverrides: Record<string, boolean>;
 }
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 /** The fields game-provider requires of a provider's configuration (ProviderConfiguration.problem). */
 const ProviderFields: ConfigField[] = [
@@ -100,7 +99,7 @@ function RefreshState({ provider }: { provider: string }) {
   const readOnly = useReadOnlyMode();
   const q = useRead<Refresh>(["game-provider", "refresh", provider], () => gameProvider.getProvidersCatalogueRefresh({ provider }));
   const saved = useSaved();
-  const tz = zone();
+  const tz = useZone();
   return (
     <div data-refresh={provider}>
       <Loaded q={q}>
@@ -130,7 +129,7 @@ function Providers() {
   const saved = useSaved();
   const [adding, setAdding] = useState("");
   const addId = useId();
-  const tz = zone();
+  const tz = useZone();
   return (
     <>
       <h2>{t("config.games.providers")}</h2>

@@ -23,7 +23,7 @@ export function Frame({ me, readOnly, children }: { me: Me; readOnly: boolean; c
   // an area's views are asked only of an operator who holds it (a manager passing "/" reads no worklist's)
   const held = areasFor(me);
   const fresh = useFreshness(area && held.some((a) => a.id === area.id) ? (area.views ?? []) : []);
-  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const zone = me.brand.zone;
   return (
     <MeContext.Provider value={me}>
       <ReadOnlyContext.Provider value={readOnly}>

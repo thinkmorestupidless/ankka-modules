@@ -9,14 +9,14 @@ import { t } from "../../../shared/messages/index.ts";
 import { affiliateProgramme as programme } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { Money } from "../../components/money.tsx";
 import { Status } from "../../components/status.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 import { useActiveAccounts } from "./links.tsx";
 import { PeriodField, Read } from "./parts.tsx";
-import { accountName, actorName, json, thisMonth, zone, type Payout } from "./programme.ts";
+import { accountName, actorName, json, thisMonth, type Payout } from "./programme.ts";
 
 /** The programme's export for a period, read through the backoffice's own route (a GET, as the signed-in operator). */
 const exportHref = (period: string) => `/api/s/affiliate-programme/payouts/export?${new URLSearchParams({ period })}`;
@@ -25,7 +25,7 @@ function Row({ p, names, done }: { p: Payout; names: ReadonlyMap<string, string>
   const me = useOperator();
   const bags = useBags();
   const readOnly = useReadOnlyMode();
-  const tz = zone();
+  const tz = useZone();
   const who = names.get(p.affiliateId) ?? p.affiliateId;
   const money = (minor: number) => <Money value={{ minor, currency: p.currency }} />;
   const subject = <p>{t("affiliates.payout.of", { name: who, period: p.period })}</p>;
@@ -122,7 +122,8 @@ export function PayoutsSection() {
   const bags = useBags();
   const client = useQueryClient();
   const readOnly = useReadOnlyMode();
-  const [period, setPeriod] = useState(thisMonth());
+  const zone = useZone();
+  const [period, setPeriod] = useState(() => thisMonth(zone));
   const [closed, setClosed] = useState<string | undefined>(undefined);
   const q = useQuery({ queryKey: ["programme", "payouts", period], queryFn: () => json<Payout[]>(programme.getPayouts({ query: { period } })) });
   const accounts = useActiveAccounts();
@@ -161,7 +162,7 @@ export function PayoutsSection() {
         )}
       </div>
       {closed ? <p role="status">{closed}</p> : null}
-      <ZoneNote zone={zone()} />
+      <ZoneNote zone={zone} />
       <Read q={q}>{(rows) => <PayoutsTable payouts={rows} names={names} done={done} />}</Read>
     </div>
   );

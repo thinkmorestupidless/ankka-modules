@@ -6,7 +6,7 @@ import "../payments/payments.css";
 import { t } from "../../../shared/messages/index.ts";
 import { players } from "../../../shared/owners/index.ts";
 import { RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { read } from "../configuration/page.tsx";
 
 export interface Device {
@@ -18,10 +18,9 @@ export interface Device {
   lastSeenAt: string;
 }
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 export function PlayerDevices({ player }: { player: string }) {
-  const tz = zone();
+  const tz = useZone();
   const q = useQuery({ queryKey: ["players", "devices", player], queryFn: () => read<{ devices: Device[] }>(players.getPlayersDevices({ playerId: player })) });
   if (q.isError) return <RefusalNotice refusal={q.error as never} />;
   if (!q.data) return <p role="status">{t("list.loading")}</p>;

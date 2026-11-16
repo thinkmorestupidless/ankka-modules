@@ -11,7 +11,7 @@ import { players } from "../../../shared/owners/index.ts";
 import { explain } from "../../../shared/refusals.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { useFreshness } from "../../components/freshness.tsx";
 import { RecordLink } from "../../components/links.tsx";
 import { List, useListState, useRouterListStore, type Column } from "../../components/list/index.ts";
@@ -33,7 +33,6 @@ export interface FraudCase {
 
 export const Statuses = ["OPEN", "REVIEWED", "DISMISSED", "ALL"] as const;
 const PageSize = 50;
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 async function readCases(status: string): Promise<FraudCase[]> {
   const r = await players.getFraudCases({ query: { status } });
@@ -61,7 +60,7 @@ function CaseDetail({ c, onDecided }: { c: FraudCase; onDecided(next: Partial<Fr
   const me = useOperator();
   const bags = useBags();
   const readOnly = useReadOnlyMode();
-  const tz = zone();
+  const tz = useZone();
   const flags = useQueries({ queries: c.playerIds.map((p) => ({ queryKey: ["players", "profile", p], queryFn: () => readFlag(p) })) });
   const state = c.status.toLowerCase();
   const decided = async (answer: Response) => onDecided((await answer.clone().json().catch(() => ({}))) as Partial<FraudCase>);
@@ -123,7 +122,7 @@ export function FraudCasesPage() {
   const list = useListState(useRouterListStore());
   const status = list.state.filters.status ?? "OPEN";
   const statusId = useId();
-  const tz = zone();
+  const tz = useZone();
   const freshness = useFreshness(["players"]);
   const q = useQuery({ queryKey: ["fraud", status], queryFn: () => readCases(status), refetchInterval: 30_000 });
   const caseId = typeof opened === "string" ? opened : undefined;

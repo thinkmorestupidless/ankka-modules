@@ -6,13 +6,12 @@ import { t } from "../../../shared/messages/index.ts";
 import { players } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { completeOf, useListState, useRouterListStore } from "../../components/list/index.ts";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 import { readJson, refusalOf } from "../corrections/shared.tsx";
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 const PageSize = 25;
 
 interface Note {
@@ -24,7 +23,7 @@ interface Note {
 }
 
 export function PlayerNotes({ player }: { player: string }) {
-  const tz = zone();
+  const tz = useZone();
   const me = useOperator();
   const bags = useBags();
   const readOnly = useReadOnlyMode();

@@ -11,7 +11,7 @@ function live() {
   let bags: Bags | Error = OperatorBags;
   const h = harness({
     eventsEveryMs: 20,
-    reads: { bags: new Kept<Bags>(async () => { if (bags instanceof Error) throw bags; return bags; }, 0, () => Date.now()), modules: new Kept<string[]>(async () => ["core"], 0, () => Date.now()) },
+    reads: { bags: new Kept<Bags>(async () => { if (bags instanceof Error) throw bags; return bags; }, 0, () => Date.now()), modules: new Kept<string[]>(async () => ["core"], 0, () => Date.now()), zone: new Kept<string>(async () => "America/Sao_Paulo", 0, () => Date.now()) },
   });
   h.state.sessions.set("s-ev", { accessToken: "a.e30.s", expiresAt: Date.now() + 10_000, roles: [`brand_${Brand}`, "brand_support"] });
   return { ...h, bags: (b: Bags | Error) => void (bags = b) };

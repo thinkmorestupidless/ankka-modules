@@ -7,6 +7,7 @@ import { t, type MessageKey } from "../../../shared/messages/index.ts";
 import { affiliateProgramme as programme } from "../../../shared/owners/index.ts";
 import { FiguresTable, PeriodField, Read } from "./parts.tsx";
 import { json, thisMonth, type AccountsPage, type FraudFlag, type Payout, type Revenue } from "./programme.ts";
+import { useZone } from "../../components/date.tsx";
 
 interface CampaignRow {
   brandId: string;
@@ -32,8 +33,9 @@ function Count({ heading, value }: { heading: MessageKey; value: number | undefi
 }
 
 export function DashboardSection() {
-  const [period, setPeriod] = useState(thisMonth);
-  const month = thisMonth();
+  const zone = useZone();
+  const [period, setPeriod] = useState(() => thisMonth(zone));
+  const month = thisMonth(zone);
   const active = useQuery({ queryKey: ["programme", "accounts", "count", "active"], queryFn: () => json<AccountsPage>(programme.getAccounts({ query: { status: "active", pageSize: "1" } })) });
   const pending = useQuery({ queryKey: ["programme", "accounts", "count", "pending"], queryFn: () => json<AccountsPage>(programme.getAccounts({ query: { status: "pending", pageSize: "1" } })) });
   const payouts = useQuery({ queryKey: ["programme", "payouts", month], queryFn: () => json<Payout[]>(programme.getPayouts({ query: { period: month } })) });

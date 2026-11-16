@@ -12,7 +12,7 @@ import { t } from "../../../shared/messages/index.ts";
 import { merchant } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { completeOf, List, useListState, useRouterListStore, type Column } from "../../components/list/index.ts";
 import { Money } from "../../components/money.tsx";
 import { Status } from "../../components/status.tsx";
@@ -65,7 +65,6 @@ interface Uncredited {
 
 const StatusFilters = ["all", "pending", "captured", "failed", "expired"] as const;
 const PageSize = 25;
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 const money = (minor: number | null | undefined, currency: string | null | undefined) =>
   typeof minor === "number" && currency ? <Money value={{ minor, currency }} /> : null;
 
@@ -76,7 +75,7 @@ const DetailFields = [
 ] as const;
 
 function Detail({ paymentId, close }: { paymentId: string; close(): void }) {
-  const tz = zone();
+  const tz = useZone();
   const q = useQuery({ queryKey: ["payments", "deposit", paymentId], queryFn: () => read<Record<string, unknown>>(merchant.getByPaymentId({ paymentId })) });
   return (
     <section className="bo-pay-detail" aria-labelledby="pay-deposit">
@@ -164,7 +163,7 @@ function UncreditedList({ merchantId }: { merchantId: string }) {
   const me = useOperator();
   const bags = useBags();
   const readOnly = useReadOnlyMode();
-  const tz = zone();
+  const tz = useZone();
   const done = useChanged("uncredited");
   const q = usePayments<{ payments: Uncredited[] }>(["uncredited"], () => merchant.getPaymentsCashierUncredited());
   const rows = (q.data?.payments ?? []).filter((p) => !merchantId || p.merchantId === merchantId);
@@ -208,7 +207,7 @@ export function DepositsSection() {
   const client = useQueryClient();
   const store = useRouterListStore();
   const list = useListState(store);
-  const tz = zone();
+  const tz = useZone();
   const [opened, setOpened] = useState<string | undefined>(undefined);
   const merchantId = scope.level === "subBrand" ? (scope.id ?? "") : "";
   const f = list.state.filters;

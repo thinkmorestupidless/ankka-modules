@@ -19,6 +19,7 @@ import { useBags } from "../bags.ts";
 import { read } from "../configuration/page.tsx";
 import { word } from "../word.ts";
 import { subBrandIdOf, useHierarchy } from "../payments/hierarchy.tsx";
+import { useZone } from "../../components/date.tsx";
 
 export interface PaymentsOperator {
   operatorId: string;
@@ -210,7 +211,7 @@ export function OperatorsPage({ onRoles }: { onRoles?(operator: string): void })
     queryFn: () => read<Page>(merchant.getOperators({ query: { page: String(page), pageSize: String(PageSize) } })),
   });
   const done = () => void q.refetch();
-  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const zone = useZone();
   const levelOf = (o: PaymentsOperator) => (o.scopeLevel === "platform" ? word("team.level", "platform") : t("team.operators.levelAt", { kind: word("team.level", o.scopeLevel), id: o.scopeId }));
   const columns: Column<PaymentsOperator>[] = [
     { id: "email", header: "team.operators.email", cell: (o) => o.email },

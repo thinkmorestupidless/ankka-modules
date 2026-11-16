@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import "./jobs.css";
 import { t, render, type MessageKey } from "../../../shared/messages/index.ts";
 import { RefusalNotice } from "../../components/action/index.ts";
-import { DateTime } from "../../components/date.tsx";
+import { DateTime, useZone } from "../../components/date.tsx";
 import { Glyph, type GlyphName } from "../../components/glyph.tsx";
 import type { Refusal } from "../../../shared/refusals.ts";
 import { downloadHref, kindLabel, useJobs, type Job } from "./jobs.ts";
@@ -52,7 +52,7 @@ export function JobLine({ job, zone }: { job: Job; zone: string }) {
 
 export function JobsPage() {
   const q = useJobs();
-  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const zone = useZone();
   const refusal = (q.error as { refusal?: Refusal } | null)?.refusal;
   return (
     <section className="bo-jobs">

@@ -86,7 +86,7 @@ const compliance: Me = {
   subject: "op-c",
   name: "Compliance",
   roles: ["brand_goldvibe", "brand_compliance"],
-  brand: { slug: "goldvibe", name: "goldvibe", modules: null },
+  brand: { slug: "goldvibe", name: "goldvibe", modules: null, zone: "America/Sao_Paulo" },
   preferences: null,
   permissions: ["player.read", "identity.read", "identity.review", "protection.read", "protection.change", "fraud.review"],
 };

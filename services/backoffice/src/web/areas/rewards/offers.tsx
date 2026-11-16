@@ -17,7 +17,7 @@ import { gameProvider, rewards } from "../../../shared/owners/index.ts";
 import { explain } from "../../../shared/refusals.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { ZoneNote } from "../../components/date.tsx";
+import { ZoneNote, useZone } from "../../components/date.tsx";
 import { Glyph } from "../../components/glyph.tsx";
 import { Status } from "../../components/status.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
@@ -27,7 +27,6 @@ import { dependantsOf, readOffers, type Offer } from "./read.ts";
 
 const Types = ["DEPOSIT_MATCH", "FREE_SPINS", "DEPOSIT_MATCH_WITH_FREE_SPINS", "NO_DEPOSIT"] as const;
 const Destinations = ["real_balance", "bonus_balance"] as const;
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 const withRounds = (type: string) => type === "FREE_SPINS" || type === "DEPOSIT_MATCH_WITH_FREE_SPINS";
 
 // --- the form --------------------------------------------------------------------------------------
@@ -321,6 +320,7 @@ function Dependants({ id, offers }: { id: string; offers: readonly Offer[] }) {
 }
 
 function OfferForm({ editing, offers, onClose }: { editing: Offer | undefined; offers: readonly Offer[]; onClose(): void }) {
+  const zone = useZone();
   const me = useOperator();
   const bags = useBags();
   const client = useQueryClient();
@@ -364,7 +364,7 @@ function OfferForm({ editing, offers, onClose }: { editing: Offer | undefined; o
         <Text named="offers.field.validFrom" type="datetime-local" value={form.validFrom} onChange={(v) => set({ validFrom: v })} />
         <Text named="offers.field.validUntil" type="datetime-local" value={form.validUntil} onChange={(v) => set({ validUntil: v })} />
         <p className="bo-wide">
-          <ZoneNote zone={zone()} />
+          <ZoneNote zone={zone} />
         </p>
         <Text named="offers.field.codes" value={form.codes} onChange={(v) => set({ codes: v })} wide />
         {others.length > 0 ? (

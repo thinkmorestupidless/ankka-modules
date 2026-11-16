@@ -6,7 +6,7 @@ import { t, type MessageKey } from "../../../shared/messages/index.ts";
 import { pspGateway } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 import { word } from "../word.ts";
@@ -24,13 +24,12 @@ export interface Outcome {
 }
 
 const Limit = 200;
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 function OutcomeList({ which, heading }: { which: "undelivered" | "refused"; heading: MessageKey }) {
   const me = useOperator();
   const bags = useBags();
   const readOnly = useReadOnlyMode();
-  const tz = zone();
+  const tz = useZone();
   const done = useChanged("outcomes");
   const q = usePayments<{ outcomes: Outcome[]; total: number }>(["outcomes", which], () =>
     (which === "undelivered" ? pspGateway.getPspOutcomesUndelivered : pspGateway.getPspOutcomesRefused)({ query: { limit: String(Limit) } }),
@@ -77,10 +76,11 @@ function OutcomeList({ which, heading }: { which: "undelivered" | "refused"; hea
 }
 
 export function OutcomesSection() {
+  const zone = useZone();
   return (
     <div>
       <p className="bo-muted">{t("payments.outcomes.note")}</p>
-      <ZoneNote zone={zone()} />
+      <ZoneNote zone={zone} />
       <OutcomeList which="undelivered" heading="payments.outcomes.undelivered" />
       <OutcomeList which="refused" heading="payments.outcomes.refused" />
     </div>

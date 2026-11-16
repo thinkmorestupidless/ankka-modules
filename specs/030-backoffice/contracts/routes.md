@@ -19,7 +19,7 @@ and the page goes to `/auth/sign-in`. Every route that is not `GET` needs the he
 | `GET /auth/callback` | asks `backoffice-state` to exchange the code; sets `__Host-bo` (`HttpOnly`, `Secure`, `SameSite=Lax`, the session's life); redirects to `return` |
 | `POST /auth/sign-out` | ends the session at `backoffice-state` and at the realm; clears the cookie |
 | `GET /api/permissions` | `{roles: {<role>: [permission]}}`: the brand's roles as `players` holds them now, so the page can say which role would give a permission the operator lacks |
-| `GET /api/me` | `{subject, name, roles, brand: {slug, name, modules}, preferences, permissions: [permission]}`, the permissions opened by the server from the operator's roles with the brand's bags (contracts/roles.md), read again at most every 10 seconds; `403 {"error":"brand_not_in_roles"}` for an operator whose roles do not name the brand; the token itself is never answered |
+| `GET /api/me` | `{subject, name, roles, brand: {slug, name, modules, zone}, preferences, permissions: [permission]}`, `zone` the brand's reporting zone (players' `config/brand-config`, read as the backoffice, `UTC` while never read), the zone every date is shown in (FR-015); the permissions opened by the server from the operator's roles with the brand's bags (contracts/roles.md), read again at most every 10 seconds; `403 {"error":"brand_not_in_roles"}` for an operator whose roles do not name the brand; the token itself is never answered |
 
 ### Pass-through, by the route table (research R4)
 

@@ -7,7 +7,7 @@ import { t } from "../../../shared/messages/index.ts";
 import { supportAgent } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { ConfigForm, type ConfigField, type ConfigValue } from "../../components/config-form.tsx";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { ConfigPage, keyOf, Loaded, useRead, useSaved } from "./page.tsx";
 
 type Body = Record<string, ConfigValue>;
@@ -52,14 +52,13 @@ export function agentFields(defaults: Body | undefined): ConfigField[] {
   return AgentFields.map((f) => (defaults && f.name in defaults ? { ...f, default: defaults[f.name] ?? null } : f));
 }
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 export function AgentPage() {
   const q = useRead<AgentConfig>(["support-agent", "config"], () => supportAgent.getConfig());
   const defaults = useRead<Body>(["support-agent", "versions", 0], () => supportAgent.getConfigVersionsByVersion({ version: "0" }));
   const s = useRead<AgentStatus>(["support-agent", "status"], () => supportAgent.getConfigStatus());
   const saved = useSaved();
-  const tz = zone();
+  const tz = useZone();
   return (
     <ConfigPage heading="config.agent.title">
       <Loaded q={s}>

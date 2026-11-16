@@ -12,7 +12,7 @@ import { t, type MessageKey } from "../../../shared/messages/index.ts";
 import { players } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { DateTime } from "../../components/date.tsx";
+import { DateTime, useZone } from "../../components/date.tsx";
 import { Money } from "../../components/money.tsx";
 import { Status } from "../../components/status.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
@@ -31,7 +31,6 @@ import { PlayerProtection } from "./protection.tsx";
 import { PlayerWithdrawals } from "./withdrawals.tsx";
 import { ExtraTabs } from "./tabs.tsx";
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 const json = (body: unknown) => ({ body });
 
 /** The tabs in order, each with the component it shows; `ExtraTabs` are other areas' (rewards). */
@@ -74,7 +73,7 @@ function StandingView({ player, s }: { player: string; s: Standing }) {
   const bags = useBags();
   const readOnly = useReadOnlyMode();
   const client = useQueryClient();
-  const tz = zone();
+  const tz = useZone();
   const done = () => void client.invalidateQueries({ queryKey: ["players", "standing", player] });
   const p = s.parts;
   const status = p.account.state === "ok" ? p.account.data.status : undefined;

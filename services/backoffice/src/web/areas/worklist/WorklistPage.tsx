@@ -14,7 +14,7 @@ import { explain } from "../../../shared/refusals.ts";
 import { Kinds } from "../../../shared/worklist.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { NavigateContext, RecordLink } from "../../components/links.tsx";
 import { List, useListState, useRouterListStore, type Column } from "../../components/list/index.ts";
 import { Money } from "../../components/money.tsx";
@@ -27,7 +27,6 @@ import { actedOn, investigationOf, keyOf, merged, placeAfter, readKindPage, read
 import "./worklist.css";
 
 const PageSize = 50;
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 const labelOf = (kind: string): MessageKey => Kinds.find((k) => k.id === kind)?.label ?? "area.worklist";
 const reasonOf = (reason: string) => word("worklist.reason", reason);
 const Withdrawals = new Set(["withdrawals_pending", "payouts_needing_review"]);
@@ -103,7 +102,7 @@ function WithdrawalItem({ item, onActed }: { item: Item; onActed(): void }) {
   const bags = useBags();
   const readOnly = useReadOnlyMode();
   const client = useQueryClient();
-  const tz = zone();
+  const tz = useZone();
   const queryKey = ["payouts", "request", item.id];
   const q = useQuery({ queryKey, queryFn: () => readRequest(item.id), refetchInterval: 5_000 });
   const r = q.data;
@@ -174,7 +173,7 @@ function WithdrawalItem({ item, onActed }: { item: Item; onActed(): void }) {
 }
 
 function ItemPanel({ item, onActed, onClose }: { item: Item; onActed(): void; onClose(): void }) {
-  const tz = zone();
+  const tz = useZone();
   const href = investigationOf(item);
   return (
     <section className="bo-worklist-item" data-item={keyOf(item)} aria-labelledby={`worklist-${keyOf(item)}`}>
@@ -212,7 +211,7 @@ export function WorklistPage() {
   const me = useOperator();
   const router = useRouter();
   const client = useQueryClient();
-  const tz = zone();
+  const tz = useZone();
   const list = useListState(useRouterListStore());
   const only = list.state.filters.kind;
   const search = useRouterState({ select: (s) => s.location.search as Record<string, unknown> });

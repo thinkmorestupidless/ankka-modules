@@ -9,7 +9,7 @@ import "./rewards.css";
 import { holds } from "../../../shared/access.ts";
 import { t } from "../../../shared/messages/index.ts";
 import { RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { useFreshness } from "../../components/freshness.tsx";
 import { hrefOf } from "../../components/links.tsx";
 import { completeOf, List, useListState, useRouterListStore, type Column, type ListState } from "../../components/list/index.ts";
@@ -19,7 +19,6 @@ import { useOperator } from "../../frame/context.ts";
 import { word } from "../word.ts";
 import { PageSize, readRewards, type Reward } from "./read.ts";
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 /** rewards' states (RewardStatus), as the list filters them. */
 export const States = ["AVAILABLE", "PENDING", "ACTIVE", "CONVERTED_PENDING_CAP", "CLOSED", "EXPIRED", "CANCELLED", "FORFEITED", "REVOKED"] as const;
@@ -81,7 +80,7 @@ function Search({ value, onSearch }: { value: string; onSearch(q: string | undef
 }
 
 export function RewardsPage() {
-  const tz = zone();
+  const tz = useZone();
   const me = useOperator();
   const router = useRouter();
   const store = useRouterListStore();

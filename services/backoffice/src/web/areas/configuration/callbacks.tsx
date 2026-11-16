@@ -7,7 +7,7 @@ import { t } from "../../../shared/messages/index.ts";
 import { gameProvider } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { RecordLink } from "../../components/links.tsx";
 import { completeOf, List, useListState, useRouterListStore, type Column } from "../../components/list/index.ts";
 import { Money } from "../../components/money.tsx";
@@ -38,7 +38,6 @@ interface Page {
 }
 
 const PageSize = 50;
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 function RowActions({ e, done }: { e: Unacknowledged; done(): void }) {
   const me = useOperator();
@@ -67,7 +66,7 @@ export function CallbacksPage() {
   const client = useQueryClient();
   const readOnly = useReadOnlyMode();
   const list = useListState(useRouterListStore());
-  const tz = zone();
+  const tz = useZone();
   const page = list.state.page;
   const q = useQuery({
     queryKey: ["config", "game-provider", "unacknowledged", page],

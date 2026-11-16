@@ -145,7 +145,7 @@ describe("job_done", () => {
       },
       {
         eventsEveryMs: 20,
-        reads: { bags: new Kept<Bags>(async () => OperatorBags, 0, () => Date.now()), modules: new Kept<string[]>(async () => ["core"], 0, () => Date.now()) },
+        reads: { bags: new Kept<Bags>(async () => OperatorBags, 0, () => Date.now()), modules: new Kept<string[]>(async () => ["core"], 0, () => Date.now()), zone: new Kept<string>(async () => "America/Sao_Paulo", 0, () => Date.now()) },
       },
     );
     h.state.sessions.set("s-j", { accessToken: token, expiresAt: Date.now() + 10_000, roles: [`brand_${Brand}`, "brand_finance"] });

@@ -10,7 +10,7 @@ import { t } from "../../../shared/messages/index.ts";
 import { players, wallet } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { useFreshness } from "../../components/freshness.tsx";
 import { RecordLinks, type RecordRef } from "../../components/links.tsx";
 import { completeOf, List, useListState, useRouterListStore, type Column } from "../../components/list/index.ts";
@@ -22,7 +22,6 @@ import { word } from "../word.ts";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 const PageSize = 50;
 
 interface Movement {
@@ -52,7 +51,7 @@ function refsOf(player: string, m: Movement): RecordRef[] {
 }
 
 function Movements({ player, currency }: { player: string; currency: string }) {
-  const tz = zone();
+  const tz = useZone();
   const list = useListState(useRouterListStore());
   const freshness = useFreshness(["wallet"]);
   const marked = useRouterState({ select: (s) => (s.location.search as Record<string, unknown>).adjustment ?? (s.location.search as Record<string, unknown>).payment });

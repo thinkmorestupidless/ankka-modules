@@ -12,7 +12,7 @@ import { parseMoney } from "../../../shared/money.ts";
 import { responsibleGambling as rg } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { Money, moneyText } from "../../components/money.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
@@ -20,7 +20,6 @@ import { word } from "../word.ts";
 import { PlayerCases } from "../protection/cases.tsx";
 import { isMoney, keyOf, LimitTypes, MinimumExclusionDays, readProtection, readSettings, type PendingChange, type Protection } from "../protection/rg.ts";
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 /** A limit's value as a person reads it: an amount in its currency, or minutes. */
 function Value({ limitType, value, currency }: { limitType: string; value: string | number; currency: string | null }) {
@@ -88,7 +87,7 @@ function LimitRow({ player, limitType, currency, value, pending, used, done }: {
   const bags = useBags();
   const readOnly = useReadOnlyMode();
   const [text, setText] = useState("");
-  const tz = zone();
+  const tz = useZone();
   const next = valueOf(limitType, text, currency);
   const query = currency ? { query: { currency } } : {};
   return (
@@ -246,7 +245,7 @@ function Breaks({ player, p, maxDays, done }: { player: string; p: Protection; m
   const readOnly = useReadOnlyMode();
   const untilId = useId();
   const [until, setUntil] = useState("");
-  const tz = zone();
+  const tz = useZone();
   const at = instantOf(until);
   const state = p.isCoolingOff ? "on_break" : "none";
   const input = (
@@ -298,7 +297,7 @@ function Exclusion({ player, p, done }: { player: string; p: Protection; done():
   const daysId = useId();
   const [permanent, setPermanent] = useState(false);
   const [days, setDays] = useState(String(MinimumExclusionDays));
-  const tz = zone();
+  const tz = useZone();
   const state = exclusionState(p);
   const period = permanent ? "permanent" : /^\d+$/.test(days.trim()) ? `${days.trim()}d` : undefined;
   const e = p.exclusion;
@@ -358,7 +357,7 @@ function Exclusion({ player, p, done }: { player: string; p: Protection; done():
 
 export function PlayerProtection({ player }: { player: string }) {
   const client = useQueryClient();
-  const tz = zone();
+  const tz = useZone();
   const q = useQuery({ queryKey: ["rg", "player", player], queryFn: () => readProtection(player) });
   const settings = useQuery({ queryKey: ["rg", "settings"], queryFn: () => readSettings(), staleTime: 60_000 });
   const done = () => void client.invalidateQueries({ queryKey: ["rg", "player", player] });

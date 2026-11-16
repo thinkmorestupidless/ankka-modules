@@ -9,7 +9,7 @@ import { t } from "../../../shared/messages/index.ts";
 import { engagement, players } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { completeOf, List, memoryStore, useListState, useRouterListStore, type Column } from "../../components/list/index.ts";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
@@ -17,7 +17,6 @@ import { readJson, refusalOf } from "../corrections/shared.tsx";
 import { word } from "../word.ts";
 import "../outreach/outreach.css";
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 const PageSize = 20;
 
 interface MergeTag {
@@ -203,7 +202,7 @@ function Compose({ player, onSent }: { player: string; onSent(): void }) {
 }
 
 function Sent({ player }: { player: string }) {
-  const tz = zone();
+  const tz = useZone();
   const list = useListState(useRouterListStore());
   const q = useQuery({
     queryKey: ["players", "messages", player, list.state.page],
@@ -236,7 +235,7 @@ function Sent({ player }: { player: string }) {
 }
 
 function CrmSends({ player }: { player: string }) {
-  const tz = zone();
+  const tz = useZone();
   const store = useMemo(() => memoryStore(), []);
   const list = useListState(store);
   const q = useQuery({
@@ -270,13 +269,14 @@ function CrmSends({ player }: { player: string }) {
 }
 
 export function PlayerMessages({ player }: { player: string }) {
+  const zone = useZone();
   const readOnly = useReadOnlyMode();
   const client = useQueryClient();
   return (
     <section aria-labelledby="messages-title">
       <h2 id="messages-title">{t("players.tab.messages")}</h2>
       {readOnly ? null : <Compose player={player} onSent={() => void client.invalidateQueries({ queryKey: ["players", "messages", player] })} />}
-      <ZoneNote zone={zone()} />
+      <ZoneNote zone={zone} />
       <Sent player={player} />
       <CrmSends player={player} />
     </section>

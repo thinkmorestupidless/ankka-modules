@@ -6,6 +6,12 @@ import react from "eslint-plugin-react";
 /** Marks that carry no words. */
 const allowedStrings = ["·", "—", "–", "/", "(", ")", ":", "%", "×", "…", "|", "+", "-", "*", "#"];
 
+/** FR-015: a date is shown in the brand's zone (`useZone()`, components/date.tsx), never the browser's. */
+const browserZone = {
+  selector: "MemberExpression[property.name='timeZone'][object.callee.property.name='resolvedOptions']",
+  message: "Show dates in the brand's zone: useZone() from components/date.tsx (FR-015), never the browser's.",
+};
+
 export default tseslint.config(
   { ignores: ["dist/**", "node_modules/**", ".features-gen/**", "src/shared/generated/**"] },
   ...tseslint.configs.recommended,
@@ -24,7 +30,9 @@ export default tseslint.config(
           selector: "JSXAttribute[name.name=/^(aria-label|aria-description|title|placeholder|alt|label)$/] > Literal",
           message: "Use a message from src/shared/messages (FR-040a).",
         },
+        browserZone,
       ],
     },
   },
+  { files: ["src/web/**/*.ts"], rules: { "no-restricted-syntax": ["error", browserZone] } },
 );

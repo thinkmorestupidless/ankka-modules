@@ -38,7 +38,7 @@ const deps = (fetchFn: typeof fetch, rows: readonly Row[] = table, timeoutMs = 2
 });
 
 const admitted = (role: string, modules: string[] | null = ["core", "casino", "engagement"]) =>
-  kindsFor({ brand: { slug: Brand, name: Brand, modules }, permissions: permissionsOf([`brand_${Brand}`, role], OperatorBags) });
+  kindsFor({ brand: { modules }, permissions: permissionsOf([`brand_${Brand}`, role], OperatorBags) });
 const kind = (id: string) => Kinds.find((k) => k.id === id)!;
 const never: Answer = () => new Promise<Response>(() => {});
 

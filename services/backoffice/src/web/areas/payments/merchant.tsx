@@ -8,7 +8,7 @@ import { ingest, merchant } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
 import { ConfigForm } from "../../components/config-form.tsx";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { Status } from "../../components/status.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
@@ -36,7 +36,6 @@ export interface EdgeRequest {
   paymentId?: string | null;
 }
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 export function MerchantSection() {
   const scope = useScope();
@@ -48,7 +47,7 @@ function Merchant({ subBrand }: { subBrand: string }) {
   const me = useOperator();
   const bags = useBags();
   const readOnly = useReadOnlyMode();
-  const tz = zone();
+  const tz = useZone();
   const sb = usePayments<SubBrand>(["merchant", subBrand], () => merchant.getMerchantsById({ id: subBrand }));
   const keys = usePayments<{ keys: Key[] }>(["keys", subBrand], () => merchant.getMerchantsKeys({ id: subBrand }));
   const rate = usePayments<{ perMinute: number; default: number }>(["rate", subBrand], () => ingest.getIngestSubBrandsRate({ subBrand }));

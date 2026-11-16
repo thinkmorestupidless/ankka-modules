@@ -11,7 +11,7 @@ import { players } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
 import { ConfigForm } from "../../components/config-form.tsx";
-import { DateTime } from "../../components/date.tsx";
+import { DateTime, useZone } from "../../components/date.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 import { keyOf, read } from "../configuration/page.tsx";
@@ -47,7 +47,7 @@ function TagsEditor({ player, held }: { player: string; held: Tags }) {
   const next = tidyTags(tags);
   const changed = next.join("\n") !== held.tags.join("\n");
   const tooLong = next.find((x) => x.length > MaxTagLength);
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const tz = useZone();
   return (
     <section aria-labelledby={`${id}-tags`}>
       <h3 id={`${id}-tags`}>{t("players.tags.title")}</h3>

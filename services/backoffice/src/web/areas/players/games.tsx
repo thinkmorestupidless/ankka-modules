@@ -8,7 +8,7 @@ import "../payments/payments.css";
 import { t } from "../../../shared/messages/index.ts";
 import { players } from "../../../shared/owners/index.ts";
 import { RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { Money } from "../../components/money.tsx";
 import { read } from "../configuration/page.tsx";
 
@@ -22,10 +22,9 @@ export interface GamePlayed {
   lastPlayedAt: string;
 }
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 export function PlayerGamesPlayed({ player }: { player: string }) {
-  const tz = zone();
+  const tz = useZone();
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const query: Record<string, string> = {};

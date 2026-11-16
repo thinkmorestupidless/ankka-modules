@@ -8,6 +8,7 @@ import type { Refusal } from "../../../shared/refusals.ts";
 import { RefusalNotice } from "../../components/action/index.ts";
 import { JobLine } from "./JobsPage.tsx";
 import { startJob, useJobs, type Job, type JobKind, type Started } from "./jobs.ts";
+import { useZone } from "../../components/date.tsx";
 
 export interface ExportProps {
   kind: JobKind;
@@ -36,7 +37,7 @@ export function Export({ kind, params, label, unavailable, onRefused, start = st
     await Promise.all([client.invalidateQueries({ queryKey: ["jobs"] }), client.invalidateQueries({ queryKey: ["me"] })]);
   };
   const started = state.at === "started" ? (jobs.data?.find((j) => j.reference === state.job.reference) ?? state.job) : undefined;
-  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const zone = useZone();
   return (
     <div className="bo-export" data-export={kind}>
       {unavailable ? (

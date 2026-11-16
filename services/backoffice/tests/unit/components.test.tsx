@@ -3,7 +3,9 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { Status } from "../../src/web/components/status.tsx";
 import { Money } from "../../src/web/components/money.tsx";
-import { DateTime, ZoneNote } from "../../src/web/components/date.tsx";
+import { DateTime, useZone, ZoneNote } from "../../src/web/components/date.tsx";
+import { MeContext } from "../../src/web/frame/context.ts";
+import type { Me } from "../../src/shared/access.ts";
 import { hrefOf, NavigateContext, RecordLink, RecordLinks } from "../../src/web/components/links.tsx";
 import { BirthDateInput } from "../../src/web/components/date-input.tsx";
 import { formatMoney } from "../../src/shared/money.ts";
@@ -57,6 +59,35 @@ describe("a date", () => {
     expect(time.textContent).toMatch(/GMT-3/);
     expect(time.getAttribute("title")).toBe("Times are in America/Sao_Paulo.");
     expect(time.getAttribute("datetime")).toBe("2026-11-15T12:00:00.000Z");
+  });
+
+  test("a page's dates are in the brand's zone from /api/me, not the browser's (FR-015, DR-01)", () => {
+    const browser = process.env.TZ;
+    process.env.TZ = "Europe/London";
+    try {
+      expect(Intl.DateTimeFormat().resolvedOptions().timeZone).toBe("Europe/London");
+      const me: Me = { subject: "op", name: null, roles: [], brand: { slug: "goldvibe", name: "goldvibe", modules: null, zone: "Asia/Tokyo" }, preferences: null, permissions: [] };
+      function Page() {
+        const zone = useZone();
+        return (
+          <div>
+            <ZoneNote zone={zone} />
+            <DateTime instant="2026-11-15T12:00:00Z" zone={zone} />
+          </div>
+        );
+      }
+      const { container } = render(
+        <MeContext.Provider value={me}>
+          <Page />
+        </MeContext.Provider>,
+      );
+      expect(screen.getByText("Times are in Asia/Tokyo.")).toBeTruthy();
+      expect(container.querySelector("time")!.textContent).toBe(formatInstant("2026-11-15T12:00:00Z", "Asia/Tokyo"));
+      expect(container.textContent).not.toMatch(/London|GMT(?![+-])/);
+    } finally {
+      if (browser === undefined) delete process.env.TZ;
+      else process.env.TZ = browser;
+    }
   });
 
   test("the zone note names the zone", () => {

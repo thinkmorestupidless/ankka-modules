@@ -23,7 +23,7 @@ export const admin: Me = {
   subject: "op-a",
   name: "Admin",
   roles: ["brand_goldvibe", "brand_admin"],
-  brand: { slug: "goldvibe", name: "goldvibe", modules: null },
+  brand: { slug: "goldvibe", name: "goldvibe", modules: null, zone: "America/Sao_Paulo" },
   preferences: null,
   permissions: ["config.brand", "config.games", "config.crm", "config.agent", "config.attribution", "callback.resolve", "send.release", "fact.redeliver", "modules.read", "modules.request"],
 };

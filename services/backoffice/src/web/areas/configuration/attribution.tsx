@@ -12,7 +12,7 @@ import { attribution } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
 import { ConfigForm, type ConfigField, type ConfigValue } from "../../components/config-form.tsx";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { completeOf, List, useListState, useRouterListStore, type Column } from "../../components/list/index.ts";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
@@ -56,7 +56,6 @@ export interface Undelivered {
   firstAttemptAt?: string;
 }
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 const WindowFields: ConfigField[] = [
   { name: "attributionWindowDays", label: "config.attribution.window", kind: "whole", default: 30, hint: "config.attribution.days.hint" },
@@ -94,7 +93,7 @@ function NetworkSection({ n, done }: { n: Network; done(): void }) {
   const me = useOperator();
   const bags = useBags();
   const readOnly = useReadOnlyMode();
-  const tz = zone();
+  const tz = useZone();
   const state = n.removed ? "removed" : "live";
   const values: Record<string, ConfigValue> = {
     keyDocument: n.keyDocument,
@@ -262,7 +261,7 @@ function SigningKeys({ done }: { done(): void }) {
   const me = useOperator();
   const bags = useBags();
   const readOnly = useReadOnlyMode();
-  const tz = zone();
+  const tz = useZone();
   const q = useRead<{ keys: SigningKey[] }>(["attribution", "signing-keys"], () => attribution.getSigningKeys());
   return (
     <>
@@ -298,7 +297,7 @@ function UndeliveredFacts({ networks }: { networks: Network[] }) {
   const readOnly = useReadOnlyMode();
   const client = useQueryClient();
   const list = useListState(useRouterListStore());
-  const tz = zone();
+  const tz = useZone();
   const pick = useId();
   const network = list.state.filters.network ?? networks[0]?.id ?? "";
   const page = list.state.page;
@@ -366,7 +365,7 @@ function UndeliveredFacts({ networks }: { networks: Network[] }) {
 
 export function AttributionPage() {
   const me = useOperator();
-  const tz = zone();
+  const tz = useZone();
   const saved = useSaved();
   const q = useRead<{ networks: Network[] }>(["attribution", "networks"], () => attribution.getNetworks());
   const configures = holds(me, "config.attribution");

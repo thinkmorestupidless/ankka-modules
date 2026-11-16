@@ -13,14 +13,13 @@ import { gameProvider, players } from "../../../shared/owners/index.ts";
 import { useFreshness } from "../../components/freshness.tsx";
 import { listSearchKeys } from "../../components/list/state.ts";
 import { RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { completeOf, List, useListState, useRouterListStore, type Column } from "../../components/list/index.ts";
 import { Money } from "../../components/money.tsx";
 import { Status } from "../../components/status.tsx";
 import { readJson, refusalOf } from "../corrections/shared.tsx";
 import { word } from "../word.ts";
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 const PageSize = 50;
 
 export interface RoundRow {
@@ -377,7 +376,7 @@ function ViewSwitch({ view }: { view: "rounds" | "bets" }) {
 }
 
 export function PlayerRounds({ player, sessionId }: { player: string; sessionId?: string }) {
-  const tz = zone();
+  const tz = useZone();
   const view = useSearch().view === "bets" && !sessionId ? "bets" : "rounds";
   return (
     <section aria-labelledby="rounds-title">
