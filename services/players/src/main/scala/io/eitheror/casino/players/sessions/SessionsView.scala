@@ -91,6 +91,39 @@ object SessionsView extends KeyedView.Companion[SessionsViewRows, SessionRow](
   val byRealmSession: DeclaredQuery = query("by-realm-session")(
     s"SELECT payload FROM $table WHERE $kind = 'player' AND $parent = :realm ORDER BY $started DESC LIMIT 1")
 
+  /** The game sessions a player session holds, newest first. */
+  val byParent: DeclaredQuery = query("by-parent")(
+    s"SELECT payload FROM $table WHERE $kind = 'game' AND $parent = :parent ORDER BY $started DESC, row_key ASC")
+
+  def gamesOf(views: ViewClient, playerSessionId: String): Vector[SessionRow] =
+    views.forView(SessionsView).ask(byParent, 1000, "parent" -> playerSessionId)
+
+  /**
+   * Player sessions as an operator lists them (spec 030 P5): one player's or the brand's; `active` (open),
+   * `ended`, or an end's status; started within `[from, to)` in epoch milliseconds.
+   */
+  final case class Wanted(playerId: Option[String] = None, status: Option[String] = None, from: Option[Long] = None, to: Option[Long] = None):
+    import com.thinkmorestupidless.ankka.runtime.SqlFragment
+    import com.thinkmorestupidless.ankka.runtime.SqlSyntax.sql
+
+    def condition: SqlFragment =
+      val terms = Vector(SqlFragment.raw(s"$kind = 'player'")) ++
+        playerId.map(p => SqlFragment.raw(s"$player = ") ++ sql"$p") ++
+        status.map {
+          case SessionStatus.Active => SqlFragment.raw(isOpen)
+          case "ended"              => SqlFragment.raw(s"NOT ($isOpen)")
+          case other                => SqlFragment.raw("COALESCE(payload::jsonb->>'status', '') = ") ++ sql"$other"
+        } ++
+        from.map(f => SqlFragment.raw(started) ++ sql" >= $f") ++ to.map(t => SqlFragment.raw(started) ++ sql" < $t")
+      terms.tail.foldLeft(terms.head)((acc, t) => acc ++ SqlFragment.raw(" AND ") ++ t)
+
+  def playerSessions(views: ViewClient, w: Wanted, offset: Int, limit: Int): Vector[SessionRow] =
+    // the view client puts its LIMIT after the order, and Postgres takes OFFSET and LIMIT in either order
+    views.forView(SessionsView).ordered(w.condition,
+      com.thinkmorestupidless.ankka.runtime.SqlFragment.raw(s"$started DESC, row_key ASC OFFSET ${offset.max(0)}"), limit)
+
+  def playerSessionsTotal(views: ViewClient, w: Wanted): Long = views.forView(SessionsView).count(w.condition)
+
   def ofPlayer(views: ViewClient, playerId: String, kind: String, offset: Int, limit: Int): Vector[SessionRow] =
     views.forView(SessionsView).ask(byPlayer, limit, "player" -> playerId, "kind" -> kind, "offset" -> offset.max(0).toString)
 

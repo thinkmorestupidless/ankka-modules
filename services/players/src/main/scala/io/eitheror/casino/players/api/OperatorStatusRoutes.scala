@@ -274,24 +274,6 @@ final class OperatorStatusRoutes(ctx: Ctx):
           "next" -> (if more then shown.lastOption.map(ActivityView.cursor).orNull else null)))
       }
 
-  /** The settled rounds from the activity, `fromDate`/`toDate` as ISO dates; `400 invalid_date_range`. */
-  def bets(playerId: String, from: Option[String], to: Option[String], limit: Option[String], offset: Option[String]): Reply =
-    val f = from.flatMap(d => Try(LocalDate.parse(d.take(10))).toOption)
-    val t = to.flatMap(d => Try(LocalDate.parse(d.take(10))).toOption)
-    if f.zip(t).exists((a, b) => a.isAfter(b)) then refusal(400, "invalid_date_range", "fromDate is after toDate")
-    else
-      known(playerId) { _ =>
-        val lim  = limit.flatMap(_.toIntOption).filter(_ >= 1).getOrElse(50)
-        val off  = offset.flatMap(_.toIntOption).filter(_ >= 0).getOrElse(0)
-        def day(at: Long) = LocalDate.ofInstant(Instant.ofEpochMilli(at), java.time.ZoneOffset.UTC)
-        val all = ActivityView.ofPlayer(views, playerId, Some(ActivityCategory.Games), 0, ListLimit)
-          .filter(r => r.eventType == "round_settled" && f.forall(d => !day(r.at).isBefore(d)) && t.forall(d => !day(r.at).isAfter(d)))
-        val bets = all.slice(off, off + lim).map(r => Json.obj("betId" -> r.factId, "amountMinorUnits" -> r.amountMinorUnits.map(Long.box).orNull,
-          "currency" -> r.currency.orNull, "description" -> r.description, "createdAt" -> Instant.ofEpochMilli(r.at).toString))
-        ok(Json.obj("bets" -> Json.arr(bets*), "summary" -> Json.obj("totalBets" -> all.size, "fromDate" -> from.orNull, "toDate" -> to.orNull),
-          "total" -> all.size, "limit" -> lim, "offset" -> off))
-      }
-
   def sessions(playerId: String): Reply =
     known(playerId) { _ =>
       val rows = SessionsView.ofPlayer(views, playerId, SessionRow.Game, 0, ListLimit)

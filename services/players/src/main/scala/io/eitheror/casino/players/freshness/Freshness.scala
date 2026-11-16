@@ -10,6 +10,7 @@ import io.eitheror.casino.players.inbox.{MessageEntity, MessagesView, NoteEntity
 import io.eitheror.casino.players.player.{PlayerEntity, PlayersView}
 import io.eitheror.casino.players.reads.{ActivityEntry, ActivityView}
 import io.eitheror.casino.players.roles.{Role, Roles}
+import io.eitheror.casino.players.rounds.{RoundEntry, RoundsView}
 import io.eitheror.casino.players.sessions.{GameSessionEntity, PlayerSessionEntity, SessionsView}
 
 import java.time.Instant
@@ -94,15 +95,17 @@ object ViewFollower:
   private object MessagesFollower     extends Of(MessagesView.componentId, ChangeSource.eventsOf(MessageEntity))
   private object FraudCasesFollower   extends Of(FraudCasesView.componentId, ChangeSource.eventsOf(FraudCaseEntity))
   private object RolesFollower        extends Of(Roles.componentId, ChangeSource.eventsOf(Role))
+  private object RoundsFollower       extends Of(RoundsView.componentId, ChangeSource.stateOf(RoundEntry))
 
   /** The views behind the operator lists, in the order `status` answers them. */
   val views: Vector[String] = Vector[String](PlayersView.componentId, SessionsView.componentId, ActivityView.componentId,
-    NotesView.componentId, MessagesView.componentId, FraudCasesView.componentId, Roles.componentId)
+    NotesView.componentId, MessagesView.componentId, FraudCasesView.componentId, Roles.componentId, RoundsView.componentId)
 
   val descriptors: Seq[com.thinkmorestupidless.ankka.core.ComponentDescriptor] = Seq(
     ViewMark.descriptor,
     PlayersFollower.descriptor, SessionsOfPlayers.descriptor, SessionsOfGames.descriptor, ActivityFollower.descriptor,
-    NotesFollower.descriptor, MessagesFollower.descriptor, FraudCasesFollower.descriptor, RolesFollower.descriptor
+    NotesFollower.descriptor, MessagesFollower.descriptor, FraudCasesFollower.descriptor, RolesFollower.descriptor,
+    RoundsFollower.descriptor
   )
 
 /** `GET …/status`'s answer, `{views: [{name, asOf, rebuilding}]}`; `asOf` is null for a view that has applied nothing. */

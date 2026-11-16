@@ -22,9 +22,6 @@ class ListsFeatures extends PlayersFeatures("lists.feature"):
     "a list's status says how fresh its views are" ->
       ("T051 answers each view's asOf (FreshnessSuite); no answer can say the views are catching up while " +
         "rebuilding is always false (ankka 0.16.3 reports no progress, research V2): open for the lead"),
-    "an operator reads a player session with its game sessions" -> "T068 (pending)",
-    "an operator reads a game session's bets" -> "T068 (pending)",
-    "an operator finds a player's bets by round, by transaction or by status, with what was staked and won" -> "T068 (pending)"
   )
 
   private var tag     = ""
@@ -34,11 +31,14 @@ class ListsFeatures extends PlayersFeatures("lists.feature"):
   private var wanted: PlayerRow => Boolean = _ => true
   private var playerId = ""
   private var noteIds  = Vector.empty[String]
+  private var playerSession = ""
+  private var games    = Vector.empty[String]
+  private var rounds   = Vector.empty[(String, Long, Long)]
 
   override def beforeEach(context: BeforeEach): Unit =
     super.beforeEach(context)
     tag = s"List${UUID.randomUUID().toString.take(8)}"; seeded = Vector.empty; pages = Vector.empty; reply = null; wanted = _ => true
-    playerId = ""; noteIds = Vector.empty
+    playerId = ""; noteIds = Vector.empty; playerSession = ""; games = Vector.empty; rounds = Vector.empty
 
   private def read(params: (String, String)*): Reply =
     val q = (("search" -> tag) +: params).map((k, v) => s"$k=${URLEncoder.encode(v, UTF_8)}").mkString("&")
@@ -199,4 +199,91 @@ class ListsFeatures extends PlayersFeatures("lists.feature"):
     assertEquals(notes.map(_.get("noteId").asText), Vector(noteIds(1), noteIds(0)))
     assertEquals(notes.map(n => (n.get("text").asText, n.get("author").asText, n.get("pinned").asBoolean)),
       Vector(("the pinned", "op-5", true), ("the first", "op-5", false)))
+  }
+
+  // ── sessions and bets (T068) ────────────────────────────────────────────────────────────────────
+
+  private def signedInPlaying(gameCount: Int): Unit =
+    val (email, id) = kit.activePlayer()
+    playerId = id
+    playerSession = kit.sessionOf(kit.signIn(email).str("token"))
+    games = (1 to gameCount).toVector.map(g => kit.json("POST", kit.servicePath(s"/$id/game-sessions"), io.eitheror.casino.players.Json.obj(
+      "gameId" -> s"g-$g", "currency" -> "EUR", "playerSessionId" -> playerSession), kit.asService("game-provider")).str("sessionId"))
+
+  /** A round of `casino.rounds`, settled with `stake` and `win`, or only opened. */
+  private def round(session: String, stake: Long, win: Long, settled: Boolean = true): String =
+    import io.eitheror.casino.contract.facts.{CasinoRounds, RoundOpened, RoundSettled}
+    import io.eitheror.casino.contract.money.{Currency, MinorUnits, SignedMinorUnits}
+    val provider = UUID.randomUUID().toString.take(12)
+    val roundId  = s"st8/$provider"
+    val at       = kit.now()
+    if settled then
+      kit.publish(CasinoRounds, s"$playerId/EUR", RoundSettled(playerId, Currency.unsafe("EUR"), roundId, "st8", provider, "g-1", session,
+        MinorUnits.unsafe(stake), MinorUnits.unsafe(win), SignedMinorUnits(win - stake), if win > 0 then "win" else "loss",
+        Vector(s"tx-$provider"), Vector(s"ptx-$provider"), Vector.empty, None, at))
+    else
+      kit.publish(CasinoRounds, s"$playerId/EUR", RoundOpened(playerId, Currency.unsafe("EUR"), roundId, "st8", provider, "g-1", session, None, at))
+    rounds :+= ((roundId, stake, win))
+    roundId
+
+  Given("a player session during which the player opened two game sessions") { () => signedInPlaying(2) }
+
+  When("an operator reads the player's player sessions") { () =>
+    reply = kit.eventually("the session with its games", 30.seconds) {
+      val r = op("GET", s"/players/$playerId/player-sessions")
+      Option.when(r.status == 200 && r.json.get("total").asInt == 1 && r.json.get("sessions").get(0).get("gameSessions").size == 2)(r)
+    }
+  }
+
+  Then("the player session is listed with both game sessions") { () =>
+    val s = reply.json.get("sessions").get(0)
+    assertEquals((s.get("sessionId").asText, s.get("status").asText), (playerSession, "active"))
+    assertEquals(s.get("gameSessions").elements().asScala.map(_.get("sessionId").asText).toSet, games.toSet)
+  }
+
+  Given("a game session with three rounds") { () =>
+    signedInPlaying(1)
+    Vector((100L, 0L), (200L, 500L), (50L, 50L)).foreach((stake, win) => round(games.head, stake, win))
+  }
+
+  When("an operator reads the game session's bets") { () =>
+    reply = kit.eventually("the three rounds", 30.seconds) {
+      val r = op("GET", s"/players/$playerId/sessions/${games.head}/bets")
+      Option.when(r.status == 200 && r.json.get("total").asInt == 3)(r)
+    }
+  }
+
+  Then("each round's bet and win are listed") { () =>
+    val listed = reply.json.get("bets").elements().asScala.map(b =>
+      (b.get("roundId").asText, b.get("stakeMinorUnits").asLong, b.get("winMinorUnits").asLong)).toSet
+    assertEquals(listed, rounds.toSet)
+    val summary = reply.json.get("summary")
+    assertEquals((summary.get("staked").asLong, summary.get("won").asLong, summary.get("net").asLong), (350L, 550L, 200L))
+  }
+
+  Given("a player with settled and unsettled rounds") { () =>
+    signedInPlaying(1)
+    round(games.head, 300, 0); round(games.head, 100, 250); round(games.head, 80, 0, settled = false)
+  }
+
+  When("an operator reads the player's bets filtered by status") { () =>
+    kit.eventually("every round", 30.seconds)(Option.when(op("GET", s"/players/$playerId/bets?status=all").json.get("total").asInt == 3)(()))
+    reply = op("GET", s"/players/$playerId/bets?status=open")
+  }
+
+  Then("only the matching bets are listed") { () =>
+    assertEquals(reply.status, 200, reply.text)
+    assertEquals(reply.json.get("bets").elements().asScala.map(b => (b.get("roundId").asText, b.get("status").asText)).toVector,
+      Vector((rounds(2)._1, "open")))
+    val settled = op("GET", s"/players/$playerId/bets?status=settled")
+    assertEquals(settled.json.get("bets").elements().asScala.map(_.get("roundId").asText).toSet, Set(rounds(0)._1, rounds(1)._1))
+    assertEquals(op("GET", s"/players/$playerId/bets?roundId=${rounds(1)._1.stripPrefix("st8/")}").json.get("total").asInt, 1)
+    assertEquals(op("GET", s"/players/$playerId/bets?transactionId=ptx-${rounds(0)._1.stripPrefix("st8/")}").json.get("total").asInt, 1)
+    reply = settled
+  }
+
+  Then("the answer carries the total staked, the total won and the net") { () =>
+    val summary = reply.json.get("summary")
+    assertEquals((summary.get("staked").asLong, summary.get("won").asLong, summary.get("net").asLong, summary.get("currency").asText),
+      (400L, 250L, -150L, "EUR"))
   }
