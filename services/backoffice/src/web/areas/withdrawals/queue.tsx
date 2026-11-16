@@ -6,7 +6,7 @@
 // payouts orders by default, or oldest first by the time column. The place is kept in the URL.
 import { useQuery } from "@tanstack/react-query";
 import { useRouter, useRouterState } from "@tanstack/react-router";
-import { useId, useState, type FormEvent } from "react";
+import { Fragment, useId, useState, type FormEvent } from "react";
 import { t, type MessageKey } from "../../../shared/messages/index.ts";
 import { RefusalNotice } from "../../components/action/index.ts";
 import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
@@ -135,23 +135,18 @@ export function WithdrawalsQueuePage() {
   return (
     <section className="bo-withdrawals">
       <h1>{t("area.withdrawals")}</h1>
-      <ul className="bo-withdrawal-counts" aria-label={t("withdrawals.queue.counts")}>
-        <li data-count="pendingReview">
-          <button type="button" className="bo-button" aria-pressed={status === "PENDING_REVIEW"} onClick={() => chooseState("PENDING_REVIEW")}>
-            {counts ? t("withdrawals.queue.pendingCount", { count: counts.pendingReview }) : t("status.pending_review")}
-          </button>
-        </li>
-        <li data-count="needsReview">
-          <button type="button" className="bo-button" aria-pressed={needsReview} onClick={seeNeedsReview}>
-            {counts ? t("withdrawals.queue.needsReviewCount", { count: counts.needsReview }) : t("status.needs_review")}
-          </button>
-        </li>
-      </ul>
       <div className="bo-withdrawal-states" role="group" aria-label={t("withdrawals.queue.states")}>
         {States.map((s) => (
-          <button key={s} type="button" className="bo-button" aria-pressed={status === s} onClick={() => chooseState(s)}>
-            {s === "ALL" ? t("withdrawals.queue.all") : word("status", s.toLowerCase())}
-          </button>
+          <Fragment key={s}>
+            <button type="button" className="bo-button" data-count={s === "PENDING_REVIEW" ? "pendingReview" : undefined} aria-pressed={status === s} onClick={() => chooseState(s)}>
+              {s === "ALL" ? t("withdrawals.queue.all") : s === "PENDING_REVIEW" && counts ? t("withdrawals.queue.pendingCount", { count: counts.pendingReview }) : word("status", s.toLowerCase())}
+            </button>
+            {s === "PENDING_REVIEW" ? (
+              <button type="button" className="bo-button" data-count="needsReview" aria-pressed={needsReview} onClick={seeNeedsReview}>
+                {counts ? t("withdrawals.queue.needsReviewCount", { count: counts.needsReview }) : t("status.needs_review")}
+              </button>
+            ) : null}
+          </Fragment>
         ))}
       </div>
       <div className="bo-withdrawal-filters">
