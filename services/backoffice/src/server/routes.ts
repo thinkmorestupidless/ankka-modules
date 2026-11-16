@@ -334,6 +334,9 @@ export const table: readonly Row[] = [
   r("POST", "merchant", "/operators/{id}/reset-password", "/v1/operators/{id}/reset-password", "resource_viewer", "payments"),
   r("PUT", "merchant", "/operators/{id}/scope", "/v1/operators/{id}/scope", "resource_viewer", "payments"),
   r("DELETE", "merchant", "/operators/{id}", "/v1/operators/{id}", "resource_viewer", "payments"),
+  // merchant's operators, for the timeline's actors by name (research R12): merchant lists them to payments
+  // operators only, so a brand's operator is refused and the timeline shows ids; a literal, before `/{paymentId}`
+  r("GET", "merchant", "/operators", "/v1/operators", "player.read", "payments"),
   r("GET", "merchant", "/cashier", "/v1/payments/cashier", "wallet.read", "payments"),
   r("GET", "merchant", "/cashier/summary", "/v1/payments/cashier/summary", "wallet.read", "payments"),
   r("GET", "merchant", "/{paymentId}", "/v1/payments/{paymentId}", "wallet.read", "payments"),

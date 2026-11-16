@@ -77,3 +77,20 @@ export function sumMoney(amounts: readonly Money[]): Money | undefined {
   if (amounts.some((a) => a.currency !== currency)) throw new RangeError("amounts in different currencies are not summed");
   return { minor: amounts.reduce((s, a) => s + asBigInt(a.minor), 0n), currency };
 }
+
+/** The wallet's major-unit text (`"12.50"`) as minor units of the currency; undefined when it is not one. */
+export function minorOfText(text: unknown, currency: string): string | undefined {
+  const s = typeof text === "number" ? String(text) : typeof text === "string" ? text.trim() : "";
+  const m = /^(-?)(\d+)(?:\.(\d+))?$/.exec(s);
+  if (!m) return undefined;
+  let e: number;
+  try {
+    e = exponentOf(currency);
+  } catch {
+    return undefined;
+  }
+  const frac = (m[3] ?? "").padEnd(e, "0");
+  if (frac.length > e && /[1-9]/.test(frac.slice(e))) return undefined;
+  const digits = `${m[2]}${frac.slice(0, e)}`.replace(/^0+(?=\d)/, "");
+  return digits === "0" ? "0" : `${m[1]}${digits}`;
+}
