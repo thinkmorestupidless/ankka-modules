@@ -77,3 +77,26 @@ class ViewsSuite extends munit.FunSuite with LogCapturing:
     assertEquals(PlayersView.fold(start, FavouriteAdded("g-1", at)), None)
     assertEquals(PlayerRow.displayName(Profile(Map("firstName" -> Personal("Ada"), "lastName" -> Personal("L")))), "Ada L")
   }
+
+  test("the players view keeps what the list filters read: identity, birthday and open sessions (spec 030 P2)") {
+    import PlayerEvent.*
+    val start = PlayerRow("p-1", Status.Active, birthday = PlayerRow.birthday(Some("1990-08-15")))
+    def after(events: PlayerEvent*) = events.foldLeft(start)((r, e) => PlayersView.fold(r, e).getOrElse(r))
+    assertEquals(start.birthday.reveal, "08-15")
+    assertEquals(after(KycVerified(at)).kycVerified, true)
+    assertEquals(after(KycVerified(at), KycWithdrawn(at)).kycVerified, false)
+    assertEquals(after(SessionOpened("s-1", at), SessionOpened("s-2", at), SessionEnded("s-1", at)).openSessions, Vector("s-2"))
+    assertEquals(after(SessionOpened("s-1", at)).online, true)
+    assertEquals(after(DateOfBirthCorrected(Personal("1991-02-03"), "op-1", "typo", at)).birthday.reveal, "02-03")
+    assertEquals(after(ProfileEdited(Profile(Map("dateOfBirth" -> Personal("1980-12-31"))), Set("dateOfBirth"), at)).birthday.reveal, "12-31")
+    val erased = after(SessionOpened("s-1", at), Erased(at))
+    assertEquals((erased.birthday.reveal, erased.online), ("", false))
+    assertEquals(PlayerRow.birthday(Some("15/08/1990")).reveal, "")
+  }
+
+  test("the birthday window runs over the year's end, and a 29 February birthday falls on 28 February in a common year") {
+    val f = PlayersView.Filter(birthdayWithin = Some(3), today = java.time.LocalDate.parse("2026-12-30"))
+    assertEquals(f.birthdays, Vector("12-30", "12-31", "01-01", "01-02"))
+    assertEquals(PlayersView.Filter(birthdayWithin = Some(0), today = java.time.LocalDate.parse("2027-02-28")).birthdays, Vector("02-28", "02-29"))
+    assertEquals(PlayersView.Filter(birthdayWithin = Some(0), today = java.time.LocalDate.parse("2028-02-28")).birthdays, Vector("02-28"))
+  }
