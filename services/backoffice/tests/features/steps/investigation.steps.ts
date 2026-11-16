@@ -115,7 +115,7 @@ Given("a player of the brand with a deposit, a withdrawal request, a reward and 
   await world.doubles.fixtures("rewards", {
     [`GET ${B}/reward-grants/{rewardId}`]: { by: "rewardId", answers: { [RewardId]: { body: { rewardId: RewardId, playerId: PlayerId, status: "active", offerName: "Welcome match", kind: "DEPOSIT_MATCH" } } }, otherwise: notFound("not_found") },
   });
-  const payment = { paymentId: PaymentId, customerRef: PlayerId, status: "SUCCEEDED", amountCents: 2000, currency: "EUR", psp: "paysafe", reference: PaymentReference };
+  const payment = { paymentId: PaymentId, customerRef: PlayerId, status: "captured", amountCents: 2000, currency: "EUR", psp: "paysafe", reference: PaymentReference };
   await world.doubles.fixtures("merchant.payments", {
     "GET /v1/payments/cashier": { by: "?reference", answers: { [PaymentReference]: { body: { payments: [payment], total: 1 } } }, otherwise: { body: { payments: [], total: 0 } } },
     "GET /v1/payments/{paymentId}": { by: "paymentId", answers: { [PaymentId]: { body: payment } }, otherwise: notFound("PAYMENT_NOT_FOUND") },

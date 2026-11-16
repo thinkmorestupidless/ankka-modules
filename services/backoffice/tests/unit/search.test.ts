@@ -85,9 +85,9 @@ describe("the search", () => {
   });
 
   test("a payment found by its reference is listed with the player it belongs to (merchant's answer)", async () => {
-    const { fetchFn } = owners({ "/merchant.payments/v1/payments/cashier": () => Response.json({ payments: [{ paymentId: "pay-1", customerRef: "p-9", status: "SUCCEEDED", amountCents: 5000, currency: "BRL" }], total: 1 }) });
+    const { fetchFn } = owners({ "/merchant.payments/v1/payments/cashier": () => Response.json({ payments: [{ paymentId: "pay-1", customerRef: "p-9", status: "captured", amountCents: 5000, currency: "BRL" }], total: 1 }) });
     const a = await search(deps(fetchFn), "PSP_7781234", "tok", all);
-    expect(a.matches).toEqual([{ kind: "payment", id: "pay-1", player: "p-9", summary: { status: "SUCCEEDED", amountCents: 5000, currency: "BRL" } }]);
+    expect(a.matches).toEqual([{ kind: "payment", id: "pay-1", player: "p-9", summary: { status: "captured", amountCents: 5000, currency: "BRL" } }]);
   });
 
   test("an email is asked of players' search only", async () => {
