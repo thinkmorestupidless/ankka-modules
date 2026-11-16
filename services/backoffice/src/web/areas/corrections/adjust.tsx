@@ -22,6 +22,7 @@ import { Money, moneyText } from "../../components/money.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 import { word } from "../word.ts";
+import { profileCurrency } from "../players/read.ts";
 import { CategorySelect, CauseFields, causeOf, readJson, refusalOf, walletMinor, type Category, type Cause, type CauseKind } from "./shared.tsx";
 
 interface Balance {
@@ -239,12 +240,13 @@ function Adjuster({ player, currency }: { player: string; currency: string }) {
   );
 }
 
-/** A player's balance adjusted in the player's currency as players names it. */
+/** A player's balance adjusted in the player's currency as players names it (`player.currency`). */
 export function PlayerAdjust({ player }: { player: string }) {
   const profile = useQuery({
     queryKey: ["players", "profile", player],
-    queryFn: () => readJson<{ currency?: string | null }>(players.getPlayersProfile({ playerId: player })),
+    queryFn: () => readJson<unknown>(players.getPlayersProfile({ playerId: player })),
   });
+  const currency = profile.data === undefined ? undefined : profileCurrency(profile.data);
   return (
     <section>
       <h1>{t("corrections.adjust.title")}</h1>
@@ -253,8 +255,8 @@ export function PlayerAdjust({ player }: { player: string }) {
         <RefusalNotice refusal={refusalOf(profile.error)} />
       ) : !profile.data ? (
         <p role="status">{t("list.loading")}</p>
-      ) : profile.data.currency ? (
-        <Adjuster player={player} currency={profile.data.currency} />
+      ) : currency ? (
+        <Adjuster player={player} currency={currency} />
       ) : (
         <p>{t("corrections.noCurrency")}</p>
       )}
