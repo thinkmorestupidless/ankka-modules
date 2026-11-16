@@ -144,7 +144,7 @@ Given("a restricted funds record that is {string}", async ({ world }, state: str
 
 When("an operator opens the player's rewards", async ({ world }) => {
   await world.signInAs("brand_finance", { to: `/players/${of(world).player}/rewards` });
-  await expect(main(world).getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(main(world).getByRole("heading", { level: 1, name: t("rewards.player.title", { player: of(world).player! }) })).toBeVisible();
 });
 
 Then("the record shows its state, its wagering progress and its open round count", async ({ world }) => {
@@ -167,16 +167,15 @@ Then("the record shows its state, its wagering progress and its open round count
 
 // --- a refused award: its reason and what would allow it ---------------------------------------------
 //
-// The feature's words are a claim limit and an award by hand not limited by it. In rewards an operator's
-// award skips the claim rules (Evaluator: rules 1 to 4 only, FR-006), so the claim limit never refuses
-// one: the double answers what rewards really answers an operator's award refused, a suspected duplicate
-// (rule 3) with what would allow it (AllowedBy.of(SuspectedDuplicate)). The scenario's words need a change
-// (research, *Corrections and rewards in the owners*); these steps hold the page to rewards' answer.
+// An operator's award is held to the brand's duplicate and open-reward rules only (Evaluator: rules 1 to
+// 4, FR-006). The double answers what rewards answers an award to a player flagged as a suspected
+// duplicate (rule 3), with what would allow it (AllowedBy.of(SuspectedDuplicate)): the flag cleared, or
+// the brand's duplicate detection turned off (research, *Rewards*, the decision on this scenario).
 
-Given("a player who has claimed an offer the most times it allows", async ({ world }) => {
+Given("a player flagged as a suspected duplicate", async ({ world }) => {
   const player = lena(world);
   of(world).player = player;
-  await given(world, [reward(player, { status: "CLOSED", source: "player_code" })], [], [offer(OfferId, "Welcome match", { maxClaimsPerPlayer: 1 })]);
+  await given(world, [reward(player, { status: "CLOSED", source: "player_code" })], [], [offer(OfferId, "Welcome match")]);
   await world.doubles.fixtures("rewards", {
     // OperatorAwards.claim: a decline is Answers.ineligible, 409 {status, reason, allowedBy}
     [`POST ${B}/reward-grants/{playerId}`]: {
@@ -186,7 +185,7 @@ Given("a player who has claimed an offer the most times it allows", async ({ wor
   });
 });
 
-When("an operator awards the player that offer", async ({ world }) => {
+When("an operator awards the player an offer", async ({ world }) => {
   await world.signInAs("brand_admin", { to: `/players/${of(world).player}/rewards` });
   await main(world).getByRole("button", { name: t("action.reward.grant.label"), exact: true }).click();
   const dialog = world.page.getByRole("dialog");
@@ -198,15 +197,14 @@ When("an operator awards the player that offer", async ({ world }) => {
 
 const refusal = (w: World) => w.page.getByRole("dialog").getByRole("alert");
 
-Then("the operator is shown that the claim limit is reached", async ({ world }) => {
-  // rewards' reason for this award (see above): the reason as rewards gave it, in the catalogue's words
+Then("the award is refused because the player is a suspected duplicate", async ({ world }) => {
   await expect(refusal(world)).toContainText(t("refusal.suspected_duplicate"));
   const asked = await world.doubles.calls("rewards", { method: "POST", path: `/v1/casino/brands/${world.brand.slug}/reward-grants/${of(world).player}` });
   expect(asked).toHaveLength(1);
   expect(JSON.parse(asked[0]!.body)).toEqual({ offerId: OfferId });
 });
 
-Then("the operator is shown that a reward awarded by hand is not limited by it", async ({ world }) => {
+Then("the operator is shown that clearing the flag, or the brand turning duplicate detection off, would allow it", async ({ world }) => {
   // what would allow it, as rewards named it
   const ways = [t("refusal.allowedBy.fraud_flag_cleared"), t("refusal.allowedBy.brand_detection_off")].join("; ");
   await expect(refusal(world)).toContainText(t("refusal.allowedBy", { ways }));

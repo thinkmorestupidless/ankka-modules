@@ -3,9 +3,9 @@ Feature: Configuring a brand, its payments and its team
   it, and cannot hand out more than they hold.
 
   Scenario: a configuration value that differs from the brand's default is marked
-    Given a brand whose minimum withdrawal differs from its default
+    Given a brand whose withdrawal turnover multiplier is set to 3, where its default is 1
     When a brand administrator opens the brand's withdrawal settings
-    Then the minimum withdrawal is marked as differing from the default
+    Then the withdrawal turnover multiplier is marked as differing from the default
 
   Scenario: a routing rule is simulated before it is deployed and can be rolled back
     Given a draft routing rule

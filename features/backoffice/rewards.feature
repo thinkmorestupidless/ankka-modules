@@ -11,15 +11,15 @@ Feature: Managing a player's rewards
     Examples:
       | state             | actions          |
       | active            | forfeit, reclaim |
-      | awaiting its cap  | forfeit          |
+      | awaiting its cap  | nothing          |
       | forfeited         | nothing          |
       | closed            | nothing          |
 
   Scenario: a refused reward shows the reason and what would allow it
-    Given a player who has claimed an offer the most times it allows
-    When an operator awards the player that offer
-    Then the operator is shown that the claim limit is reached
-    And the operator is shown that a reward awarded by hand is not limited by it
+    Given a player flagged as a suspected duplicate
+    When an operator awards the player an offer
+    Then the award is refused because the player is a suspected duplicate
+    And the operator is shown that clearing the flag, or the brand turning duplicate detection off, would allow it
 
   Scenario: changing an offer other offers depend on names them before it is changed
     Given an offer that two other offers exclude
