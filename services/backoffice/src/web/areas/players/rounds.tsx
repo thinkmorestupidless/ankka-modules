@@ -2,10 +2,16 @@
 // page at a time with its total; a round opened (`?round=`) shows its bets and wins, each with its
 // transaction, the total staked, won and the net, and is marked unsettled until the provider settles
 // it. The bets and wins are the round's own transactions' movements as game-provider recorded them.
+// Beside the rounds (`?view=bets`), players' bet and win search (P10): by round id (its own or its
+// provider's), transaction id, type, status and period, with what the matching rounds staked, won and
+// netted per currency, never summed across currencies.
+import { useId, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { t } from "../../../shared/messages/index.ts";
-import { gameProvider } from "../../../shared/owners/index.ts";
+import { useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
+import { t, type MessageKey } from "../../../shared/messages/index.ts";
+import { gameProvider, players } from "../../../shared/owners/index.ts";
+import { useFreshness } from "../../components/freshness.tsx";
+import { listSearchKeys } from "../../components/list/state.ts";
 import { RefusalNotice } from "../../components/action/index.ts";
 import { DateTime, ZoneNote } from "../../components/date.tsx";
 import { completeOf, List, useListState, useRouterListStore, type Column } from "../../components/list/index.ts";
@@ -120,7 +126,7 @@ export function RoundDetail({ round, tz }: { round: RoundState; tz: string }) {
   );
 }
 
-function OpenRound({ id, tz }: { id: string; tz: string }) {
+export function OpenRound({ id, tz }: { id: string; tz: string }) {
   const q = useQuery({ queryKey: ["game-provider", "round", id], queryFn: () => readJson<RoundState>(gameProvider.getRoundsByRoundByRoundId({ roundId: id })) });
   if (q.isError) return <RefusalNotice refusal={refusalOf(q.error)} />;
   if (!q.data) return <p role="status">{t("list.loading")}</p>;
@@ -135,22 +141,200 @@ const columns = (tz: string): Column<RoundRow>[] => [
   { id: "status", header: "rounds.status", cell: (r) => <Status value={r.status === "settled" ? "settled" : r.status === "cancelled" ? "cancelled" : "unsettled"} /> },
 ];
 
-export function PlayerRounds({ player, sessionId }: { player: string; sessionId?: string }) {
-  const tz = zone();
-  const list = useListState(useRouterListStore());
+/** A round as players answers it in a bet search or a session's bets (OperatorSessionRoutes.bet). */
+export interface Bet {
+  betId: string;
+  roundId: string;
+  providerRoundId?: string | null;
+  provider?: string | null;
+  gameId?: string | null;
+  sessionId?: string | null;
+  status: string;
+  outcome?: string | null;
+  currency: string;
+  stakeMinorUnits: number;
+  winMinorUnits: number;
+  netMinorUnits: number;
+  freeRounds?: boolean;
+  transactionIds?: string[];
+  providerTransactionIds?: string[];
+  openedAt?: string | null;
+  settledAt?: string | null;
+  createdAt: string;
+}
+
+/** What the matching rounds staked, won and netted, per currency (`totals`); never summed across currencies. */
+export interface BetSummary {
+  totals: { currency: string; rounds: number; staked: number; won: number; net: number }[];
+}
+
+const roundStatus = (status: string) => (status === "settled" ? "settled" : status === "cancelled" ? "cancelled" : "unsettled");
+
+export const betColumns = (tz: string): Column<Bet>[] => [
+  { id: "opened", header: "rounds.opened", cell: (b) => <DateTime instant={b.openedAt ?? b.createdAt} zone={tz} /> },
+  { id: "game", header: "rounds.game", cell: (b) => b.gameId ?? "" },
+  { id: "round", header: "bets.round", cell: (b) => b.providerRoundId ?? b.roundId },
+  { id: "stake", header: "rounds.stake", numeric: true, cell: (b) => <Money value={{ minor: b.stakeMinorUnits, currency: b.currency }} /> },
+  { id: "win", header: "rounds.win", numeric: true, cell: (b) => <Money value={{ minor: b.winMinorUnits, currency: b.currency }} /> },
+  { id: "net", header: "rounds.net", numeric: true, cell: (b) => <Money value={{ minor: b.netMinorUnits, currency: b.currency }} /> },
+  { id: "status", header: "rounds.status", cell: (b) => <Status value={roundStatus(b.status)} /> },
+  { id: "transactions", header: "bets.transactions", cell: (b) => [...(b.transactionIds ?? []), ...(b.providerTransactionIds ?? [])].join(", ") },
+];
+
+/** The totals of the matching rounds, one line per currency. */
+export function BetTotals({ summary }: { summary: BetSummary | undefined }) {
+  if (!summary) return null;
+  if (summary.totals.length === 0) return <p className="bo-muted">{t("bets.noTotals")}</p>;
+  return (
+    <table className="bo-table" data-totals>
+      <caption>{t("bets.totals")}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{t("bets.currency")}</th>
+          <th scope="col" className="figures">{t("sessions.rounds")}</th>
+          <th scope="col" className="figures">{t("rounds.staked")}</th>
+          <th scope="col" className="figures">{t("rounds.won")}</th>
+          <th scope="col" className="figures">{t("rounds.net")}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {summary.totals.map((x) => (
+          <tr key={x.currency} data-currency={x.currency}>
+            <th scope="row">{x.currency}</th>
+            <td className="figures">{x.rounds}</td>
+            <td className="figures"><Money value={{ minor: x.staked, currency: x.currency }} /></td>
+            <td className="figures"><Money value={{ minor: x.won, currency: x.currency }} /></td>
+            <td className="figures"><Money value={{ minor: x.net, currency: x.currency }} /></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+const useSearch = () => useRouterState({ select: (s) => s.location.search as Record<string, unknown> });
+
+/** Opens a round (`?round=`), keeping the rest of the page's place. */
+export function useOpenRound() {
   const navigate = useNavigate();
-  const opened = useRouterState({ select: (s) => (s.location.search as Record<string, unknown>).round });
+  return (roundId: string) => void navigate({ to: ".", search: (prev: Record<string, unknown>) => ({ ...prev, round: roundId }) } as never);
+}
+
+function TextFilter({ name, labelKey, value, onChange }: { name: string; labelKey: MessageKey; value: string; onChange(v: string | undefined): void }) {
+  const id = useId();
+  return (
+    <div className="bo-field">
+      <label htmlFor={id}>{t(labelKey)}</label>
+      <input
+        id={id}
+        name={name}
+        className="bo-input"
+        defaultValue={value}
+        key={value}
+        onBlur={(e) => {
+          const v = e.currentTarget.value.trim();
+          if (v !== value) onChange(v);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            onChange(e.currentTarget.value.trim());
+          }
+        }}
+      />
+    </div>
+  );
+}
+
+function ChoiceFilter({ labelKey, value, choices, any, onChange }: { labelKey: MessageKey; value: string; choices: readonly string[]; any: MessageKey; onChange(v: string): void }) {
+  const id = useId();
+  return (
+    <div className="bo-field">
+      <label htmlFor={id}>{t(labelKey)}</label>
+      <select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">{t(any)}</option>
+        {choices.map((c) => (
+          <option key={c} value={c}>
+            {word("bets.choice", c)}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function DateFilter({ labelKey, value, onChange }: { labelKey: MessageKey; value: string; onChange(v: string): void }) {
+  const id = useId();
+  return (
+    <div className="bo-field">
+      <label htmlFor={id}>{t(labelKey)}</label>
+      <input id={id} type="date" className="bo-input" value={value} onChange={(e) => onChange(e.target.value)} />
+    </div>
+  );
+}
+
+const BetFilters = ["roundId", "transactionId", "type", "status", "fromDate", "toDate"] as const;
+
+/** players' bet and win search of the player (P10): the filters in the URL, the totals of every matching round. */
+function BetSearch({ player, tz }: { player: string; tz: string }) {
+  const list = useListState(useRouterListStore());
+  const freshness = useFreshness(["players"]);
+  const open = useOpenRound();
+  const f = list.state.filters;
+  const query: Record<string, string> = { limit: String(PageSize), offset: String((list.state.page - 1) * PageSize) };
+  for (const k of BetFilters) if (f[k]) query[k] = f[k];
+  const q = useQuery({
+    queryKey: ["players", "bets", player, query],
+    queryFn: () => readJson<{ bets: Bet[]; summary: BetSummary; total: number }>(players.getPlayersBets({ playerId: player }, { query })),
+    enabled: player !== "",
+    placeholderData: (prev) => prev,
+  });
+  const opened = useSearch().round;
+  return (
+    <section aria-labelledby="bets-title">
+      <h3 id="bets-title">{t("bets.title")}</h3>
+      <div role="search" className="bo-players-filters">
+        <TextFilter name="roundId" labelKey="bets.filter.roundId" value={f.roundId ?? ""} onChange={(v) => list.setFilter("roundId", v)} />
+        <TextFilter name="transactionId" labelKey="bets.filter.transactionId" value={f.transactionId ?? ""} onChange={(v) => list.setFilter("transactionId", v)} />
+        <ChoiceFilter labelKey="bets.filter.type" value={f.type ?? ""} choices={["bet", "win"]} any="bets.filter.anyType" onChange={(v) => list.setFilter("type", v)} />
+        <ChoiceFilter labelKey="bets.filter.status" value={f.status ?? ""} choices={["open", "settled", "cancelled", "all"]} any="bets.filter.ended" onChange={(v) => list.setFilter("status", v)} />
+        <DateFilter labelKey="bets.filter.from" value={f.fromDate ?? ""} onChange={(v) => list.setFilter("fromDate", v)} />
+        <DateFilter labelKey="bets.filter.to" value={f.toDate ?? ""} onChange={(v) => list.setFilter("toDate", v)} />
+      </div>
+      <p className="bo-muted">{t("bets.daysNote")}</p>
+      {typeof opened === "string" && opened !== "" ? <OpenRound id={opened} tz={tz} /> : null}
+      {q.isError ? <RefusalNotice refusal={refusalOf(q.error)} /> : null}
+      <BetTotals summary={q.data?.summary} />
+      <List
+        caption="bets.caption"
+        columns={betColumns(tz)}
+        rows={q.data?.bets}
+        rowKey={(b) => b.roundId}
+        total={q.data?.total}
+        complete={q.data ? completeOf({ page: list.state.page, pageSize: PageSize, total: q.data.total }) : false}
+        fetching={q.isFetching}
+        freshness={freshness}
+        zone={tz}
+        list={list}
+        onOpen={(b) => open(b.roundId)}
+        current={typeof opened === "string" ? opened : undefined}
+      />
+    </section>
+  );
+}
+
+function RoundsList({ player, sessionId, tz }: { player: string; sessionId?: string; tz: string }) {
+  const list = useListState(useRouterListStore());
+  const open = useOpenRound();
+  const opened = useSearch().round;
   const query: Record<string, string> = { ...(sessionId ? { sessionId } : { playerId: player }), page: String(list.state.page), pageSize: String(PageSize) };
   const q = useQuery({
     queryKey: ["game-provider", "rounds", player, sessionId ?? "", list.state.page],
     queryFn: () => readJson<{ rounds: RoundRow[]; total: number; page: number; pageSize: number }>(gameProvider.getRounds({ query })),
     enabled: player !== "",
   });
-  const open = (r: RoundRow) => void navigate({ to: ".", search: (prev: Record<string, unknown>) => ({ ...prev, round: r.roundId }) } as never);
   return (
-    <section aria-labelledby="rounds-title">
-      <h2 id="rounds-title">{t("players.tab.games")}</h2>
-      <ZoneNote zone={tz} />
+    <>
       {typeof opened === "string" && opened !== "" ? <OpenRound id={opened} tz={tz} /> : null}
       {q.isError ? <RefusalNotice refusal={refusalOf(q.error)} /> : null}
       <List
@@ -163,9 +347,44 @@ export function PlayerRounds({ player, sessionId }: { player: string; sessionId?
         fetching={q.isFetching}
         zone={tz}
         list={list}
-        onOpen={open}
+        onOpen={(r) => open(r.roundId)}
         current={typeof opened === "string" ? opened : undefined}
       />
+    </>
+  );
+}
+
+/** The rounds, or (`?view=bets`) the bet and win search; switching starts the other at its first page. */
+function ViewSwitch({ view }: { view: "rounds" | "bets" }) {
+  const router = useRouter();
+  const go = (next: "rounds" | "bets") => {
+    const current = router.state.location.search as Record<string, unknown>;
+    const drop = new Set([...listSearchKeys(current), "round", "view"]);
+    const kept = Object.fromEntries(Object.entries(current).filter(([k]) => !drop.has(k)));
+    void router.navigate({ to: router.state.location.pathname, search: next === "bets" ? { ...kept, view: "bets" } : kept } as never);
+  };
+  const button = (v: "rounds" | "bets", label: MessageKey): ReactNode => (
+    <button type="button" className="bo-button" aria-pressed={view === v} onClick={() => view !== v && go(v)}>
+      {t(label)}
+    </button>
+  );
+  return (
+    <div role="group" aria-label={t("rounds.views")} className="bo-actions">
+      {button("rounds", "rounds.view.rounds")}
+      {button("bets", "rounds.view.bets")}
+    </div>
+  );
+}
+
+export function PlayerRounds({ player, sessionId }: { player: string; sessionId?: string }) {
+  const tz = zone();
+  const view = useSearch().view === "bets" && !sessionId ? "bets" : "rounds";
+  return (
+    <section aria-labelledby="rounds-title">
+      <h2 id="rounds-title">{t("players.tab.games")}</h2>
+      <ZoneNote zone={tz} />
+      {sessionId ? null : <ViewSwitch view={view} />}
+      {view === "bets" ? <BetSearch player={player} tz={tz} /> : <RoundsList player={player} sessionId={sessionId} tz={tz} />}
     </section>
   );
 }
