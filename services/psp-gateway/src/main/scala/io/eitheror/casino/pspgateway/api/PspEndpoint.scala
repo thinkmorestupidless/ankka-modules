@@ -3,7 +3,7 @@ package io.eitheror.casino.pspgateway.api
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.http.*
 import io.eitheror.casino.pspgateway.Json
-import io.eitheror.casino.pspgateway.deposits.Initiate
+import io.eitheror.casino.pspgateway.deposits.{Initiate, TestPayment}
 import io.eitheror.casino.pspgateway.merchant.MerchantClient
 import io.eitheror.casino.pspgateway.sessions.DepositSession
 
@@ -17,12 +17,24 @@ object Identities:
     case Caller.Service(_, "payouts") | Caller.Local => true
     case _                                            => false)
 
-/** `/v1/psp`: `merchant` initiates a deposit and reads a session's status (contracts/merchant.md §1, §2). */
+/**
+ * `/v1/psp`: `merchant` initiates a deposit and reads a session's status (contracts/merchant.md §1, §2),
+ * and makes a test payment (§5, spec 030 T2), which records nothing.
+ */
 final class PspEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/psp"):
   val acl: Acl = Identities.merchant
 
   private val initiate =
     Initiate(ctx.components, MerchantClient.http(ctx.clients.services, ctx.settings.merchantService), ctx.settings)
+
+  private val testPayment = TestPayment(MerchantClient.http(ctx.clients.services, ctx.settings.merchantService), ctx.settings)
+
+  postBody("/test-payment") { (body: String) =>
+    Refusal.guarded {
+      val answer = testPayment(body)
+      Refusal.json(answer.status, answer.body)
+    }
+  }
 
   postBody("/hpp/initiate") { (body: String) =>
     Refusal.guarded {

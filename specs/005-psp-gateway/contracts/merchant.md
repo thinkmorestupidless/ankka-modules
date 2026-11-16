@@ -58,6 +58,7 @@ finding 7).
 ## 4. What the gateway reads
 
 - `GET /internal/v1/sub-brands/{subBrandId}/psp-credentials/{provider}`: `provider` in upper case.
+  With `?name=` (spec 030 T2, the test payment only): the credential kept under that name, whatever its status.
 - `GET /internal/v1/terminals/{terminalId}/properties`.
 - **New, 004 follow-up:** `GET /internal/v1/brands/{brand}/terminals` → `terminals[]`: `id`, `subBrandId`,
   `gateway`, `scheme`, `name`, `status`, `supportsDeposit`, `supportsWithdrawal`,
@@ -65,3 +66,19 @@ finding 7).
 
 Every read is made at the moment of use and is never cached. `404` means none, and the initiate or the
 webhook says so.
+
+## 5. `POST /v1/psp/test-payment` (spec 030 T2)
+
+Body: `subBrandId`, `psp` (upper case), `credentialName`, `currency?`. The provider's test mode is the
+adapter's own: `UNITYFINANCE` its test card (`CARD_TEST`, USD by default), `GIGADAT` the `sandbox` flag
+(CAD), `DIGITARIUM` the sandbox host (USD); for both of the last two the credential's `environment` is
+set to `sandbox` whatever it holds. The amount is one whole unit of the currency, or the catalogue's
+minimum where that is more. Nothing is recorded: no session, no reference index, no outcome.
+
+| Status | Body |
+|---|---|
+| `200` | `outcome` (`accepted`, `refused`, `unavailable`), `provider`, `testMode` (`test_card`, `sandbox`), `method`, `currency`, `amount` (minor units), `reference` (the test's own, never a payment's); `redirectUrl` and `providerReference?` when accepted; `error` and `message` when refused; `reason` (the adapter's words, no secret) when unavailable |
+| `400` | `bad_request`, or the catalogue's `unsupported_currency` |
+| `404` | `no_credentials`: no credential of that name, or one lacking a key the test needs (named, never its value) |
+| `501` | `test_mode_unavailable`, `provider`: the other six providers have no test mode |
+| `502` | `provider_not_configured` (no base URL), `provider_unavailable` (merchant could not say) |
