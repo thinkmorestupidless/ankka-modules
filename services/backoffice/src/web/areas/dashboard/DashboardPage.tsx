@@ -77,10 +77,10 @@ const trendWord = (trend: string): MessageKey => (trend === "up" ? "dashboard.tr
 /** The change against yesterday to this hour: an arrow and a word, never colour alone. */
 function Change({ trend, children }: { trend: string; children: ReactNode }) {
   return (
-    <span className="bo-chip" data-trend={trend}>
+    <span className="bo-change" data-trend={trend}>
       <Glyph name={trendGlyph(trend)} />
-      <span>{t(trendWord(trend))}</span>
-      <span className="bo-muted">{t("dashboard.yesterday")}</span>
+      <span>{t(trendWord(trend))}</span>{" "}
+      <span className="bo-muted">{t("dashboard.yesterday")}</span>{" "}
       {children}
     </span>
   );
@@ -228,7 +228,7 @@ export function DashboardView({ range, currency, onRange, onCurrency, zone }: Da
       ) : null}
 
       <div className="bo-dashboard-grid">
-        <Panel id="trend" title={t("dashboard.trendIn", { currency: chosen ?? "" })} views={Views.trend} status={status} wide>
+        <Panel id="trend" title={t("dashboard.trendIn", { currency: trend.data?.currency ?? chosen ?? "" })} views={Views.trend} status={status} wide>
           <Read q={trend}>
             {(d) => (
               <LineChart
@@ -274,7 +274,7 @@ export function DashboardView({ range, currency, onRange, onCurrency, zone }: Da
           </Read>
         </Panel>
 
-        <Panel id="players" title={t("dashboard.topPlayers", { range: t(RangeLabel[range]), currency: chosen ?? "" })} views={Views.rankings} status={status}>
+        <Panel id="players" title={t("dashboard.topPlayers", { range: t(RangeLabel[range]), currency: rankings.data?.players[0]?.currency ?? chosen ?? "" })} views={Views.rankings} status={status}>
           <Read q={rankings}>
             {(r) => (
               <table className="bo-chart-table">
@@ -304,7 +304,7 @@ export function DashboardView({ range, currency, onRange, onCurrency, zone }: Da
         </Panel>
 
         {runsCasino(me) ? (
-          <Panel id="rewards" title={t("dashboard.rewards", { currency: chosen ?? "" })} views={Views.rewards} status={status}>
+          <Panel id="rewards" title={t("dashboard.rewards", { currency: bonus.data?.currency ?? chosen ?? "" })} views={Views.rewards} status={status}>
             <Read q={bonus}>
               {(b) => (
                 <dl className="bo-figures">
@@ -318,7 +318,7 @@ export function DashboardView({ range, currency, onRange, onCurrency, zone }: Da
           </Panel>
         ) : null}
 
-        <Panel id="payments" title={t("dashboard.payments", { currency: chosen ?? "" })} views={Views.payments} status={status}>
+        <Panel id="payments" title={t("dashboard.payments", { currency: health.data?.currency ?? chosen ?? "" })} views={Views.payments} status={status}>
           <Read q={health}>
             {(h) => (
               <>

@@ -2347,6 +2347,105 @@
     ]
    }
   },
+  "GET /v1/casino/brands/{brand}/reporting/dashboard/trend": {
+   "by": "?currency",
+   "answers": {
+    "EUR": {
+     "body": {
+      "range": "7d",
+      "currency": "EUR",
+      "currencies": [
+       "BRL",
+       "EUR"
+      ],
+      "dataPoints": [
+       {
+        "label": "2026-11-09",
+        "ggr": "214.00",
+        "ngr": "175.00"
+       },
+       {
+        "label": "2026-11-10",
+        "ggr": "220.00",
+        "ngr": "180.00"
+       },
+       {
+        "label": "2026-11-11",
+        "ggr": "226.00",
+        "ngr": "185.00"
+       },
+       {
+        "label": "2026-11-12",
+        "ggr": "232.00",
+        "ngr": "190.00"
+       },
+       {
+        "label": "2026-11-13",
+        "ggr": "238.00",
+        "ngr": "195.00"
+       },
+       {
+        "label": "2026-11-14",
+        "ggr": "244.00",
+        "ngr": "200.00"
+       },
+       {
+        "label": "2026-11-15",
+        "ggr": "250.00",
+        "ngr": "205.00"
+       }
+      ]
+     }
+    }
+   },
+   "otherwise": {
+    "body": {
+     "range": "7d",
+     "currency": "BRL",
+     "currencies": [
+      "BRL",
+      "EUR"
+     ],
+     "dataPoints": [
+      {
+       "label": "2026-11-09",
+       "ggr": "1070.00",
+       "ngr": "875.00"
+      },
+      {
+       "label": "2026-11-10",
+       "ggr": "1100.00",
+       "ngr": "900.00"
+      },
+      {
+       "label": "2026-11-11",
+       "ggr": "1130.00",
+       "ngr": "925.00"
+      },
+      {
+       "label": "2026-11-12",
+       "ggr": "1160.00",
+       "ngr": "950.00"
+      },
+      {
+       "label": "2026-11-13",
+       "ggr": "1190.00",
+       "ngr": "975.00"
+      },
+      {
+       "label": "2026-11-14",
+       "ggr": "1220.00",
+       "ngr": "1000.00"
+      },
+      {
+       "label": "2026-11-15",
+       "ggr": "1250.00",
+       "ngr": "1025.00"
+      }
+     ]
+    }
+   }
+  },
   "GET /v1/casino/brands/{brand}/reporting/dashboard/kpis": {
    "answers": {
     "BRL": {
