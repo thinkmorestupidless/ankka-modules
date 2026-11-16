@@ -129,7 +129,7 @@ class LeakSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino
     kit.eventually("the views erased")(io.eitheror.casino.players.player.PlayersView.one(kit.views, id).filter(_.primaryEmail.reveal.isEmpty))
     Thread.sleep(1500)
 
-    val answers: Places = Vector("profile", "crm", "messages", "activity", "sessions", "wallet").map(r =>
+    val answers: Places = Vector("profile", "crm", "messages", "activity", "sessions", "wallet", "devices").map(r =>
       s"operator $r" -> Vector(kit.request("GET", kit.operatorPath(s"/players/$id/$r"), None, kit.asOperator()).text))
     val later: Places = topics.map(t => s"facts on ${t.name} after the erasure" -> kit.factTexts(t).drop(factsBefore(t.name)))
     val (gap, rest) = tables.partition((place, _) => JournalGap.exists(t => place == s"table $t"))

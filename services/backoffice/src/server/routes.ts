@@ -96,6 +96,7 @@ export const table: readonly Row[] = [
   r("PUT", "players", "/players/{playerId}/pot-vip", `${P}/players/{playerId}/pot-vip`, "tier.change"),
   r("GET", "players", "/players/{playerId}/tags", `${P}/players/{playerId}/tags`, "player.read"),
   r("PUT", "players", "/players/{playerId}/tags", `${P}/players/{playerId}/tags`, "tier.change"),
+  r("GET", "players", "/players/{playerId}/devices", `${P}/players/{playerId}/devices`, "player.read"),
   r("POST", "players", "/players/{playerId}/reset-password", `${P}/players/{playerId}/reset-password`, "profile.change"),
   r("POST", "players", "/players/{playerId}/sessions/force-end-all", `${P}/players/{playerId}/sessions/force-end-all`, "session.end"),
   r("POST", "players", "/players/{playerId}/sessions/{sessionId}/force-end", `${P}/players/{playerId}/sessions/{sessionId}/force-end`, "session.end"),
