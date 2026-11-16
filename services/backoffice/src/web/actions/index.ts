@@ -230,6 +230,27 @@ export const Actions = {
   "programme.manager.reset": { label: "action.programme.manager.reset.label", effect: "action.programme.manager.reset.effect", permission: "programme.managers", reason: "none" },
   "programme.manager.revoke": { label: "action.programme.manager.revoke.label", effect: "action.programme.manager.revoke.effect", permission: "programme.managers", reason: "none" },
   // end of US10
+  // engagement: its CRM settings and seed; a parked send retried (no reason) or discarded with the reason
+  // engagement requires; support-agent's settings; attribution's windows, networks, webhooks and keys (it
+  // records the operator and takes no reason), and a fact resent or discarded while undelivered
+  "crm.configure": { label: "action.crm.configure.label", effect: "action.crm.configure.effect", permission: "config.crm", reason: "none" },
+  "crm.seed": { label: "action.crm.seed.label", effect: "action.crm.seed.effect", permission: "config.crm", reason: "none" },
+  "send.retry": { label: "action.send.retry.label", effect: "action.send.retry.effect", permission: "send.release", reason: "none", offeredIn: ["parked"] },
+  "send.discard": { label: "action.send.discard.label", effect: "action.send.discard.effect", permission: "send.release", reason: "required", offeredIn: ["parked"] },
+  "agent.configure": { label: "action.agent.configure.label", effect: "action.agent.configure.effect", permission: "config.agent", reason: "none" },
+  "attribution.windows": { label: "action.attribution.windows.label", effect: "action.attribution.windows.effect", permission: "config.attribution", reason: "none" },
+  "attribution.addNetwork": { label: "action.attribution.addNetwork.label", effect: "action.attribution.addNetwork.effect", permission: "config.attribution", reason: "none" },
+  "attribution.changeNetwork": { label: "action.attribution.changeNetwork.label", effect: "action.attribution.changeNetwork.effect", permission: "config.attribution", reason: "none" },
+  "attribution.removeNetwork": { label: "action.attribution.removeNetwork.label", effect: "action.attribution.removeNetwork.effect", permission: "config.attribution", reason: "none", offeredIn: ["live"] },
+  "attribution.pseudonymKey": { label: "action.attribution.pseudonymKey.label", effect: "action.attribution.pseudonymKey.effect", permission: "config.attribution", reason: "none", offeredIn: ["none"] },
+  "attribution.addWebhook": { label: "action.attribution.addWebhook.label", effect: "action.attribution.addWebhook.effect", permission: "config.attribution", reason: "none" },
+  "attribution.pauseWebhook": { label: "action.attribution.pauseWebhook.label", effect: "action.attribution.pauseWebhook.effect", permission: "config.attribution", reason: "none" },
+  "attribution.resumeWebhook": { label: "action.attribution.resumeWebhook.label", effect: "action.attribution.resumeWebhook.effect", permission: "config.attribution", reason: "none" },
+  "attribution.removeWebhook": { label: "action.attribution.removeWebhook.label", effect: "action.attribution.removeWebhook.effect", permission: "config.attribution", reason: "none" },
+  "attribution.makeKey": { label: "action.attribution.makeKey.label", effect: "action.attribution.makeKey.effect", permission: "config.attribution", reason: "none" },
+  "attribution.retireKey": { label: "action.attribution.retireKey.label", effect: "action.attribution.retireKey.effect", permission: "config.attribution", reason: "none" },
+  "fact.resend": { label: "action.fact.resend.label", effect: "action.fact.resend.effect", permission: "fact.redeliver", reason: "none", offeredIn: ["undelivered"] },
+  "fact.discard": { label: "action.fact.discard.label", effect: "action.fact.discard.effect", permission: "fact.redeliver", reason: "none", offeredIn: ["undelivered"] },
 } as const satisfies Record<string, ActionDescription>;
 
 export type ActionId = keyof typeof Actions;

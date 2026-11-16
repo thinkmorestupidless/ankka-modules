@@ -88,14 +88,14 @@ export function getWebhooksUndelivered(options: Options = {}): Promise<Response>
   return call("GET", `/api/s/attribution/webhooks/undelivered`, options);
 }
 
-/** POST /webhooks/undelivered/{delivery}/resend: fact.redeliver */
-export function postWebhooksUndeliveredResend(params: { delivery: string }, options: Options = {}): Promise<Response> {
-  return call("POST", `/api/s/attribution/webhooks/undelivered/${encodeURIComponent(params.delivery)}/resend`, options);
+/** POST /webhooks/undelivered/{subscription}/{fact}/resend: fact.redeliver */
+export function postWebhooksUndeliveredResend(params: { subscription: string; fact: string }, options: Options = {}): Promise<Response> {
+  return call("POST", `/api/s/attribution/webhooks/undelivered/${encodeURIComponent(params.subscription)}/${encodeURIComponent(params.fact)}/resend`, options);
 }
 
-/** POST /webhooks/undelivered/{delivery}/discard: fact.redeliver */
-export function postWebhooksUndeliveredDiscard(params: { delivery: string }, options: Options = {}): Promise<Response> {
-  return call("POST", `/api/s/attribution/webhooks/undelivered/${encodeURIComponent(params.delivery)}/discard`, options);
+/** POST /webhooks/undelivered/{subscription}/{fact}/discard: fact.redeliver */
+export function postWebhooksUndeliveredDiscard(params: { subscription: string; fact: string }, options: Options = {}): Promise<Response> {
+  return call("POST", `/api/s/attribution/webhooks/undelivered/${encodeURIComponent(params.subscription)}/${encodeURIComponent(params.fact)}/discard`, options);
 }
 
 /** GET /webhooks: config.attribution */
