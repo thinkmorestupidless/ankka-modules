@@ -55,6 +55,7 @@ answers a test asks for by name.
 | `expectAuthorizedAs(owner, sub, …)` | throws unless every call that fits carried `sub`'s token |
 | `preferences(subject, p)`, `roles(subject, roles)`, `tokenLife(ms)` | the double `backoffice-state` |
 | `fraudCases({cases})` | players' fraud cases kept from here on: listed by status, reviewed, dismissed; a dismissal clears the suspected duplicate flag on the profile of every player the case links, as players does |
+| `wallets({wallets})` | the wallet's balances kept from here on: the balance read, an adjustment under its key (a repeat answers its first outcome, another body under it `KEY_REUSED`), a debit past the balance refused, the transactions read; `refuse` on a wallet answers its every adjustment with that refusal |
 
 A path in a script is an exact path or a template. The newest script that fits wins; `times` bounds it.
 
