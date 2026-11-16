@@ -84,7 +84,7 @@
         "env": [
           {
             "name": "JAVA_TOOL_OPTIONS",
-            "value": "-XX:MaxRAMPercentage=60"
+            "value": "-XX:MaxRAMPercentage=50"
           },
           {
             "name": "CASINO_PROJECT",
