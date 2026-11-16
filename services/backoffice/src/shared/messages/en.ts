@@ -2160,6 +2160,17 @@ export const en = {
   "protection.cases.shown.open": "Open",
   "protection.cases.shown.closed": "Closed",
   "protection.cases.shown.all": "Every case",
+  // T129: a player's turnover terms (the wallet's turnover-override)
+  "wallets.turnover.title": "Turnover before a withdrawal",
+  "wallets.turnover.brand": "The brand's terms: {value} times each deposit, counted as {basis}.",
+  "wallets.turnover.set": "Set for this player: {value} times each deposit, counted as {basis}.",
+  "wallets.turnover.cleared": "This player follows the brand's terms again.",
+  "wallets.turnover.multiplier": "Times each deposit",
+  "wallets.turnover.currency": "For the player's {currency} wallet.",
+  "action.wallet.turnoverOverride.label": "Set the player's turnover",
+  "action.wallet.turnoverOverride.effect": "The player's deposits from now on need this turnover before a withdrawal, in place of the brand's terms.",
+  "action.wallet.clearTurnoverOverride.label": "Use the brand's turnover",
+  "action.wallet.clearTurnoverOverride.effect": "The player's deposits from now on need the brand's turnover before a withdrawal.",
   // end of US3
   // US9: areas/configuration/crm.tsx, sends.tsx, agent.tsx, attribution.tsx (T111)
   "config.crm.status": "What engagement is doing",

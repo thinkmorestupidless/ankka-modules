@@ -67,6 +67,10 @@ export const Actions = {
   "wallet.adjustBatch": { label: "action.wallet.adjustBatch.label", effect: "action.wallet.adjustBatch.effect", permission: "adjustment.make", reason: "none" },
   // a non-player account (spec 022 FR-009: the wallet requires a reason, and the fact carries the category)
   "wallet.adjustAccount": { label: "action.wallet.adjustAccount.label", effect: "action.wallet.adjustAccount.effect", permission: "adjustment.make", reason: "required" },
+  // a player's turnover terms (AudienceEndpoints turnover-override: no reason, the actor recorded; an
+  // empty body clears them back to the brand's)
+  "wallet.turnoverOverride": { label: "action.wallet.turnoverOverride.label", effect: "action.wallet.turnoverOverride.effect", permission: "turnover.override", reason: "none" },
+  "wallet.clearTurnoverOverride": { label: "action.wallet.clearTurnoverOverride.label", effect: "action.wallet.clearTurnoverOverride.effect", permission: "turnover.override", reason: "none" },
 
   // players: a player's standing (OperatorStatusRoutes.scala)
   "player.suspend": {
