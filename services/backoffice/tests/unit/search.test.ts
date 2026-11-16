@@ -67,7 +67,9 @@ describe("the search", () => {
     expect(asked.some((u) => u.startsWith("/merchant.payments/v1/payments/cashier?reference="))).toBe(true);
     expect(calls.every((c) => c.auth === "Bearer tok")).toBe(true);
     expect(a.matches).toEqual([{ kind: "player", id: Id, player: Id, summary: { email: "ana@example.test", status: "active" } }]);
-    expect(a.asked).toEqual(["payment", "player", "reward", "withdrawal"]);
+    expect(asked).toContain(`/game-provider/v1/casino/backoffice/goldvibe/game-provider/rounds/by-round/${Id}`);
+    expect(asked).toContain(`/game-provider/v1/casino/backoffice/goldvibe/game-provider/rounds/by-transaction/${Id}`);
+    expect(a.asked).toEqual(["payment", "player", "reward", "round", "withdrawal"]);
   });
 
   test("lists every match with its kind and its player", async () => {
@@ -104,13 +106,16 @@ describe("the search", () => {
 
   test("a resolver whose permission the operator lacks is not asked", async () => {
     const { calls, fetchFn } = owners({});
-    await search(deps(fetchFn), Id, "tok", (p) => p === "player.read");
-    expect(calls.map((c) => c.url)).toEqual([`http://services.local/players/v1/casino/backoffice/goldvibe/players/${Id}/profile`]);
+    await search(deps(fetchFn), Id, "tok", (p) => p === "identity.review");
+    expect(calls).toEqual([]);
+    await search(deps(fetchFn), Id, "tok", (p) => p === "reward.read");
+    expect(calls.map((c) => c.url)).toEqual([`http://services.local/rewards/v1/casino/brands/goldvibe/reward-grants/${Id}`]);
   });
 
   test("a row of another shape that happens to match is not taken for a resolver", async () => {
     const { calls, fetchFn } = owners({});
-    await search(deps(fetchFn), Id, "tok", all);
+    // without GP2's rows, `/rounds/{provider}/{roundId}` would fit `/rounds/by-round/…`: it is not taken for the resolver
+    await search(deps(fetchFn, table.filter((r) => !r.path.startsWith("/rounds/by-"))), Id, "tok", all);
     expect(calls.some((c) => c.url.includes("/rounds/by-round/") || c.url.includes("/rounds/by-transaction/"))).toBe(false);
   });
 
