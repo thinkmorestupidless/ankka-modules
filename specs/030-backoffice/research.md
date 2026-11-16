@@ -652,3 +652,18 @@ amendment (K5 in contracts/amendments.md). The document route passes kyc's bytes
 - The wallet's major-unit text is minor units divided by 100 for every currency (`Wire.major`), so
   JPY 500 reads "5.00" and KWD's three decimals are lost in the text. The page reads the minor fields,
   and the text by the same rule. This is the wallet's own wire, not this spec's: a gap to raise.
+
+### kyc's documents, decisions and protection's history, 2026-11-16 (K5, T070)
+
+- K5 changes kyc's operator view route in place (`…/kyc/{p}/views/{d}` answers the bytes, inline,
+  `no-store`, `nosniff`), because only operators call it; the player's route keeps its signed link.
+  The original's operator view is a declared parity divergence (spec 009 plan.md). An object the
+  store no longer holds answers 404 `document_not_found` and records no view. The backoffice passes
+  the bytes through and answers a redirect from kyc 502.
+- K3's `decisions` needs `identity.read`, with document ids only for `identity.review`, as `GET /{p}`
+  does. An override's reason and a dismissal's note are personal and never included. K3 and G3 take
+  `from` and `to`, as contracts/sources.md names them.
+- The glossary's *document store* and spec.md's US7 lines are brought in line with K5 and the raise
+  decision.
+- Gap: a streamed document is still under `pass()`'s 15 s timeout for the whole body. That is enough
+  at kyc's upload cap, but not for a slow, large transfer.

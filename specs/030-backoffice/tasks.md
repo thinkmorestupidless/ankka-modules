@@ -177,7 +177,7 @@ read the timeline end to end; stop one source and see it named.
 - [ ] T067 [P] [US3] `svc/players/` P3, P4: `from`, `to`, `after`, `total` on `activity`; `GET notes`, with tests
 - [ ] T068 [P] [US3] `svc/players/` P5, P6, P10: a player's sessions with their game sessions and gaps, the brand-wide sessions list, force-close; a session's bets (no more `501`); `bets` filters and `staked`, `won`, `net`, with tests
 - [X] T069 [P] [US3] `svc/game-provider/` GP2: `total` on `rounds`; `rounds/by-round/{roundId}`; `rounds/by-transaction/{txId}`, with tests
-- [ ] T070 [P] [US3] `svc/kyc/` K3 and `svc/responsible-gambling/` G3: `{p}/decisions` and the operator's `{p}/history`, with tests
+- [X] T070 [P] [US3] `svc/kyc/` K3 and `svc/responsible-gambling/` G3: `{p}/decisions` and the operator's `{p}/history`, with tests
 - [X] T071 [P] [US3] `svc/merchant/` H1, H2: an operator holding `brand_<slug>` reads the sub-brand that names that brand, and no other, on `/v1/payments/cashier`, `/cashier/summary`, `/v1/payments/{id}`; `?reference=`, with tests; amends spec 004
 - [X] T072 [US3] Implement `s/composite/search.ts` and its classifier from contracts/sources.md, with `t/unit/search.test.ts` (free text is never sent as an id; every match listed by kind; a value of two shapes asked of both)
 - [ ] T073 [US3] Implement `s/composite/standing.ts` (the parts in parallel, each with its own state) and `s/composite/timeline.ts` (the k-way merge by cursor, gaps named, actors' names from merchant's operators, lines as message keys), with `t/unit/timeline.test.ts` covering order, a late source and a failed source

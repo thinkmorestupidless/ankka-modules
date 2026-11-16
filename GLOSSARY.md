@@ -845,7 +845,7 @@ The KYC mode in which nothing changes the KYC status but the operator's own deci
 The mark put on a player for an operator to look at, with its reason: threshold, source of funds or window; raised once per reason.
 
 ### document store
-Where a brand keeps documents, under each player's own prefix, encrypted at rest, readable only through the addresses the brand issues for a limited time.
+Where a brand keeps documents, under each player's own prefix, encrypted at rest, readable only through kyc: an operator who may review them is given the document itself, a player an address the brand issues for a limited time.
 
 Avoid: bucket, object store
 

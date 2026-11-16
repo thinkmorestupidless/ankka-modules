@@ -302,13 +302,13 @@ player, views each document, approves or rejects it with a reason, sets the play
 mode and required documents, and records the final decision. They set and remove limits, start
 and lift breaks, record a self-exclusion, close cases with a note, and review or dismiss fraud
 cases. Each action shows what it changes for the player (deposits blocked, play blocked, a limit
-that takes effect later) before it is done.
+in force at once) before it is done.
 
 **Why this priority**: Regulated work that the original spread over a queue page, a player tab and
 three other pages.
 
-**Independent Test**: Take a player from documents awaiting review to verified; set a limit and
-see its pending change; start and lift a break; dismiss a fraud case and confirm its flags clear.
+**Independent Test**: Take a player from documents awaiting review to verified; set a limit, and
+see a player's raise as a pending change; start and lift a break; dismiss a fraud case and confirm its flags clear.
 
 **Acceptance Scenarios**:
 
