@@ -9,7 +9,7 @@ import com.thinkmorestupidless.ankka.sdk.ComponentClient
 import io.eitheror.casino.contract.access.{RoleBags, Routes}
 import io.eitheror.casino.contract.money.{Currency, Key}
 import io.eitheror.casino.contract.personal.Personal.reveal
-import io.eitheror.casino.wallet.config.{BrandConfig, BrandConfigEntity, SetTurnoverTerms}
+import io.eitheror.casino.wallet.config.{BrandConfig, BrandConfigEntity, RewardSettings, SetBetSwitches, SetTurnoverTerms}
 import io.eitheror.casino.wallet.entity.*
 import io.eitheror.casino.wallet.views.*
 import io.eitheror.casino.wallet.wire.*
@@ -61,7 +61,13 @@ private[api] object Major:
   given JsonValueCodec[TurnoverTermsRequest]  = Codecs.make[TurnoverTermsRequest]
   given JsonValueCodec[TurnoverOverrideRequest] = Codecs.make[TurnoverOverrideRequest]
   given JsonValueCodec[RestrictedFundsStatus] = Codecs.make[RestrictedFundsStatus]
-  given JsonValueCodec[BrandConfig]           = Codecs.make[BrandConfig]
+  /**
+   * The configuration as the operator routes answer it (spec 030 W3): every field written, a default
+   * too, and no limit on concurrent awards (or a configuration never written) as `null`, so the page
+   * reads what is in force rather than a default it would have to know.
+   */
+  val configAnswer: JsonValueCodec[BrandConfig] =
+    com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker.make(com.github.plokhotnyuk.jsoniter_scala.macros.CodecMakerConfig.withTransientEmpty(false).withTransientNone(false).withTransientDefault(false))
   given JsonValueCodec[OperatorAccountAdjustRequest] = Codecs.make[OperatorAccountAdjustRequest]
   given JsonValueCodec[MajorAccountBalance]   = Codecs.make[MajorAccountBalance]
 
@@ -248,13 +254,29 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
   putBody("/wallet-config/turnover") { (r: TurnoverTermsRequest) =>
     if r.multiplier < 0 then Wire.refusal("INVALID_REQUEST", "a turnover multiplier is a whole, non-negative number")
     else Wire.json(200, client.forKeyValueEntity(BrandConfigEntity.Id).call(BrandConfigEntity.setTurnoverTerms)
-      .invoke(SetTurnoverTerms(TurnoverTerms(r.multiplier, r.definition), principal.subject, clock())))
+      .invoke(SetTurnoverTerms(TurnoverTerms(r.multiplier, r.definition), principal.subject, clock())))(using Major.configAnswer)
+  }
+  }
+
+  /**
+   * Spec 030 W3: the brand's reward settings, replaced whole and the turnover terms left, recorded as
+   * the operator's (`updatedBy`, `updatedAt`) as the turnover terms are; the answer is the configuration,
+   * as `GET /wallet-config` reads it. A wrong value is refused 400 naming its field (`details.field`).
+   */
+  withAcl(may("config.brand")) {
+  putBody("/wallet-config/rewards") { (text: String) =>
+    RewardSettings.parse(text) match
+      case Left(invalid) => Wire.refusal("INVALID_REQUEST", invalid.message, Map("field" -> invalid.field))
+      case Right(s) =>
+        Wire.json(200, client.forKeyValueEntity(BrandConfigEntity.Id).call(BrandConfigEntity.setBetSwitches)
+          .invoke(SetBetSwitches(s.contributionRateByGameType, s.bonusWageringCounts, s.partialSplitsAllowed, s.maxConcurrentAwards,
+            principal.subject, clock())))(using Major.configAnswer)
   }
   }
 
   withAcl(may("wallet.read")) {
   get("/wallet-config") { () =>
-    Wire.json(200, client.forKeyValueEntity(BrandConfigEntity.Id).call(BrandConfigEntity.get).invoke())
+    Wire.json(200, client.forKeyValueEntity(BrandConfigEntity.Id).call(BrandConfigEntity.get).invoke())(using Major.configAnswer)
   }
   }
 
