@@ -103,7 +103,7 @@ object PlayersService:
     PlayersRuntime.timers = () => timers.timerScheduler
     PlayersRuntime.views = () => views
     RealmReconcile.schedule(timers.timerScheduler)
-    io.eitheror.casino.players.api.RolesRoutes.seed(components, PlayersRuntime.now())
+    io.eitheror.casino.players.api.RolesRoutes.seedInBackground(components, PlayersRuntime.now()): Unit
     PlayersRuntime.rolesRead = () =>
       Right(io.eitheror.casino.contract.access.RoleBags.render(io.eitheror.casino.players.roles.Roles.bags(views)))
     PlayersRuntime.bags.stop()
