@@ -198,6 +198,22 @@ export const Actions = {
   "games.catalogue": { label: "action.games.catalogue.label", effect: "action.games.catalogue.effect", permission: "config.games", reason: "none" },
   "callback.replay": { label: "action.callback.replay.label", effect: "action.callback.replay.effect", permission: "callback.resolve", reason: "none" },
   "callback.resolve": { label: "action.callback.resolve.label", effect: "action.callback.resolve.effect", permission: "callback.resolve", reason: "required" },
+
+  // affiliate-programme (US10): OperatorEndpoint at /v1/affiliates/<slug>. A manager's writes record the
+  // manager (`principal.subject`) in the programme's audit; none of these takes a reason
+  "programme.plan.create": { label: "action.programme.plan.create.label", effect: "action.programme.plan.create.effect", permission: "programme.manage", reason: "none" },
+  "programme.plan.edit": { label: "action.programme.plan.edit.label", effect: "action.programme.plan.edit.effect", permission: "programme.manage", reason: "none" },
+  "programme.link.create": { label: "action.programme.link.create.label", effect: "action.programme.link.create.effect", permission: "programme.manage", reason: "none" },
+  "programme.creative.create": { label: "action.programme.creative.create.label", effect: "action.programme.creative.create.effect", permission: "programme.manage", reason: "none" },
+  "programme.creative.delete": { label: "action.programme.creative.delete.label", effect: "action.programme.creative.delete.effect", permission: "programme.manage", reason: "none" },
+  "programme.message.send": { label: "action.programme.message.send.label", effect: "action.programme.message.send.effect", permission: "programme.manage", reason: "none" },
+  "programme.settings.save": { label: "action.programme.settings.save.label", effect: "action.programme.settings.save.effect", permission: "programme.manage", reason: "none" },
+  "programme.page.save": { label: "action.programme.page.save.label", effect: "action.programme.page.save.effect", permission: "programme.manage", reason: "none" },
+  // the managers' routes admit brand_admin and platform_admin (`Access.managerAdmin`); a reset sends a link, no password
+  "programme.manager.add": { label: "action.programme.manager.add.label", effect: "action.programme.manager.add.effect", permission: "programme.managers", reason: "none" },
+  "programme.manager.reset": { label: "action.programme.manager.reset.label", effect: "action.programme.manager.reset.effect", permission: "programme.managers", reason: "none" },
+  "programme.manager.revoke": { label: "action.programme.manager.revoke.label", effect: "action.programme.manager.revoke.effect", permission: "programme.managers", reason: "none" },
+  // end of US10
 } as const satisfies Record<string, ActionDescription>;
 
 export type ActionId = keyof typeof Actions;

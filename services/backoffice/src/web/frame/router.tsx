@@ -10,6 +10,7 @@ import { NotFound, Placeholder } from "./pages.tsx";
 import { PreferencesPage } from "../areas/preferences/PreferencesPage.tsx";
 import { TeamPage } from "../areas/team/TeamPage.tsx";
 import { Home } from "./home.tsx";
+import { AffiliatesArea } from "../areas/affiliates/area.tsx";
 import { JobsPage } from "../areas/jobs/JobsPage.tsx";
 import { DashboardPage } from "../areas/dashboard/DashboardPage.tsx";
 import { ReportPage } from "../areas/reports/ReportsPage.tsx";
@@ -73,8 +74,8 @@ export const Pages: [string, Page][] = [
   ["/payments/$area", page("area.payments")],
   ["/team", () => <TeamPage />],
   ["/team/roles", () => <TeamPage />],
-  ["/affiliates", page("area.affiliates")],
-  ["/affiliates/$area", page("area.affiliates")],
+  ["/affiliates", () => <AffiliatesArea />],
+  ["/affiliates/$area", () => <AffiliatesArea />],
   ["/jobs", () => <JobsPage />],
   ["/preferences", () => <PreferencesPage />],
 ];

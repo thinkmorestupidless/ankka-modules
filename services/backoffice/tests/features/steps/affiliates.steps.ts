@@ -24,6 +24,8 @@ const of = (world: World): Scenario => {
 };
 
 const main = (world: World): Locator => world.page.getByRole("main");
+/** The frame's rail of areas (the programme's own sections are another navigation, in the page). */
+const rail = (world: World): Locator => world.page.getByRole("navigation", { name: t("frame.areas") });
 const manager = (brand: string): Identity => ({ sub: "op-affiliate-manager", name: "Mara Gestora", roles: [`brand_${brand}`, "affiliate_manager"] });
 
 // --- a manager sees the programme only ------------------------------------------------------------
@@ -41,8 +43,7 @@ When("the manager signs in to the backoffice", async ({ world }) => {
 Then("the manager sees the programme for {string} only", async ({ world }, brand: string) => {
   await expect(main(world).getByRole("heading", { level: 1, name: t("area.affiliates") })).toBeVisible();
   await expect(world.page.getByRole("banner")).toContainText(brand);
-  const rail = world.page.getByRole("navigation");
-  await expect(rail.getByRole("link", { name: t("area.affiliates") })).toBeVisible();
+  await expect(rail(world).getByRole("link", { name: t("area.affiliates"), exact: true })).toBeVisible();
   // the programme was asked, as the manager, and only for this brand
   await expect.poll(async () => (await world.doubles.calls(Programme)).length, { timeout: 10_000 }).toBeGreaterThan(0);
   const calls = await world.doubles.calls(Programme);
@@ -51,9 +52,8 @@ Then("the manager sees the programme for {string} only", async ({ world }, brand
 });
 
 Then("sees no player, wallet or withdrawal request", async ({ world }) => {
-  const rail = world.page.getByRole("navigation");
   for (const area of ["area.worklist", "area.players", "area.withdrawals", "area.adjustments", "area.payments", "area.fraud"] as const)
-    await expect(rail.getByRole("link", { name: t(area) })).toHaveCount(0);
+    await expect(rail(world).getByRole("link", { name: t(area), exact: true })).toHaveCount(0);
   // the backoffice's home is the worklist; a manager, who has none, is taken to the programme
   await world.open("/");
   await expect(world.page).toHaveURL(/\/affiliates$/);
