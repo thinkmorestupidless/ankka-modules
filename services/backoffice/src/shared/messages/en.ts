@@ -868,6 +868,14 @@ export const en = {
   "refusal.case_closed.next": "Look at the case again to see who closed it.",
   "refusal.invalid_setting": "A setting is out of its range.",
   // end of US7
+  // US4: areas/withdrawals (the queue, a request) and players/withdrawals
+  "withdrawals.voided.cap": "Voided by the reward's cashout cap: the rest of the reward's winnings could not be withdrawn.",
+  "withdrawals.request.actions": "What can be done",
+  "withdrawals.request.noActions": "Nothing can be done in this state.",
+  "withdrawals.request.history": "Every state it passed through",
+  "withdrawals.actor.player": "the player",
+  "withdrawals.actor.system": "the system",
+  // end of US4
 } as const satisfies Record<string, string>;
 
 export type MessageKey = keyof typeof en;
