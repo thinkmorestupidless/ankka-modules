@@ -1314,6 +1314,14 @@ export const en = {
   "refusal.max_concurrent_grants_invalid": "Open at once must be a whole number above zero.",
   "refusal.spin_configurations_invalid": "Give each currency's value of a round once.",
   // end of US6
+  // US9: components/config-form.tsx (FR-034)
+  "config.form.none": "none",
+  "config.form.yes": "yes",
+  "config.form.no": "no",
+  "config.form.differsFromDefault": "Differs from the brand's default ({value})",
+  "config.form.differsFromProfile": "Differs from the licence profile ({value})",
+  "config.form.unreadable": "These do not read yet: {fields}.",
+  // end of US9's form
 } as const satisfies Record<string, string>;
 
 export type MessageKey = keyof typeof en;
