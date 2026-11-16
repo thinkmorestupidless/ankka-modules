@@ -37,8 +37,6 @@ export function seed(): Seed {
 export function ownerNames(): string[] {
   const names = new Set(table.map((r) => (r.where === "brand" ? r.service : `${r.service}.${r.where}`)));
   names.add("backoffice-state");
-  // the brand's object store, where kyc's signed links point (the document view, FR-031)
-  names.add("document-store");
   return [...names].sort();
 }
 

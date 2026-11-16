@@ -23,6 +23,9 @@ import scala.util.Try
 /** An object's size and type, as the store reports them at confirm (research R7). */
 final case class Head(size: Long, contentType: String)
 
+/** An object opened for reading (spec 030 K5): its type and length as the store reports them, and its bytes as they arrive. */
+final case class Opened(contentType: String, length: Long, body: InputStream)
+
 /**
  * The service's bucket (research R7): signed links for the browser, and the reads and deletes the
  * service makes itself. Every operation answers `Left` with what failed when the store cannot be
@@ -38,6 +41,9 @@ trait Store:
   /** The object's head, or none when there is no such object. */
   def head(objectName: String): Either[String, Option[Head]]
 
+  /** The object opened for reading, or none when there is no such object; the caller closes it. */
+  def get(objectName: String): Either[String, Option[Opened]]
+
   def delete(objectName: String): Either[String, Unit]
 
   /** Every version of every object under `prefix` deleted; the count of versions deleted (FR-033). */
@@ -50,6 +56,7 @@ object Store:
     def signPut(objectName: String, contentType: String, ttl: Duration) = no
     def signGet(objectName: String, ttl: Duration)                        = no
     def head(objectName: String)                                          = no
+    def get(objectName: String)                                           = no
     def delete(objectName: String)                                        = no
     def deleteAll(prefix: String)                                         = no
 
@@ -119,6 +126,14 @@ final class S3Store(bucket: Bucket) extends Store:
       case Right(h)                                         => Right(Some(Head(h.contentLength, Option(h.contentType).getOrElse(""))))
       case Left(e: S3Exception) if e.statusCode == 404      => Right(None)
       case Left(e)                                          => attempt("head")(throw e)
+
+  def get(objectName: String): Either[String, Option[Opened]] =
+    Try(client.getObject(GetObjectRequest.builder().bucket(bucket.name).key(objectName).build())).toEither match
+      case Right(in) =>
+        val r = in.response
+        Right(Some(Opened(Option(r.contentType).getOrElse(""), r.contentLength, in)))
+      case Left(e: S3Exception) if e.statusCode == 404 => Right(None)
+      case Left(e)                                    => attempt("get")(throw e)
 
   def delete(objectName: String): Either[String, Unit] =
     attempt("delete")(client.deleteObject(DeleteObjectRequest.builder().bucket(bucket.name).key(objectName).build())).map(_ => ())

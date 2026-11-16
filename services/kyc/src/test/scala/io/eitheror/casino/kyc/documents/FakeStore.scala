@@ -31,6 +31,10 @@ final class FakeStore extends Store:
 
   def head(objectName: String): Either[String, Option[Head]] = up(objects.get(objectName).flatMap(_.lastOption))
 
+  /** The object's bytes, which this store does not keep, as `size` ones. */
+  def get(objectName: String): Either[String, Option[Opened]] =
+    head(objectName).map(_.map(h => Opened(h.contentType, h.size, java.io.ByteArrayInputStream(Array.fill(h.size.toInt)(1.toByte)))))
+
   def delete(objectName: String): Either[String, Unit] = up(objects.remove(objectName): Unit)
 
   def deleteAll(prefix: String): Either[String, Int] =

@@ -120,10 +120,10 @@ Feature: An operator reviews documents and the KYC status follows the rules
       | switches it to automatic mode    |
       | marks another category required  |
 
-  Scenario Outline: an operator with a compliance or admin role for the brand views a document by a fifteen-minute address and the view is recorded
+  Scenario Outline: an operator with a compliance or admin role for the brand is shown the document itself, never kept, and the view is recorded
     Given an operator with the role "<role>" for the brand
     When they view a document of the player
-    Then they are given a view address valid for "15" minutes
+    Then they are shown the document as it was uploaded, not to be cached
     And the view is recorded with their id
 
     Examples:

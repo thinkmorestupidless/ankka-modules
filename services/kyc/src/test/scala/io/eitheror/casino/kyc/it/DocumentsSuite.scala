@@ -84,6 +84,37 @@ class DocumentsSuite extends munit.FunSuite with LogCapturing:
     }
     assertEquals(audit.changes.flatMap(_.after), Vector(id))
 
+  // spec 030 K5: the operator is answered the bytes themselves; no address is given
+  test("an operator's view is the document's bytes from the store, inline, never cached, recording ViewIssued with the operator"):
+    val id = submit("identity_front")
+    val v  = kit.request("GET", kit.operatorPath(s"/$player/views/$id"), None, kit.asOperator(subject = "op-k5"))
+    assertEquals(v.status, 200, v.text)
+    assertEquals(v.bytes.toVector, Vector.fill(100)(1.toByte))
+    assertEquals((v.header("Content-Type"), v.header("Content-Disposition"), v.header("Cache-Control"), v.header("X-Content-Type-Options")),
+      (Some("image/png"), Some("inline"), Some("no-store"), Some("nosniff")))
+    assert(!v.text.contains("X-Amz"), v.text)
+    val audit = kit.eventually("the view's audit record") {
+      kit.facts(PlatformAudit).collectFirst { case r: AuditRecord if r.subjectId == player && r.action == "kyc.view_issued" => r }
+    }
+    assertEquals((audit.actorKind, audit.actorId, audit.changes.flatMap(_.after)), ("operator", "op-k5", Vector(id)))
+
+  test("an operator's view is refused as the link was: unknown, gone from the store, without identity.review, the store unreachable"):
+    assertEquals(error(kit.request("GET", kit.operatorPath(s"/$player/views/never"), None, kit.asOperator())), (404, "document_not_found"))
+    val gone = submit("identity_front")
+    val name = kit.components.forEventSourcedEntity(EntityId(player)).call(KycRecord.get).invoke().document(gone).get.objectName
+    assert(kit.store.delete(name).isRight)
+    assertEquals(error(kit.request("GET", kit.operatorPath(s"/$player/views/$gone"), None, kit.asOperator())), (404, "document_not_found"))
+    val id      = submit("other")
+    val support = kit.request("GET", kit.operatorPath(s"/$player/views/$id"), None, kit.asOperator(roles = s"brand_${kit.slug},brand_support"))
+    assert(support.status == 403 && support.text.contains("the identity.review permission is needed"), support.toString)
+    val store = FakeStore()
+    store.outage(true)
+    kit.reset(store)
+    try assertEquals(error(kit.request("GET", kit.operatorPath(s"/$player/views/$id"), None, kit.asOperator())), (503, "storage_unavailable"))
+    finally kit.reset()
+    val viewed = kit.facts(PlatformAudit).collect { case r: AuditRecord if r.subjectId == player && r.action == "kyc.view_issued" => r }
+    assertEquals(viewed, Vector.empty, "a refused view records none")
+
   test("another player's document is not found; another player's routes are a mismatch"):
     val other = s"p-${UUID.randomUUID().toString.take(8)}"
     val theirs = submit("identity_front", as = other)

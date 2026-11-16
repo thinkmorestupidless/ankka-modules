@@ -81,6 +81,8 @@ object Parity:
       "a category shows its current document, not the one it replaced", (_, s) => superseded(s)),
     Divergence("Another player's id is `player_id_mismatch`", Seq(".body.error"), "another player's id is player_id_mismatch",
       at("TestScenario28_KYCDocuments_PlayerViewingAnotherPlayersDocumentRefused")("GET", "/view-url")),
+    Divergence("An operator's view is the document's bytes (spec 030 K5)", Seq(".body"), "an operator is answered the document, not an address",
+      at("TestScenario28_KYCReview_OperatorViewsDocument")("GET", "/view-url")),
     Divergence("The known profiles name `ANJOUAN` (spec 026 US7)", Seq(".body.knownProfiles"), "the known profiles name ANJOUAN",
       at("TestScenario29_KYCPolicy_UnknownProfileRefused")("POST", "/kyc-policy/profile"))
   )
