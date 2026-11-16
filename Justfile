@@ -609,13 +609,16 @@ backoffice-state-it:
     cd services/backoffice-state && sbt -Dit=true "testOnly io.eitheror.casino.backoffice.it.*"
 
 # Seed a brand on dev-kind through its own routes: 10,000 players, 1,000 rewards, 5,000 withdrawal
-# requests, amounts in JPY, EUR and KWD (SC-005, SC-007).
-backoffice-seed brand="goldvibe":
-    cd services/backoffice && node tests/it/seed.ts {{brand}}
+# requests, amounts in JPY, EUR and KWD (SC-005, SC-007). Signs in as the operators file's brand_admin
+# (`bash services/backoffice/tests/it/operators.sh <slug>` makes it); a run stopped part way is taken up again.
+backoffice-seed brand="goldvibe" +args="":
+    cd services/backoffice && NODE_EXTRA_CA_CERTS="${NODE_EXTRA_CA_CERTS:-$HOME/.ankka/local-ca.crt}" node tests/it/seed.ts {{brand}} {{args}}
 
-# The backoffice's checks against a seeded brand on dev-kind (quickstart §6).
-backoffice-it brand="goldvibe":
-    cd services/backoffice && BACKOFFICE_BRAND={{brand}} npx vitest run --dir tests/it
+# The backoffice's checks against a seeded brand on dev-kind (quickstart §6): tests/it/*.it.ts, one file at
+# a time; `just backoffice-it goldvibe tests/it/lists.it.ts` runs one. BACKOFFICE_IT_MAY_CHANGE_SERVICES=1
+# lets the suites pause, resume and restart services (kyc, players, wallet, backoffice) with `ankka`.
+backoffice-it brand="goldvibe" +args="":
+    cd services/backoffice && BACKOFFICE_BRAND={{brand}} NODE_EXTRA_CA_CERTS="${NODE_EXTRA_CA_CERTS:-$HOME/.ankka/local-ca.crt}" npx vitest run --config tests/it/vitest.config.ts {{args}}
 
 # Record the original's backoffice screens, one capture per screen per role (research R19). The
 # original runs on its own kind cluster; see tests/original/backoffice-screens/README.md.
