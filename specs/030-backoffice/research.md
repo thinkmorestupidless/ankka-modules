@@ -890,3 +890,7 @@ seeded brand fills in the rest.
   minimum of a plan that pays CPA, once per player.
 - Gap, accepted (Trevor): a click's month is its time in the brand's reporting zone at read time,
   while player facts keep the period set on arrival; after a zone change, past clicks move month.
+- The recording (T131) covers seven roles: 321 screens captured, 120 refused as the original
+  refuses them, 44 not reached for want of a record on goldvibe in the original (a payment, a
+  withdrawal, an affiliate, a game session). Seeding those in the original and recording again
+  (`ONLY=<screen ids>`) would close them.
