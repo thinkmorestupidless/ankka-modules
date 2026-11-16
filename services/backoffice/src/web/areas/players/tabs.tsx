@@ -3,6 +3,7 @@
 import { useParams } from "@tanstack/react-router";
 import { PlayerIdentity } from "./identity.tsx";
 import { PlayerProtection } from "./protection.tsx";
+import { PlayerRewards } from "./rewards.tsx";
 import { PlayerWithdrawals } from "./withdrawals.tsx";
 
 const usePlayer = () => (useParams({ strict: false }) as { player?: string }).player;
@@ -20,4 +21,9 @@ export function ProtectionTab() {
 export function WithdrawalsTab() {
   const player = usePlayer();
   return <PlayerWithdrawals key={player} player={player ?? ""} />;
+}
+
+export function RewardsTab() {
+  const player = usePlayer();
+  return <PlayerRewards key={player} player={player ?? ""} />;
 }

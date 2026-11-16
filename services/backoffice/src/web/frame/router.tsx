@@ -6,7 +6,7 @@ import type { ReactElement } from "react";
 type Page = () => ReactElement;
 import type { MessageKey } from "../../shared/messages/index.ts";
 import { Shell } from "./Frame.tsx";
-import { NotFound, Placeholder } from "./pages.tsx";
+import { ModulesPage, NotFound, Placeholder } from "./pages.tsx";
 import { PreferencesPage } from "../areas/preferences/PreferencesPage.tsx";
 import { TeamPage } from "../areas/team/TeamPage.tsx";
 import { Home } from "./home.tsx";
@@ -17,14 +17,14 @@ import { WalletsTab } from "../areas/corrections/adjust.tsx";
 import { AccountsPage } from "../areas/corrections/accounts.tsx";
 import { BatchPage } from "../areas/corrections/batch.tsx";
 import { IdentityQueuePage } from "../areas/identity/queue.tsx";
-import { IdentityTab, ProtectionTab, WithdrawalsTab } from "../areas/players/tabs.tsx";
+import { IdentityTab, ProtectionTab, RewardsTab, WithdrawalsTab } from "../areas/players/tabs.tsx";
+import { RewardsPage } from "../areas/rewards/list.tsx";
 import { WithdrawalsQueuePage } from "../areas/withdrawals/queue.tsx";
 import { WithdrawalRequestPage } from "../areas/withdrawals/request.tsx";
 import { ProtectionCasesPage } from "../areas/protection/cases.tsx";
 import { FraudCasesPage } from "../areas/fraud/cases.tsx";
 import { IdentityPolicyPage } from "../areas/configuration/identity-policy.tsx";
 import { ProtectionSettingsPage } from "../areas/configuration/protection-settings.tsx";
-import { BrandSitePage, ConfigurationIndexPage, CountriesPage, CurrenciesPage, ModulesRoute, ReportingSettingsPage, RewardSettingsPage, WithdrawalSettingsPage } from "../areas/configuration/brand.tsx";
 
 const page = (label: MessageKey): Page => () => <Placeholder label={label} />;
 
@@ -38,12 +38,13 @@ export const Pages: [string, Page][] = [
   ["/players/$player/identity", IdentityTab],
   ["/players/$player/protection", ProtectionTab],
   ["/players/$player/withdrawals", WithdrawalsTab],
+  ["/players/$player/rewards", RewardsTab],
   ["/players/$player/wallets", WalletsTab],
   ["/withdrawals", () => <WithdrawalsQueuePage />],
   ["/withdrawals/$request", () => <WithdrawalRequestPage />],
   ["/adjustments/batch", () => <BatchPage />],
   ["/adjustments/accounts", () => <AccountsPage />],
-  ["/rewards", page("area.rewards")],
+  ["/rewards", () => <RewardsPage />],
   ["/offers", page("area.offers")],
   ["/identity", () => <IdentityQueuePage />],
   ["/protection", () => <ProtectionCasesPage />],
@@ -51,14 +52,8 @@ export const Pages: [string, Page][] = [
   ["/dashboard", () => <DashboardPage />],
   ["/reports", () => <ReportPage />],
   ["/reports/$report", () => <ReportPage />],
-  ["/configuration", () => <ConfigurationIndexPage />],
-  ["/configuration/modules", () => <ModulesRoute />],
-  ["/configuration/brand", () => <BrandSitePage />],
-  ["/configuration/countries", () => <CountriesPage />],
-  ["/configuration/currencies", () => <CurrenciesPage />],
-  ["/configuration/withdrawals", () => <WithdrawalSettingsPage />],
-  ["/configuration/rewards", () => <RewardSettingsPage />],
-  ["/configuration/reporting", () => <ReportingSettingsPage />],
+  ["/configuration", page("area.configuration")],
+  ["/configuration/modules", ModulesPage],
   ["/configuration/identity-policy", () => <IdentityPolicyPage />],
   ["/configuration/protection-settings", () => <ProtectionSettingsPage />],
   ["/configuration/$area", page("area.configuration")],

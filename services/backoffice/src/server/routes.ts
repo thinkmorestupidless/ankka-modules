@@ -263,9 +263,19 @@ export const table: readonly Row[] = [
   r("PUT", "attribution", "/webhooks/{id}", `${P}/attribution-webhooks/{id}`, "config.attribution"),
   r("DELETE", "attribution", "/webhooks/{id}", `${P}/attribution-webhooks/{id}`, "config.attribution"),
 
-  // rewards (reads only): RewardAdminEndpoint at /v1/casino/brands/<slug>/reward-grants
+  // rewards: RewardAdminEndpoint at /v1/casino/brands/<slug>/reward-grants, OffersEndpoint at …/offers
   r("GET", "rewards", "/reward-grants", `${B}/reward-grants`, "reward.read"),
   r("GET", "rewards", "/reward-grants/{rewardId}", `${B}/reward-grants/{rewardId}`, "reward.read"),
+  r("POST", "rewards", "/reward-grants/{playerId}", `${B}/reward-grants/{playerId}`, "reward.grant"),
+  r("POST", "rewards", "/reward-grants/{rewardId}/revoke", `${B}/reward-grants/{rewardId}/revoke`, "reward.revoke"),
+  r("GET", "rewards", "/offers", `${B}/offers`, "offer.manage"),
+  r("POST", "rewards", "/offers", `${B}/offers`, "offer.manage"),
+  // a literal segment, so before the offer's row
+  r("PUT", "rewards", "/offers/order", `${B}/offers/order`, "offer.manage"),
+  r("GET", "rewards", "/offers/free-rounds/spin-values", `${B}/offers/free-rounds/spin-values`, "offer.manage"),
+  r("GET", "rewards", "/offers/{offerId}", `${B}/offers/{offerId}`, "offer.manage"),
+  r("PATCH", "rewards", "/offers/{offerId}", `${B}/offers/{offerId}`, "offer.manage"),
+  r("DELETE", "rewards", "/offers/{offerId}", `${B}/offers/{offerId}`, "offer.manage"),
 
   // merchant (shared `payments`): PaymentsEndpoint at /v1/payments; admits a brand's operator once amendment H1, H2 (T071) lands
   // merchant (shared `payments`), US9 (T108): the hierarchy, provider configurations, terminals, keys, routing
