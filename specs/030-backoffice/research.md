@@ -894,3 +894,16 @@ seeded brand fills in the rest.
   refuses them, 44 not reached for want of a record on goldvibe in the original (a payment, a
   withdrawal, an affiliate, a game session). Seeding those in the original and recording again
   (`ONLY=<screen ids>`) would close them.
+- kind-ankka (T136), found bringing goldvibe up for the suites:
+  - backoffice-state reached the realm at the issuer's `:8443` host, which the gateway answers only
+    from outside the cluster; it now calls the installation's in-cluster Keycloak (`KEYCLOAK_URL`,
+    from `keycloak-jwks-base`) for the token, revoke and logout calls (a21d6cb6, ef8f8e8a).
+  - An apply without `--secrets` let Keycloak mint the backoffice client's secret, and a later apply
+    never replaced it; the modules tool now gives an existing client the brand's secret (1a17efff).
+  - Decision (Trevor): players runs as `large`, heap half the instance, for every brand. As a
+    `medium` it ran out under the seed's registrations: at a quarter or half heap the JVM, at 60%
+    the container (3aec766a, 338e90c3). No leak was looked for.
+  - Players seeded its default roles on the starting thread and ended when a call missed its
+    10 seconds on a busy node; the seed now runs off that thread until it holds (b1e2a207).
+  - To fit the node, exchange, backoffice-probe, game-provider, attribution, public-api and
+    markets are paused on kind-ankka's goldvibe; none is read by the backoffice suites.
