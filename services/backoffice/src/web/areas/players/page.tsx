@@ -106,7 +106,7 @@ function StandingView({ player, s }: { player: string; s: Standing }) {
             </p>
             <dl className="bo-standing-fields">
               <Field name="players.field.registered">{d.registeredAt ? <DateTime instant={d.registeredAt} zone={tz} /> : null}</Field>
-              <Field name="players.field.lastLogin">{d.lastLoginAt ? <DateTime instant={d.lastLoginAt} zone={tz} /> : null}</Field>
+              <Field name="players.field.lastLogin">{d.lastLoginAt ? <DateTime instant={d.lastLoginAt} zone={tz} /> : t("players.lastLogin.never")}</Field>
             </dl>
             {act(
               <div className="bo-actions" data-standing-actions>

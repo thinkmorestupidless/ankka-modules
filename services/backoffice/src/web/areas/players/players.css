@@ -22,8 +22,33 @@
   overflow-wrap: anywhere;
 }
 
-.bo-standing-part[data-part="account"] {
-  grid-row: span 2;
+/* the lifetime figures, 2 by 2 at the figure size, take two columns of the second row (DR-05) */
+.bo-standing-part[data-part="lifetime"] {
+  grid-column: span 2;
+}
+
+/* one field a row: a time never runs under the next field's label (DR-04) */
+.bo-standing-part[data-part="account"] .bo-standing-fields,
+.bo-standing-part[data-part="balances"] .bo-standing-fields {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.bo-standing-part[data-part="lifetime"] .bo-standing-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 16px;
+}
+
+/* balances and totals at the figure size (contracts/design.md, Type) */
+.bo-standing-part[data-part="balances"] dd,
+.bo-standing-part[data-part="lifetime"] dd {
+  font-size: var(--figure-min);
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.bo-standing-part[data-part="balances"] [data-restricted] dd:not(:has(.bo-money)) {
+  font-size: inherit;
+  font-weight: inherit;
 }
 
 .bo-standing-part h2 {
