@@ -1,7 +1,8 @@
 // features/backoffice/access.feature (T048): who works in a brand's backoffice and what they may do.
 // What each owner admits is held by its own operator-roles.feature; here the page offers or refuses
-// each action, and the server passes the operator's token to the owner. Screens built by later tasks
-// (the withdrawal request, the player, the player's rewards) are bound now and fail until they exist.
+// each action, and the server passes the operator's token to the owner. The player's page shows its
+// standing above tabs (`/players/{p}/{tab}`, FR-020): what a scenario reads or writes in a tab is looked
+// for in that tab, opened from the page's tab links.
 import type { Locator, Page } from "@playwright/test";
 import { expect, Given, Then, When, type World } from "../world.ts";
 import { bearerOf } from "../../doubles/client.ts";
@@ -10,7 +11,7 @@ import type { Identity } from "../../doubles/realm.ts";
 import { rolesGiving } from "../../../src/shared/access.ts";
 import permissions from "../../../src/shared/generated/operator-permissions.v1.json" with { type: "json" };
 import { t } from "../../../src/shared/messages/index.ts";
-import { describe } from "../../../src/web/actions/index.ts";
+import { Actions, describe, type ActionId } from "../../../src/web/actions/index.ts";
 
 /** What a scenario carries between its steps. */
 interface Scenario {
@@ -35,6 +36,14 @@ const needs = (permission: string) => t("action.needsRole", { roles: rolesGiving
 /** An enabled action opens its confirmation dialog (Radix sets `aria-haspopup="dialog"`). */
 const offered = (scope: Locator) => scope.locator('button[aria-haspopup="dialog"]:not([disabled])');
 
+/** Open one of the player's tabs from the page's tab links, and wait for what it reads. */
+async function openTab(world: World, label: string) {
+  await page(world).getByRole("group", { name: t("players.tabs") }).getByRole("link", { name: label, exact: true }).click();
+  await expect(page(world).getByRole("group", { name: t("players.tabs") }).getByRole("link", { name: label, exact: true })).toHaveAttribute("aria-current", "page");
+  await page(world).waitForLoadState("networkidle");
+  await expect(main(world).getByText(t("list.loading"), { exact: true })).toHaveCount(0);
+}
+
 // --- the brand ------------------------------------------------------------------------------------
 
 Given("the backoffice of the brand {string}", ({ world }, brand: string) => {
@@ -57,7 +66,7 @@ When("the operator signs in to the backoffice", async ({ world }) => {
 
 Then("everything the operator sees and does is in {string}", async ({ world }, brand: string) => {
   await expect(page(world).getByRole("banner")).toContainText(brand);
-  await expect(page(world).getByRole("navigation")).toBeVisible();
+  await expect(page(world).getByRole("navigation", { name: t("frame.areas") })).toBeVisible();
   const calls = (await world.doubles.calls()).filter((c) => c.owner !== "backoffice-state");
   expect(calls.length, "the server read the brand from its owners").toBeGreaterThan(0);
   const elsewhere = calls.filter((c) => !c.path.split("/").includes(brand)).map((c) => `${c.owner} ${c.method} ${c.path}`);
@@ -95,18 +104,31 @@ Given("a compliance operator of a brand and a withdrawal request pending review"
       by: "requestId",
       answers: {
         [requestId]: {
+          // a request as payouts answers an operator (OperatorEndpoint.detail)
           body: {
             requestId,
             playerId: "p-kenji",
             kycStatus: "verified",
             amount: 30000,
+            paidAmount: 30000,
+            voidedAmount: 0,
             currency: "JPY",
-            terminalName: "Pix out",
-            method: "bank_transfer",
-            destinationLastFour: "4821",
-            createdAt: "2026-11-14T22:15:00Z",
-            status: "pending_review",
+            status: "PENDING_REVIEW",
             payoutStatus: "NONE",
+            terminal: { id: "t-pix", name: "Pix out", gateway: "paysafe", scheme: "bank_transfer" },
+            destination: { destinationId: "d-1", firstName: "Kenji", lastName: "Sato", ibanLastFour: "4821" },
+            bonusForfeited: false,
+            forfeitedAmount: 0,
+            clawbackAmount: 0,
+            providerReference: null,
+            balancesAtRequest: 30000,
+            restrictedAtRequest: 0,
+            decisions: [],
+            outcomes: [],
+            transitions: [{ status: "pending_review", at: "2026-11-14T22:15:00Z", by: "player" }],
+            createdAt: "2026-11-14T22:15:00Z",
+            initiatedAt: null,
+            settledAt: null,
           },
         },
       },
@@ -154,17 +176,18 @@ Given("a reward the brand refuses to award because the player is flagged as a su
 });
 
 When("an operator awards the player the reward", async ({ world }) => {
-  await world.open(`/players/${of(world).playerId}?tab=rewards`);
+  await world.open(`/players/${of(world).playerId}/rewards`);
   await signedInFrame(world);
-  const award = main(world).getByRole("button", { name: /award/i }).first();
-  await expect(award, "the player's rewards offer an award").toBeVisible();
+  const award = main(world).getByRole("button", { name: t(describe("reward.grant").label), exact: true });
+  await expect(award, "the player's rewards offer an award").toBeEnabled();
   await award.click();
   const dialog = page(world).getByRole("dialog");
   await expect(dialog).toBeVisible();
-  const offer = dialog.getByRole("combobox");
-  if ((await offer.count()) > 0) await offer.first().selectOption({ label: "Welcome match" });
-  const reason = dialog.getByRole("textbox", { name: t("action.reason") });
-  if ((await reason.count()) > 0) await reason.fill("Goodwill after a failed deposit");
+  await dialog.getByRole("radio", { name: t("rewards.grant.fromOffer") }).check();
+  // the brand's offers are listed to an operator who manages them; another names the offer by its id
+  const offers = dialog.getByRole("combobox", { name: t("rewards.grant.offer") });
+  if ((await offers.count()) > 0) await offers.selectOption({ label: "Welcome match" });
+  else await dialog.getByRole("textbox", { name: t("rewards.grant.offerId") }).fill("o-welcome");
   await dialog.getByRole("button", { name: t("action.confirm"), exact: true }).click();
 });
 
@@ -244,16 +267,47 @@ When("the operator reads a player", async ({ world }) => {
 });
 
 Then("the operator sees the player's account, wallets, rounds, withdrawal requests and rewards", async ({ world }) => {
-  for (const part of [/account/i, /wallet/i, /round/i, /withdrawal/i, /reward/i])
-    await expect(main(world).getByRole("heading", { name: part }).first()).toBeVisible();
-  await expect(main(world)).toContainText("ana.souza");
+  const player = of(world).playerId!;
+  // the standing: the account and the wallets
+  for (const part of ["players.standing.account", "players.standing.balances"] as const)
+    await expect(main(world).getByRole("heading", { level: 2, name: t(part), exact: true })).toBeVisible();
+  await expect(main(world).locator('[data-part="identity"]')).toContainText("ana@example.test");
+  // the tabs: rounds, withdrawal requests and rewards, each read and none refused
+  const tabs: [string, string][] = [
+    [t("players.tab.games"), t("players.tab.games")],
+    [t("players.tab.withdrawals"), t("withdrawals.player.title", { player })],
+    [t("players.tab.rewards"), t("rewards.player.title", { player })],
+  ];
+  for (const [tab, heading] of tabs) {
+    await openTab(world, tab);
+    await expect(main(world).getByRole("heading", { name: heading, exact: true })).toBeVisible();
+    await expect(main(world).getByRole("alert"), `${tab} is read`).toHaveCount(0);
+  }
 });
 
+/** The actions whose label is this text. */
+const actionsNamed = (text: string) => (Object.keys(Actions) as ActionId[]).filter((id) => t(describe(id).label) === text);
+
 Then("the only writes offered are a note and an inbox item", async ({ world }) => {
-  const names = (await offered(main(world)).allTextContents()).map((s) => s.trim());
-  expect(names.length, "a note and an inbox item are offered").toBe(2);
-  expect(names.some((n) => /note/i.test(n)), `a note among ${names.join(", ")}`).toBe(true);
-  expect(names.some((n) => /inbox|message/i.test(n)), `an inbox item among ${names.join(", ")}`).toBe(true);
+  // every write offered on the player's page: its standing, and each of its tabs
+  const seen = new Set<string>();
+  const collect = async () => {
+    for (const name of await offered(main(world)).allTextContents()) seen.add(name.trim());
+  };
+  await collect();
+  const tabs = (await page(world).getByRole("group", { name: t("players.tabs") }).getByRole("link").allTextContents()).map((s) => s.trim());
+  for (const tab of tabs) {
+    await openTab(world, tab);
+    // a tab that could not be read could hide what it offers
+    await expect(main(world).getByRole("alert"), `${tab} is read`).toHaveCount(0);
+    await collect();
+  }
+  const names = [...seen];
+  const allowed = ["note.write", "message.send"];
+  const other = names.filter((n) => !actionsNamed(n).some((id) => allowed.includes(describe(id).permission)));
+  expect(other, `writes offered beside a note and an inbox item (${tabs.join(", ")})`).toEqual([]);
+  expect(names, "a note is offered").toContain(t(describe("note.write").label));
+  expect(names, "an inbox item is offered").toContain(t(describe("message.send").label));
 });
 
 // --- adjustments and limits by role ----------------------------------------------------------------
@@ -275,8 +329,16 @@ When("the operator makes an adjustment and sets a limit for a player", async ({ 
   await signedInFrame(world);
 });
 
-const adjustment = (world: World) => main(world).getByRole("button", { name: t(describe("wallet.adjust").label), exact: true });
-const limit = (world: World) => main(world).getByRole("button", { name: /limit/i }).first();
+/** The adjustment, in the player's wallets tab. */
+async function adjustment(world: World) {
+  await openTab(world, t("players.tab.wallets"));
+  return main(world).getByRole("button", { name: t(describe("wallet.adjust").label), exact: true });
+}
+/** A new limit, in the player's protection tab. */
+async function limit(world: World) {
+  await openTab(world, t("players.tab.protection"));
+  return main(world).getByRole("button", { name: t(describe("protection.newLimit").label), exact: true });
+}
 
 /** Admitted: the page offers the action, and a call through the server reaches the owner with the operator's token. */
 async function admittedOrRefused(world: World, action: Locator, expected: string, permission: string, call: { owner: string; method: string; path: string; upstream: RegExp; body: unknown }) {
@@ -298,27 +360,41 @@ async function admittedOrRefused(world: World, action: Locator, expected: string
 }
 
 Then("the adjustment is {string}", async ({ world }, expected: string) => {
-  await admittedOrRefused(world, adjustment(world), expected, describe("wallet.adjust").permission, {
+  await admittedOrRefused(world, await adjustment(world), expected, describe("wallet.adjust").permission, {
     owner: "wallet",
     method: "POST",
     path: "/api/s/wallet/wallets/p-ana/BRL/adjustments",
     upstream: /\/wallets\/p-ana\/BRL\/adjustments$/,
-    body: { amountMinorUnits: 1000, reason: "goodwill" },
+    body: { key: "adjust/access-feature", walletType: "real", amountMinor: 1000, reason: "goodwill", category: "compensation" },
   });
 });
 
 Then("the limit is {string}", async ({ world }, expected: string) => {
-  await admittedOrRefused(world, limit(world), expected, "protection.change", {
+  await admittedOrRefused(world, await limit(world), expected, describe("protection.newLimit").permission, {
     owner: "responsible-gambling",
     method: "PUT",
     path: "/api/s/responsible-gambling/p-ana/limits/DEPOSIT_DAILY",
     upstream: /\/rg\/p-ana\/limits\/DEPOSIT_DAILY$/,
-    body: { amountMinorUnits: 50000 },
+    body: { value: "50000", currency: "BRL" },
   });
 });
 
-/** The reads a player page makes beyond the seeded profile and wallet, answered empty. */
+/** The reads a player page makes beyond the seeded profile, answered empty. */
 async function seedPlayer(world: World) {
+  await world.doubles.fixtures("responsible-gambling", {
+    "GET /v1/casino/backoffice/{brand}/rg/{player}": {
+      body: { limits: [], pendingChanges: [], usedAmounts: [], isCoolingOff: false, activeRestrictions: [], coolingOffUntil: null, realityCheckIntervalMinutes: null, exclusion: null, returnRequest: null, cases: [], history: [] },
+    },
+    "GET /v1/casino/backoffice/{brand}/rg/{player}/history": { body: [] },
+  });
+  await world.doubles.fixtures("wallet", {
+    "GET /v1/casino/backoffice/{brand}/wallets/{player}/{currency}/balance": {
+      body: { realBalance: "1250.50", bonusBalance: "0.00", currency: "BRL", primary: null, depositPoolBalance: "1250.50", convertedPoolBalance: "0.00", reserved: "0.00", available: "1250.50" },
+    },
+    "GET /v1/casino/backoffice/{brand}/wallets/{player}/{currency}/restricted-funds": { body: { records: [], headline: null, restrictedBalance: 0 } },
+    "GET /v1/casino/backoffice/{brand}/wallets/{player}/{currency}/lifetime-totals": { body: { totalDeposited: "0.00", totalWagered: "0.00", totalWon: "0.00" } },
+    "GET /v1/casino/backoffice/{brand}/wallets/{player}/{currency}/transactions": { body: { transactions: [], page: 0, pageSize: 20, total: 0 } },
+  });
   await world.doubles.fixtures("payouts", {
     "GET /v1/casino/brands/{brand}/players/{playerId}/withdrawal-history": { body: { requests: [], total: 0 } },
   });
@@ -328,6 +404,23 @@ async function seedPlayer(world: World) {
   await world.doubles.fixtures("players", {
     "GET /v1/casino/backoffice/{brand}/players/{playerId}/bets": { body: { items: [], total: 0 } },
     "GET /v1/casino/backoffice/{brand}/players/{playerId}/sessions": { body: { items: [], total: 0 } },
-    "GET /v1/casino/backoffice/{brand}/players/{playerId}/activity": { body: { items: [], total: 0 } },
+    "GET /v1/casino/backoffice/{brand}/players/{playerId}/activity": { body: { events: [], page: 0, pageSize: 50, hasMore: false, total: 0, next: null } },
+    "GET /v1/casino/backoffice/{brand}/players/{playerId}/player-sessions": { body: { sessions: [], total: 0 } },
+    "GET /v1/casino/backoffice/{brand}/players/{playerId}/notes": { body: { notes: [], total: 0 } },
+    "GET /v1/casino/backoffice/{brand}/players/{playerId}/messages": { body: { items: [], total: 0, page: 1, pageSize: 20 } },
+    "GET /v1/casino/backoffice/{brand}/players/{playerId}/crm": { body: { emailMarketingConsent: false, smsMarketingConsent: false, messageSuppressed: false } },
+    "GET /v1/casino/backoffice/{brand}/merge-tags": { body: { tags: [] } },
+  });
+  await world.doubles.fixtures("engagement", {
+    "GET /v1/casino/backoffice/{brand}/players/{player}/sends": { body: { sends: [], total: 0 } },
+  });
+  await world.doubles.fixtures("kyc", {
+    "GET /v1/casino/backoffice/{brand}/kyc/{playerId}": {
+      body: { playerId: "p-ana", status: "verified", mode: "automatic", categories: [], other: [], missingProfileFields: [], readyAt: null, sof: "unverified", requiredOfPlayer: [], deadline: null, depositsByCurrency: {}, flags: [] },
+    },
+    "GET /v1/casino/backoffice/{brand}/kyc/{playerId}/decisions": { body: { decisions: [] } },
+  });
+  await world.doubles.fixtures("game-provider", {
+    "GET /v1/casino/backoffice/{brand}/game-provider/rounds": { body: { rounds: [], total: 0, page: 1, pageSize: 50 } },
   });
 }
