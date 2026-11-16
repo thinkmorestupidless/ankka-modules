@@ -1,0 +1,185 @@
+/* The affiliate programme's area (contracts/design.md): the sections as pills, figures as compact cards
+   with tabular numbers, forms in a two-column grid that falls to one below 1280 px. */
+
+.bo-aff-head h1 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.bo-aff-head p {
+  margin: 2px 0 8px;
+}
+
+.bo-aff-sections ul,
+.bo-aff-tabs ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+.bo-aff-pill {
+  display: inline-block;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 4px 12px;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.bo-aff-pill[aria-current="page"] {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.bo-aff-pill:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.bo-aff h2 {
+  font-size: 16px;
+  margin: 16px 0 8px;
+}
+
+.bo-aff h3 {
+  font-size: 14px;
+  margin: 12px 0 6px;
+}
+
+.bo-aff-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.bo-aff-card {
+  background: var(--surface-1);
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 13px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.bo-aff-card h3 {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 0 0 4px;
+}
+
+.bo-aff-card p {
+  margin: 0;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bo-aff-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+  max-width: 880px;
+  margin: 0 0 12px;
+}
+
+.bo-aff-form .bo-field-wide {
+  grid-column: 1 / -1;
+}
+
+.bo-aff-form input,
+.bo-aff-form select,
+.bo-aff-form textarea {
+  font: inherit;
+}
+
+.bo-aff-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 8px 0;
+}
+
+.bo-aff-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: flex-end;
+  margin: 0 0 8px;
+}
+
+.bo-aff-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 16px;
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+
+.bo-aff-facts dt {
+  color: var(--text-muted);
+}
+
+.bo-aff-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.bo-aff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  margin: 0 0 12px;
+}
+
+.bo-aff-table th,
+.bo-aff-table td {
+  text-align: start;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--surface-2);
+  vertical-align: top;
+}
+
+.bo-aff-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.bo-aff-table td[data-numeric],
+.bo-aff-table th[data-numeric] {
+  text-align: end;
+}
+
+.bo-aff-scroll {
+  overflow-x: auto;
+}
+
+.bo-aff-recorded {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: var(--surface-1);
+  border-radius: 12px;
+  padding: 8px 12px;
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+
+.bo-aff-detail {
+  background: var(--surface-1);
+  border-radius: 12px;
+  padding: 8px 16px 12px;
+  margin: 8px 0 12px;
+}
+
+@media (max-width: 1279px) {
+  .bo-aff-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

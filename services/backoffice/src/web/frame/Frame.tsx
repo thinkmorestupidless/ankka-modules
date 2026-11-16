@@ -18,7 +18,9 @@ import { useMe, useReadOnly, useTheme, type MeState } from "./session.ts";
 export function Frame({ me, readOnly, children }: { me: Me; readOnly: boolean; children?: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const area = areaOf(pathname);
-  const fresh = useFreshness(area?.views ?? []);
+  // an area's views are asked only of an operator who holds it (a manager passing "/" reads no worklist's)
+  const held = areasFor(me);
+  const fresh = useFreshness(area && held.some((a) => a.id === area.id) ? (area.views ?? []) : []);
   const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   return (
     <MeContext.Provider value={me}>
@@ -27,7 +29,7 @@ export function Frame({ me, readOnly, children }: { me: Me; readOnly: boolean; c
           {t("frame.skip")}
         </a>
         <div className="bo-frame" data-read-only={readOnly || undefined}>
-          <Rail areas={areasFor(me)} current={area} collapsed={readOnly} />
+          <Rail areas={held} current={area} collapsed={readOnly} />
           <div className="bo-body">
             <TopBar me={me} freshness={fresh ? <FreshnessNote freshness={fresh} zone={zone} /> : undefined} />
             {readOnly ? (

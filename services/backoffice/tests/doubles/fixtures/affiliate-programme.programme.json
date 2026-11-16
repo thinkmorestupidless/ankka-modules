@@ -1,0 +1,12 @@
+{
+  "GET /v1/affiliates/{brand}/revenue": { "body": { "period": "2026-11", "figures": [] } },
+  "GET /v1/affiliates/{brand}/revenue/by-campaign": { "body": [] },
+  "GET /v1/affiliates/{brand}/revenue/geo": { "body": [] },
+  "GET /v1/affiliates/{brand}/commission-plans": { "body": [] },
+  "GET /v1/affiliates/{brand}/accounts": { "body": { "items": [], "total": 0, "page": 1, "pageSize": 100 } },
+  "GET /v1/affiliates/{brand}/tracking-links": { "body": [] },
+  "GET /v1/affiliates/{brand}/creatives": { "body": [] },
+  "GET /v1/affiliates/{brand}/payouts": { "body": [] },
+  "GET /v1/affiliates/{brand}/fraud-flags": { "body": [] },
+  "GET /v1/affiliates/{brand}/managers": { "body": [] }
+}
