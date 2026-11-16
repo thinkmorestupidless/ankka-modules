@@ -270,7 +270,7 @@ shows as differing; a routing rule simulated and deployed; an invitation above t
 refused.
 
 - [ ] T103 [US9] Bind `features/backoffice/configuration.feature` (3 scenarios) in `t/features/steps/configuration.steps.ts`, failing first
-- [ ] T104 [P] [US9] `svc/wallet/` W3: `PUT wallet-config/rewards`, with tests
+- [X] T104 [P] [US9] `svc/wallet/` W3: `PUT wallet-config/rewards`, with tests
 - [ ] T105 [P] [US9] `svc/players/` P7, P8, P9: manager tags; seen devices recorded at log-in as `Personal` under the player's subject and erased with the player; what a player plays; binding `features/players/manager-tags.feature`, `devices.feature`, `games-played.feature`
 - [X] T106 [P] [US9] `svc/merchant/` H3: deposit bounds per method and currency, enforced by the deposit workflow, binding `features/payments/deposit-bounds.feature`
 - [ ] T107 [P] [US9] `svc/merchant/` H4, H5 and `svc/psp-gateway/` T2: the test payment through the gateway, never crediting a wallet; paging on `/v1/operators`, with tests; amends specs 004, 005
