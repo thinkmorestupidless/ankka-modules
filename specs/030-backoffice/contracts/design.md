@@ -16,7 +16,7 @@ table checks it, and a value that fails is changed here, not excused.
 | `--primary` | `oklch(0.84 0.22 145)` | `oklch(0.52 0.17 145)` | primary action, positive, the active pill |
 | `--on-primary` | `oklch(0.18 0.03 145)` | `oklch(0.99 0 0)` | text on primary |
 | `--series-2` | `oklch(0.68 0.25 340)` | `oklch(0.52 0.22 340)` | magenta, second series |
-| `--series-3` | `oklch(0.88 0.17 95)` | `oklch(0.58 0.13 85)` | yellow, third series |
+| `--series-3` | `oklch(0.88 0.17 95)` | `oklch(0.53 0.12 85)` | yellow, third series; the warning tone's text |
 | `--danger` | `oklch(0.66 0.22 25)` | `oklch(0.52 0.21 25)` | loss, failure, danger only |
 | `--focus` | `oklch(0.90 0.15 145)` | `oklch(0.45 0.17 145)` | 2 px ring, 2 px offset |
 | `--radius-card` | `20px` | | cards have no border; 16 px gap between |
