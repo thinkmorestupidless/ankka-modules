@@ -11,12 +11,9 @@ import scala.jdk.CollectionConverters.*
 
 /**
  * features/payments/deposit-bounds.feature: the deposit bounds (spec 030 H3, spec 004 FR-029c), and the
- * brand's reads (H1, H2: FR-029a, FR-029b). The test payment is H4's, bound with it (spec 030 T107).
+ * brand's reads (H1, H2: FR-029a, FR-029b), and the test payment (H4: FR-029d).
  */
 class DepositBoundsFeatures extends MerchantFeatures("deposit-bounds.feature"):
-
-  override protected def ranElsewhere: Map[String, String] =
-    Map("a test payment answers the provider's outcome and credits no wallet" -> DepositBoundsFeatures.TestPayment)
 
   private var initiatesBefore = 0
   private var other: Ready    = null
@@ -99,6 +96,45 @@ class DepositBoundsFeatures extends MerchantFeatures("deposit-bounds.feature"):
     assertEquals(kit.gateway.initiates.size, initiatesBefore + 1)
   }
 
+  // ── the test payment (H4) ──────────────────────────────────────────────────────────────────────
+
+  Given("a sub-brand with a credential for a payment provider that has a test mode") { () =>
+    ready = kit.subBrand(provider = "UNITYFINANCE", credentialName = "sandbox card")
+  }
+
+  When("a payments operator makes a test payment with that credential") { () =>
+    last = kit.request("POST", s"/v1/sub-brands/${ready.subBrandId}/psp-credentials/UNITYFINANCE/test-payment?name=sandbox%20card",
+      Some("{}"), kit.asOperator(level = "sub_brand", scopeId = ready.subBrandId, roles = "resource_admin"))
+  }
+
+  Then("the provider's outcome is answered") { () =>
+    assertEquals(last.status, 200, last.text)
+    assertEquals((last.str("outcome"), last.str("provider"), last.str("credentialName")), ("accepted", "UNITYFINANCE", "sandbox card"))
+    assertEquals((last.json.long("amountCents"), last.str("amount"), last.str("currency")), (Some(100L), "1.00", "USD"))
+    assert(last.str("redirectUrl").nonEmpty, last.text)
+    val asked = kit.gateway.testPayments.map(_.json.get)
+    assertEquals(asked.map(b => (b.textOr("subBrandId", ""), b.textOr("psp", ""), b.textOr("credentialName", ""))),
+      Vector((ready.subBrandId, "UNITYFINANCE", "sandbox card")))
+  }
+
+  Then("no wallet is credited and no deposit is recorded") { () =>
+    val reference = last.str("reference")
+    Thread.sleep(2000)
+    assertEquals(kit.gateway.initiates, Vector.empty, "no deposit was initiated")
+    // Another scenario's payment may still report to the wallet; none names this test or its provider.
+    assertEquals(kit.wallet.received.filter(w => (w.path + w.body).contains(reference) || w.body.contains("UNITYFINANCE")), Vector.empty,
+      "the wallet was not called for it: no credit, no outcome reported")
+    assert(!kit.paymentState(reference).exists, "no payment is recorded under the test's reference")
+    assertEquals(kit.views.forView(PaymentsView).all(100_000).filter(_.subBrandId == ready.subBrandId), Vector.empty)
+    val listed = kit.request("GET", s"/v1/payments/cashier?merchantId=${ready.subBrandId}", None, kit.asOperator())
+    assertEquals((listed.status, listed.json.long("total")), (200, Some(0L)), listed.text)
+    val summary = kit.request("GET", s"/v1/payments/cashier/summary?merchantId=${ready.subBrandId}", None, kit.asOperator())
+    assertEquals(summary.json.long("count"), Some(0L), summary.text)
+    val facts = Seq(io.eitheror.casino.contract.facts.PaymentsMerchants.name, io.eitheror.casino.contract.facts.PlatformAudit.name)
+      .flatMap(kit.broker.publishedTo(_).toVector).map(d => String(d.message.payload, java.nio.charset.StandardCharsets.UTF_8))
+    assertEquals(facts.filter(_.contains(reference)), Seq.empty, "no fact names the test payment")
+  }
+
   // ── the brand's reads (H1, H2) ─────────────────────────────────────────────────────────────────
 
   private def ids(r: Reply): Set[String] = r.json.get("payments").elements.asScala.map(_.textOr("paymentId", "")).toSet
@@ -153,7 +189,3 @@ class DepositBoundsFeatures extends MerchantFeatures("deposit-bounds.feature"):
   }
 
   Then("only that deposit is listed") { () => assertEquals(ids(last), Set(mine)) }
-
-object DepositBoundsFeatures:
-  // Here, not in the class: GherkinSuite reads ranElsewhere while it is constructed, before the class's own vals.
-  private val TestPayment = "spec 030 H4, bound with the test payment (T107)"

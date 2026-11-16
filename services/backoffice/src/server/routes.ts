@@ -303,6 +303,8 @@ export const table: readonly Row[] = [
   r("DELETE", "merchant", "/sub-brands/{id}/psp-credentials/{provider}", "/v1/sub-brands/{id}/psp-credentials/{provider}", "resource_viewer", "payments"),
   r("POST", "merchant", "/sub-brands/{id}/psp-credentials/{provider}/activate", "/v1/sub-brands/{id}/psp-credentials/{provider}/activate", "resource_viewer", "payments"),
   r("POST", "merchant", "/sub-brands/{id}/psp-credentials/{provider}/disable", "/v1/sub-brands/{id}/psp-credentials/{provider}/disable", "resource_viewer", "payments"),
+  // the test payment (H4, T107): the credential's name as `?name=`, the provider's test mode, no deposit
+  r("POST", "merchant", "/sub-brands/{id}/psp-credentials/{provider}/test-payment", "/v1/sub-brands/{id}/psp-credentials/{provider}/test-payment", "resource_viewer", "payments"),
   r("GET", "merchant", "/sub-brands/{id}/gateway-config", "/v1/sub-brands/{id}/gateway-config", "resource_viewer", "payments"),
   r("GET", "merchant", "/sub-brands/{id}/deposit-bounds", "/v1/sub-brands/{id}/deposit-bounds", "resource_viewer", "payments"),
   r("PUT", "merchant", "/sub-brands/{id}/deposit-bounds", "/v1/sub-brands/{id}/deposit-bounds", "resource_viewer", "payments"),

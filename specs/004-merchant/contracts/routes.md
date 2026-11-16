@@ -47,6 +47,7 @@ parent (FR-029).
 | `GET /{id}/gateway-config` | `methodGateways` |
 | `GET /{id}/deposit-bounds` | *(spec 030 H3, FR-029c)* → `subBrandId`, `bounds[{method, currency, minimumAmountCents?, minimumAmount?, maximumAmountCents?, maximumAmount?}]` sorted by method and currency, `methods[]` (the catalogue's) |
 | `PUT /{id}/deposit-bounds` | *(spec 030 H3)* replace them all: `bounds[{method, currency, minimumAmountCents?, maximumAmountCents?}]` (JSON integers of minor units; `[]` removes them) → as `GET`; `400 INVALID_REQUEST` (with `field` for an amount that is not a whole number) for a bad set |
+| `POST /{id}/psp-credentials/{provider}/test-payment?name=` | *(spec 030 H4, FR-029d)* a test payment with the named credential in the provider's test mode, through psp-gateway (spec 005 T2); body `{currency?}` → `subBrandId`, `credentialName`, `outcome` (`accepted`, `refused`, `unavailable`), `provider`, `testMode`, `method`, `currency`, `amountCents`, `amount` (decimal), `reference`, and `redirectUrl`, `providerReference?`, `error`, `message` or `reason` by outcome; the gateway's refusals in upper case (`501 TEST_MODE_UNAVAILABLE`, `404 NO_CREDENTIALS`, `400 UNSUPPORTED_CURRENCY`, `502 PROVIDER_NOT_CONFIGURED`), `503 UNAVAILABLE` when it does not answer. No payment, deposit, fact or wallet call |
 
 ### `/v1/merchants` (`{id}` is the sub-brand id; the original's "merchant")
 
@@ -124,6 +125,7 @@ Prefix `/v1/cashier`; the commands are [commands.md](commands.md): `POST /sessio
 | `POST /v1/payments/{paymentId}/capture` | [gateway.md](gateway.md) |
 | `POST /v1/payments/{paymentId}/fail` | [gateway.md](gateway.md) |
 | `GET /internal/v1/sub-brands/{subBrandId}/psp-credentials/{provider}` | the usable credential's secrets: `provider`, `credentials{}`; `404 NOT_FOUND` when none active with secrets (FR-008; `PspCredentialLifecycleSpec`) |
+| `GET /internal/v1/sub-brands/{subBrandId}/psp-credentials/{provider}?name=` | *(spec 030 H4)* the credential kept under that name, whatever its status, for the test payment: as above |
 | `GET /internal/v1/terminals/{terminalId}/properties` | `properties{}`, secrets included (FR-008) |
 | `GET /internal/v1/brands/{brand}/terminals` | the terminals of every sub-brand naming the brand, deleted ones left out: `terminals[]` of `id`, `subBrandId`, `gateway`, `scheme`, `name`, `status`, `supportsDeposit`, `supportsWithdrawal`, `requiresPayoutDestination` and `properties{}` without the catalogue's secret keys; the secret store is not read. An unknown brand is an empty list. For the gateway's payout listing (spec 005, research R12) |
 

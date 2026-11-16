@@ -111,9 +111,11 @@ final class InternalEndpoint(ctx: Ctx) extends HttpEndpoint("/internal/v1"):
   val acl: Acl = Identities.gateway
   private val ops = MerchantOps(ctx)
 
+  /** With `?name=`, the credential kept under that name whatever its status: the test payment's (spec 030 T2). */
   get("/sub-brands/{subBrandId}/psp-credentials/{provider}") { (subBrandId: String, provider: String) =>
     guarded {
-      ctx.subBrand(subBrandId).usableCredential(provider) match
+      val s = ctx.subBrand(subBrandId)
+      request.query.raw("name").fold(s.usableCredential(provider))(s.credentialNamed(provider, _)) match
         case None => refuse(404, "NOT_FOUND")
         case Some(c) =>
           ctx.secrets.credential(c.id).fold(e => refuse(503, "UNAVAILABLE", e.reason), m =>
