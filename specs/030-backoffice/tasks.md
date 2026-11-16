@@ -153,15 +153,15 @@ exactly its permissions.
 **Goal**: FR-016 to FR-018. **Independent test**: one item of each kind; each role's worklist holds
 exactly its kinds, oldest first; acting on one removes it and keeps the place.
 
-- [ ] T056 [US2] Bind `features/backoffice/worklist.feature` (4 scenarios) in `t/features/steps/worklist.steps.ts`, failing first
-- [ ] T057 [P] [US2] `svc/payouts/` Y2: `sort=oldest`, `counts {pendingReview, needsReview}` on the queue, with tests
-- [ ] T058 [P] [US2] `svc/kyc/` K2: paging on `queue` keeping `counts`, with tests
-- [ ] T059 [P] [US2] `svc/responsible-gambling/` G2: `cases?status=` brand-wide, paged, oldest first, with tests
-- [ ] T060 [P] [US2] `svc/players/` P11: paging and total on `fraud-cases`, oldest first for open, with tests
+- [X] T056 [US2] Bind `features/backoffice/worklist.feature` (4 scenarios) in `t/features/steps/worklist.steps.ts`, failing first
+- [X] T057 [P] [US2] `svc/payouts/` Y2: `sort=oldest`, `counts {pendingReview, needsReview}` on the queue, with tests
+- [X] T058 [P] [US2] `svc/kyc/` K2: paging on `queue` keeping `counts`, with tests
+- [X] T059 [P] [US2] `svc/responsible-gambling/` G2: `cases?status=` brand-wide, paged, oldest first, with tests
+- [X] T060 [P] [US2] `svc/players/` P11: paging and total on `fraud-cases`, oldest first for open, with tests
 - [X] T061 [P] [US2] `svc/game-provider/` GP3 and `svc/attribution/` E2: paging and total on `unacknowledged` and on `attribution-webhooks/undelivered`, with tests
 - [X] T062 [P] [US2] `svc/psp-gateway/` T1: `total` on `outcomes/undelivered` and `/refused`, with tests
-- [ ] T063 [US2] Implement `s/composite/worklist.ts` from contracts/sources.md: only the kinds the roles admit, in parallel, 3 s each, `unavailable` with its reason, totals from the sources; unit tests in `t/unit/worklist.test.ts`
-- [ ] T064 [US2] Implement `w/areas/worklist/` as the first page: kinds with counts, one row per item oldest first, opening an item's investigation, returning to the same place after acting (FR-018), an item acted on by someone else showing who and what with no action
+- [X] T063 [US2] Implement `s/composite/worklist.ts` from contracts/sources.md: only the kinds the roles admit, in parallel, 3 s each, `unavailable` with its reason, totals from the sources; unit tests in `t/unit/worklist.test.ts`
+- [X] T064 [US2] Implement `w/areas/worklist/` as the first page: kinds with counts, one row per item oldest first, opening an item's investigation, returning to the same place after acting (FR-018), an item acted on by someone else showing who and what with no action
 
 **Checkpoint**: an operator's day starts from the worklist.
 
@@ -176,7 +176,7 @@ read the timeline end to end; stop one source and see it named.
 - [ ] T066 [P] [US3] `svc/players/` P2: the list as a view query with paging, total, the filters and `facets=true`, binding `features/players/lists.feature`, with a suite at 10,000 rows
 - [ ] T067 [P] [US3] `svc/players/` P3, P4: `from`, `to`, `after`, `total` on `activity`; `GET notes`, with tests
 - [ ] T068 [P] [US3] `svc/players/` P5, P6, P10: a player's sessions with their game sessions and gaps, the brand-wide sessions list, force-close; a session's bets (no more `501`); `bets` filters and `staked`, `won`, `net`, with tests
-- [ ] T069 [P] [US3] `svc/game-provider/` GP2: `total` on `rounds`; `rounds/by-round/{roundId}`; `rounds/by-transaction/{txId}`, with tests
+- [X] T069 [P] [US3] `svc/game-provider/` GP2: `total` on `rounds`; `rounds/by-round/{roundId}`; `rounds/by-transaction/{txId}`, with tests
 - [ ] T070 [P] [US3] `svc/kyc/` K3 and `svc/responsible-gambling/` G3: `{p}/decisions` and the operator's `{p}/history`, with tests
 - [X] T071 [P] [US3] `svc/merchant/` H1, H2: an operator holding `brand_<slug>` reads the sub-brand that names that brand, and no other, on `/v1/payments/cashier`, `/cashier/summary`, `/v1/payments/{id}`; `?reference=`, with tests; amends spec 004
 - [X] T072 [US3] Implement `s/composite/search.ts` and its classifier from contracts/sources.md, with `t/unit/search.test.ts` (free text is never sent as an id; every match listed by kind; a value of two shapes asked of both)
@@ -210,7 +210,7 @@ and actor shown; only that state's actions offered.
 refused; repeat and nothing is made twice.
 
 - [ ] T083 [US5] Bind `features/backoffice/corrections.feature` (3 scenarios) in `t/features/steps/corrections.steps.ts`, failing first
-- [ ] T084 [US5] `svc/wallet/` W2: `cause`, `amountMinor`, `before` and `after` in the answer, `cause` and `actor` on the transaction row and the fact, with tests (a repeat under the same key answers the first outcome)
+- [X] T084 [US5] `svc/wallet/` W2: `cause`, `amountMinor`, `before` and `after` in the answer, `cause` and `actor` on the transaction row and the fact, with tests (a repeat under the same key answers the first outcome)
 - [ ] T085 [US5] Implement `s/composite/batch.ts` (the batch id, the key `batch/<id>/<n>`, eight at a time, at most 500 rows, each row's outcome streamed) with `t/unit/batch.test.ts` (a repeat makes none twice; a player twice is two rows)
 - [ ] T086 [US5] Implement `w/areas/corrections/adjust.tsx` (credit or debit, real or a restricted funds record, the brand's reasons with free text, the cause picker, before and after, the refusal of an over-large debit) and `w/areas/corrections/accounts.tsx` (non-player accounts)
 - [ ] T087 [US5] Implement `w/areas/corrections/batch.tsx` (paste or upload rows, validate, run, each row made, refused with its reason, or already made)
@@ -225,7 +225,7 @@ refused; repeat and nothing is made twice.
 explanations; a grant to a suspected duplicate shows why; a forfeit closes the record.
 
 - [ ] T088 [US6] Bind `features/backoffice/rewards.feature` (3 scenarios) in `t/features/steps/rewards.steps.ts`, failing first
-- [ ] T089 [US6] `svc/rewards/` RW2: `allowedBy` beside `reason` on an ineligible grant, with tests
+- [X] T089 [US6] `svc/rewards/` RW2: `allowedBy` beside `reason` on an ineligible grant, with tests
 - [ ] T090 [US6] Extend `s/routes.ts` with rewards' and offers' rows; implement `w/areas/rewards/list.tsx` (brand-wide, search and state) and `w/areas/players/rewards.tsx` (state in the glossary's words, wagering progress, open rounds, free rounds used of given as the player sees them, the state's actions with their effects)
 - [ ] T091 [US6] Implement `w/areas/rewards/grant.tsx` (from an offer or by hand; the refusal with its reason and what would allow it)
 - [ ] T092 [US6] Implement `w/areas/rewards/offers.tsx` (create, edit, order, deactivate, free rounds values, the games picker, dependants named before a change)
@@ -272,7 +272,7 @@ refused.
 - [ ] T103 [US9] Bind `features/backoffice/configuration.feature` (3 scenarios) in `t/features/steps/configuration.steps.ts`, failing first
 - [ ] T104 [P] [US9] `svc/wallet/` W3: `PUT wallet-config/rewards`, with tests
 - [ ] T105 [P] [US9] `svc/players/` P7, P8, P9: manager tags; seen devices recorded at log-in as `Personal` under the player's subject and erased with the player; what a player plays; binding `features/players/manager-tags.feature`, `devices.feature`, `games-played.feature`
-- [ ] T106 [P] [US9] `svc/merchant/` H3: deposit bounds per method and currency, enforced by the deposit workflow, binding `features/payments/deposit-bounds.feature`
+- [X] T106 [P] [US9] `svc/merchant/` H3: deposit bounds per method and currency, enforced by the deposit workflow, binding `features/payments/deposit-bounds.feature`
 - [ ] T107 [P] [US9] `svc/merchant/` H4, H5 and `svc/psp-gateway/` T2: the test payment through the gateway, never crediting a wallet; paging on `/v1/operators`, with tests; amends specs 004, 005
 - [ ] T108 [US9] Extend `s/routes.ts` with the configuration, merchant, psp-gateway, ingest, attribution, support-agent and engagement rows; implement `w/components/config-form.tsx` that marks each value differing from the brand's default or its licence profile (FR-034)
 - [ ] T109 [P] [US9] Implement `w/areas/configuration/brand.tsx` (sites, countries, currencies and zone, withdrawal, wagering and reward settings, reporting settings, the modules page with why a module is off)

@@ -550,3 +550,68 @@ private index (`commit-own.sh`).
   edited field is marked "changed, not saved".
 - A player's tabs are components taking the player id (`PlayerIdentity`, `PlayerProtection`), routed
   through `tabs.tsx` until T075's player page takes them.
+
+### The worklist and its sources, 2026-11-16 (T056–T064)
+
+- Payments needing review are asked with `status=ALL&payoutStatus=NEEDS_REVIEW&sort=oldest`.
+  payouts still defaults `status` to pending review, so `payoutStatus=` alone (as contracts/sources.md
+  wrote it) answers nothing. sources.md is corrected to match.
+- payouts' `counts {pendingReview, needsReview}` are brand-wide and ignore the query's filters, as kyc's
+  counts do. kyc's `queue` pages when `page` or `pageSize` is given; unpaged it answers the first 1,000
+  rows and now a `total`. responsible-gambling keeps a keyed view `rg-cases` (one row per case, no
+  notes, so erasure has nothing to change in it) for `rg/cases`. players' `fraud-cases` lists open cases
+  oldest first and other statuses newest first; an out-of-range page falls back to its default, as its
+  other lists do.
+- Undelivered facts show as `unavailable` (`no_source`) to administrators: attribution's `undelivered`
+  needs `network=`, so the brand has no single list to ask. Undelivered outcomes are left out: they
+  have no brand permission and psp-gateway has no row in the table. Both are gaps for a later spec.
+- An item opens beside the list, linking to its investigation. Only withdrawals are acted on there.
+  After acting, the item closes and the next row (or the one before it, at the end) becomes current,
+  with the page and scroll unchanged (FR-018).
+- "Who" acted is the operator's subject from payouts' decisions, or "you"; payouts records no name.
+- The view of every kind together pages through the first 50 items of each kind. One kind's view pages
+  through its owner.
+
+### game-provider's rounds by id, 2026-11-16 (T069)
+
+`rounds/by-round/{roundId}` reads the round at each configured provider in `casino-providers` order.
+`rounds/by-transaction/{transactionId}` finds the round through the transaction's `BetWorkflow`, the
+lookup a cancel already uses. It answers only when the round recorded that transaction, so a
+transaction still in flight answers 404. `rounds` is now ordered in the view (newest opened first);
+before, an unordered `LIMIT` was sorted in memory, so a long list came back as an arbitrary subset.
+
+### Corrections and rewards in the owners, 2026-11-16 (T084, T089)
+
+- The wallet answers `amountMinor`, `before` and `after` in minor units beside its major-unit text
+  fields. `before`, `after` and `cause` come from the adjustment's stored first outcome, so a repeat
+  answers what the first call did. The same key with another cause is `KEY_REUSED`. The transaction
+  row gains `category` beside `cause`, as sources.md lists it.
+- rewards answers `allowedBy`, a list of codes the backoffice words, on every ineligible answer, the
+  player's included. A reason that binds an operator's award too never offers `operator_award` (FR-006).
+- `features/backoffice/rewards.feature` has an operator's award refused for the claim limit. In
+  rewards an operator's award skips the claim rules, so that refusal comes only from a player's path.
+  The US6 binding must use a player's claim, or the scenario must be reworded.
+
+### Deposit bounds, 2026-11-16 (T106)
+
+A bound's "method" is the catalogue category of the terminal's gateway and scheme, slugged (`card`,
+`bank_transfer`, `wallet`, …). A scheme the catalogue does not know falls back to the scheme itself.
+`gateway-config`'s `methodGateways` uses "method" for the scheme; the two are different words for
+different things. Bounds are kept at sub-brand level only and are not inherited. Both bounds are
+inclusive, as the original compares them. A refused deposit answers 403 (the original preflight's
+status), ends the workflow before the gateway is called, and records no payment.
+
+### A raised limit, 2026-11-16 (T093)
+
+`compliance.feature`'s third scenario said a compliance operator's raise takes effect later.
+responsible-gambling applies an operator's change at once, as the original does; only a player's raise
+waits. Decision (Trevor): the scenario is reworded to a player's pending raise, which the page shows
+with the limit in force and when the raise applies. The binding uses a double that answers what
+responsible-gambling answers.
+
+### Identity documents are streamed by kyc, 2026-11-16 (FR-031)
+
+The backoffice followed kyc's signed link only under `BACKOFFICE_DOCUMENT_STORE`, and no module value
+set it, so every document would have answered 503. Decision (Trevor): kyc streams the document itself
+to the operator who may review it, and the backoffice follows no address at all. This is a new kyc
+amendment (K5 in contracts/amendments.md). The document route passes kyc's bytes through unchanged.
