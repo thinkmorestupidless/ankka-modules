@@ -9,7 +9,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { has, t, type MessageKey } from "../../../shared/messages/index.ts";
 import { RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { RecordLink, type RecordRef } from "../../components/links.tsx";
 import { Money } from "../../components/money.tsx";
 import { explain, type Refusal } from "../../../shared/refusals.ts";
@@ -17,7 +17,6 @@ import { refusalOf } from "../corrections/shared.tsx";
 import { word } from "../word.ts";
 import { actorName, readTimeline, TimelineKinds, type Line, type TimelinePage } from "./read.ts";
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 export const Periods = ["1d", "7d", "30d", "90d", "365d"] as const;
 const Day = 86_400_000;
 
@@ -88,7 +87,7 @@ export function Gaps({ gaps, tz }: { gaps: TimelinePage["gaps"]; tz: string }) {
 }
 
 export function PlayerTimeline({ player }: { player: string }) {
-  const tz = zone();
+  const tz = useZone();
   const navigate = useNavigate();
   const search = useRouterState({ select: (s) => s.location.search as Record<string, unknown> });
   const period = (Periods as readonly string[]).includes(String(search.period)) ? String(search.period) : "30d";

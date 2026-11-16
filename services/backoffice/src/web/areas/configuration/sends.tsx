@@ -8,7 +8,7 @@ import { t } from "../../../shared/messages/index.ts";
 import { engagement } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { completeOf, List, useListState, useRouterListStore, type Column } from "../../components/list/index.ts";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
@@ -27,7 +27,6 @@ export interface Send {
 }
 
 const PageSize = 50;
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 function SendActions({ s, done }: { s: Send; done(): void }) {
   const me = useOperator();
@@ -47,7 +46,7 @@ export function SendsPage() {
   const readOnly = useReadOnlyMode();
   const list = useListState(useRouterListStore());
   const searchId = useId();
-  const tz = zone();
+  const tz = useZone();
   const page = list.state.page;
   const search = list.state.filters.search ?? "";
   const q = useQuery({

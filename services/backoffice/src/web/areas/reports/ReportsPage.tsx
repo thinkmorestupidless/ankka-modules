@@ -10,7 +10,7 @@ import "./reports.css";
 import { t, type MessageKey } from "../../../shared/messages/index.ts";
 import { holds, runs, type Me } from "../../../shared/access.ts";
 import { RefusalNotice } from "../../components/action/index.ts";
-import { DateTime } from "../../components/date.tsx";
+import { DateTime, useZone } from "../../components/date.tsx";
 import { RecordLink } from "../../components/links.tsx";
 import { useOperator } from "../../frame/context.ts";
 import { Export } from "../jobs/Export.tsx";
@@ -601,7 +601,7 @@ export function ReportPage() {
   const { report } = useParams({ strict: false }) as { report?: string };
   const search = strings(useSearch({ strict: false }) as Record<string, unknown>);
   const navigate = useNavigate();
-  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const zone = useZone();
   if (report === undefined) return <ReportsIndex />;
   const set = (s: Search) => void navigate({ to: "/reports/$report", params: { report }, search: defined(s) });
   return <ReportView report={report} search={search} set={set} zone={zone} />;

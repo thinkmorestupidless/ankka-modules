@@ -14,7 +14,7 @@ import { t } from "../../../shared/messages/index.ts";
 import { rewards } from "../../../shared/owners/index.ts";
 import { Actions, offeredIn, type ActionId } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { useFreshness } from "../../components/freshness.tsx";
 import { FreshnessNote } from "../../components/list/index.ts";
 import { Money, moneyText } from "../../components/money.tsx";
@@ -25,7 +25,6 @@ import { GrantReward } from "../rewards/grant.tsx";
 import { isOpen, progressOf, readOpenRecords, readPlayerRewards, stateOf, type OpenRecord, type Reward } from "../rewards/read.ts";
 import { word } from "../word.ts";
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 const Offered = ["reward.forfeit", "reward.reclaim"] as const satisfies readonly ActionId[];
 
 /** The tone of a reward's state: its word says it, the mark only repeats it. */
@@ -57,7 +56,7 @@ function OpenRounds({ r, open, unread }: { r: Reward; open: OpenRecord | undefin
 }
 
 function RewardCard({ r, open, unread, current }: { r: Reward; open: OpenRecord | undefined; unread: boolean; current: boolean }) {
-  const tz = zone();
+  const tz = useZone();
   const id = useId();
   const state = stateOf(r);
   return (
@@ -183,7 +182,7 @@ function RewardActions({ r }: { r: Reward }) {
 }
 
 export function PlayerRewards({ player }: { player: string }) {
-  const tz = zone();
+  const tz = useZone();
   const readOnly = useReadOnlyMode();
   const freshness = useFreshness(["rewards"]);
   const opened = useRouterState({ select: (s) => (s.location.search as Record<string, unknown>).reward });

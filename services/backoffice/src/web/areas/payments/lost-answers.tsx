@@ -7,7 +7,7 @@ import { t } from "../../../shared/messages/index.ts";
 import { ingest } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { Status } from "../../components/status.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
@@ -22,14 +22,13 @@ export interface LostAnswer extends EdgeRequest {
   seen?: boolean | null;
 }
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 export function LostAnswersSection() {
   const me = useOperator();
   const bags = useBags();
   const readOnly = useReadOnlyMode();
   const scope = useScope();
-  const tz = zone();
+  const tz = useZone();
   const subBrand = scope.level === "subBrand" ? (scope.id ?? "") : "";
   const done = useChanged("lost-answers");
   const q = usePayments<{ lostAnswers: LostAnswer[] }>(["lost-answers", subBrand], () => ingest.getIngestLostAnswers({ query: subBrand ? { subBrand } : {} }));

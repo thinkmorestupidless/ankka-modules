@@ -24,7 +24,7 @@ describe("an operator whose roles do not name the brand", () => {
 });
 
 describe("an operator who loses the brand", () => {
-  const signedIn: MeState = { state: "signedIn", me: { subject: "s", name: "n", roles: [], brand: { slug: "goldvibe", name: "goldvibe", modules: null }, preferences: null, permissions: [] } };
+  const signedIn: MeState = { state: "signedIn", me: { subject: "s", name: "n", roles: [], brand: { slug: "goldvibe", name: "goldvibe", modules: null, zone: "America/Sao_Paulo" }, preferences: null, permissions: [] } };
   const notIn: MeState = { state: "notInBrand", brand: "goldvibe", lost: false };
 
   it("has lost it when refused after being let in", () => {

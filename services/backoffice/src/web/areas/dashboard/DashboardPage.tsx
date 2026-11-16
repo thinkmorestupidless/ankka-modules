@@ -15,6 +15,7 @@ import { DotGrid, Donut, LineChart, WorldMap } from "../../components/charts/ind
 import { useOperator } from "../../frame/context.ts";
 import { Amount, useReportingStatus, ViewsFreshness, type ReportingStatus } from "../reports/figures.tsx";
 import { drawn, useReporting, type Refused } from "../reports/read.ts";
+import { useZone } from "../../components/date.tsx";
 
 // ── reporting's answers (spec 015 contracts/routes.md) ───────────────────────────────────────────
 
@@ -362,7 +363,7 @@ export function rangeOf(v: unknown): Range {
 export function DashboardPage() {
   const search = useSearch({ strict: false }) as Record<string, unknown>;
   const navigate = useNavigate();
-  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const zone = useZone();
   const set = (key: "range" | "currency", value: string) =>
     void navigate({ to: "/dashboard", search: (prev: Record<string, unknown>) => ({ ...prev, [key]: value }), replace: true });
   return (

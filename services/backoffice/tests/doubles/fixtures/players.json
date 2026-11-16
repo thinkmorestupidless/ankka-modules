@@ -3,6 +3,10 @@
     "anonymous": true,
     "body": { "modules": [ { "module": "core", "status": "enabled" }, { "module": "casino", "status": "enabled" } ] }
   },
+  "GET /v1/casino/brands/{brand}/players/config/brand-config": {
+    "anonymous": true,
+    "body": { "name": "Goldvibe", "legalName": "Goldvibe Ltd", "playerSiteBase": "https://goldvibe.example.test", "reportingZone": "America/Sao_Paulo", "singleSession": false, "multiAccountDetection": true, "retentionDays": null, "features": {} }
+  },
   "GET /v1/casino/backoffice/{brand}/brand-config": {
     "body": { "name": "Goldvibe", "legalName": "Goldvibe Ltd", "playerSiteBase": "https://goldvibe.example.test", "reportingZone": "America/Sao_Paulo", "singleSession": false, "multiAccountDetection": true, "retentionDays": null, "features": {} }
   },

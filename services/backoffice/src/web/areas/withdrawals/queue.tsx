@@ -9,7 +9,7 @@ import { useRouter, useRouterState } from "@tanstack/react-router";
 import { useId, useState, type FormEvent } from "react";
 import { t, type MessageKey } from "../../../shared/messages/index.ts";
 import { RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { useFreshness } from "../../components/freshness.tsx";
 import { completeOf, List, useListState, useRouterListStore, type Column, type ListState } from "../../components/list/index.ts";
 import { Money } from "../../components/money.tsx";
@@ -19,7 +19,6 @@ import { readQueue, type Row } from "./read.ts";
 import "./withdrawals.css";
 
 export const PageSize = 50;
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 /** payouts' states, in the original's order; `ALL` is every state. */
 export const States = ["PENDING_REVIEW", "APPROVED", "AWAITING_MANUAL_PAYOUT", "COMPLETED", "REJECTED", "FAILED", "CANCELLED", "REVERSED", "ALL"] as const;
@@ -110,7 +109,7 @@ function Choice({ named, value, options, onChange }: { named: MessageKey; value:
 }
 
 export function WithdrawalsQueuePage() {
-  const tz = zone();
+  const tz = useZone();
   const store = useRouterListStore();
   const list = useListState(store);
   const at = useRouterState({ select: (s) => (s.location.search as Record<string, unknown>).at });

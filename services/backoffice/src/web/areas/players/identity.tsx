@@ -11,7 +11,7 @@ import { t } from "../../../shared/messages/index.ts";
 import { kyc } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { Money } from "../../components/money.tsx";
 import { Status } from "../../components/status.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
@@ -19,7 +19,6 @@ import { useBags } from "../bags.ts";
 import { Categories, documentHref, readDecisions, readIdentity, ReasonCodes, type KycDecision, type KycDocument, type PlayerIdentity as Identity } from "../identity/kyc.ts";
 import { word } from "../word.ts";
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 const body = (b: unknown) => ({ body: b });
 
 /** A document's row: what it is, its review, and the actions its state allows. */
@@ -29,7 +28,7 @@ function DocumentRow({ player, category, required, document, done }: { player: s
   const readOnly = useReadOnlyMode();
   const codeId = useId();
   const [code, setCode] = useState("");
-  const tz = zone();
+  const tz = useZone();
   const d = document;
   return (
     <tr data-category={category} data-document={d?.documentId}>
@@ -172,7 +171,7 @@ function Flags({ identity, done }: { identity: Identity; done(): void }) {
   const me = useOperator();
   const bags = useBags();
   const readOnly = useReadOnlyMode();
-  const tz = zone();
+  const tz = useZone();
   if (identity.flags.length === 0) return <p className="bo-muted">{t("identity.flags.none")}</p>;
   return (
     <table className="bo-table">
@@ -256,7 +255,7 @@ function actorOf(d: KycDecision): string {
 
 /** kyc's decisions on the player, oldest first, each with who made it and when (amendment K3). */
 function Decisions({ player }: { player: string }) {
-  const tz = zone();
+  const tz = useZone();
   const q = useQuery({ queryKey: ["kyc", "decisions", player], queryFn: () => readDecisions(player) });
   if (q.isError) return <RefusalNotice refusal={q.error as never} />;
   if (!q.data) return <p role="status">{t("list.loading")}</p>;
@@ -293,7 +292,7 @@ export function PlayerIdentity({ player }: { player: string }) {
   const bags = useBags();
   const readOnly = useReadOnlyMode();
   const client = useQueryClient();
-  const tz = zone();
+  const tz = useZone();
   const q = useQuery({ queryKey: ["kyc", "identity", player], queryFn: () => readIdentity(player) });
   const done = () => {
     void client.invalidateQueries({ queryKey: ["kyc"] });

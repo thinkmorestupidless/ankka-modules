@@ -15,12 +15,9 @@ export async function json<T>(answer: Promise<Response>): Promise<T> {
 /** The refusal a failed read carries, for `RefusalNotice`. */
 export const refusalOf = (e: unknown): Refusal => e as Refusal;
 
-/** The browser's time zone, which the page names wherever it shows a time (the brand's is not readable to a manager). */
-export const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-/** This month as the programme names a period, `yyyy-MM`, in the browser's zone. */
-export function thisMonth(now: Date = new Date()): string {
-  const parts = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", timeZone: zone() }).formatToParts(now);
+/** This month as the programme names a period, `yyyy-MM`, in the brand's zone (`useZone()`). */
+export function thisMonth(zone: string, now: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", timeZone: zone }).formatToParts(now);
   const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
   return `${part("year")}-${part("month")}`;
 }

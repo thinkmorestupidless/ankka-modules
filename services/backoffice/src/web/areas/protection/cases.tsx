@@ -9,7 +9,7 @@ import { t } from "../../../shared/messages/index.ts";
 import { responsibleGambling as rg } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { useFreshness } from "../../components/freshness.tsx";
 import { RecordLink } from "../../components/links.tsx";
 import { completeOf, List, useListState, useRouterListStore, type Column } from "../../components/list/index.ts";
@@ -20,13 +20,12 @@ import { readJson, refusalOf } from "../corrections/shared.tsx";
 import { word } from "../word.ts";
 import { CaseTypes, type Case } from "./rg.ts";
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 function CaseRow({ player, c, done }: { player: string; c: Case; done(): void }) {
   const me = useOperator();
   const bags = useBags();
   const readOnly = useReadOnlyMode();
-  const tz = zone();
+  const tz = useZone();
   return (
     <tr data-case={c.caseId}>
       <th scope="row">{word("protection.case", c.caseType)}</th>
@@ -151,7 +150,7 @@ const Shown = ["open", "closed", "all"] as const;
 
 /** `/protection`: the brand's cases (G2), the filter and page in the URL. */
 export function ProtectionCasesPage() {
-  const tz = zone();
+  const tz = useZone();
   const me = useOperator();
   const bags = useBags();
   const readOnly = useReadOnlyMode();

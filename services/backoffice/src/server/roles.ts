@@ -80,12 +80,21 @@ export function parseModules(body: unknown): string[] {
     .sort();
 }
 
+/** The brand's reporting zone from players' brand configuration, the zone every date is shown in (FR-015). */
+export function parseZone(body: unknown): string {
+  const zone = (body as { reportingZone?: unknown })?.reportingZone;
+  if (typeof zone !== "string" || zone === "") throw new Error("not a brand configuration");
+  new Intl.DateTimeFormat("en", { timeZone: zone }); // a zone this runtime cannot name is refused here, not on the page
+  return zone;
+}
+
 export interface BrandReads {
   bags: Kept<Bags>;
   modules: Kept<string[]>;
+  zone: Kept<string>;
 }
 
-/** The two reads, from players at the calling address, made as the backoffice itself (no token). */
+/** The three reads, from players at the calling address, made as the backoffice itself (no token). */
 export function brandReads(servicesUrl: string, brand: string, fetchFn: typeof fetch, now: () => number): BrandReads {
   const base = `${servicesUrl}/players/v1/casino/brands/${encodeURIComponent(brand)}/players`;
   const read = async (path: string) => {
@@ -96,5 +105,6 @@ export function brandReads(servicesUrl: string, brand: string, fetchFn: typeof f
   return {
     bags: new Kept(async () => parseBags(await read("/roles")), 10_000, now),
     modules: new Kept(async () => parseModules(await read("/modules")), 60_000, now),
+    zone: new Kept(async () => parseZone(await read("/config/brand-config")), 60_000, now),
   };
 }

@@ -19,7 +19,7 @@ import { merchant } from "../../../shared/owners/index.ts";
 import { read } from "../configuration/page.tsx";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { DateTime } from "../../components/date.tsx";
+import { DateTime, useZone } from "../../components/date.tsx";
 import { Status } from "../../components/status.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
@@ -197,7 +197,6 @@ export function NeedsSubBrand() {
 
 const Statuses = ["Active", "Suspended", "Archived"] as const;
 const SubBrandTypes = ["Casino", "Combined", "Payments"] as const;
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 function StatusChange({ current, run }: { current: string; run(status: string): Promise<Response> }) {
   const me = useOperator();
@@ -260,7 +259,7 @@ function Create({ kind, run, extra }: { kind: "holding" | "company" | "subBrand"
 
 export function HierarchySection() {
   const readOnly = useReadOnlyMode();
-  const tz = zone();
+  const tz = useZone();
   const set = useSetScope();
   const { holdings, companies: all, subBrands } = useHierarchy();
   const scope = useScope();

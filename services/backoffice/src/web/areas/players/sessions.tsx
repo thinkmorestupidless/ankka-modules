@@ -11,7 +11,7 @@ import { t } from "../../../shared/messages/index.ts";
 import { players } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { useFreshness } from "../../components/freshness.tsx";
 import { RecordLink } from "../../components/links.tsx";
 import { completeOf, List, memoryStore, useListState, useRouterListStore, type Column } from "../../components/list/index.ts";
@@ -22,7 +22,6 @@ import { useBags } from "../bags.ts";
 import { readJson, refusalOf } from "../corrections/shared.tsx";
 import { BetTotals, betColumns, OpenRound, useOpenRound, type Bet, type BetSummary } from "./rounds.tsx";
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 const PageSize = 25;
 
 interface GameSession {
@@ -90,7 +89,7 @@ const BetsPageSize = 50;
 const amount = (minor: number | null | undefined, currency: string | null | undefined) => (minor != null && currency ? <Money value={{ minor, currency }} /> : null);
 
 export function PlayerSessions({ player }: { player: string }) {
-  const tz = zone();
+  const tz = useZone();
   const me = useOperator();
   const bags = useBags();
   const readOnly = useReadOnlyMode();
@@ -235,7 +234,7 @@ export const SessionStatuses = ["active", "ended", "completed", "expired", "forc
 
 /** `/players/sessions`: the brand's player sessions, newest first (P5), the filters and page in the URL. */
 export function BrandSessionsPage() {
-  const tz = zone();
+  const tz = useZone();
   const me = useOperator();
   const bags = useBags();
   const readOnly = useReadOnlyMode();

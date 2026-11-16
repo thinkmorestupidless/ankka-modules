@@ -14,7 +14,7 @@ const me: Me = {
   subject: "op-1",
   name: "Ana",
   roles: ["brand_goldvibe", "brand_finance"],
-  brand: { slug: "goldvibe", name: "goldvibe", modules: ["core", "backoffice"] },
+  brand: { slug: "goldvibe", name: "goldvibe", modules: ["core", "backoffice"], zone: "America/Sao_Paulo" },
   preferences: { theme: "dark", worklistKinds: null, onlineNotices: false, jobs: [] },
   permissions: ["withdrawal.review", "callback.resolve", "player.read"],
 };

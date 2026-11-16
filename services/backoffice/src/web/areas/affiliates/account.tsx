@@ -13,7 +13,7 @@ import { t, type MessageKey } from "../../../shared/messages/index.ts";
 import { affiliateProgramme as programme } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { Status } from "../../components/status.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
@@ -31,7 +31,6 @@ import {
   json,
   percentOf,
   thisMonth,
-  zone,
   type Account,
   type AuditEntry,
   type Link,
@@ -56,7 +55,7 @@ function Fact({ term, children }: { term: MessageKey; children: ReactNode }) {
 }
 
 function Facts({ a }: { a: Account }) {
-  const tz = zone();
+  const tz = useZone();
   const plans = usePlans();
   const plan = a.planId ? (plans.data?.find((p) => p.planId === a.planId)?.planName ?? a.planId) : "";
   return (
@@ -358,7 +357,7 @@ function Notes({ a }: { a: Account }) {
   const bags = useBags();
   const client = useQueryClient();
   const readOnly = useReadOnlyMode();
-  const tz = zone();
+  const tz = useZone();
   const id = useId();
   const [text, setText] = useState("");
   const key = ["programme", "account", a.affiliateId, "notes"];
@@ -411,7 +410,7 @@ function Notes({ a }: { a: Account }) {
 
 function Audit({ a }: { a: Account }) {
   const me = useOperator();
-  const tz = zone();
+  const tz = useZone();
   const q = useQuery({ queryKey: ["programme", "account", a.affiliateId, "audit"], queryFn: () => json<AuditEntry[]>(programme.getAccountsAudit({ affiliate: a.affiliateId })) });
   return (
     <Read q={q}>
@@ -538,7 +537,8 @@ function ViewAsAffiliate({ a }: { a: Account }) {
   const me = useOperator();
   const id = useId();
   const [view, setView] = useState<PortalView>("dashboard");
-  const [period, setPeriod] = useState(thisMonth());
+  const zone = useZone();
+  const [period, setPeriod] = useState(() => thisMonth(zone));
   const [asked, setAsked] = useState<{ view: PortalView; period: string } | undefined>(undefined);
   const q = useQuery({
     queryKey: ["programme", "account", a.affiliateId, "portal", asked],
@@ -597,7 +597,8 @@ function ViewAsAffiliate({ a }: { a: Account }) {
 }
 
 function Figures({ a }: { a: Account }) {
-  const [period, setPeriod] = useState(thisMonth());
+  const zone = useZone();
+  const [period, setPeriod] = useState(() => thisMonth(zone));
   const q = useQuery({ queryKey: ["programme", "account", a.affiliateId, "revenue", period], queryFn: () => json<Revenue>(programme.getAccountsRevenue({ affiliate: a.affiliateId }, { query: { period } })) });
   return (
     <div data-figures>
@@ -617,6 +618,7 @@ function Part({ heading, children }: { heading: MessageKey; children: ReactNode 
 }
 
 export function AccountPage() {
+  const zone = useZone();
   const { affiliate } = useParams({ strict: false }) as { affiliate: string };
   const client = useQueryClient();
   const readOnly = useReadOnlyMode();
@@ -630,7 +632,7 @@ export function AccountPage() {
     <section className="bo-aff" data-section="accounts" data-account={affiliate}>
       <ProgrammeHeading />
       <SectionNav current="accounts" />
-      <ZoneNote zone={zone()} />
+      <ZoneNote zone={zone} />
       <Read q={q}>
         {(a) => (
           <>

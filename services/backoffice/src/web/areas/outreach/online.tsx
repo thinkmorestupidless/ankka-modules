@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { t } from "../../../shared/messages/index.ts";
 import { engagement } from "../../../shared/owners/index.ts";
 import { RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { List, memoryStore, useListState, type Column } from "../../components/list/index.ts";
 import { useOperator } from "../../frame/context.ts";
 import { readJson, refusalOf } from "../corrections/shared.tsx";
@@ -47,7 +47,7 @@ const store = memoryStore();
 
 export function OnlinePage() {
   const me = useOperator();
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const tz = useZone();
   const list = useListState(store);
   const q = useQuery({
     queryKey: ["presence"],

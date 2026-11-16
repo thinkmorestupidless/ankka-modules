@@ -9,7 +9,7 @@ import { useRouter, useRouterState } from "@tanstack/react-router";
 import { useId } from "react";
 import { t } from "../../../shared/messages/index.ts";
 import { word } from "../word.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { useFreshness } from "../../components/freshness.tsx";
 import { List, useListState, useRouterListStore, type Column } from "../../components/list/index.ts";
 import { RefusalNotice } from "../../components/action/index.ts";
@@ -17,7 +17,6 @@ import { Status } from "../../components/status.tsx";
 import { Filters, readQueue, type QueueRow } from "./kyc.ts";
 
 export const PageSize = 50;
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 /** The time a row waits from under a filter, as kyc orders by it (KycQueue.Filter.since). */
 export function waitingSince(filter: string, row: QueueRow): string | null {
@@ -52,7 +51,7 @@ export function IdentityQueuePage() {
   const list = useListState(useRouterListStore());
   const filter = list.state.filters.filter ?? "awaiting";
   const filterId = useId();
-  const tz = zone();
+  const tz = useZone();
   const freshness = useFreshness(["kyc"]);
   const q = useQuery({ queryKey: ["kyc", "queue", filter], queryFn: () => readQueue(filter), refetchInterval: 30_000 });
 

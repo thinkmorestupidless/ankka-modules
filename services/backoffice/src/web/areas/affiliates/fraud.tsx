@@ -7,13 +7,13 @@ import { t } from "../../../shared/messages/index.ts";
 import { affiliateProgramme as programme } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { List, useListState, useRouterListStore, type Column } from "../../components/list/index.ts";
 import { Status } from "../../components/status.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 import { word } from "../word.ts";
-import { json, refusalOf, actorName, zone, type FraudFlag } from "./programme.ts";
+import { json, refusalOf, actorName, type FraudFlag } from "./programme.ts";
 
 const Shows = ["open", "dismissed", "all"] as const;
 const stateOf = (f: FraudFlag) => (f.dismissed ? "dismissed" : "open");
@@ -22,7 +22,7 @@ function FlagDetail({ flag, done }: { flag: FraudFlag; done(): void }) {
   const me = useOperator();
   const bags = useBags();
   const readOnly = useReadOnlyMode();
-  const tz = zone();
+  const tz = useZone();
   return (
     <article className="bo-aff-detail" data-flag={flag.flagId} aria-labelledby={`flag-${flag.flagId}`}>
       <h3 id={`flag-${flag.flagId}`}>{t("affiliates.flag.title", { player: flag.playerId })}</h3>
@@ -86,7 +86,7 @@ export function FraudSection() {
   const list = useListState(useRouterListStore());
   const show = (list.state.filters.show as (typeof Shows)[number] | undefined) ?? "open";
   const opened = list.state.filters.flag;
-  const tz = zone();
+  const tz = useZone();
   const q = useQuery({ queryKey: ["programme", "fraud-flags"], queryFn: () => json<FraudFlag[]>(programme.getFraudFlags()) });
   const rows = q.data?.filter((f) => show === "all" || stateOf(f) === show);
   const columns: Column<FraudFlag>[] = [

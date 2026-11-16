@@ -6,7 +6,8 @@ export interface Me {
   subject: string | null;
   name: string | null;
   roles: string[];
-  brand: { slug: string; name: string; modules: string[] | null };
+  /** `zone`: the brand's reporting zone (players' brand configuration), in which every date is shown (FR-015). */
+  brand: { slug: string; name: string; modules: string[] | null; zone: string };
   preferences: unknown;
   permissions: string[];
 }
@@ -19,7 +20,7 @@ export function holds(me: Pick<Me, "permissions">, permission: string): boolean 
 }
 
 /** Whether the brand runs `module`; `null` modules (never read) shows the area rather than hide it wrongly. */
-export function runs(me: Pick<Me, "brand">, module: string): boolean {
+export function runs(me: { brand: Pick<Me["brand"], "modules"> }, module: string): boolean {
   return me.brand.modules === null || me.brand.modules.includes(module);
 }
 

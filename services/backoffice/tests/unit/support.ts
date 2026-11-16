@@ -60,6 +60,7 @@ export function harness(over: Partial<Deps> = {}) {
   let answer: (call: Call) => Response | Promise<Response> = () => Response.json({ ok: true });
   let bags: () => Bags = () => OperatorBags;
   let modules: () => string[] = () => ["casino", "core"];
+  let zone: () => string = () => "America/Sao_Paulo";
   const fetchFn: typeof fetch = async (input, init) => {
     const req = new Request(input, init);
     const call = { url: req.url, method: req.method, headers: req.headers, body: req.body ? await req.text() : "" };
@@ -86,6 +87,7 @@ export function harness(over: Partial<Deps> = {}) {
     reads: {
       bags: new Kept<Bags>(async () => bags(), 10_000, () => Date.now()),
       modules: new Kept<string[]>(async () => modules(), 60_000, () => Date.now()),
+      zone: new Kept<string>(async () => zone(), 60_000, () => Date.now()),
     },
     ...over,
   };
@@ -98,6 +100,7 @@ export function harness(over: Partial<Deps> = {}) {
     answer: (f: typeof answer) => void (answer = f),
     bagsAre: (f: () => Bags) => void (bags = f),
     modulesAre: (f: () => string[]) => void (modules = f),
+    zoneIs: (f: () => string) => void (zone = f),
     /** A request as the platform's proxy passes it: its host stated, the session's cookie when given. */
     ask: (method: string, path: string, opts: { session?: string; headers?: Record<string, string>; body?: string } = {}) => {
       const headers: Record<string, string> = { "X-Forwarded-Host": Host, "X-Forwarded-Proto": "https", ...opts.headers };

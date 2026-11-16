@@ -62,6 +62,9 @@ export type Env = { Variables: { session: string; token: Token; logPath: string;
 
 const Reads = new Set(["GET", "HEAD"]);
 
+/** players' default reporting zone (`BrandConfig.reportingZone`). */
+const DefaultZone = "UTC";
+
 /** The preferences the page writes; `jobs` are the server's own (data-model.md). */
 const PageWritable = new Set(["theme", "worklistKinds", "onlineNotices"]);
 
@@ -121,7 +124,7 @@ export function createApp(deps: Deps): Hono<Env> {
     c.set("logPath", "/api/me");
     const token = c.get("token");
     if (!inBrand(token.roles, deps.brand)) return c.json({ error: "brand_not_in_roles", brand: deps.brand }, 403);
-    const [bags, modules] = await Promise.all([reads.bags.get(), reads.modules.get()]);
+    const [bags, modules, zone] = await Promise.all([reads.bags.get(), reads.modules.get(), reads.zone.get()]);
     if (bags === undefined && !token.roles.includes(PlatformAdmin)) return unavailable("players");
     const claims = claimsOf(token.accessToken);
     const preferences = claims.sub ? await deps.state.preferences(claims.sub).catch(() => null) : null;
@@ -129,7 +132,8 @@ export function createApp(deps: Deps): Hono<Env> {
       subject: claims.sub ?? null,
       name: claims.name ?? claims.preferred_username ?? null,
       roles: [...token.roles].sort(),
-      brand: { slug: deps.brand, name: deps.brand, modules: modules ?? null },
+      // players' default zone when its configuration has never been read: the dates still name the zone they are in
+      brand: { slug: deps.brand, name: deps.brand, modules: modules ?? null, zone: zone ?? DefaultZone },
       preferences,
       permissions: permissionsOf(token.roles, bags ?? {}),
     });
@@ -248,7 +252,7 @@ export function createApp(deps: Deps): Hono<Env> {
   // The operator's worklist (contracts/sources.md): the kinds their roles admit, each asked of its owner as them, 3 s each.
   const admittedKinds = async (roles: string[]) => {
     const [bags, modules] = await Promise.all([reads.bags.get(), reads.modules.get()]);
-    return kindsFor({ brand: { slug: deps.brand, name: deps.brand, modules: modules ?? null }, permissions: permissionsOf(roles, bags ?? {}) });
+    return kindsFor({ brand: { modules: modules ?? null }, permissions: permissionsOf(roles, bags ?? {}) });
   };
   const worklistDeps = () => ({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 3_000) });
   app.get("/api/worklist", async (c) => {

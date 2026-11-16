@@ -11,7 +11,7 @@ import { t } from "../../../shared/messages/index.ts";
 import { merchant } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { DateTime } from "../../components/date.tsx";
+import { DateTime, useZone } from "../../components/date.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 import { read } from "../configuration/page.tsx";
@@ -34,7 +34,6 @@ interface Tried {
   terminals: string[];
 }
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 /**
  * The state after a deploy, as merchant's tree folds `Deployed`: the draft is the new version, live, and
@@ -117,7 +116,7 @@ function Routing({ level, entityId, name }: { level: Level; entityId: string; na
   const bags = useBags();
   const readOnly = useReadOnlyMode();
   const client = useQueryClient();
-  const tz = zone();
+  const tz = useZone();
   const key = ["payments", "routing", level, entityId];
   const query = { level, entityId };
   const q = useQuery({ queryKey: key, queryFn: () => read<RoutingState>(merchant.getPaymentsRoutingRulesState({ query })) });

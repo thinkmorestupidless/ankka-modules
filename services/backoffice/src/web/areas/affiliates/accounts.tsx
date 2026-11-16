@@ -11,7 +11,7 @@ import { t } from "../../../shared/messages/index.ts";
 import { affiliateProgramme as programme } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { List, completeOf, useListState, useRouterListStore, type Column } from "../../components/list/index.ts";
 import { Money } from "../../components/money.tsx";
 import { Status } from "../../components/status.tsx";
@@ -19,7 +19,7 @@ import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 import { word } from "../word.ts";
 import { usePlans } from "./plans.tsx";
-import { accountName, json, percentOf, refusalOf, zone, type AccountRow, type AccountsPage } from "./programme.ts";
+import { accountName, json, percentOf, refusalOf, type AccountRow, type AccountsPage } from "./programme.ts";
 
 const PageSize = 50;
 const Statuses = ["pending", "active", "suspended", "rejected"] as const;
@@ -114,7 +114,7 @@ export function AccountsSection() {
   const readOnly = useReadOnlyMode();
   const list = useListState(useRouterListStore());
   const ids = { status: useId(), search: useId() };
-  const tz = zone();
+  const tz = useZone();
   const { filters, sort, page } = list.state;
   const [search, setSearch] = useState(filters.search ?? "");
   const [invited, setInvited] = useState(false);

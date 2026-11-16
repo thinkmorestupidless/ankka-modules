@@ -11,7 +11,7 @@ import { t, type MessageKey } from "../../../shared/messages/index.ts";
 import { payouts } from "../../../shared/owners/index.ts";
 import { Actions, offeredIn, type ActionId } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { RecordLink } from "../../components/links.tsx";
 import { Money } from "../../components/money.tsx";
 import { Status } from "../../components/status.tsx";
@@ -21,7 +21,6 @@ import { word } from "../word.ts";
 import { actionStateOf, amountsOf, readBalances, readDeposits, readIdentity, readRequest, type Request, type Transition } from "./read.ts";
 import "./withdrawals.css";
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 const Offered = ["withdrawal.approve", "withdrawal.reject", "withdrawal.confirmPayout", "withdrawal.markPayoutFailed"] as const satisfies readonly ActionId[];
 type Offered = (typeof Offered)[number];
@@ -112,7 +111,7 @@ function Balances({ r }: { r: Request }) {
 }
 
 function Player({ r }: { r: Request }) {
-  const tz = zone();
+  const tz = useZone();
   const identity = useQuery({ queryKey: ["kyc", "status", r.playerId], queryFn: () => readIdentity(r.playerId), retry: false });
   const deposits = useQuery({ queryKey: ["wallet", "deposits", r.playerId, r.currency], queryFn: () => readDeposits(r.playerId, r.currency), retry: false });
   return (
@@ -192,7 +191,7 @@ export function actorOf(tr: { by: Transition["by"]; operatorId?: string | null }
 
 function History({ r }: { r: Request }) {
   const me = useOperator();
-  const tz = zone();
+  const tz = useZone();
   const transitions = r.transitions ?? [];
   return (
     <Section heading="withdrawals.request.history">
@@ -214,7 +213,7 @@ function History({ r }: { r: Request }) {
 
 function Attempts({ r }: { r: Request }) {
   const me = useOperator();
-  const tz = zone();
+  const tz = useZone();
   const outcomes = r.outcomes ?? [];
   return (
     <Section heading="withdrawals.request.attempts">
@@ -300,7 +299,7 @@ function Actions_({ r }: { r: Request }) {
 export function WithdrawalRequestPage() {
   const { request } = useParams({ strict: false }) as { request?: string };
   const id = request ?? "";
-  const tz = zone();
+  const tz = useZone();
   const q = useQuery({ queryKey: ["payouts", "request", id], queryFn: () => readRequest(id), refetchInterval: 10_000, enabled: id !== "" });
   const r = q.data;
   return (

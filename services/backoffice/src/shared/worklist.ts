@@ -26,6 +26,6 @@ export const Kinds: readonly Kind[] = [
 ];
 
 /** The kinds this operator's roles admit in this brand. */
-export function kindsFor(me: Pick<Me, "brand" | "permissions">): Kind[] {
+export function kindsFor(me: { brand: Pick<Me["brand"], "modules"> } & Pick<Me, "permissions">): Kind[] {
   return Kinds.filter((k) => runs(me, k.module) && (k.permission === null || holds(me, k.permission)));
 }

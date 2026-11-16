@@ -3,6 +3,12 @@
 import "./components.css";
 import { formatInstant } from "../../shared/dates.ts";
 import { t } from "../../shared/messages/index.ts";
+import { useOperator } from "../frame/context.ts";
+
+/** The brand's zone, from `/api/me`: every date on a page is shown in it, never in the browser's (FR-015). */
+export function useZone(): string {
+  return useOperator().brand.zone;
+}
 
 export function DateTime({ instant, zone }: { instant: string | number; zone: string }) {
   const iso = new Date(instant).toISOString();

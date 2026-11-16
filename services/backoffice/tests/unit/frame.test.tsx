@@ -15,7 +15,7 @@ const me = (over: Partial<Me> = {}): Me => ({
   subject: "op-1",
   name: "Ana",
   roles: ["support"],
-  brand: { slug: "spinvibe", name: "spinvibe", modules: ["core", "backoffice"] },
+  brand: { slug: "spinvibe", name: "spinvibe", modules: ["core", "backoffice"], zone: "America/Sao_Paulo" },
   preferences: null,
   permissions: ["player.read", "reward.read", "withdrawal.read"],
   ...over,
@@ -31,7 +31,7 @@ describe("the rail's areas", () => {
   });
 
   it("shows the area once the brand runs its module", () => {
-    expect(areasFor(me({ brand: { slug: "s", name: "s", modules: ["core", "casino"] } })).map((a) => a.id)).toContain("rewards");
+    expect(areasFor(me({ brand: { slug: "s", name: "s", modules: ["core", "casino"], zone: "America/Sao_Paulo" } })).map((a) => a.id)).toContain("rewards");
   });
 
   it("omits an area the operator holds no permission for", () => {
@@ -45,7 +45,7 @@ describe("the rail's areas", () => {
   });
 
   it("shows every area held when the modules are not known", () => {
-    expect(areasFor(me({ brand: { slug: "s", name: "s", modules: null } })).map((a) => a.id)).toContain("rewards");
+    expect(areasFor(me({ brand: { slug: "s", name: "s", modules: null, zone: "America/Sao_Paulo" } })).map((a) => a.id)).toContain("rewards");
   });
 
   it("finds the area a path is in", () => {

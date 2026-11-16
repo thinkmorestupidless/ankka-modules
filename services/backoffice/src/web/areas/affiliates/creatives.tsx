@@ -7,11 +7,11 @@ import { t } from "../../../shared/messages/index.ts";
 import { affiliateProgramme as programme } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 import { Read } from "./parts.tsx";
-import { json, zone, type Creative } from "./programme.ts";
+import { json, type Creative } from "./programme.ts";
 
 function NewCreative({ done }: { done(): void }) {
   const me = useOperator();
@@ -68,7 +68,7 @@ export function CreativesSection() {
   const bags = useBags();
   const client = useQueryClient();
   const readOnly = useReadOnlyMode();
-  const tz = zone();
+  const tz = useZone();
   const q = useQuery({ queryKey: ["programme", "creatives"], queryFn: () => json<Creative[]>(programme.getCreatives()) });
   const done = () => void client.invalidateQueries({ queryKey: ["programme", "creatives"] });
   return (

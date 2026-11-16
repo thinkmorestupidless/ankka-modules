@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
 import { t } from "../../../shared/messages/index.ts";
 import { RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { useFreshness } from "../../components/freshness.tsx";
 import { completeOf, List, useListState, useRouterListStore, type Column } from "../../components/list/index.ts";
 import { Money } from "../../components/money.tsx";
@@ -14,7 +14,6 @@ import { useOpenRequest } from "../withdrawals/queue.tsx";
 import { readHistory, type Row } from "../withdrawals/read.ts";
 
 const PageSize = 50;
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 const columns = (tz: string): Column<Row>[] => [
   { id: "created", header: "withdrawals.queue.created", cell: (r) => <DateTime instant={r.createdAt} zone={tz} /> },
@@ -39,7 +38,7 @@ const columns = (tz: string): Column<Row>[] => [
 ];
 
 export function PlayerWithdrawals({ player }: { player: string }) {
-  const tz = zone();
+  const tz = useZone();
   const list = useListState(useRouterListStore());
   const at = useRouterState({ select: (s) => (s.location.search as Record<string, unknown>).at });
   const open = useOpenRequest();

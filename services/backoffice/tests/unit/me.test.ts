@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { AllPermissions } from "../../src/server/roles.ts";
+import { AllPermissions, parseZone } from "../../src/server/roles.ts";
 import { OperatorBags } from "./bags.ts";
 import { Brand, harness, whole } from "./support.ts";
 
@@ -20,10 +20,29 @@ describe("/api/me", () => {
       subject: "op-7",
       name: "Ana Operator",
       roles: ["brand_finance", `brand_${Brand}`],
-      brand: { slug: Brand, name: Brand, modules: ["casino", "core"] },
+      brand: { slug: Brand, name: Brand, modules: ["casino", "core"], zone: "America/Sao_Paulo" },
       preferences: { theme: "dark", worklistKinds: null, onlineNotices: false, jobs: [] },
       permissions: AllPermissions.filter((p) => OperatorBags.brand_finance!.includes(p)),
     });
+  });
+
+  test("the brand's zone is players' reporting zone; UTC, players' default, when it was never read (FR-015)", async () => {
+    const h = as([`brand_${Brand}`, "brand_support"]);
+    h.zoneIs(() => "Asia/Tokyo");
+    const me = (await (await h.ask("GET", "/api/me", { session: "s-me" })).json()) as { brand: { zone: string } };
+    expect(me.brand.zone).toBe("Asia/Tokyo");
+    const unread = as([`brand_${Brand}`, "brand_support"]);
+    unread.zoneIs(() => {
+      throw new Error("players down");
+    });
+    const fallback = (await (await unread.ask("GET", "/api/me", { session: "s-me" })).json()) as { brand: { zone: string } };
+    expect(fallback.brand.zone).toBe("UTC");
+  });
+
+  test("players' brand configuration gives the zone; one this runtime cannot name is not taken", () => {
+    expect(parseZone({ reportingZone: "America/Sao_Paulo", name: "Goldvibe" })).toBe("America/Sao_Paulo");
+    expect(() => parseZone({ reportingZone: "Mars/Olympus" })).toThrow();
+    expect(() => parseZone({})).toThrow();
   });
 
   test("two roles carry what either carries", async () => {

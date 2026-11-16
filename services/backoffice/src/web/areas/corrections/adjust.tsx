@@ -17,7 +17,7 @@ import { parseMoney } from "../../../shared/money.ts";
 import { players, wallet } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { Money, moneyText } from "../../components/money.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
@@ -49,7 +49,6 @@ interface TransactionRow {
   actorId?: string | null;
 }
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 const newKey = () => `adjust/${crypto.randomUUID()}`;
 
 /** Typed text as minor units of the currency, above zero; undefined otherwise. */
@@ -63,7 +62,7 @@ export function amountOf(text: string, currency: string): bigint | undefined {
 }
 
 function Recent({ player, currency }: { player: string; currency: string }) {
-  const tz = zone();
+  const tz = useZone();
   const q = useQuery({
     queryKey: ["wallet", "adjustments", player, currency],
     queryFn: () => readJson<{ transactions: TransactionRow[] }>(wallet.getWalletsTransactions({ player, currency }, { query: { type: "admin_adjust", pageSize: "20" } })),

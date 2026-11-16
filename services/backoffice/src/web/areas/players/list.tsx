@@ -8,14 +8,13 @@ import { useId } from "react";
 import { t, type MessageKey } from "../../../shared/messages/index.ts";
 import { players } from "../../../shared/owners/index.ts";
 import { RefusalNotice } from "../../components/action/index.ts";
-import { DateTime, ZoneNote } from "../../components/date.tsx";
+import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { useFreshness } from "../../components/freshness.tsx";
 import { completeOf, List, useListState, useRouterListStore, type Column } from "../../components/list/index.ts";
 import { Status } from "../../components/status.tsx";
 import { readJson, refusalOf } from "../corrections/shared.tsx";
 import { word } from "../word.ts";
 
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 const PageSize = 50;
 
 export interface PlayerRow {
@@ -74,7 +73,7 @@ function FilterSelect({ name, label, values, facets, value, onChange }: { name: 
 }
 
 export function PlayersListPage() {
-  const tz = zone();
+  const tz = useZone();
   const list = useListState(useRouterListStore());
   const navigate = useNavigate();
   const freshness = useFreshness(["players"]);
