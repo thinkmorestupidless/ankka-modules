@@ -691,3 +691,6 @@ amendment (K5 in contracts/amendments.md). The document route passes kyc's bytes
   text. ankka 042's encryption of personal fields will refuse both queries at start. players'
   `lists.feature` freshness scenario stays unbound: "the views are catching up" cannot be shown while
   `rebuilding` is always false (V2).
+- `repeated` (7432a7fd) is answered only on the operator's adjustment route; the support agent's route
+  strips it, so its answer is unchanged. It is never stored. The batch scenario's refused row is a debit
+  larger than the player's real balance (1b391777).
