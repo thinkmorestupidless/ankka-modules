@@ -265,7 +265,8 @@ export function WorklistPage() {
     <section className="bo-worklist">
       <h1>{t("area.worklist")}</h1>
       <p className="bo-muted">{t("worklist.order")}</p>
-      {answered ? <KindsSummary kinds={answered} only={only} choose={choose} /> : null}
+      {answered && answered.length > 0 ? <KindsSummary kinds={answered} only={only} choose={choose} /> : null}
+      {/* no kind admitted: the sentence alone, no empty list under it (DR-17) */}
       {answered && answered.length === 0 ? <p>{t("worklist.noKinds")}</p> : null}
       {unavailable.map((k) => (
         <p key={k.kind} className="bo-worklist-unavailable" role="status" data-unavailable={k.kind}>
@@ -273,24 +274,28 @@ export function WorklistPage() {
         </p>
       ))}
       {failed ? <p role="status">{t("worklist.unavailable", { kind: t(labelOf(failed.kind)), reason: reasonOf(failed.reason) })}</p> : null}
-      <ZoneNote zone={tz} />
-      {all.isError ? <RefusalNotice refusal={all.error as never} /> : null}
-      <div className="bo-worklist-body">
-        <List
-          caption="worklist.caption"
-          columns={columns(tz)}
-          rows={rows}
-          rowKey={keyOf}
-          total={total}
-          complete={complete}
-          fetching={all.isFetching || one.isFetching}
-          zone={tz}
-          list={list}
-          onOpen={(i) => void place(keyOf(i), keyOf(i))}
-          current={current}
-        />
-        {opened ? <ItemPanel key={keyOf(opened)} item={opened} onActed={acted(opened)} onClose={() => void place(current, undefined)} /> : null}
-      </div>
+      {answered && answered.length === 0 ? null : (
+        <>
+          <ZoneNote zone={tz} />
+          {all.isError ? <RefusalNotice refusal={all.error as never} /> : null}
+          <div className="bo-worklist-body">
+            <List
+              caption="worklist.caption"
+              columns={columns(tz)}
+              rows={rows}
+              rowKey={keyOf}
+              total={total}
+              complete={complete}
+              fetching={all.isFetching || one.isFetching}
+              zone={tz}
+              list={list}
+              onOpen={(i) => void place(keyOf(i), keyOf(i))}
+              current={current}
+            />
+            {opened ? <ItemPanel key={keyOf(opened)} item={opened} onActed={acted(opened)} onClose={() => void place(current, undefined)} /> : null}
+          </div>
+        </>
+      )}
     </section>
   );
 }
