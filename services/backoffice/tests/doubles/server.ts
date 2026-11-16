@@ -14,6 +14,7 @@ import { FraudCases, type FraudSeed } from "./fraud.ts";
 import { Wallets, type WalletSeed } from "./wallet.ts";
 import { ProgrammeFlags, type FlagSeed } from "./programme.ts";
 import { Realm } from "./realm.ts";
+import { AgentStreams, type ComingOnline } from "./presence.ts";
 import type { Preferences } from "../../src/server/session.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -98,12 +99,14 @@ export async function startDoubles(port = 0): Promise<Doubles> {
   const fraud = new FraudCases();
   const wallets = new Wallets();
   const flags = new ProgrammeFlags();
+  const agents = new AgentStreams();
   const reset = () => {
     realm.reset();
     roles.reset();
     fraud.reset();
     wallets.reset();
     flags.reset();
+    agents.reset();
     for (const [name, o] of owners) o.load(read(path.join(FixturesDir, `${name}.json`)));
   };
   reset();
@@ -156,6 +159,12 @@ export async function startDoubles(port = 0): Promise<Doubles> {
       flags.seed(given() as unknown as FlagSeed);
       return send(res, { body: { seeded: "fraud-flags" } });
     }
+    if (req.method === "POST" && what === "online") {
+      return send(res, { body: { streams: agents.comeOnline(given() as unknown as ComingOnline, brand.slug) } });
+    }
+    if (req.method === "GET" && what === "agent-streams") {
+      return send(res, { body: { operators: agents.streams(url.searchParams.get("brand") ?? undefined) } });
+    }
     if (req.method === "PUT" && what === "settings") {
       const s = given();
       if (typeof s.tokenLifeMs === "number") realm.tokenLifeMs = s.tokenLifeMs;
@@ -205,6 +214,16 @@ export async function startDoubles(port = 0): Promise<Doubles> {
         if (decided) {
           o.calls.push({ owner: o.name, method: req.method ?? "GET", path, query: url.searchParams.toString(), headers: flat(req.headers), body, at: Date.now() });
           return send(res, bearer ? decided : { status: 401, body: { error: "unauthenticated" } });
+        }
+      }
+      if (first === "engagement") {
+        const path = `/${rest.join("/")}`;
+        const bearer = /^Bearer (\S+)$/.exec(req.headers.authorization ?? "")?.[1];
+        const decided = agents.handle(req.method ?? "GET", path, url.searchParams, bearer ? subjectOf(bearer) : undefined, res);
+        if (decided) {
+          o.calls.push({ owner: o.name, method: req.method ?? "GET", path, query: url.searchParams.toString(), headers: flat(req.headers), body, at: Date.now() });
+          if (decided !== true) send(res, decided);
+          return;
         }
       }
       if (first === "affiliate-programme.programme") {
