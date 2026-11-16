@@ -1,0 +1,119 @@
+/* The withdrawals area (contracts/design.md): the queue's counts, states and filters above its list; a
+   request's story in two columns of cards, its actions first on the right. */
+
+.bo-withdrawal-counts,
+.bo-withdrawal-states {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+.bo-withdrawal-counts button[aria-pressed="true"],
+.bo-withdrawal-states button[aria-pressed="true"] {
+  border-color: var(--primary);
+}
+
+.bo-withdrawal-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 8px;
+}
+
+.bo-withdrawal-filters form[role="search"] {
+  display: flex;
+  gap: 8px;
+  align-items: end;
+}
+
+.bo-withdrawal-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--gap-card);
+  align-items: start;
+}
+
+.bo-withdrawal-grid > div {
+  display: grid;
+  gap: var(--gap-card);
+}
+
+.bo-withdrawal-section {
+  border: 1px solid var(--surface-2);
+  border-radius: var(--radius-card);
+  background: var(--surface-1);
+  padding: 12px 16px;
+}
+
+.bo-withdrawal-section h2 {
+  font-size: 15px;
+  margin: 0 0 8px;
+}
+
+.bo-withdrawal-section h3 {
+  font-size: 13px;
+  margin: 12px 0 4px;
+}
+
+.bo-withdrawal-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 16px;
+  margin: 0;
+}
+
+.bo-withdrawal-facts > div {
+  display: contents;
+}
+
+.bo-withdrawal-facts dt {
+  color: var(--text-muted);
+}
+
+.bo-withdrawal-facts dd {
+  margin: 0;
+}
+
+.bo-withdrawal-facts dd p {
+  margin: 2px 0 0;
+  font-size: 12px;
+}
+
+.bo-withdrawal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-table);
+  font-variant-numeric: tabular-nums;
+}
+
+.bo-withdrawal-table th,
+.bo-withdrawal-table td {
+  text-align: left;
+  padding: 4px 8px 4px 0;
+  border-bottom: 1px solid var(--surface-2);
+}
+
+.bo-withdrawal-history,
+.bo-withdrawal-deposits,
+.bo-withdrawal-actions ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.bo-withdrawal-actions li p {
+  margin: 2px 0 0;
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .bo-withdrawal-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

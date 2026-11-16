@@ -22,6 +22,7 @@ import { Status } from "../../components/status.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 import { word } from "../word.ts";
+import { actionStateOf } from "../withdrawals/read.ts";
 import { actedOn, investigationOf, keyOf, merged, placeAfter, readKindPage, readWorklist, stateOf, stillOpen, type Item, type KindAnswer, type Request } from "./read.ts";
 import "./worklist.css";
 
@@ -121,6 +122,8 @@ function WithdrawalItem({ item, onActed }: { item: Item; onActed(): void }) {
   const open = stillOpen(r, item.kind);
   const acted = open ? undefined : actedOn(r);
   const state = stateOf(r);
+  // the state the actions are offered in: an approved request whose payment needs review is `needs_review`
+  const acting = actionStateOf(r);
   const id = { requestId: item.id };
   return (
     <>
@@ -140,13 +143,13 @@ function WithdrawalItem({ item, onActed }: { item: Item; onActed(): void }) {
           <div className="bo-actions">
             {item.kind === "withdrawals_pending" ? (
               <>
-                <Action action={Actions["withdrawal.approve"]} me={me} bags={bags} state={state} run={run(() => payouts.postWithdrawalRequestsApprove(id))} onDone={done} />
-                <Action action={Actions["withdrawal.reject"]} me={me} bags={bags} state={state} run={(reason) => run(() => payouts.postWithdrawalRequestsReject(id, { body: { reason } }))()} onDone={done} />
+                <Action action={Actions["withdrawal.approve"]} me={me} bags={bags} state={acting} run={run(() => payouts.postWithdrawalRequestsApprove(id))} onDone={done} />
+                <Action action={Actions["withdrawal.reject"]} me={me} bags={bags} state={acting} run={(reason) => run(() => payouts.postWithdrawalRequestsReject(id, { body: { reason } }))()} onDone={done} />
               </>
             ) : (
               <>
-                <Action action={Actions["withdrawal.confirmPayout"]} me={me} bags={bags} state={state} run={(note) => run(() => payouts.postWithdrawalRequestsConfirmPayout(id, { body: note ? { note } : {} }))()} onDone={done} />
-                <Action action={Actions["withdrawal.markPayoutFailed"]} me={me} bags={bags} state={state} run={(reason) => run(() => payouts.postWithdrawalRequestsMarkPayoutFailed(id, { body: { reason } }))()} onDone={done} />
+                <Action action={Actions["withdrawal.confirmPayout"]} me={me} bags={bags} state={acting} run={(note) => run(() => payouts.postWithdrawalRequestsConfirmPayout(id, { body: note ? { note } : {} }))()} onDone={done} />
+                <Action action={Actions["withdrawal.markPayoutFailed"]} me={me} bags={bags} state={acting} run={(reason) => run(() => payouts.postWithdrawalRequestsMarkPayoutFailed(id, { body: { reason } }))()} onDone={done} />
               </>
             )}
           </div>
