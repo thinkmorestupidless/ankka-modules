@@ -57,6 +57,7 @@ answers a test asks for by name.
 | `fraudCases({cases})` | players' fraud cases kept from here on: listed by status, reviewed, dismissed; a dismissal clears the suspected duplicate flag on the profile of every player the case links, as players does |
 | `fraudFlags({flags})` | the affiliate programme's fraud flags kept from here on: listed by brand, dismissed with a reason (required), recording the caller's subject and the time, as the programme does |
 | `wallets({wallets})` | the wallet's balances kept from here on: the balance read, an adjustment under its key (a repeat answers its first outcome, another body under it `KEY_REUSED`), a debit past the balance refused, the transactions read; `refuse` on a wallet answers its every adjustment with that refusal |
+| `online({playerId, emailPrefix?, brand?})`, `agentStreams(brand?)` | engagement's agent stream: a ticket issued to a bearer, the stream opened once with it, a player brought online written to that brand's open streams as `player_online` and listed by `presence`; the operators whose streams are open |
 
 A path in a script is an exact path or a template. The newest script that fits wins; `times` bounds it.
 

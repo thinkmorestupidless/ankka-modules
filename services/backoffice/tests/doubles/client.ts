@@ -6,6 +6,7 @@ import type { Seed } from "./server.ts";
 import type { FraudSeed } from "./fraud.ts";
 import type { WalletSeed } from "./wallet.ts";
 import type { FlagSeed } from "./programme.ts";
+import type { ComingOnline } from "./presence.ts";
 
 export interface Claims {
   sub?: string;
@@ -117,6 +118,16 @@ export class DoublesClient {
   /** The affiliate programme's fraud flags kept by the double from here on: listed by brand, dismissed with a reason. */
   fraudFlags(seed: FlagSeed): Promise<unknown> {
     return this.ask("PUT", "/fraud-flags", seed);
+  }
+
+  /** A player comes online at engagement: `player_online` on every open agent stream of their brand; answers how many. */
+  async online(p: ComingOnline): Promise<number> {
+    return (await this.ask<{ streams: number }>("POST", "/online", p)).streams;
+  }
+
+  /** The operators whose agent streams engagement holds open now, one entry a stream. */
+  async agentStreams(brand?: string): Promise<string[]> {
+    return (await this.ask<{ operators: string[] }>("GET", `/agent-streams${brand ? `?brand=${encodeURIComponent(brand)}` : ""}`)).operators;
   }
 
   tokenLife(ms: number): Promise<unknown> {
