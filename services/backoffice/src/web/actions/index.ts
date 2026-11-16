@@ -179,6 +179,18 @@ export const Actions = {
   "role.reset": { label: "action.role.reset.label", effect: "action.role.reset.effect", permission: "roles.change", reason: "none", offeredIn: ["default"] },
   "role.delete": { label: "action.role.delete.label", effect: "action.role.delete.effect", permission: "roles.change", reason: "none", offeredIn: ["own"] },
   "role.give": { label: "action.role.give.label", effect: "action.role.give.effect", permission: "roles.give", reason: "none" },
+
+  // US9: the brand's configuration (players, wallet, payouts, reporting: each records the operator and no reason)
+  "config.brandSite": { label: "action.config.brandSite.label", effect: "action.config.brandSite.effect", permission: "config.brand", reason: "none" },
+  "config.countries": { label: "action.config.countries.label", effect: "action.config.countries.effect", permission: "config.brand", reason: "none" },
+  "config.currencies": { label: "action.config.currencies.label", effect: "action.config.currencies.effect", permission: "config.brand", reason: "none" },
+  "config.zone": { label: "action.config.zone.label", effect: "action.config.zone.effect", permission: "config.brand", reason: "none" },
+  "config.turnover": { label: "action.config.turnover.label", effect: "action.config.turnover.effect", permission: "config.brand", reason: "none" },
+  "config.withdrawalLimits": { label: "action.config.withdrawalLimits.label", effect: "action.config.withdrawalLimits.effect", permission: "config.brand", reason: "none" },
+  "config.rewardSettings": { label: "action.config.rewardSettings.label", effect: "action.config.rewardSettings.effect", permission: "config.brand", reason: "none" },
+  "config.reportingSettings": { label: "action.config.reportingSettings.label", effect: "action.config.reportingSettings.effect", permission: "config.brand", reason: "none" },
+  // a module is asked of the vendor with a note, kept with the request (players' moduleRequest)
+  "module.request": { label: "action.module.request.label", effect: "action.module.request.effect", permission: "modules.request", reason: "none" },
 } as const satisfies Record<string, ActionDescription>;
 
 export type ActionId = keyof typeof Actions;
