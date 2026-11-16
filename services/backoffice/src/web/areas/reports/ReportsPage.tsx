@@ -99,21 +99,34 @@ function Field({ label, children }: { label: string; children: (id: string) => R
 }
 
 /** The period, and a report's own filters, kept in the URL; applied when the operator says. */
-function Filters({ search, fields, onApply }: { search: Search; fields: { key: string; label: string; type?: string; options?: { value: string; label: string }[] }[]; onApply: (s: Search) => void }) {
+function Filters({
+  search,
+  fields,
+  onApply,
+  shown,
+}: {
+  search: Search;
+  fields: { key: string; label: string; type?: string; options?: { value: string; label: string }[] }[];
+  onApply: (s: Search) => void;
+  /** The period the report answered for, shown in the fields the operator left empty (DR-09). */
+  shown?: { from?: string; to?: string };
+}) {
   const [draft, setDraft] = useState<Search>(search);
+  const answered: Search = { from: shown?.from?.slice(0, 10), to: shown?.to?.slice(0, 10) };
+  const valueOf = (key: string) => draft[key] ?? (key === "from" || key === "to" ? answered[key] : undefined) ?? "";
   return (
     <form
       className="bo-report-filters"
       onSubmit={(e) => {
         e.preventDefault();
-        onApply(draft);
+        onApply({ ...draft, from: draft.from ?? answered.from, to: draft.to ?? answered.to });
       }}
     >
       {fields.map((f) => (
         <Field key={f.key} label={f.label}>
           {(id) =>
             f.options ? (
-              <select id={id} className="bo-input" value={draft[f.key] ?? ""} onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value || undefined })}>
+              <select id={id} className="bo-input" value={valueOf(f.key)} onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value || undefined })}>
                 {f.options.map((o) => (
                   <option key={o.value} value={o.value}>
                     {o.label}
@@ -121,12 +134,12 @@ function Filters({ search, fields, onApply }: { search: Search; fields: { key: s
                 ))}
               </select>
             ) : (
-              <input id={id} className="bo-input" type={f.type ?? "text"} value={draft[f.key] ?? ""} onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value || undefined })} />
+              <input id={id} className="bo-input" type={f.type ?? "text"} value={valueOf(f.key)} onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value || undefined })} />
             )
           }
         </Field>
       ))}
-      <button type="submit" className="bo-button">
+      <button type="submit" className="bo-button" data-variant="primary">
         {t("reports.run")}
       </button>
     </form>
@@ -256,7 +269,7 @@ function Revenue({ search, set }: ReportProps) {
   const q = useReporting<Ggr>("/reports/ggr", { ...period(search), currency: search.currency });
   return (
     <>
-      <Filters search={search} fields={periodFields()} onApply={set} />
+      <Filters search={search} fields={periodFields()} onApply={set} shown={q.data} />
       <ExportFor kind="revenue" params={{ ...period(search), currency: search.currency }} />
       <Answered q={q} onFrom={(from) => set({ ...search, from })}>
         {(g) => (
@@ -297,7 +310,7 @@ function Players({ search, set, zone }: ReportProps) {
   const q = useReporting<PlayersReport>("/reports/players", { ...period(search), currency: search.currency, country: search.country, status: search.status });
   return (
     <>
-      <Filters search={search} fields={[...periodFields(), { key: "country", label: t("reports.countryCode") }, { key: "status", label: t("reports.status") }]} onApply={set} />
+      <Filters search={search} fields={[...periodFields(), { key: "country", label: t("reports.countryCode") }, { key: "status", label: t("reports.status") }]} onApply={set} shown={q.data} />
       <ExportFor kind="players" params={{ ...period(search), currency: search.currency, country: search.country, status: search.status }} />
       <Answered q={q} onFrom={(from) => set({ ...search, from })}>
         {(p) => (
@@ -326,7 +339,7 @@ function Transactions({ search, set, zone }: ReportProps) {
   const q = useReporting<Ledger>("/reports/transactions", { ...period(search), type: search.type, playerEmail: search.playerEmail, page, pageSize: "100" });
   return (
     <>
-      <Filters search={search} fields={[...periodFields(), { key: "type", label: t("reports.type") }, { key: "playerEmail", label: t("reports.email") }]} onApply={(s) => set({ ...s, page: undefined })} />
+      <Filters search={search} fields={[...periodFields(), { key: "type", label: t("reports.type") }, { key: "playerEmail", label: t("reports.email") }]} onApply={(s) => set({ ...s, page: undefined })} shown={q.data} />
       <ExportFor kind="transactions" params={{ ...period(search), type: search.type, playerEmail: search.playerEmail }} />
       <Answered q={q} onFrom={(from) => set({ ...search, from, page: undefined })}>
         {(l) => (
@@ -361,7 +374,7 @@ function Rewards({ search, set }: ReportProps) {
   const q = useReporting<Bonus>("/reports/bonus", { ...period(search), currency: search.currency, offerId: search.offerId });
   return (
     <>
-      <Filters search={search} fields={[...periodFields(), { key: "offerId", label: t("reports.offer") }]} onApply={set} />
+      <Filters search={search} fields={[...periodFields(), { key: "offerId", label: t("reports.offer") }]} onApply={set} shown={q.data} />
       <ExportFor kind="rewards" params={{ ...period(search), currency: search.currency, offerId: search.offerId }} />
       <Answered q={q} onFrom={(from) => set({ ...search, from })}>
         {(b) => (
@@ -398,7 +411,7 @@ function Providers({ search, set }: ReportProps) {
   const q = useReporting<Psp>("/reports/psp", { ...period(search), currency: search.currency });
   return (
     <>
-      <Filters search={search} fields={periodFields()} onApply={set} />
+      <Filters search={search} fields={periodFields()} onApply={set} shown={q.data} />
       <ExportFor kind="providers" params={{ ...period(search), currency: search.currency }} />
       <Answered q={q} onFrom={(from) => set({ ...search, from })}>
         {(p) => (
