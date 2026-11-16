@@ -157,31 +157,31 @@ function StandingView({ player, s }: { player: string; s: Standing }) {
       </Card>
       <Card id="balances" heading="players.standing.balances" part={p.balances}>
         {(rows) => (
-          <dl className="bo-standing-fields">
+          <div className="bo-standing-currencies">
             {rows.map((b) => (
-              <div key={b.currency} data-currency={b.currency}>
+              <dl key={b.currency} className="bo-standing-fields" data-currency={b.currency}>
                 <Field name="players.balance.real">{b.real !== undefined ? <Money value={{ minor: b.real, currency: b.currency }} /> : null}</Field>
                 <div data-restricted>
                   <dt>{t("players.balance.restricted")}</dt>
                   <dd>{b.restricted !== null ? <Money value={{ minor: b.restricted, currency: b.currency }} /> : t("players.standing.unavailable", { reason: word("players.reason", b.restrictedReason ?? "unavailable") })}</dd>
                 </div>
                 {b.reserved !== undefined && b.reserved !== "0" ? <Field name="players.balance.reserved"><Money value={{ minor: b.reserved, currency: b.currency }} /></Field> : null}
-              </div>
+              </dl>
             ))}
-          </dl>
+          </div>
         )}
       </Card>
       <Card id="lifetime" heading="players.standing.lifetime" part={p.lifetime}>
         {(rows) => (
-          <dl className="bo-standing-fields">
+          <div className="bo-standing-currencies">
             {rows.map((l) => (
-              <div key={l.currency} data-currency={l.currency}>
+              <dl key={l.currency} className="bo-standing-fields" data-currency={l.currency}>
                 <Field name="players.lifetime.deposited">{l.deposited !== undefined ? <Money value={{ minor: l.deposited, currency: l.currency }} /> : null}</Field>
                 <Field name="players.lifetime.wagered">{l.wagered !== undefined ? <Money value={{ minor: l.wagered, currency: l.currency }} /> : null}</Field>
                 <Field name="players.lifetime.won">{l.won !== undefined ? <Money value={{ minor: l.won, currency: l.currency }} /> : null}</Field>
-              </div>
+              </dl>
             ))}
-          </dl>
+          </div>
         )}
       </Card>
       <Card id="notes" heading="players.standing.notes" part={p.notes}>

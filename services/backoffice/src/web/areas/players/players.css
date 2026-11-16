@@ -45,6 +45,12 @@
   margin: 0;
 }
 
+/* one definition list a currency (a balance's or a lifetime's figures), one under another */
+.bo-standing-currencies {
+  display: grid;
+  gap: 8px;
+}
+
 .bo-standing-fields dt {
   color: var(--text-muted);
   font-size: 11px;
