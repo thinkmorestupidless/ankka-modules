@@ -290,7 +290,7 @@ class OperatorSuite extends munit.FunSuite with LogCapturing:
     assertEquals(players.get("rebuilding").asBoolean, false)
     val names = kit.request("GET", path, None, kit.asService("backoffice")).json.get("views")
     assertEquals((0 until names.size).map(names.get(_).get("name").asText).toVector,
-      Vector("players", "sessions", "activity", "notes", "messages", "fraud-cases", "roles"))
+      Vector("players", "sessions", "activity", "notes", "messages", "fraud-cases", "roles", "rounds"))
     assertEquals(kit.request("GET", path, None, kit.asOperator(roles = "brand_other")).status, 403)
     assertEquals(kit.request("GET", path, None, kit.asPlayer(id)).status, 403)
   }

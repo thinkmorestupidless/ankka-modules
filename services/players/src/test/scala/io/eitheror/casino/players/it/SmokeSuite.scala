@@ -27,7 +27,7 @@ class SmokeSuite extends munit.FunSuite with LogCapturing:
       "realm-reconcile").foreach(id => assert(ids.contains(id), s"$id is not registered"))
   }
 
-  test("each prefix answers its audience: 401 with no token, 501 for a shell, a filled route reached, never 404") {
+  test("each prefix answers its audience: 401 with no token, a filled route reached, no route left a shell") {
     def status(method: String, path: String, headers: Seq[(String, String)]) =
       kit.request(method, path, if method == "GET" then None else Some("{}"), headers).status
     assertEquals(status("GET", kit.playerPath("/p-1"), kit.asVisitor), 401)
@@ -42,7 +42,8 @@ class SmokeSuite extends munit.FunSuite with LogCapturing:
     assertEquals(status("GET", kit.servicePath("/p-1/status"), kit.asService("game-provider")), 404)
     assertEquals(status("GET", kit.servicePath("/p-1/status"), kit.asService("wallet")), 403)
     assertEquals(status("POST", kit.servicePath("/p-1/suspend"), kit.asService("kyc")), 404)
-    assertEquals(status("GET", kit.operatorPath("/players/p-1/sessions/s-1/bets"), kit.asOperator()), 501)
+    // spec 030 P6: a session's bets are answered now; no such session is 404
+    assertEquals(status("GET", kit.operatorPath("/players/p-1/sessions/s-1/bets"), kit.asOperator()), 404)
     assertEquals(status("POST", kit.realmPath("/webhook"), kit.asVisitor), 401)
   }
 
