@@ -8,7 +8,7 @@ Paths are after each service's operator prefix; `{b}` is the brand. *(new)* mark
 | Kind | Permission needed | Source | Order, count |
 |---|---|---|---|
 | Withdrawal requests pending review | `withdrawal.review` | payouts `withdrawal-requests?status=PENDING_REVIEW&sort=oldest` *(sort new)* | oldest first, `total` |
-| Withdrawal payments needing review | `withdrawal.review` | payouts `withdrawal-requests?payoutStatus=NEEDS_REVIEW&sort=oldest` | oldest first, `total` |
+| Withdrawal payments needing review | `withdrawal.review` | payouts `withdrawal-requests?status=ALL&payoutStatus=NEEDS_REVIEW&sort=oldest` | oldest first, `total` |
 | Identity documents awaiting review | `identity.review` | kyc `queue?filter=awaiting` | oldest first, `counts`, paged *(new)* |
 | Players flagged for review | `identity.review` | kyc `queue?filter=flagged` | oldest first |
 | Open cases | `protection.change` | responsible-gambling `cases?status=open` *(new)* | oldest first, `total` |
