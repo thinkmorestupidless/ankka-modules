@@ -93,6 +93,33 @@ describe("SC-007: every amount equals its record's minor units", () => {
     });
   }
 
+  it("an adjustment batch sent again makes nothing twice (FR-028)", async () => {
+    // one credit to a rewarded player in each currency; the batch is named by its content, so every run of
+    // this suite sends the same batch, and only the first run ever makes it
+    const rows = SeedCurrencies.map((c) => seeded(seed).inCurrency(c, seeded(seed).rewards)[0]!).map((p) => ({
+      player: p.playerId!,
+      currency: p.currency,
+      walletType: "real",
+      direction: "credit",
+      amountMinor: 1,
+    }));
+    const batch = { reason: `FR-028 check of seed ${seed.run}`, category: "compensation", rows };
+    const send = async () => {
+      const a = await admin.call<string>("POST", "/api/adjustment-batches", batch);
+      expect(a.status).toBe(200);
+      const lines = String(a.body).trim().split("\n").map((l) => JSON.parse(l) as { done?: true; made?: number; alreadyMade?: number; refused?: number });
+      return lines.find((l) => l.done)!;
+    };
+    const balance = (p: (typeof rows)[number]) => admin.read<{ realBalance: string }>(`/api/s/wallet/wallets/${p.player}/${p.currency}/balance`).then((b) => minorOfMajor(b.realBalance, p.currency));
+    const first = await send();
+    expect(first.refused).toBe(0);
+    expect((first.made ?? 0) + (first.alreadyMade ?? 0)).toBe(rows.length);
+    const before = await Promise.all(rows.map(balance));
+    const again = await send();
+    expect(again).toMatchObject({ made: 0, refused: 0, alreadyMade: rows.length });
+    expect(await Promise.all(rows.map(balance))).toEqual(before);
+  });
+
   it("the withdrawals queue shows every row's amount in its currency's decimals", async () => {
     const page = browser.page;
     await page.goto(`${inst.backoffice}/withdrawals`);
