@@ -243,12 +243,24 @@ class EntityRulesSuite extends munit.FunSuite with LogCapturing:
     assertEquals(first.eventOfType[AdminAdjusted].cause, cause)
     kit.call(WalletEntity.adjust)(Adjust("a-2", "real", -200, "fix", "correction", "op-9", t0)): Unit
     val repeat = kit.call(WalletEntity.adjust)(Adjust("a-1", "real", 500, "provider win not paid", "correction", "op-9", t0, cause))
-    assertEquals(repeat.replyValue, first.replyValue)
+    // The repeat is the first outcome, marked as a repeat; the first is not marked.
+    assertEquals(first.replyValue.repeated, None)
+    assertEquals(repeat.replyValue, first.replyValue.copy(repeated = Some(true)))
     assertEquals(repeat.events, Vector.empty)
     assertEquals(kit.currentState.realBalance, 1300L)
     // The same key with another cause is another command: refused, not answered.
     val reused = kit.call(WalletEntity.adjust)(Adjust("a-1", "real", 500, "provider win not paid", "correction", "op-9", t0, Some(Cause("incident", "inc-1"))))
     assertEquals(reused.replyValue.code, Some(Refusals.KeyReused))
+  }
+
+  test("W2: an adjustment's repeat is marked repeated, a refused one's too; another command's repeat is not") {
+    val kit = EventSourcedTestKit.of(WalletEntity, "repeat/EUR")
+    kit.call(WalletEntity.deposit)(deposit("d-1", 100, t0))
+    val refused = kit.call(WalletEntity.adjust)(Adjust("a-1", "real", -500, "too much", "correction", "op", t0)).replyValue
+    assertEquals(refused.code, Some(io.eitheror.casino.wallet.funding.Codes.DebitExceedsBalance))
+    val again = kit.call(WalletEntity.adjust)(Adjust("a-1", "real", -500, "too much", "correction", "op", t0)).replyValue
+    assertEquals((again.code, again.repeated), (Some(io.eitheror.casino.wallet.funding.Codes.DebitExceedsBalance), Some(true)))
+    assertEquals(kit.call(WalletEntity.deposit)(deposit("d-1", 100, t0)).replyValue.repeated, None)
   }
 
   test("W2: an adjustment without a cause keeps the digest it had before W2, so its repeat is still a repeat") {

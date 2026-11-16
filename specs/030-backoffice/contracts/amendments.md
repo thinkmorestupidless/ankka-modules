@@ -45,7 +45,7 @@ Three kinds recur and are named by letter:
 | # | Change |
 |---|---|
 | W1 | M (adjustments, turnover override, configuration) |
-| W2 | adjustment body gains optional `cause {kind: round | provider_transaction | payment | incident, ref}`; `amountMinor` accepted beside `amount`; the answer gains `before` and `after`; the transaction row gains `cause` and `actor` |
+| W2 | adjustment body gains optional `cause {kind: round | provider_transaction | payment | incident, ref}`; `amountMinor` accepted beside `amount`; the answer gains `before` and `after`; the transaction row gains `cause` and `actor`. The answer gains `repeated`: true when the key replays the outcome it first recorded (nothing moves), false when the adjustment is made now (Trevor, research *Corrections, 2026-11-16*) |
 | W3 | `wallet-config/rewards` PUT: `contributionRateByGameType`, `bonusWageringCounts`, `partialSplitsAllowed`, `maxConcurrentAwards` (`config.brand`) |
 | W4 | F on transactions |
 

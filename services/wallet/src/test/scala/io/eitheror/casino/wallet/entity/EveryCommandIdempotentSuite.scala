@@ -110,7 +110,10 @@ class EveryCommandIdempotentSuite extends munit.FunSuite with LogCapturing:
       val kit    = c.start(s"idem-${c.name}/EUR")
       val first  = c.send(kit, c.first)
       val before = kit.allEvents.size
-      assertEquals(c.send(kit, c.first), first)
+      // The repeat is the first outcome; the adjustment's alone is marked as a repeat (spec 030 W2).
+      val repeat = c.send(kit, c.first)
+      assertEquals(repeat.copy(repeated = None), first)
+      assertEquals(repeat.repeated, Option.when(c.name == "Adjust")(true))
       assertEquals(kit.allEvents.size, before, "a repeat persisted an event")
       val state = kit.currentState
       val reused = c.sendChanged.getOrElse(c.send)(kit, c.changed)

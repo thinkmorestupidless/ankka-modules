@@ -43,11 +43,13 @@ final case class OperatorAdjustRequest(key: Option[String], walletType: String =
 /**
  * The adjustment's answer: the balance read as before (major units), and, from the adjustment's own
  * outcome (so a repeat under its key answers the first), the transaction, the signed amount and the
- * adjusted balance before and after in minor units, and the cause (spec 030 W2, FR-027).
+ * adjusted balance before and after in minor units, and the cause (spec 030 W2, FR-027); `repeated`
+ * is true when the key replayed that first outcome and false when the adjustment was made now.
  */
 final case class MajorAdjustment(realBalance: String, bonusBalance: String, currency: String, primary: Option[MajorPrimary],
     depositPoolBalance: String, convertedPoolBalance: String, reserved: String, available: String,
-    txnId: Option[String], walletType: String, amountMinor: Long, before: Long, after: Long, cause: Option[Cause])
+    txnId: Option[String], walletType: String, amountMinor: Long, before: Long, after: Long, cause: Option[Cause],
+    repeated: Boolean)
 
 private[api] object Major:
   /** reserved and available are written at "0.00" too: the read reports both (spec 022). */
@@ -87,7 +89,7 @@ private[api] object Major:
     val before = o.balanceBefore.getOrElse(if target == "restricted" then o.restrictedBalance else o.realBalance)
     MajorAdjustment(m.realBalance, m.bonusBalance, m.currency, m.primary, m.depositPoolBalance, m.convertedPoolBalance, m.reserved,
       m.available, o.transactionId, if target == "restricted" then "bonus" else "real", o.amount.getOrElse(0L), before,
-      o.balanceAfter.getOrElse(before), o.cause)
+      o.balanceAfter.getOrElse(before), o.cause, o.repeated.contains(true))
 
   /** The amount an adjustment names: `amount`, `amountMinor`, or both when they agree (spec 030 W2). */
   def adjustAmount(r: OperatorAdjustRequest, currency: Currency): Either[(String, Map[String, String]), Long] =
