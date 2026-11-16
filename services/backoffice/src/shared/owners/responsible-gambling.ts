@@ -36,6 +36,11 @@ export function getCases(options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/responsible-gambling/cases`, options);
 }
 
+/** GET /status: protection.read */
+export function getStatus(options: Options = {}): Promise<Response> {
+  return call("GET", `/api/s/responsible-gambling/status`, options);
+}
+
 /** GET /{player}: protection.read */
 export function getByPlayer(params: { player: string }, options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/responsible-gambling/${encodeURIComponent(params.player)}`, options);
@@ -89,9 +94,4 @@ export function postCasesNotes(params: { player: string; caseId: string }, optio
 /** POST /{player}/cases/{caseId}/close: protection.change */
 export function postCasesClose(params: { player: string; caseId: string }, options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/responsible-gambling/${encodeURIComponent(params.player)}/cases/${encodeURIComponent(params.caseId)}/close`, options);
-}
-
-/** GET /status: protection.read */
-export function getStatus(options: Options = {}): Promise<Response> {
-  return call("GET", `/api/s/responsible-gambling/status`, options);
 }

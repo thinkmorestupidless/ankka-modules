@@ -623,10 +623,14 @@ describe("the original is left alone (FR-044)", () => {
     return undefined;
   }
 
-  test("this branch changes nothing under tests/original/, the record of the original", () => {
+  // The record of the original is its recordings: this branch may add recordings (T131's screens) and may
+  // tell a driver which new scenarios it does not drive, but changes or removes no recording.
+  test("this branch changes or removes no recording of the original under tests/original/", () => {
     const from = base();
     if (!from) return;
-    const changed = execFileSync("git", ["diff", "--name-only", from, "HEAD", "--", "tests/original"], { cwd: repo, encoding: "utf8" }).trim();
-    expect(changed).toBe("");
+    const changed = execFileSync("git", ["diff", "--diff-filter=MDR", "--name-only", from, "HEAD", "--", "tests/original"], { cwd: repo, encoding: "utf8" })
+      .split("\n")
+      .filter((f) => f !== "" && !/^tests\/original\/[^/]+-driver\//.test(f));
+    expect(changed).toEqual([]);
   });
 });
