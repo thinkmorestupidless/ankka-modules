@@ -192,6 +192,7 @@ final class ServiceEndpoint(
         a <- r.amount.signed.map(_.value).left.map(Wire.invalidAmount)
       yield wallet(player, currency).call(WalletEntity.adjust)
         .invoke(Adjust(k, if r.walletType == "bonus" || r.walletType == "restricted" then "restricted" else "real", a, r.reason, r.category, r.actor, clock()))
+        .copy(repeated = None) // spec 030 W2's mark is the operator route's only
     }
   }
 

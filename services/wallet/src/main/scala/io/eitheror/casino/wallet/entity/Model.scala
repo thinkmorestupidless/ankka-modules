@@ -167,7 +167,12 @@ final case class Outcome(
     counterpartyRealBalance: Option[Long] = None,
     accountBalance: Option[Long] = None,
     /** Spec 030 W2: an adjustment's cause, so a repeat under its key answers it as the first did. */
-    cause: Option[Cause] = None
+    cause: Option[Cause] = None,
+    /**
+     * Spec 030 W2: set on the reply only, never stored: `Some(true)` when an adjustment's key replays
+     * the outcome it first recorded, so the operator's route can say the adjustment was already made.
+     */
+    repeated: Option[Boolean] = None
 ):
   def accepted: Boolean = code.isEmpty
 

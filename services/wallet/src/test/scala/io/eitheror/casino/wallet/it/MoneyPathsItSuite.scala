@@ -79,12 +79,14 @@ class MoneyPathsItSuite extends Harness:
     val (status, first) = sendWithToken("POST", adjust, TestTokens.operator("op-42"), Some(body))
     assertEquals((status, field(first, "realBalance"), field(first, "amountMinor"), field(first, "before"), field(first, "after"), field(first, "walletType")),
       (200, Some("15.00"), Some("500"), Some("1000"), Some("1500"), Some("real")))
+    assertEquals(field(first, "repeated"), Some("false"))
     assert(first.contains(""""cause":{"kind":"round","ref":"r-9"}"""), first)
     sendWithToken("POST", adjust, TestTokens.operator("op-42"),
       Some("""{"key":"a-2","amount":"-1.00","reason":"fix","category":"correction"}""")): Unit
     val (_, repeat) = sendWithToken("POST", adjust, TestTokens.operator("op-42"), Some(body))
     assertEquals((field(repeat, "txnId"), field(repeat, "before"), field(repeat, "after"), field(repeat, "realBalance")),
       (field(first, "txnId"), Some("1000"), Some("1500"), Some("14.00")))
+    assertEquals(field(repeat, "repeated"), Some("true"))
     // amount and amountMinor must agree; a cause names a known kind
     assertEquals(sendWithToken("POST", adjust, TestTokens.operator("op-42"),
       Some("""{"key":"a-3","amount":"5.00","amountMinor":400,"reason":"x","category":"correction"}"""))._1, 400)

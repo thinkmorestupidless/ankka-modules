@@ -165,13 +165,15 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
    * synthetic key so the original key's outcome is untouched; a new key is decided by `decide`.
    */
   /** `unset`: fields added to a command later, left out of the digest while they hold their default. */
-  private def keyed(command: MoneyCommand, wireName: String, unset: Set[(String, String)] = Set.empty)(
+  private def keyed(command: MoneyCommand, wireName: String, unset: Set[(String, String)] = Set.empty, marksRepeat: Boolean = false)(
       decide: String => Effect[Outcome]): Effect[Outcome] =
-    keyedWithDigest(command, wireName, MoneyCommand.digestOf(wireName, command, unset))(decide)
+    keyedWithDigest(command, wireName, MoneyCommand.digestOf(wireName, command, unset), marksRepeat)(decide)
 
-  private def keyedWithDigest(command: MoneyCommand, wireName: String, digest: String)(decide: String => Effect[Outcome]): Effect[Outcome] =
+  /** `marksRepeat`: a repeat's reply says so (`repeated`), for the operator's adjustment (spec 030 W2). */
+  private def keyedWithDigest(command: MoneyCommand, wireName: String, digest: String, marksRepeat: Boolean = false)(
+      decide: String => Effect[Outcome]): Effect[Outcome] =
     currentState.seen.check(Key.unsafe(command.key), digest) match
-      case Some(Answer.Repeated(first)) => effects.reply(first)
+      case Some(Answer.Repeated(first)) => effects.reply(if marksRepeat then first.copy(repeated = Some(true)) else first)
       case Some(Answer.Reused(first)) =>
         val outcome = refusal(Refusals.KeyReused, Refusals.keyReused(command.key, first.outcome), Map("key" -> command.key), wireName, amountOf(command))
         effects.persist(CommandRefused(s"${command.key}#reused#$digest", digest, wireName, Refusals.KeyReused,
@@ -628,7 +630,7 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
 
   // ── adjustments (FR-026) ──────────────────────────────────────────────────
 
-  def adjust(c: Adjust): Effect[Outcome] = keyed(c, "adjust", unset = Set("cause" -> "None")) { digest =>
+  def adjust(c: Adjust): Effect[Outcome] = keyed(c, "adjust", unset = Set("cause" -> "None"), marksRepeat = true) { digest =>
     val s = currentState
     if c.reason.trim.isEmpty then refuse(c, "adjust", digest, Refusals.ReasonRequired, Refusals.reasonRequired)
     else if c.amount == 0 then
