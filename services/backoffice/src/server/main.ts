@@ -18,6 +18,7 @@ import { freshness, named } from "./composite/freshness.ts";
 import { knownKind, PageSize as WorklistPageSize, readKind, wanted, worklist } from "./composite/worklist.ts";
 import { kindsFor } from "../shared/worklist.ts";
 import { kept, start as startJob, states as jobStates } from "./composite/jobs.ts";
+import { batchStream, readBatch } from "./composite/batch.ts";
 import { brandReads, inBrand, permissionsOf, PlatformAdmin, type BrandReads } from "./roles.ts";
 
 export interface Deps {
@@ -242,6 +243,28 @@ export function createApp(deps: Deps): Hono<Env> {
     }
     const started = await startJob({ ...deps, timeoutMs: deps.timeoutMs }, subject, token.accessToken, body);
     return started.ok ? c.json({ job: started.job, kept: started.kept }) : started.response;
+  });
+
+  // An adjustment batch (research R15, FR-028): one wallet adjustment per row under its own key, each row's
+  // outcome streamed as a line of JSON, then the counts. The wallet admits each adjustment; the batch is
+  // not started for an operator whose roles do not give `adjustment.make`.
+  app.post("/api/adjustment-batches", async (c) => {
+    c.set("logPath", "/api/adjustment-batches");
+    const token = c.get("token");
+    if (!inBrand(token.roles, deps.brand)) return c.json({ error: "brand_not_in_roles", brand: deps.brand }, 403);
+    const held = new Set(permissionsOf(token.roles, (await reads.bags.get()) ?? {}));
+    if (!held.has("adjustment.make")) return c.json({ error: "forbidden", message: "forbidden: the adjustment.make permission is needed" }, 403);
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "invalid_batch", message: "the body is not a JSON object" }, 400);
+    }
+    const read = readBatch(body);
+    if ("error" in read) return c.json({ error: "invalid_batch", message: read.error, ...(read.row ? { row: read.row } : {}) }, 400);
+    return new Response(batchStream({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 10_000) }, read.batch, token.accessToken), {
+      headers: { "Content-Type": "application/x-ndjson", "Cache-Control": "no-store" },
+    });
   });
 
   eventRoutes(app, { brand: deps.brand, tokens, reads, everyMs: deps.eventsEveryMs ?? 5_000, jobs: jobsOf });
