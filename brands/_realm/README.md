@@ -34,12 +34,16 @@ lacks the realm, and never overwrites one that exists. Confidential clients (par
 are added by the specs that need them.
 
 The four brand roles `brand_support`, `brand_finance`, `brand_compliance` and `brand_admin` are the
-role matrix's default roles (spec 030 contracts/roles.md). In the realm they are names only: what each
-lets an operator do is the brand's, kept by its `players` service and changed in its backoffice, so
-one operator of two brands holds the same role names in both and each brand decides what they carry.
+role matrix's default roles (spec 030 contracts/roles.md); the modules tool adds any of them a realm
+imported earlier lacks. In the realm they are names only: what each lets an operator do is the
+brand's, kept by its `players` service and changed in its backoffice, so one operator of two brands
+holds the same role names in both and each brand decides what they carry. A role a brand creates is
+made in the realm by `merchant` when the brand first gives it.
 
 Each brand's backoffice signs its operators in through a confidential client of its own,
-`backoffice-<slug>` (standard flow with PKCE, the audience `eitheror-casino`, the redirect to the
-brand's backoffice address). It is not in this file: the modules tool makes it with the brand and
-writes its secret into the brand's secrets, as it makes `brand_<slug>` (spec 030 amendment D3).
+`backoffice-<slug>` (standard flow with PKCE, the audience `eitheror-casino`, redirected only to
+`<backoffice address>/auth/callback`). It is not in this file: the modules tool makes it with the
+brand, as it makes `brand_<slug>` (spec 030 amendment D3), with the secret the brand's
+`<slug>-backoffice` secret holds; when there is none, Keycloak mints one and the brand's
+`backoffice-client-secret` must be set to it.
 
