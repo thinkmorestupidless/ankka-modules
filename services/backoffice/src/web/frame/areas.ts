@@ -36,7 +36,8 @@ export const Areas: readonly Area[] = [
   { id: "configuration", path: "/configuration", label: "area.configuration", icon: "cog", module: "core", permissions: ["config.brand", "config.games", "config.crm", "config.agent", "config.attribution", "modules.read"] },
   // the shared payments (US9): a brand's deposits by `wallet.read`, the rest by a payments role (`payments.*`, shared/access.ts)
   { id: "payments", path: "/payments", label: "area.payments", icon: "card", module: "core", permissions: ["wallet.read", "payments.read"], views: ["wallet"] },
-  { id: "team", path: "/team", label: "area.team", icon: "team", module: "core", permissions: ["roles.read"] },
+  // the brand's roles, and the payments' operators to a payments role (T114)
+  { id: "team", path: "/team", label: "area.team", icon: "team", module: "core", permissions: ["roles.read", "payments.read"] },
   // the affiliate programme (US10): its managers by realm role, `programme.manage` (shared/access.ts); a shared project, no module of the brand's
   { id: "affiliates", path: "/affiliates", label: "area.affiliates", icon: "link", module: "core", permissions: ["programme.manage"] },
 ];

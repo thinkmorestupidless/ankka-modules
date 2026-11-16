@@ -15,12 +15,13 @@ export function lacking(giver: Pick<Me, "permissions">, role: Role): string | un
   return role.permissions.find((p) => !holds(giver, p));
 }
 
-export function AssignPage() {
+/** `operator`: the operator to start with, as the operators list opens this screen for one (T114). */
+export function AssignPage({ operator: initial = "" }: { operator?: string } = {}) {
   const me = useOperator();
   const readOnly = useReadOnlyMode();
   const roles = useRoles();
   const operatorId = useId();
-  const [operator, setOperator] = useState("");
+  const [operator, setOperator] = useState(initial);
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const [given, setGiven] = useState<{ operator: string; roles: string[] } | undefined>(undefined);
   if (!roles.data) return <p role="status">{t("roles.loading")}</p>;

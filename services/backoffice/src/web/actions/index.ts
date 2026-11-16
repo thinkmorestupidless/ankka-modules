@@ -319,6 +319,17 @@ export const Actions = {
   "payments.outcome.redrive": { label: "action.payments.outcome.redrive.label", effect: "action.payments.outcome.redrive.effect", permission: "payments.operate", reason: "none" },
   "payments.lost.seen": { label: "action.payments.lost.seen.label", effect: "action.payments.lost.seen.effect", permission: "payments.operate", reason: "none", offeredIn: ["unseen"] },
   "payments.deposit.retryCredit": { label: "action.payments.deposit.retryCredit.label", effect: "action.payments.deposit.retryCredit.effect", permission: "payments.operate", reason: "none" },
+  // the payments' operators (OperatorsEndpoint): a role only below the inviter's, at their level or narrower;
+  // the invitation resent while the operator has not accepted it
+  "operator.invite": { label: "action.operator.invite.label", effect: "action.operator.invite.effect", permission: "payments.operate", reason: "none" },
+  "operator.resend": { label: "action.operator.resend.label", effect: "action.operator.resend.effect", permission: "payments.operate", reason: "none", offeredIn: ["pending"] },
+  "operator.reset": { label: "action.operator.reset.label", effect: "action.operator.reset.effect", permission: "payments.operate", reason: "none", offeredIn: ["accepted"] },
+  "operator.rescope": { label: "action.operator.rescope.label", effect: "action.operator.rescope.effect", permission: "payments.operate", reason: "none" },
+  "operator.revoke": { label: "action.operator.revoke.label", effect: "action.operator.revoke.effect", permission: "payments.operate", reason: "none" },
+
+  // players: a player's manager tags and VIP tier (spec 030 P7; OperatorStatusRoutes: no reason recorded)
+  "player.tags": { label: "action.player.tags.label", effect: "action.player.tags.effect", permission: "tier.change", reason: "none" },
+  "player.tier": { label: "action.player.tier.label", effect: "action.player.tier.effect", permission: "tier.change", reason: "none" },
 } as const satisfies Record<string, ActionDescription>;
 
 export type ActionId = keyof typeof Actions;
