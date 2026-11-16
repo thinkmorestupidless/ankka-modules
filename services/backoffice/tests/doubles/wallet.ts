@@ -4,9 +4,6 @@
 // debit past the balance is refused, not reduced; a reason is required;
 // the transactions read lists each adjustment with its reason, category, cause and actor. The wallet's
 // own suites hold its rules in full; this keeps what the backoffice's scenarios read back.
-//
-// `refuse` names a player whose every adjustment the double refuses with that code and message, for a
-// refusal the scenario needs from the owner (the wallet decides; the backoffice only shows it).
 import type { Answer } from "./owner.ts";
 
 export interface SeededWallet {
@@ -15,7 +12,6 @@ export interface SeededWallet {
   /** Minor units. */
   real: number;
   restricted?: number;
-  refuse?: { status: number; error: string; message: string };
 }
 
 export interface WalletSeed {
@@ -88,7 +84,6 @@ export class Wallets {
       return { status: 409, body: { error: "KEY_REUSED", message: `Key ${r.key} was used by an adjust` } };
     }
     const keep = (answer: Answer) => (w.keys.set(r.key!, { asked, answer }), answer);
-    if (w.refuse) return keep({ status: w.refuse.status, body: { error: w.refuse.error, message: w.refuse.message } });
     if (!r.reason || r.reason.trim() === "") return keep({ status: 400, body: { error: "REASON_REQUIRED", message: "A reason must be supplied for a manual balance adjustment" } });
     const amount = Number(r.amountMinor ?? 0);
     const before = target === "real" ? w.real : w.restricted;

@@ -15,7 +15,7 @@ Feature: Correcting a player's money
     And the balance is still "3.00 EUR"
 
   Scenario: an adjustment to many players lists each as made, refused or already made, and a repeat makes none twice
-    Given an incident affecting five players, one of them closed
+    Given an incident affecting five players, one of them debited more than their real balance
     When a finance operator makes an adjustment batch for the five with one reason and cause
     Then four are listed as made and one as refused with its reason
     When the operator repeats the adjustment batch
