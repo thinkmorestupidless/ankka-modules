@@ -6,7 +6,7 @@ import type { ReactElement } from "react";
 type Page = () => ReactElement;
 import type { MessageKey } from "../../shared/messages/index.ts";
 import { Shell } from "./Frame.tsx";
-import { ModulesPage, NotFound, Placeholder } from "./pages.tsx";
+import { NotFound, Placeholder } from "./pages.tsx";
 import { PreferencesPage } from "../areas/preferences/PreferencesPage.tsx";
 import { TeamPage } from "../areas/team/TeamPage.tsx";
 import { Home } from "./home.tsx";
@@ -24,6 +24,7 @@ import { ProtectionCasesPage } from "../areas/protection/cases.tsx";
 import { FraudCasesPage } from "../areas/fraud/cases.tsx";
 import { IdentityPolicyPage } from "../areas/configuration/identity-policy.tsx";
 import { ProtectionSettingsPage } from "../areas/configuration/protection-settings.tsx";
+import { BrandSitePage, ConfigurationIndexPage, CountriesPage, CurrenciesPage, ModulesRoute, ReportingSettingsPage, RewardSettingsPage, WithdrawalSettingsPage } from "../areas/configuration/brand.tsx";
 
 const page = (label: MessageKey): Page => () => <Placeholder label={label} />;
 
@@ -50,8 +51,14 @@ export const Pages: [string, Page][] = [
   ["/dashboard", () => <DashboardPage />],
   ["/reports", () => <ReportPage />],
   ["/reports/$report", () => <ReportPage />],
-  ["/configuration", page("area.configuration")],
-  ["/configuration/modules", ModulesPage],
+  ["/configuration", () => <ConfigurationIndexPage />],
+  ["/configuration/modules", () => <ModulesRoute />],
+  ["/configuration/brand", () => <BrandSitePage />],
+  ["/configuration/countries", () => <CountriesPage />],
+  ["/configuration/currencies", () => <CurrenciesPage />],
+  ["/configuration/withdrawals", () => <WithdrawalSettingsPage />],
+  ["/configuration/rewards", () => <RewardSettingsPage />],
+  ["/configuration/reporting", () => <ReportingSettingsPage />],
   ["/configuration/identity-policy", () => <IdentityPolicyPage />],
   ["/configuration/protection-settings", () => <ProtectionSettingsPage />],
   ["/configuration/$area", page("area.configuration")],
