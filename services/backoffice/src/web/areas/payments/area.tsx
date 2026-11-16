@@ -10,9 +10,13 @@ import { holds } from "../../../shared/access.ts";
 import { t, type MessageKey } from "../../../shared/messages/index.ts";
 import { useOperator } from "../../frame/context.ts";
 import { DepositBoundsSection } from "./deposit-bounds.tsx";
+import { DepositsSection } from "./deposits.tsx";
 import { HierarchySection } from "./hierarchy.tsx";
+import { LostAnswersSection } from "./lost-answers.tsx";
 import { MerchantSection } from "./merchant.tsx";
+import { OutcomesSection } from "./outcomes.tsx";
 import { ProvidersSection } from "./providers.tsx";
+import { RoutingSection } from "./routing.tsx";
 import { LevelPicker, ScopeBanner } from "./hierarchy.tsx";
 import { TerminalsSection } from "./terminals.tsx";
 
@@ -25,17 +29,21 @@ interface Section {
 }
 
 export const Sections: readonly Section[] = [
+  { id: "deposits", label: "payments.section.deposits", permissions: ["payments.read", "wallet.read"], show: () => <DepositsSection /> },
   { id: "hierarchy", label: "payments.section.hierarchy", permissions: ["payments.read"], show: () => <HierarchySection /> },
   { id: "merchant", label: "payments.section.merchant", permissions: ["payments.read"], show: () => <MerchantSection /> },
   { id: "providers", label: "payments.section.providers", permissions: ["payments.read"], show: () => <ProvidersSection /> },
   { id: "terminals", label: "payments.section.terminals", permissions: ["payments.read"], show: () => <TerminalsSection /> },
   { id: "deposit-bounds", label: "payments.section.depositBounds", permissions: ["payments.read"], show: () => <DepositBoundsSection /> },
+  { id: "routing", label: "payments.section.routing", permissions: ["payments.read"], show: () => <RoutingSection /> },
+  { id: "outcomes", label: "payments.section.outcomes", permissions: ["payments.read"], show: () => <OutcomesSection /> },
+  { id: "lost-answers", label: "payments.section.lostAnswers", permissions: ["payments.read"], show: () => <LostAnswersSection /> },
 ];
 
 export function PaymentsArea() {
   const me = useOperator();
   const params = useParams({ strict: false }) as { area?: string };
-  const id = params.area ?? "hierarchy";
+  const id = params.area ?? "deposits";
   const open = Sections.filter((s) => s.permissions.some((p) => holds(me, p)));
   const section = open.find((s) => s.id === id);
   const payments = holds(me, "payments.read");
