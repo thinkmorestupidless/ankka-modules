@@ -615,3 +615,40 @@ The backoffice followed kyc's signed link only under `BACKOFFICE_DOCUMENT_STORE`
 set it, so every document would have answered 503. Decision (Trevor): kyc streams the document itself
 to the operator who may review it, and the backoffice follows no address at all. This is a new kyc
 amendment (K5 in contracts/amendments.md). The document route passes kyc's bytes through unchanged.
+
+### Withdrawals, 2026-11-16 (T078–T082)
+
+- `balancesAtRequest` (the real balance available, a Long) and `restrictedAtRequest` (the rewards'
+  balance, a Long) come from the hold preview the request's checks read just before the hold. The
+  hold's own answer does not give the restricted balance from before it.
+- payouts answers `transitions[] {status, at, by, operatorId?, reason?}`, derived from the existing
+  events so older journals have them too. "Every state with who moved it" needs a time and an actor
+  for awaiting-manual and needs-review, which decisions and outcomes alone cannot give.
+- The queue's `playerSearch` takes several exact ids separated by commas (at most 200), so a name or
+  an email resolved through players' search (at most 100 ids) keeps the page and the total right.
+  When players is unavailable, the queue answers 503, never "nobody".
+- Confirm and mark-failed are offered in `awaiting_manual_payout` and `needs_review`, where payouts
+  accepts them (`WithdrawalWorkflow.manual`), and no longer while a payment is in flight.
+- The amounts shown: requested always; then held while open, paid when completed, or returned when
+  rejected, cancelled or failed. Voided shows whenever it is more than zero, and it always means a
+  reward's cash-out cap.
+- The queue opens on pending review, newest first, as the original does.
+
+### Corrections, 2026-11-16 (T083–T087)
+
+- No owner holds a brand's list of adjustment reasons, and the original took free text only. The
+  backoffice's catalogue gives the categories (compensation, goodwill, error_correction,
+  provider_failure, chargeback, fraud_recovery, other), sent as the wallet's `category` beside the
+  free-text `reason`.
+- A batch's id is the SHA-256 of its reason, category, cause and rows, so the same form run again is
+  the same batch. The reason is typed on the form, not in the confirmation dialog.
+- A single adjustment keeps its key while the wallet's answer is unknown, so a retry cannot make it
+  twice. The key is replaced after any answer the wallet gives.
+- Decision (Trevor): the batch scenario's closed player is reworded. As in the original, an operator
+  may adjust a closed player's balance, so the refused row becomes a refusal the wallet really makes.
+- Decision (Trevor): the wallet's adjustment answer carries `repeated: true` when it replays a stored
+  outcome, an extension of W2. The batch reads it for "already made" in place of reading the balance
+  first.
+- The wallet's major-unit text is minor units divided by 100 for every currency (`Wire.major`), so
+  JPY 500 reads "5.00" and KWD's three decimals are lost in the text. The page reads the minor fields,
+  and the text by the same rule. This is the wallet's own wire, not this spec's: a gap to raise.

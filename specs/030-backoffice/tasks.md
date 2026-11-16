@@ -196,11 +196,11 @@ the moderated test for SC-002.
 **Goal**: FR-014, FR-026. **Independent test**: one request through each path; each state, amount
 and actor shown; only that state's actions offered.
 
-- [ ] T078 [US4] Bind `features/backoffice/withdrawals.feature` (4 scenarios) in `t/features/steps/withdrawals.steps.ts`, failing first
-- [ ] T079 [P] [US4] `svc/payouts/` Y3: `operatorId` on a confirmed or failed outcome; `balancesAtRequest` and `restrictedAtRequest` recorded when a request is made (a new field on the request's first event, absent on older ones), with tests
-- [ ] T080 [P] [US4] `svc/payouts/` Y4: paging on `players/{p}/withdrawal-history`, with tests; in `s/composite/`, resolve a name or an email typed in the queue's search to player ids through players' search before asking payouts (Y2)
-- [ ] T081 [US4] Implement `w/areas/withdrawals/queue.tsx` (by state, the two counts, filters) and `w/areas/players/withdrawals.tsx` (every request in every state)
-- [ ] T082 [US4] Implement `w/areas/withdrawals/request.tsx`: requested, held, paid and voided apart and why; balances then and now; identity status and recent deposits; destination; every state with who moved it; the payment's attempts; and exactly the state's actions, each stating its effect (SC-003)
+- [X] T078 [US4] Bind `features/backoffice/withdrawals.feature` (4 scenarios) in `t/features/steps/withdrawals.steps.ts`, failing first
+- [X] T079 [P] [US4] `svc/payouts/` Y3: `operatorId` on a confirmed or failed outcome; `balancesAtRequest` and `restrictedAtRequest` recorded when a request is made (a new field on the request's first event, absent on older ones), with tests
+- [X] T080 [P] [US4] `svc/payouts/` Y4: paging on `players/{p}/withdrawal-history`, with tests; in `s/composite/`, resolve a name or an email typed in the queue's search to player ids through players' search before asking payouts (Y2)
+- [X] T081 [US4] Implement `w/areas/withdrawals/queue.tsx` (by state, the two counts, filters) and `w/areas/players/withdrawals.tsx` (every request in every state)
+- [X] T082 [US4] Implement `w/areas/withdrawals/request.tsx`: requested, held, paid and voided apart and why; balances then and now; identity status and recent deposits; destination; every state with who moved it; the payment's attempts; and exactly the state's actions, each stating its effect (SC-003)
 
 ---
 
@@ -209,11 +209,11 @@ and actor shown; only that state's actions offered.
 **Goal**: FR-027, FR-028. **Independent test**: adjust one player with a cause; adjust five, one
 refused; repeat and nothing is made twice.
 
-- [ ] T083 [US5] Bind `features/backoffice/corrections.feature` (3 scenarios) in `t/features/steps/corrections.steps.ts`, failing first
+- [X] T083 [US5] Bind `features/backoffice/corrections.feature` (3 scenarios) in `t/features/steps/corrections.steps.ts`, failing first
 - [X] T084 [US5] `svc/wallet/` W2: `cause`, `amountMinor`, `before` and `after` in the answer, `cause` and `actor` on the transaction row and the fact, with tests (a repeat under the same key answers the first outcome)
-- [ ] T085 [US5] Implement `s/composite/batch.ts` (the batch id, the key `batch/<id>/<n>`, eight at a time, at most 500 rows, each row's outcome streamed) with `t/unit/batch.test.ts` (a repeat makes none twice; a player twice is two rows)
-- [ ] T086 [US5] Implement `w/areas/corrections/adjust.tsx` (credit or debit, real or a restricted funds record, the brand's reasons with free text, the cause picker, before and after, the refusal of an over-large debit) and `w/areas/corrections/accounts.tsx` (non-player accounts)
-- [ ] T087 [US5] Implement `w/areas/corrections/batch.tsx` (paste or upload rows, validate, run, each row made, refused with its reason, or already made)
+- [X] T085 [US5] Implement `s/composite/batch.ts` (the batch id, the key `batch/<id>/<n>`, eight at a time, at most 500 rows, each row's outcome streamed) with `t/unit/batch.test.ts` (a repeat makes none twice; a player twice is two rows)
+- [X] T086 [US5] Implement `w/areas/corrections/adjust.tsx` (credit or debit, real or a restricted funds record, the brand's reasons with free text, the cause picker, before and after, the refusal of an over-large debit) and `w/areas/corrections/accounts.tsx` (non-player accounts)
+- [X] T087 [US5] Implement `w/areas/corrections/batch.tsx` (paste or upload rows, validate, run, each row made, refused with its reason, or already made)
 
 **Checkpoint**: phase 2 of FR-045. Run the moderated test for SC-003.
 
