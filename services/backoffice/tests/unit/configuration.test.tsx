@@ -67,7 +67,8 @@ describe("the withdrawal settings", () => {
     expect(document.getElementById(multiplier.getAttribute("aria-describedby")!)!.textContent).toContain(t("config.form.differsFromDefault", { value: "1" }));
     const weekly = await screen.findByLabelText(`${t("config.withdrawals.weekly")} (EUR)`);
     expect((weekly as HTMLInputElement).value).toBe("5000.00");
-    expect(weekly.closest("[data-field]")!.querySelector('[data-differs="default"]')).not.toBeNull();
+    // no limit is the default: a limit set is not marked as differing from none (DR-11)
+    expect(weekly.closest("[data-field]")!.querySelector('[data-differs="default"]')).toBeNull();
     const brl = screen.getByLabelText(`${t("config.withdrawals.weekly")} (BRL)`);
     expect(brl.closest("[data-field]")!.querySelector("[data-differs]")).toBeNull();
   });

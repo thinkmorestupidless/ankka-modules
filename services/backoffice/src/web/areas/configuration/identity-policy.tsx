@@ -105,12 +105,13 @@ function Editor({ policy, done }: { policy: Policy; done(): void }) {
           </option>
         ))}
       </select>
+      <span className="bo-field-hint">{t(`${label}.hint`)}</span>
       {mark(field)}
     </div>
   );
 
   return (
-    <div>
+    <div className="bo-config-form">
       <p data-profile={policy.licenceProfile}>
         {t("config.identity.profile", { profile: word("config.profile", policy.licenceProfile) })}{" "}
         <span className="bo-status" data-default={policy.isDefault}>{policy.isDefault ? t("config.isDefault") : t("config.differsFromDefault")}</span>
@@ -120,21 +121,25 @@ function Editor({ policy, done }: { policy: Policy; done(): void }) {
       <div className="bo-field">
         <label htmlFor={ids.currency}>{t("config.identity.currency")}</label>
         <input id={ids.currency} value={d.kycCurrency} maxLength={3} disabled={!editable} onChange={(e) => set({ kycCurrency: e.target.value })} />
+        <span className="bo-field-hint">{t("config.identity.currency.hint")}</span>
         {mark("kycCurrency")}
       </div>
       <div className="bo-field">
         <label htmlFor={ids.dt}>{t("config.identity.depositThreshold")}</label>
         <input id={ids.dt} inputMode="decimal" value={d.depositThreshold} disabled={!editable} onChange={(e) => set({ depositThreshold: e.target.value })} />
+        <span className="bo-field-hint">{t("config.identity.depositThreshold.hint")}</span>
         {mark("depositThresholdMinorUnits")}
       </div>
       <div className="bo-field">
         <label htmlFor={ids.sof}>{t("config.identity.sofThreshold")}</label>
         <input id={ids.sof} inputMode="decimal" value={d.sofThreshold} disabled={!editable} onChange={(e) => set({ sofThreshold: e.target.value })} />
+        <span className="bo-field-hint">{t("config.identity.sofThreshold.hint")}</span>
         {mark("sofThresholdMinorUnits")}
       </div>
       <div className="bo-field">
         <label htmlFor={ids.window}>{t("config.identity.windowDays")}</label>
         <input id={ids.window} inputMode="numeric" value={d.kycWindowDays} disabled={!editable} onChange={(e) => set({ kycWindowDays: e.target.value })} />
+        <span className="bo-field-hint">{t("config.identity.windowDays.hint")}</span>
         {mark("kycWindowDays")}
       </div>
       <fieldset className="bo-permissions">
@@ -152,11 +157,13 @@ function Editor({ policy, done }: { policy: Policy; done(): void }) {
           </label>
         ))}
         {mark("requiredDocTypes")}
+        <p className="bo-field-hint">{t("config.identity.required.hint")}</p>
       </fieldset>
       <label>
         <input id={ids.suspend} type="checkbox" disabled={!editable} checked={d.autoSuspendOnWindowExpiry} onChange={(e) => set({ autoSuspendOnWindowExpiry: e.target.checked })} />{" "}
         <span>{t("config.identity.suspendOnExpiry")}</span> {mark("autoSuspendOnWindowExpiry")}
       </label>
+      <p className="bo-field-hint">{t("config.identity.suspendOnExpiry.hint")}</p>
       {change === undefined ? <p className="bo-field-error">{t("config.identity.unreadable")}</p> : null}
       {readOnly ? null : (
         <div className="bo-actions">
@@ -167,6 +174,7 @@ function Editor({ policy, done }: { policy: Policy; done(): void }) {
             ready={change !== undefined && changed.length > 0}
             subject={<p>{changed.length === 0 ? t("config.nothingChanged") : t("config.changes", { fields: changed.join(", ") })}</p>}
             run={() => kyc.putPolicy({ body: change })}
+            primary
             onDone={done}
           />
           <Action

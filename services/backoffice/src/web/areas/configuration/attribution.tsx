@@ -63,11 +63,11 @@ const WindowFields: ConfigField[] = [
 ];
 
 const NetworkFields: ConfigField[] = [
-  { name: "keyDocument", label: "config.attribution.keyDocument", kind: "text" },
-  { name: "revocationList", label: "config.attribution.revocationList", kind: "text" },
-  { name: "legacyTagDocument", label: "config.attribution.legacyTagDocument", kind: "text", optional: true },
-  { name: "codeDocument", label: "config.attribution.codeDocument", kind: "text", optional: true },
-  { name: "roundStream", label: "config.attribution.roundStream", kind: "boolean", default: false },
+  { name: "keyDocument", label: "config.attribution.keyDocument", kind: "text", hint: "config.attribution.keyDocument.hint" },
+  { name: "revocationList", label: "config.attribution.revocationList", kind: "text", hint: "config.attribution.revocationList.hint" },
+  { name: "legacyTagDocument", label: "config.attribution.legacyTagDocument", kind: "text", optional: true, hint: "config.attribution.legacyTagDocument.hint" },
+  { name: "codeDocument", label: "config.attribution.codeDocument", kind: "text", optional: true, hint: "config.attribution.codeDocument.hint" },
+  { name: "roundStream", label: "config.attribution.roundStream", kind: "boolean", default: false, hint: "config.attribution.roundStream.hint" },
   { name: "machine", label: "config.attribution.machine", kind: "text", optional: true, hint: "config.attribution.machine.hint" },
 ];
 
@@ -123,7 +123,7 @@ function NetworkSection({ n, done }: { n: Network; done(): void }) {
         ))}
       </ul>
       <p>{n.pseudonymKeyMade ? t("config.attribution.pseudonymMade") : t("config.attribution.pseudonymNotMade")}</p>
-      {n.removed ? null : <ConfigForm key={keyOf(values)} fields={NetworkFields} values={values} action={Actions["attribution.changeNetwork"]} save={(change) => attribution.putNetworksById({ id: n.id }, { body: networkBody(change) })} onDone={done} />}
+      {n.removed ? null : <ConfigForm primary={false} key={keyOf(values)} fields={NetworkFields} values={values} action={Actions["attribution.changeNetwork"]} save={(change) => attribution.putNetworksById({ id: n.id }, { body: networkBody(change) })} onDone={done} />}
       {readOnly ? null : (
         <div className="bo-actions">
           <Action action={Actions["attribution.pseudonymKey"]} me={me} bags={bags} state={n.pseudonymKeyMade || n.removed ? "made" : "none"} run={() => attribution.postNetworksPseudonymKey({ id: n.id })} onDone={done} />
