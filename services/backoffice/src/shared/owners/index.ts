@@ -14,3 +14,4 @@ export * as merchant from "./merchant.ts";
 export * as pspGateway from "./psp-gateway.ts";
 export * as ingest from "./ingest.ts";
 export * as reporting from "./reporting.ts";
+export * as affiliateProgramme from "./affiliate-programme.ts";

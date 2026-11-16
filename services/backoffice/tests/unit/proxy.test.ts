@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { Brand, harness, SecretToken, whole, write } from "./support.ts";
+import { table } from "../../src/server/routes.ts";
 
 describe("calling the owner", () => {
   test("a brand's own service is called at the calling address, with the brand put in and the query kept", async () => {
@@ -12,6 +13,20 @@ describe("calling the owner", () => {
     const h = harness();
     await h.ask("GET", "/api/s/merchant/deposits?page=2", { session: "s-1" });
     expect(h.calls[0]!.url).toBe(`http://services.local/merchant.payments/v1/merchants/${Brand}/deposits?page=2`);
+  });
+
+  test("the affiliate programme is called where the brand's values put it, for this brand only (FR-037)", async () => {
+    const h = harness({ table, sharedProjects: { programme: "affiliates-eu" } });
+    await h.ask("GET", "/api/s/affiliate-programme/accounts?page=2", { session: "s-1" });
+    await h.ask("GET", "/api/s/affiliate-programme/accounts/a-1/portal/dashboard?period=2026-10", { session: "s-1" });
+    expect(h.calls.map((c) => c.url)).toEqual([
+      `http://services.local/affiliate-programme.affiliates-eu/v1/affiliates/${Brand}/accounts?page=2`,
+      `http://services.local/affiliate-programme.affiliates-eu/v1/affiliates/${Brand}/accounts/a-1/portal/dashboard?period=2026-10`,
+    ]);
+    for (const row of table.filter((r) => r.service === "affiliate-programme")) {
+      expect(row.where, row.path).toBe("programme");
+      expect(row.upstream.startsWith("/v1/affiliates/{brand}/"), row.path).toBe(true);
+    }
   });
 
   test("with the operator's token, and never the browser's cookie", async () => {

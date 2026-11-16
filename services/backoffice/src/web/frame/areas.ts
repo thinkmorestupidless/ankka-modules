@@ -36,7 +36,8 @@ export const Areas: readonly Area[] = [
   { id: "configuration", path: "/configuration", label: "area.configuration", icon: "cog", module: "core", permissions: ["config.brand", "config.games", "config.crm", "config.agent", "config.attribution", "modules.read"] },
   { id: "payments", path: "/payments", label: "area.payments", icon: "card", module: "core", permissions: ["wallet.read"], views: ["wallet"] },
   { id: "team", path: "/team", label: "area.team", icon: "team", module: "core", permissions: ["roles.read"] },
-  { id: "affiliates", path: "/affiliates", label: "area.affiliates", icon: "link", module: "core", permissions: ["config.attribution", "fact.redeliver"] },
+  // the affiliate programme (US10): its managers by realm role, `programme.manage` (shared/access.ts); a shared project, no module of the brand's
+  { id: "affiliates", path: "/affiliates", label: "area.affiliates", icon: "link", module: "core", permissions: ["programme.manage"] },
 ];
 
 /** The areas this operator sees in this brand, in the rail's order. */
