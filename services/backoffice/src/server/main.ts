@@ -277,7 +277,16 @@ export function createApp(deps: Deps): Hono<Env> {
     });
   });
 
-  eventRoutes(app, { brand: deps.brand, tokens, reads, everyMs: deps.eventsEveryMs ?? 5_000, jobs: jobsOf });
+  // engagement's agent stream, relayed for an operator whose preferences ask for online notices (FR-036).
+  const online = {
+    ...deps,
+    timeoutMs: Math.min(deps.timeoutMs, 10_000),
+    asked: async (accessToken: string) => {
+      const subject = claimsOf(accessToken).sub;
+      return subject ? (await deps.state.preferences(subject)).onlineNotices === true : false;
+    },
+  };
+  eventRoutes(app, { brand: deps.brand, tokens, reads, everyMs: deps.eventsEveryMs ?? 5_000, jobs: jobsOf, online });
 
   // The brand's roles as players holds them now, so the page can name a role that would give a permission.
   app.get("/api/permissions", async (c) => {

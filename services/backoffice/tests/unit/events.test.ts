@@ -2,7 +2,9 @@
 import { describe, expect, test } from "vitest";
 import { Kept, type Bags } from "../../src/server/roles.ts";
 import { OperatorBags } from "./bags.ts";
-import { Brand, harness } from "./support.ts";
+import { Brand, harness, rows, type Call } from "./support.ts";
+import type { Row } from "../../src/server/routes.ts";
+import { relayOnline } from "../../src/server/events.ts";
 
 /** A harness whose roles are read at every comparison, and whose token is never held (it expires within the margin). */
 function live() {
@@ -125,5 +127,175 @@ describe("the page's listener", () => {
     src.emit("signed_out");
     expect(src.closed).toBe(true);
     expect(went[0]).toMatch(/^\/auth\/sign-in\?return=/);
+  });
+});
+
+// T121: for an operator who asked, engagement's agent stream relayed as `player_online`.
+describe("online notices", () => {
+  const P = "/v1/casino/backoffice/{brand}";
+  const Engagement: Row[] = [
+    { method: "GET", service: "engagement", path: "/presence", upstream: `${P}/presence`, where: "brand", permission: "presence.read" },
+    { method: "POST", service: "engagement", path: "/agent-stream/ticket", upstream: `${P}/agent-stream/ticket`, where: "brand", permission: "presence.read" },
+  ];
+  const Token = `h.${Buffer.from(JSON.stringify({ sub: "op-ana" })).toString("base64url")}.s`;
+  const frame = (data: Record<string, unknown>) => `event: player_online\ndata: ${JSON.stringify(data)}\n\n`;
+  const ana = { player_id: "p-ana", player_email_prefix: "ana.souza", session_id: "s1", occurred_at: "2026-11-16T10:00:00Z" };
+
+  /** engagement's agent stream: each opening a stream the test writes to and can end; `cancelled` counts the streams the relay closed. */
+  function engagement() {
+    const streams: ReadableStreamDefaultController<Uint8Array>[] = [];
+    let cancelled = 0;
+    let presence = 0;
+    const encoder = new TextEncoder();
+    const answer = (call: Call): Response => {
+      const path = new URL(call.url).pathname;
+      if (call.method === "POST" && path === `/engagement/v1/casino/backoffice/${Brand}/agent-stream/ticket`) return Response.json({ ticket: `tk-${streams.length}`, expires_in: 30 });
+      if (call.method === "GET" && path === `/engagement/v1/casino/backoffice/${Brand}/agent-stream`)
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            start: (c) => void streams.push(c),
+            cancel: () => void cancelled++,
+          }),
+          { headers: { "Content-Type": "text/event-stream" } },
+        );
+      if (call.method === "GET" && path === `/engagement/v1/casino/backoffice/${Brand}/presence`) {
+        presence++;
+        return Response.json({ online: [{ playerId: "p-ana", since: "2026-11-16T10:00:00Z" }], count: 1 });
+      }
+      return Response.json({ error: "no_such_route" }, { status: 404 });
+    };
+    return {
+      answer,
+      streams,
+      write: (i: number, text: string) => streams[i]!.enqueue(encoder.encode(text)),
+      cancelled: () => cancelled,
+      presence: () => presence,
+    };
+  }
+
+  function asking(asked: boolean) {
+    const e = engagement();
+    const h = harness({ eventsEveryMs: 20, table: [...rows, ...Engagement] });
+    h.state.sessions.set("s-on", { accessToken: Token, expiresAt: Date.now() + 10_000, roles: [`brand_${Brand}`, "brand_support"] });
+    h.state.prefs = { ...h.state.prefs, onlineNotices: asked };
+    h.answer(e.answer);
+    return { ...h, e };
+  }
+
+  const tickets = (calls: Call[]) => calls.filter((c) => c.method === "POST" && c.url.endsWith("/agent-stream/ticket"));
+
+  test("takes no ticket for an operator who did not ask", async () => {
+    const h = asking(false);
+    await until(await h.ask("GET", "/api/events", { session: "s-on" }), "player_online", 150);
+    expect(tickets(h.calls)).toHaveLength(0);
+  });
+
+  test("for an operator who asked, takes the ticket with their token, opens the stream with it, and relays player_online", async () => {
+    const h = asking(true);
+    const r = await h.ask("GET", "/api/events", { session: "s-on" });
+    await expect.poll(() => h.e.streams.length).toBe(1);
+    h.e.write(0, ": ping\n\nevent: ping\ndata: {}\n\n" + frame(ana));
+    const seen = await until(r, "player_online");
+    expect(seen).toContain("event: player_online");
+    expect(seen).toContain(JSON.stringify({ playerId: "p-ana", emailPrefix: "ana.souza", sessionId: "s1", occurredAt: "2026-11-16T10:00:00Z" }));
+    const [ticket] = tickets(h.calls);
+    expect(ticket!.headers.get("authorization")).toBe(`Bearer ${Token}`);
+    const opened = h.calls.find((c) => c.method === "GET" && new URL(c.url).pathname.endsWith("/agent-stream"))!;
+    expect(new URL(opened.url).searchParams.get("ticket")).toBe("tk-0");
+    expect(opened.headers.get("authorization")).toBeNull();
+  });
+
+  test("closes engagement's stream when the operator's stream ends", async () => {
+    const h = asking(true);
+    const r = await h.ask("GET", "/api/events", { session: "s-on" });
+    await expect.poll(() => h.e.streams.length).toBe(1);
+    await r.body!.cancel();
+    await expect.poll(() => h.e.cancelled()).toBe(1);
+    await new Promise((res) => setTimeout(res, 100));
+    expect(tickets(h.calls)).toHaveLength(1);
+  });
+
+  test("closes engagement's stream when the operator is no longer of the brand", async () => {
+    const h = asking(true);
+    const r = await h.ask("GET", "/api/events", { session: "s-on" });
+    const read = until(r, "nothing", 1_500); // the page reads its stream all the while
+    await expect.poll(() => h.e.streams.length).toBe(1);
+    h.state.sessions.set("s-on", { accessToken: Token, expiresAt: Date.now() + 10_000, roles: ["brand_support"] });
+    await expect.poll(() => h.e.cancelled()).toBe(1);
+    expect(await read).not.toContain("event: player_online");
+  });
+
+  describe("the relay", () => {
+    function relayed(over: Partial<Parameters<typeof relayOnline>[0]> = {}) {
+      const e = engagement();
+      const calls: Call[] = [];
+      const sent: { event: string; data: string }[] = [];
+      const stop = new AbortController();
+      const fetchFn: typeof fetch = async (input, init) => {
+        const req = new Request(input, init);
+        const call = { url: req.url, method: req.method, headers: req.headers, body: "" };
+        calls.push(call);
+        return e.answer(call);
+      };
+      const done = relayOnline(
+        { brand: Brand, servicesUrl: "http://services.local", sharedProjects: {}, table: Engagement, fetch: fetchFn, timeoutMs: 1_000, backoff: { firstMs: 10, mostMs: 40 }, ...over },
+        () => Token,
+        async (event, data) => void sent.push({ event, data }),
+        stop.signal,
+      );
+      return { e, calls, sent, stop, done };
+    }
+
+    test("drops another brand's player and anything that is not a player coming online", async () => {
+      const r = relayed();
+      await expect.poll(() => r.e.streams.length).toBe(1);
+      r.e.write(0, frame({ ...ana, brand: "spinvibe", player_id: "p-other" }) + frame({ nothing: true }) + "event: player_online\ndata: not json\n\n" + frame({ ...ana, brand: Brand }));
+      await expect.poll(() => r.sent.length).toBe(1);
+      expect(JSON.parse(r.sent[0]!.data)).toMatchObject({ playerId: "p-ana" });
+      r.stop.abort();
+      await r.done;
+    });
+
+    test("after engagement drops the stream on an overflow, takes a new ticket, opens it again, and re-reads presence", async () => {
+      const r = relayed();
+      await expect.poll(() => r.e.streams.length).toBe(1);
+      expect(r.e.presence()).toBe(0);
+      r.e.streams[0]!.close(); // engagement's overflow: the connection ends with no frame
+      await expect.poll(() => r.e.streams.length).toBe(2);
+      await expect.poll(() => r.sent.find((s) => s.event === "presence")).toBeDefined();
+      expect(JSON.parse(r.sent.find((s) => s.event === "presence")!.data)).toEqual({ online: [{ playerId: "p-ana", since: "2026-11-16T10:00:00Z" }], count: 1 });
+      expect(tickets(r.calls)).toHaveLength(2);
+      r.e.write(1, frame(ana));
+      await expect.poll(() => r.sent.filter((s) => s.event === "player_online").length).toBe(1);
+      r.stop.abort();
+      await r.done;
+      expect(r.e.cancelled()).toBeGreaterThanOrEqual(1);
+    });
+
+    test("waits longer between attempts while engagement refuses the ticket, and stops when the operator goes", async () => {
+      let asked = 0;
+      const r = relayed({
+        fetch: async () => {
+          asked++;
+          return Response.json({ error: "forbidden" }, { status: 403 });
+        },
+      });
+      await new Promise((res) => setTimeout(res, 200));
+      r.stop.abort();
+      await r.done;
+      const then = asked;
+      // the first at once, then one each 40 ms (refused: the longest wait), never one each 10 ms
+      expect(then).toBeGreaterThanOrEqual(2);
+      expect(then).toBeLessThanOrEqual(7);
+      await new Promise((res) => setTimeout(res, 100));
+      expect(asked).toBe(then);
+    });
+
+    test("a stream that says nothing for too long is opened again", async () => {
+      const r = relayed({ idleMs: 30 });
+      await expect.poll(() => r.e.streams.length).toBeGreaterThanOrEqual(2);
+      r.stop.abort();
+      await r.done;
+    });
   });
 });
