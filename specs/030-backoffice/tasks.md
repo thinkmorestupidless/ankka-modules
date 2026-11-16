@@ -173,9 +173,9 @@ exactly its kinds, oldest first; acting on one removes it and keeps the place.
 read the timeline end to end; stop one source and see it named.
 
 - [ ] T065 [US3] Bind `features/backoffice/investigation.feature` (5 scenarios) in `t/features/steps/investigation.steps.ts`, failing first
-- [ ] T066 [P] [US3] `svc/players/` P2: the list as a view query with paging, total, the filters and `facets=true`, binding `features/players/lists.feature`, with a suite at 10,000 rows
-- [ ] T067 [P] [US3] `svc/players/` P3, P4: `from`, `to`, `after`, `total` on `activity`; `GET notes`, with tests
-- [ ] T068 [P] [US3] `svc/players/` P5, P6, P10: a player's sessions with their game sessions and gaps, the brand-wide sessions list, force-close; a session's bets (no more `501`); `bets` filters and `staked`, `won`, `net`, with tests
+- [X] T066 [P] [US3] `svc/players/` P2: the list as a view query with paging, total, the filters and `facets=true`, binding `features/players/lists.feature`, with a suite at 10,000 rows
+- [X] T067 [P] [US3] `svc/players/` P3, P4: `from`, `to`, `after`, `total` on `activity`; `GET notes`, with tests
+- [X] T068 [P] [US3] `svc/players/` P5, P6, P10: a player's sessions with their game sessions and gaps, the brand-wide sessions list, force-close; a session's bets (no more `501`); `bets` filters and `staked`, `won`, `net`, with tests
 - [X] T069 [P] [US3] `svc/game-provider/` GP2: `total` on `rounds`; `rounds/by-round/{roundId}`; `rounds/by-transaction/{txId}`, with tests
 - [X] T070 [P] [US3] `svc/kyc/` K3 and `svc/responsible-gambling/` G3: `{p}/decisions` and the operator's `{p}/history`, with tests
 - [X] T071 [P] [US3] `svc/merchant/` H1, H2: an operator holding `brand_<slug>` reads the sub-brand that names that brand, and no other, on `/v1/payments/cashier`, `/cashier/summary`, `/v1/payments/{id}`; `?reference=`, with tests; amends spec 004
