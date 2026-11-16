@@ -4,6 +4,7 @@ import type { Entry, Recorded, Script } from "./owner.ts";
 import type { Preferences } from "../../src/server/session.ts";
 import type { Seed } from "./server.ts";
 import type { FraudSeed } from "./fraud.ts";
+import type { WalletSeed } from "./wallet.ts";
 
 export interface Claims {
   sub?: string;
@@ -105,6 +106,11 @@ export class DoublesClient {
   /** players' fraud cases kept by the double from here on: listed, reviewed, dismissed, their flags cleared. */
   fraudCases(seed: FraudSeed): Promise<unknown> {
     return this.ask("PUT", "/fraud-cases", seed);
+  }
+
+  /** The wallet's balances kept by the double from here on: read, adjusted under a key, a repeat answered its first outcome. */
+  wallets(seed: WalletSeed): Promise<unknown> {
+    return this.ask("PUT", "/wallets", seed);
   }
 
   tokenLife(ms: number): Promise<unknown> {

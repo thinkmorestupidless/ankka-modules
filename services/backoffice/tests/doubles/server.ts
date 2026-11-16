@@ -11,6 +11,7 @@ import { table } from "../../src/server/routes.ts";
 import { Owner, type Answer, type Asked, type Fixtures, type Script } from "./owner.ts";
 import { BrandRoles } from "./roles.ts";
 import { FraudCases, type FraudSeed } from "./fraud.ts";
+import { Wallets, type WalletSeed } from "./wallet.ts";
 import { Realm } from "./realm.ts";
 import type { Preferences } from "../../src/server/session.ts";
 
@@ -94,10 +95,12 @@ export async function startDoubles(port = 0): Promise<Doubles> {
     owners.set(name, new Owner(name, scripted, name === "backoffice-state" ? (a) => realm.state(a) : undefined));
   const roles = new BrandRoles((operator, given) => realm.setRoles(operator, given));
   const fraud = new FraudCases();
+  const wallets = new Wallets();
   const reset = () => {
     realm.reset();
     roles.reset();
     fraud.reset();
+    wallets.reset();
     for (const [name, o] of owners) o.load(read(path.join(FixturesDir, `${name}.json`)));
   };
   reset();
@@ -142,6 +145,10 @@ export async function startDoubles(port = 0): Promise<Doubles> {
       fraud.seed(given() as unknown as FraudSeed);
       return send(res, { body: { seeded: "fraud-cases" } });
     }
+    if (req.method === "PUT" && what === "wallets") {
+      wallets.seed(given() as unknown as WalletSeed);
+      return send(res, { body: { seeded: "wallets" } });
+    }
     if (req.method === "PUT" && what === "settings") {
       const s = given();
       if (typeof s.tokenLifeMs === "number") realm.tokenLifeMs = s.tokenLifeMs;
@@ -179,6 +186,15 @@ export async function startDoubles(port = 0): Promise<Doubles> {
         }
         const bearer = /^Bearer (\S+)$/.exec(req.headers.authorization ?? "")?.[1];
         const decided = fraud.handle(req.method ?? "GET", path, url.searchParams, body, bearer ? subjectOf(bearer) : undefined);
+        if (decided) {
+          o.calls.push({ owner: o.name, method: req.method ?? "GET", path, query: url.searchParams.toString(), headers: flat(req.headers), body, at: Date.now() });
+          return send(res, bearer ? decided : { status: 401, body: { error: "unauthenticated" } });
+        }
+      }
+      if (first === "wallet") {
+        const path = `/${rest.join("/")}`;
+        const bearer = /^Bearer (\S+)$/.exec(req.headers.authorization ?? "")?.[1];
+        const decided = wallets.handle(req.method ?? "GET", path, body, bearer ? subjectOf(bearer) : undefined);
         if (decided) {
           o.calls.push({ owner: o.name, method: req.method ?? "GET", path, query: url.searchParams.toString(), headers: flat(req.headers), body, at: Date.now() });
           return send(res, bearer ? decided : { status: 401, body: { error: "unauthenticated" } });
