@@ -51,8 +51,9 @@ final class FakeWallet(brand: String) extends FakeServer():
         case Vector(player, _, "holds", "preview") if r.method == "GET" =>
           val amount = r.query.get("amount").flatMap(_.toLongOption).getOrElse(0L)
           previews.get(player).map(_(amount)).getOrElse {
-            if balances.get(player).exists(_ < amount) then Answer.ok(FakeWallet.preview(refusal = Some("INSUFFICIENT_FUNDS")))
-            else Answer.ok(FakeWallet.preview())
+            val available = balances.get(player)
+            if available.exists(_ < amount) then Answer.ok(FakeWallet.preview(refusal = Some("INSUFFICIENT_FUNDS"), available = available))
+            else Answer.ok(FakeWallet.preview(available = available))
           }
         case Vector(player, _, "holds") if r.method == "POST" =>
           val body = r.json.get
@@ -83,9 +84,10 @@ final class FakeWallet(brand: String) extends FakeServer():
 
 object FakeWallet:
   def preview(refusal: Option[String] = None, confirmationRequired: Boolean = false, bonusBalance: Long = 0L, clawback: Long = 0L,
-      totalForfeit: Long = 0L, mostWithdrawable: Long = 1000000L): ObjectNode =
+      totalForfeit: Long = 0L, mostWithdrawable: Long = 1000000L, available: Option[Long] = None): ObjectNode =
     Json.obj("refusal" -> refusal, "confirmationRequired" -> confirmationRequired, "bonusBalance" -> bonusBalance,
-      "clawback" -> clawback, "totalForfeit" -> totalForfeit, "mostWithdrawable" -> mostWithdrawable, "forfeits" -> Json.arr())
+      "clawback" -> clawback, "totalForfeit" -> totalForfeit, "mostWithdrawable" -> mostWithdrawable, "forfeits" -> Json.arr(),
+      "available" -> available)
 
   def refusal(code: String, status: Int = 409): Answer =
     Answer.json(status, Json.obj("error" -> code, "message" -> code, "details" -> Json.obj()))

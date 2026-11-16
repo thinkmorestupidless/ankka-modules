@@ -112,7 +112,7 @@ object Operator:
       val t = s.terminal
       ok(Json.obj(
         "requestId" -> s.requestId, "playerId" -> s.playerId, "kycStatus" -> s.kyc, "amount" -> s.amount, "paidAmount" -> s.paidAmount,
-        "currency" -> s.currency, "status" -> s.status.upper, "payoutStatus" -> s.payoutStatus.upper,
+        "voidedAmount" -> s.voidedAmount, "currency" -> s.currency, "status" -> s.status.upper, "payoutStatus" -> s.payoutStatus.upper,
         "terminal" -> t.map(t => Json.obj("id" -> t.id, "name" -> t.name, "gateway" -> t.gateway, "scheme" -> t.scheme)),
         "destination" -> s.payee.destinationId.map(d => Json.obj("destinationId" -> d,
           "firstName" -> s.payee.holder.map(_.givenName.reveal), "lastName" -> s.payee.holder.map(_.familyName.reveal),
@@ -121,7 +121,11 @@ object Operator:
         "clawbackAmount" -> s.forfeit.clawbackAmount, "providerReference" -> s.providerReference,
         "decisions" -> Json.arr(s.decisions.map(d => Json.obj("approved" -> d.approved, "operatorId" -> d.operatorId, "at" -> d.at.toString))*),
         "outcomes" -> Json.arr(s.outcomes.map(o => Json.obj("source" -> o.source.wire, "answer" -> o.answer, "reasonCode" -> o.reasonCode,
-          "reference" -> o.reference, "at" -> o.at.toString))*),
+          "reference" -> o.reference, "operatorId" -> o.operatorId, "at" -> o.at.toString))*),
+        // spec 030 Y3: the balances the request was made at (absent on an older request), and every state with who moved it
+        "balancesAtRequest" -> s.balancesAtRequest, "restrictedAtRequest" -> s.restrictedAtRequest,
+        "transitions" -> Json.arr(s.transitions.map(t => Json.obj("status" -> t.status, "at" -> t.at.toString, "by" -> t.by,
+          "operatorId" -> t.operatorId, "reason" -> t.reason))*),
         "createdAt" -> s.createdAt.toString, "initiatedAt" -> s.initiatedAt.map(_.toString), "settledAt" -> s.settledAt.map(_.toString)))
 
   private def answer(s: RequestState): Reply =
