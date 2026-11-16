@@ -171,6 +171,8 @@ export const table: readonly Row[] = [
   r("PUT", "kyc", "/policy", `${P}/kyc/policy`, "config.brand"),
   r("POST", "kyc", "/policy/profile", `${P}/kyc/policy/profile`, "config.brand"),
   r("GET", "kyc", "/queue", `${P}/kyc/queue`, "identity.review"),
+  // status is a literal: before `/{playerId}`, which would take it for a player
+  r("GET", "kyc", "/status", `${B}/kyc/status`, "identity.review"),
   r("GET", "kyc", "/{playerId}", `${P}/kyc/{playerId}`, "identity.read"),
   r("GET", "kyc", "/{playerId}/decisions", `${P}/kyc/{playerId}/decisions`, "identity.read"),
   r("POST", "kyc", "/{playerId}/uploads", `${P}/kyc/{playerId}/uploads`, "identity.review"),
@@ -189,6 +191,8 @@ export const table: readonly Row[] = [
   r("PUT", "responsible-gambling", "/settings", `${P}/rg/settings`, "config.brand"),
   // the brand's cases by status, oldest first (G2); a literal segment, so before the player's row
   r("GET", "responsible-gambling", "/cases", `${P}/rg/cases`, "protection.read"),
+  // status is a literal: before `/{player}`, which would take it for a player
+  r("GET", "responsible-gambling", "/status", `${B}/rg/status`, "protection.read"),
   r("GET", "responsible-gambling", "/{player}", `${P}/rg/{player}`, "protection.read"),
   r("GET", "responsible-gambling", "/{player}/history", `${P}/rg/{player}/history`, "protection.read"),
   r("PUT", "responsible-gambling", "/{player}/limits/{type}", `${P}/rg/{player}/limits/{type}`, "protection.change"),
@@ -452,8 +456,6 @@ export const table: readonly Row[] = [
   r("GET", "players", "/status", `${B}/players/status`, "player.read"),
   r("GET", "wallet", "/status", `${B}/wallet/status`, "wallet.read"),
   r("GET", "payouts", "/status", `${B}/payouts/status`, "withdrawal.read"),
-  r("GET", "kyc", "/status", `${B}/kyc/status`, "identity.review"),
-  r("GET", "responsible-gambling", "/status", `${B}/rg/status`, "protection.read"),
   r("GET", "rewards", "/status", `${B}/rewards/status`, "reward.read"),
   r("GET", "reporting", "/status", `${B}/reporting/status`, "dashboard.read"),
 ];

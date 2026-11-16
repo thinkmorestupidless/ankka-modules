@@ -41,6 +41,11 @@ export function getQueue(options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/kyc/queue`, options);
 }
 
+/** GET /status: identity.review */
+export function getStatus(options: Options = {}): Promise<Response> {
+  return call("GET", `/api/s/kyc/status`, options);
+}
+
 /** GET /{playerId}: identity.read */
 export function getByPlayerId(params: { playerId: string }, options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/kyc/${encodeURIComponent(params.playerId)}`, options);
@@ -99,9 +104,4 @@ export function postSof(params: { playerId: string }, options: Options = {}): Pr
 /** POST /{playerId}/flags/{reason}/dismiss: identity.review */
 export function postFlagsDismiss(params: { playerId: string; reason: string }, options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/kyc/${encodeURIComponent(params.playerId)}/flags/${encodeURIComponent(params.reason)}/dismiss`, options);
-}
-
-/** GET /status: identity.review */
-export function getStatus(options: Options = {}): Promise<Response> {
-  return call("GET", `/api/s/kyc/status`, options);
 }

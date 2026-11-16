@@ -83,3 +83,14 @@ describe("GET /api/freshness", () => {
     expect((await h.ask("GET", "/api/freshness", { session: "s-1" })).status).toBe(400);
   });
 });
+
+import { match as matchRow, table as realTable } from "../../src/server/routes.ts";
+
+describe("each status row is reached before a row that takes `status` for a player", () => {
+  for (const service of ["players", "wallet", "payouts", "kyc", "responsible-gambling", "rewards"]) {
+    test(service, () => {
+      const m = matchRow(realTable, "GET", service, "/status");
+      expect(m?.row.path).toBe("/status");
+    });
+  }
+});
