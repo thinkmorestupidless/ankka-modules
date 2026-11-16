@@ -2,7 +2,7 @@
 // reclaim*): every reward of the player, newest first, each restricted funds record with its state in the
 // glossary's words, its wagering progress and its open round count (the wallet's open record, read beside
 // rewards' list), free rounds as rounds used of rounds given, and exactly the actions its state allows,
-// each stating its effect beside it and again before it is done.
+// each stating its effect beside it and again before it is done. An award (grant.tsx) is offered above.
 //
 // The wallet keeps a record's progress and open rounds only while it is open (active or awaiting its cap):
 // once forfeited or closed the page says so rather than showing a figure the wallet no longer holds.
@@ -21,6 +21,7 @@ import { Money, moneyText } from "../../components/money.tsx";
 import { Status, type Tone } from "../../components/status.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
+import { GrantReward } from "../rewards/grant.tsx";
 import { isOpen, progressOf, readOpenRecords, readPlayerRewards, stateOf, type OpenRecord, type Reward } from "../rewards/read.ts";
 import { word } from "../word.ts";
 
@@ -183,6 +184,7 @@ function RewardActions({ r }: { r: Reward }) {
 
 export function PlayerRewards({ player }: { player: string }) {
   const tz = zone();
+  const readOnly = useReadOnlyMode();
   const freshness = useFreshness(["rewards"]);
   const opened = useRouterState({ select: (s) => (s.location.search as Record<string, unknown>).reward });
   const q = useQuery({ queryKey: ["rewards", "player", player], queryFn: () => readPlayerRewards(player), enabled: player !== "" });
@@ -206,6 +208,7 @@ export function PlayerRewards({ player }: { player: string }) {
         <ZoneNote zone={tz} />
         {freshness ? <FreshnessNote freshness={freshness} zone={tz} /> : null}
       </div>
+      {readOnly ? null : <GrantReward player={player} />}
       {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
       {unmatched > 0 ? (
         <p className="bo-muted" role="status">
