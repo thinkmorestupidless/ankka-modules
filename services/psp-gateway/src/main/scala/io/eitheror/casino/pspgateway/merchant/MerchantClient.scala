@@ -36,6 +36,8 @@ final case class Terminal(
  */
 trait MerchantClient:
   def credential(subBrandId: String, provider: Provider): Either[Unread, Credential]
+  /** The credential the sub-brand keeps under this name, whatever its status (the test payment, spec 030 T2). */
+  def namedCredential(subBrandId: String, provider: Provider, name: String): Either[Unread, Credential]
   def terminalProperties(terminalId: String): Either[Unread, Map[String, String]]
   def brandTerminals(brand: String): Either[Unread, Vector[Terminal]]
 
@@ -68,6 +70,10 @@ private final class HttpMerchant(merchant: Neighbour) extends MerchantClient:
 
   def credential(subBrandId: String, provider: Provider): Either[Unread, Credential] =
     read(merchant.get(s"/internal/v1/sub-brands/${Neighbour.segment(subBrandId)}/psp-credentials/${provider.wire}"))(b =>
+      Option(b.get("credentials")).filter(_.isObject).map(c => Credential(strings(c))))
+
+  def namedCredential(subBrandId: String, provider: Provider, name: String): Either[Unread, Credential] =
+    read(merchant.get(s"/internal/v1/sub-brands/${Neighbour.segment(subBrandId)}/psp-credentials/${provider.wire}?name=${Neighbour.segment(name)}"))(b =>
       Option(b.get("credentials")).filter(_.isObject).map(c => Credential(strings(c))))
 
   def terminalProperties(terminalId: String): Either[Unread, Map[String, String]] =

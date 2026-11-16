@@ -10,6 +10,7 @@ browser routes are reached from the internet.
 |---|---|
 | `POST /hpp/initiate` | the deposit initiation ([merchant.md](merchant.md)) |
 | `GET /sessions/{reference}` | a deposit session's status ([merchant.md](merchant.md)) |
+| `POST /test-payment` | *(spec 030 T2)* a test payment in the provider's test mode; records nothing ([merchant.md](merchant.md) §5) |
 
 ## `/v1/psp/checkout`: public (`Routes.public`): the player's browser
 
