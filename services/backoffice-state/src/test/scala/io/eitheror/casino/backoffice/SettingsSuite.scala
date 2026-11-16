@@ -23,3 +23,12 @@ class SettingsSuite extends munit.FunSuite:
     assertEquals(s.clientSecret, "s3cret")
     assert(!s.toString.contains("s3cret"), s.toString)
   }
+
+  test("the service calls the realm at KEYCLOAK_URL when named, and sends the browser to the issuer") {
+    val s = Settings.fromEnvironment(env.updated("KEYCLOAK_URL", "http://casino-keycloak.casino-identity.svc/")).toOption.get
+    assertEquals(s.tokenUrl.toString, "http://casino-keycloak.casino-identity.svc/realms/eitheror/protocol/openid-connect/token")
+    assertEquals(s.revokeUrl.toString, "http://casino-keycloak.casino-identity.svc/realms/eitheror/protocol/openid-connect/revoke")
+    assertEquals(s.logoutUrl.toString, "http://casino-keycloak.casino-identity.svc/realms/eitheror/protocol/openid-connect/logout")
+    assertEquals(s.authorizeUrl.toString, "https://auth.example/realms/eitheror/protocol/openid-connect/auth")
+    assert(Settings.fromEnvironment(env.updated("KEYCLOAK_URL", "ftp://x")).left.exists(_.startsWith("KEYCLOAK_URL")))
+  }

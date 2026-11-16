@@ -74,6 +74,10 @@
           {
             "name": "BACKOFFICE_CLIENT_SECRET",
             "key": "backoffice-client-secret"
+          },
+          {
+            "name": "KEYCLOAK_URL",
+            "key": "keycloak-jwks-base"
           }
         ]
       }
