@@ -1,19 +1,13 @@
 /* The withdrawals area (contracts/design.md): the queue's counts, states and filters above its list; a
    request's story in two columns of cards, its actions first on the right. */
 
-.bo-withdrawal-counts,
+/* one control for the queue's state: the states, the two counts on their own pills (DR-07) */
 .bo-withdrawal-states {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  list-style: none;
   margin: 0 0 12px;
   padding: 0;
-}
-
-.bo-withdrawal-counts button[aria-pressed="true"],
-.bo-withdrawal-states button[aria-pressed="true"] {
-  border-color: var(--primary);
 }
 
 .bo-withdrawal-filters {
