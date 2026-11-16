@@ -71,7 +71,7 @@ const list = (kind: string, field: string, idKey: string, summary: string[], pla
 const enc = encodeURIComponent;
 
 export const Resolvers: readonly Resolver[] = [
-  { kind: "player", shape: "uuid", service: "players", template: "/players/{playerId}/profile", path: (q) => `/players/${enc(q)}/profile`, read: one("player", "playerId", ["email", "status", "currency"]) },
+  { kind: "player", shape: "uuid", service: "players", template: "/players/{playerId}/profile", path: (q) => `/players/${enc(q)}/profile`, read: (b) => one("player", "playerId", ["email", "status", "currency"])(obj(b).player ?? b) },
   { kind: "withdrawal", shape: "uuid", service: "payouts", template: "/withdrawal-requests/{requestId}", path: (q) => `/withdrawal-requests/${enc(q)}`, read: one("withdrawal", "requestId", ["status", "amount", "currency"]) },
   { kind: "reward", shape: "uuid", service: "rewards", template: "/reward-grants/{rewardId}", path: (q) => `/reward-grants/${enc(q)}`, read: one("reward", "rewardId", ["status", "offerName", "kind"]) },
   { kind: "payment", shape: "uuid", service: "merchant", template: "/{paymentId}", path: (q) => `/${enc(q)}`, read: one("payment", "paymentId", ["status", "amountCents", "currency", "psp"], "customerRef") },

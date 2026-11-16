@@ -20,6 +20,8 @@ import { kindsFor } from "../shared/worklist.ts";
 import { kept, start as startJob, states as jobStates } from "./composite/jobs.ts";
 import { withdrawals } from "./composite/withdrawals.ts";
 import { batchStream, readBatch } from "./composite/batch.ts";
+import { standing } from "./composite/standing.ts";
+import { kindsOf, operatorNames, timeline } from "./composite/timeline.ts";
 import { brandReads, inBrand, permissionsOf, PlatformAdmin, type BrandReads } from "./roles.ts";
 
 export interface Deps {
@@ -177,6 +179,70 @@ export function createApp(deps: Deps): Hono<Env> {
     const bags = await reads.bags.get();
     const held = new Set(permissionsOf(token.roles, bags ?? {}));
     return c.json(await search({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 3_000) }, q, token.accessToken, (p) => held.has(p)));
+  });
+
+  // A player's standing and timeline (contracts/routes.md; FR-020 to FR-022): each source asked as the operator, bounded.
+  const heldBy = async (roles: string[]) => {
+    const held = new Set(permissionsOf(roles, (await reads.bags.get()) ?? {}));
+    return (p: string) => held.has(p);
+  };
+  const names = operatorNames({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 3_000) }, deps.now);
+  const playerOf = (c: Context) => new URL(c.req.url).pathname.split("/")[3] ?? "";
+  app.get("/api/players/:player/standing", async (c) => {
+    c.set("logPath", "/api/players/{p}/standing");
+    const token = c.get("token");
+    if (!inBrand(token.roles, deps.brand)) return c.json({ error: "brand_not_in_roles", brand: deps.brand }, 403);
+    return c.json(await standing({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 3_000) }, decodeURIComponent(playerOf(c)), token.accessToken, await heldBy(token.roles)));
+  });
+  app.get("/api/players/:player/timeline", async (c) => {
+    c.set("logPath", "/api/players/{p}/timeline");
+    const token = c.get("token");
+    if (!inBrand(token.roles, deps.brand)) return c.json({ error: "brand_not_in_roles", brand: deps.brand }, 403);
+    const instant = (name: string) => {
+      const v = c.req.query(name);
+      if (v === undefined || v === "") return { ok: true as const, value: undefined };
+      const n = Date.parse(v);
+      return Number.isNaN(n) ? { ok: false as const } : { ok: true as const, value: n };
+    };
+    const [from, to, after] = [instant("from"), instant("to"), instant("after")];
+    if (!from.ok || !to.ok || !after.ok) return c.json({ error: "invalid_time", message: "from, to and after are instants" }, 400);
+    if (from.value !== undefined && to.value !== undefined && from.value >= to.value) return c.json({ error: "invalid_date_range", message: "from is before to" }, 400);
+    const kinds = kindsOf(c.req.query("kinds"));
+    if (kinds === undefined) return c.json({ error: "invalid_kinds", message: "kinds names the timeline's kinds" }, 400);
+    const holds = await heldBy(token.roles);
+    const claims = claimsOf(token.accessToken);
+    const me = { sub: claims.sub, name: claims.name ?? claims.preferred_username };
+    return c.json(
+      await timeline(
+        { ...deps, timeoutMs: Math.min(deps.timeoutMs, 3_000), names: (ids) => names(ids, token.accessToken, me, holds) },
+        decodeURIComponent(playerOf(c)),
+        { from: from.value, to: to.value, after: after.value, kinds },
+        token.accessToken,
+        holds,
+      ),
+    );
+  });
+  // The timeline's export is players' own activity export, a job of the owner's: its reference answered.
+  app.post("/api/players/:player/timeline/export", async (c) => {
+    c.set("logPath", "/api/players/{p}/timeline/export");
+    const token = c.get("token");
+    if (!inBrand(token.roles, deps.brand)) return c.json({ error: "brand_not_in_roles", brand: deps.brand }, 403);
+    const player = playerOf(c);
+    const m = match(deps.table, "POST", "players", `/players/${player}/activity-export`);
+    if (m === undefined) return c.json({ error: "no_such_route" }, 404);
+    let body: unknown = {};
+    try {
+      body = await c.req.json();
+    } catch {
+      body = {};
+    }
+    const b = (body ?? {}) as Record<string, unknown>;
+    const asked = { ...(typeof b.from === "string" ? { from: b.from } : {}), ...(typeof b.to === "string" ? { to: b.to } : {}) };
+    const request = new Request(`http://backoffice/players/${player}/activity-export`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(asked) });
+    const { response } = await pass({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 10_000) }, m, request, token.accessToken);
+    if (!response.ok) return response;
+    const answer = (await response.json()) as { exportId?: string };
+    return answer.exportId ? c.json({ reference: answer.exportId }, 202) : c.json({ error: "unreadable" }, 502);
   });
 
   // The operator's worklist (contracts/sources.md): the kinds their roles admit, each asked of its owner as them, 3 s each.
