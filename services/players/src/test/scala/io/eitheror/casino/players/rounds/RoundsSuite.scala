@@ -30,3 +30,14 @@ class RoundsSuite extends munit.FunSuite with LogCapturing:
     val rows = Vector(done, done.copy(roundId = "b"), done.copy(roundId = "c", currency = "BRL", stake = 10, win = 0, net = -10))
     assertEquals(RoundTotals.of(rows), Vector(RoundTotals("BRL", 1, 10, 0, -10), RoundTotals("EUR", 2, 200, 500, 300)))
   }
+
+  test("games played (spec 030 P9): per game and currency, most rounds first, then the one played last") {
+    val rows = Vector(done, done.copy(roundId = "b", settledAt = Some(9L)), done.copy(roundId = "c", gameId = "g-2", stake = 10, win = 0, net = -10),
+      done.copy(roundId = "d", currency = "BRL", stake = 7, win = 0, net = -7, settledAt = Some(20L)),
+      done.copy(roundId = "e", gameId = "g-3", stake = 1, win = 0, net = -1, settledAt = Some(30L)))
+    assertEquals(GamePlayed.of(rows), Vector(
+      GamePlayed("g-1", "EUR", 2, 200, 500, 300, 9L),
+      GamePlayed("g-3", "EUR", 1, 1, 0, -1, 30L),
+      GamePlayed("g-1", "BRL", 1, 7, 0, -7, 20L),
+      GamePlayed("g-2", "EUR", 1, 10, 0, -10, 5L)))
+  }

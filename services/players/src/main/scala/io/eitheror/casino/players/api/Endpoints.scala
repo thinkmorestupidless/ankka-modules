@@ -263,6 +263,10 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
   withAcl(may("tier.change")) {
   putBody(s"$P/tags") { (id: String, text: String) => status.setManagerTags(principal, id, text) }
   }
+  // spec 030 P9: what the player plays, per game
+  withAcl(may("player.read")) {
+  get(s"$P/games") { (id: String) => reads.games(id, query.raw("from"), query.raw("to")) }
+  }
   // spec 030 P8: the devices the player logged in from
   withAcl(may("player.read")) {
   get(s"$P/devices") { (id: String) => status.devices(id) }

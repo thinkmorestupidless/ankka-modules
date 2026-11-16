@@ -162,6 +162,26 @@ final class OperatorSessionRoutes(ctx: Ctx):
         ok(Json.obj("bets" -> Json.arr(page.map(bet)*), "summary" -> summary, "total" -> all.size, "limit" -> lim, "offset" -> off))
       }
 
+  /**
+   * `GET players/{p}/games` (spec 030 P9): what the player plays, from the settled rounds of `casino.rounds`
+   * (a cancelled or open round is not a round played), one entry per game and currency (never summed across
+   * currencies), most rounds first, then the last played: `{games: [{gameId, currency, rounds, stakedMinorUnits,
+   * wonMinorUnits, netMinorUnits, lastPlayedAt}], truncated}`. `from` and `to` bound the settlement as the
+   * activity's do (`400 invalid_date_range`); `truncated` is true when more than [[RoundsView.SumLimit]] rounds
+   * matched and only that many were counted.
+   */
+  def games(playerId: String, from: Option[String], to: Option[String]): Reply =
+    val f = from.flatMap(OperatorStatusRoutes.bound(_, end = false))
+    val t = to.flatMap(OperatorStatusRoutes.bound(_, end = true))
+    if f.zip(t).exists((a, b) => a >= b) then refusal(400, "invalid_date_range", "from is not before to")
+    else
+      known(playerId) {
+        val rounds = RoundsView.all(views, RoundsView.Wanted(playerId = Some(playerId), statuses = Set(RoundStatus.Settled), from = f, to = t))
+        ok(Json.obj("games" -> Json.arr(GamePlayed.of(rounds).map(g => Json.obj("gameId" -> g.gameId, "currency" -> g.currency,
+          "rounds" -> g.rounds, "stakedMinorUnits" -> g.staked, "wonMinorUnits" -> g.won, "netMinorUnits" -> g.net,
+          "lastPlayedAt" -> Instant.ofEpochMilli(g.lastPlayedAt).toString))*), "truncated" -> (rounds.size >= RoundsView.SumLimit)))
+      }
+
   /** `staked`, `won`, `net` and `currency` for one currency (`null`s for several, never summed across), and `totals` per currency. */
   private def totals(rows: Vector[RoundRow]): ObjectNode =
     val per = RoundTotals.of(rows)
