@@ -14,8 +14,8 @@ const body = (rows: unknown[], over: Record<string, unknown> = {}) =>
   JSON.stringify({ reason: "outage on 15 November", category: "compensation", cause: { kind: "incident", ref: "INC-1115" }, rows, ...over });
 const row = (player: string, amountMinor: number | string = 500, over: Record<string, unknown> = {}) => ({ player, currency: "EUR", walletType: "real", direction: "credit", amountMinor, ...over });
 
-/** The wallet as the batch asks it: balances in its major text, each key's first outcome kept. */
-function wallet(start: Record<string, number>, refuse: Record<string, { status: number; error: string }> = {}) {
+/** The wallet as the batch asks it: balances in its major text, each key's first outcome kept, a repeat marked `repeated`. */
+function wallet(start: Record<string, number>) {
   const balances = new Map(Object.entries(start));
   const keys = new Map<string, { status: number; body: Record<string, unknown> }>();
   let inFlight = 0;
@@ -25,7 +25,6 @@ function wallet(start: Record<string, number>, refuse: Record<string, { status: 
     const m = /\/wallets\/([^/]+)\/([^/]+)\/(balance|adjustments)$/.exec(new URL(call.url).pathname);
     if (!m) return Response.json({ error: "not_found" }, { status: 404 });
     const player = m[1]!;
-    if (m[3] === "balance") return Response.json({ realBalance: major(balances.get(player) ?? 0), bonusBalance: "0.00", currency: "EUR" });
     inFlight++;
     most = Math.max(most, inFlight);
     await new Promise((r) => setTimeout(r, 5));
@@ -33,11 +32,7 @@ function wallet(start: Record<string, number>, refuse: Record<string, { status: 
     const now = balances.get(player) ?? 0;
     const r = JSON.parse(call.body) as { key: string; amountMinor: number };
     const first = keys.get(r.key);
-    if (first) return Response.json(first.status === 200 ? { ...first.body, realBalance: major(balances.get(player)!) } : first.body, { status: first.status });
-    if (refuse[player]) {
-      keys.set(r.key, { status: refuse[player].status, body: { error: refuse[player].error, message: "no" } });
-      return Response.json({ error: refuse[player].error, message: "no" }, { status: refuse[player].status });
-    }
+    if (first) return Response.json(first.status === 200 ? { ...first.body, realBalance: major(balances.get(player)!), repeated: true } : first.body, { status: first.status });
     const after = now + r.amountMinor;
     if (after < 0) {
       const refused = { error: "DEBIT_EXCEEDS_BALANCE", message: `Requested debit of ${-r.amountMinor} exceeds current real balance of ${now}` };
@@ -45,7 +40,7 @@ function wallet(start: Record<string, number>, refuse: Record<string, { status: 
       return Response.json(refused, { status: 400 });
     }
     balances.set(player, after);
-    const out = { realBalance: major(after), bonusBalance: "0.00", currency: "EUR", txnId: `t-${r.key}`, walletType: "real", amountMinor: r.amountMinor, before: now, after };
+    const out = { realBalance: major(after), bonusBalance: "0.00", currency: "EUR", txnId: `t-${r.key}`, walletType: "real", amountMinor: r.amountMinor, before: now, after, repeated: false };
     keys.set(r.key, { status: 200, body: out });
     return Response.json(out);
   };
@@ -130,16 +125,18 @@ describe("POST /api/adjustment-batches", () => {
 
   test("a refusal names the wallet's code and words", async () => {
     const h = harness({ table });
-    h.answer(wallet({ [A]: 100 }, { [A]: { status: 409, error: "ACCOUNT_CLOSED" } }).answer);
-    const r = await run(h, body([row(A)]));
-    expect(r.rows).toEqual([{ row: 1, player: A, currency: "EUR", outcome: "refused", reason: "ACCOUNT_CLOSED", message: "no", status: 409 }]);
+    h.answer(wallet({ [A]: 100 }).answer);
+    const r = await run(h, body([row(A, 500, { direction: "debit" })]));
+    expect(r.rows).toEqual([
+      { row: 1, player: A, currency: "EUR", outcome: "refused", reason: "DEBIT_EXCEEDS_BALANCE", message: "Requested debit of 500 exceeds current real balance of 100", status: 400 },
+    ]);
   });
 
   test("a repeat makes none twice: every made row is already made, a refused row refused again", async () => {
     const h = harness({ table });
-    const w = wallet({ [A]: 1000, [B]: 1000, [C]: 1000 }, { [C]: { status: 409, error: "ACCOUNT_CLOSED" } });
+    const w = wallet({ [A]: 1000, [B]: 1000, [C]: 100 });
     h.answer(w.answer);
-    const text = body([row(A), row(B), row(C)]);
+    const text = body([row(A), row(B), row(C, 500, { direction: "debit" })]);
     const first = await run(h, text);
     expect(first.done).toMatchObject({ made: 2, refused: 1, alreadyMade: 0 });
     const again = await run(h, text);
@@ -180,12 +177,31 @@ describe("POST /api/adjustment-batches", () => {
     expect(h.calls).toHaveLength(0);
   });
 
-  test("a row whose balance cannot be read is not adjusted, and is refused as unavailable", async () => {
+  test("already made is the wallet's word: a repeat whose balance has moved since is still already made", async () => {
+    const h = harness({ table });
+    const w = wallet({ [A]: 1000 });
+    h.answer(w.answer);
+    const text = body([row(A)]);
+    expect((await run(h, text)).done).toMatchObject({ made: 1, alreadyMade: 0 });
+    w.balances.set(A, 4000);
+    const again = await run(h, text);
+    expect(again.rows).toEqual([{ row: 1, player: A, currency: "EUR", outcome: "already_made", before: "1000", after: "1500" }]);
+    expect(w.balances.get(A)).toBe(4000);
+  });
+
+  test("each row is asked once, its adjustment alone: no balance is read first", async () => {
+    const h = harness({ table });
+    h.answer(wallet({ [A]: 1000, [B]: 1000 }).answer);
+    await run(h, body([row(A), row(B)]));
+    expect(h.calls.filter((c) => c.method === "GET")).toHaveLength(0);
+    expect(adjustCalls(h)).toHaveLength(2);
+  });
+
+  test("a row the wallet does not answer is refused as unavailable", async () => {
     const h = harness({ table });
     h.answer(() => Response.json({ error: "source_unavailable" }, { status: 503 }));
     const r = await run(h, body([row(A)]));
     expect(r.rows).toEqual([{ row: 1, player: A, currency: "EUR", outcome: "refused", reason: "source_unavailable", source: "wallet", status: 503 }]);
-    expect(adjustCalls(h)).toHaveLength(0);
   });
 
   test("an operator whose roles do not give adjustment.make starts nothing", async () => {

@@ -1,6 +1,7 @@
 // The wallet's operator adjustments as the wallet double keeps them, once a scenario seeds wallets: the
 // balance read, and an adjustment under its key (spec 030 W2). A key used again answers its first
-// outcome, a refusal included; a debit past the balance is refused, not reduced; a reason is required;
+// outcome, a refusal included, an adjustment's with `repeated: true` (the first `repeated: false`); a
+// debit past the balance is refused, not reduced; a reason is required;
 // the transactions read lists each adjustment with its reason, category, cause and actor. The wallet's
 // own suites hold its rules in full; this keeps what the backoffice's scenarios read back.
 //
@@ -83,7 +84,7 @@ export class Wallets {
     if (first) {
       // the first outcome, with the balance as it is now: the wallet reads the balance after its answer
       if (first.asked === asked)
-        return (first.answer.status ?? 200) === 200 ? { body: { ...(first.answer.body as object), ...this.balance(w) } } : first.answer;
+        return (first.answer.status ?? 200) === 200 ? { body: { ...(first.answer.body as object), ...this.balance(w), repeated: true } } : first.answer;
       return { status: 409, body: { error: "KEY_REUSED", message: `Key ${r.key} was used by an adjust` } };
     }
     const keep = (answer: Answer) => (w.keys.set(r.key!, { asked, answer }), answer);
@@ -105,6 +106,6 @@ export class Wallets {
       status: "completed", roundId: null, awardRef: null, paymentReference: null, createdAt: new Date().toISOString(), depositPart: "0.00", convertedPart: "0.00",
       depositPoolAfter: major(w.real), convertedPoolAfter: "0.00", reason: r.reason, category: r.category ?? "other", cause: r.cause ?? null, actorId: subject ?? null,
     });
-    return keep({ body: { ...this.balance(w), txnId, walletType: target === "real" ? "real" : "bonus", amountMinor: amount, before, after, ...(r.cause ? { cause: r.cause } : {}) } });
+    return keep({ body: { ...this.balance(w), txnId, walletType: target === "real" ? "real" : "bonus", amountMinor: amount, before, after, ...(r.cause ? { cause: r.cause } : {}), repeated: false } });
   }
 }

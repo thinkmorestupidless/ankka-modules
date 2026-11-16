@@ -6,12 +6,9 @@
 // eight at a time, and each row's outcome is streamed as a line of JSON as it is known, then a last
 // line with the counts.
 //
-// Made or already made: the wallet answers a repeated key with its first outcome, the same answer as
-// the first time, so the answer alone cannot say which. Each row reads the balance it adjusts just
-// before; if the balance after the answer is the balance before, nothing moved, so the row was already
-// made. A movement by the player in that instant can make a repeated row read as made; either way the
-// wallet made it once. A row whose balance cannot be read is not asked: it is refused as unavailable,
-// and the batch repeated asks it again under the same key.
+// Made or already made: the wallet answers a repeated key with its first outcome and `repeated: true`
+// (spec 030 W2), `repeated: false` when it made the adjustment now. A row is asked once, its
+// adjustment under its key; nothing is read before it.
 import { createHash } from "node:crypto";
 import { match, type Row } from "../routes.ts";
 import { pass, type ProxyDeps } from "../proxy.ts";
@@ -144,11 +141,10 @@ async function call(deps: BatchDeps, token: string, method: "GET" | "POST", path
 
 const str = (v: unknown) => (typeof v === "string" ? v : typeof v === "number" ? String(v) : undefined);
 
-/** One row: its balance read, then its adjustment under its key. */
+/** One row: its adjustment under its key. */
 async function one(deps: BatchDeps, token: string, id: string, n: number, r: BatchRow, b: Batch): Promise<RowOutcome> {
   const base = { row: n, player: r.player, currency: r.currency };
   const wallet = `/wallets/${enc(r.player)}/${enc(r.currency)}`;
-  const field = r.walletType === "restricted" ? "bonusBalance" : "realBalance";
   const unavailable = (): RowOutcome => ({ ...base, outcome: "refused", reason: "source_unavailable", source: "wallet", status: 503 });
   const refused = (a: { status: number; json: Obj | undefined }): RowOutcome => ({
     ...base,
@@ -157,11 +153,6 @@ async function one(deps: BatchDeps, token: string, id: string, n: number, r: Bat
     message: str(a.json?.message),
     status: a.status,
   });
-
-  const read = await call(deps, token, "GET", `${wallet}/balance`);
-  if (read.unavailable) return unavailable();
-  if (read.status !== 200 || str(read.json?.[field]) === undefined) return refused(read);
-  const balanceBefore = str(read.json![field]);
 
   const signed = r.direction === "debit" ? -r.amountMinor : r.amountMinor;
   const made = await call(deps, token, "POST", `${wallet}/adjustments`, {
@@ -174,8 +165,7 @@ async function one(deps: BatchDeps, token: string, id: string, n: number, r: Bat
   });
   if (made.unavailable) return unavailable();
   if (made.status !== 200 || !made.json) return refused(made);
-  const moved = str(made.json[field]) !== balanceBefore;
-  return { ...base, outcome: moved ? "made" : "already_made", before: str(made.json.before), after: str(made.json.after) };
+  return { ...base, outcome: made.json.repeated === true ? "already_made" : "made", before: str(made.json.before), after: str(made.json.after) };
 }
 
 /** Every row, eight at a time, each outcome given to `emit` as it is known; the counts at the end. */
