@@ -116,6 +116,53 @@ export interface Revenue {
   figures: Figure[];
 }
 
+/** What a brand's traffic read counts for a period (spec 030 A3, Traffic.scala): no currency, so these may be summed. */
+export interface TrafficCounts {
+  clickCount: number;
+  registrationCount: number;
+  ftdCount: number;
+  qftdCount: number;
+}
+
+export interface Traffic extends TrafficCounts {
+  brandId: string;
+  period: string;
+  affiliates: (TrafficCounts & { affiliateId: string; links: (TrafficCounts & { btag: string })[] })[];
+}
+
+/** The month before a `yyyy-MM` period. */
+export function monthBefore(period: string): string {
+  const y = Number(period.slice(0, 4));
+  const m = Number(period.slice(5, 7));
+  const year = m === 1 ? y - 1 : y;
+  const month = m === 1 ? 12 : m - 1;
+  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}`;
+}
+
+/**
+ * The original's rates (`@eitheror-io/affiliate-metrics`), as percentages; null where they measure nothing.
+ * Fewer clicks than the registrations or first deposits they led to means clicks went uncounted, so a
+ * click-based rate is null then, as the original's is.
+ */
+export const rates = {
+  conversion: (c: TrafficCounts): number | null =>
+    c.clickCount <= 0 || c.ftdCount > c.clickCount || c.registrationCount > c.clickCount ? null : (c.ftdCount / c.clickCount) * 100,
+  clickToRegistration: (c: TrafficCounts): number | null =>
+    c.clickCount > 0 && c.registrationCount <= c.clickCount ? (c.registrationCount / c.clickCount) * 100 : null,
+  registrationToFtd: (c: TrafficCounts): number | null => (c.registrationCount > 0 ? (c.ftdCount / c.registrationCount) * 100 : null),
+};
+
+/**
+ * The change from `before` to `now` as the original's dashboard shows it: none when there was nothing
+ * before (no change against zero), level within 1%, else up or down by the whole percentage.
+ */
+export function change(now: number, before: number): { trend: "up" | "down" | "level"; percent: number } | null {
+  if (before === 0) return null;
+  const percent = ((now - before) / before) * 100;
+  if (Math.abs(percent) < 1) return { trend: "level", percent: 0 };
+  return { trend: percent > 0 ? "up" : "down", percent: Math.round(Math.abs(percent)) };
+}
+
 export interface AccountRow {
   account: Account;
   currentMonth: Figure[];

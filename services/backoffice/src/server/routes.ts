@@ -404,6 +404,7 @@ export const table: readonly Row[] = [
   r("GET", "affiliate-programme", "/revenue", `${A}/revenue`, "programme.manage", "programme"),
   r("GET", "affiliate-programme", "/revenue/by-campaign", `${A}/revenue/by-campaign`, "programme.manage", "programme"),
   r("GET", "affiliate-programme", "/revenue/geo", `${A}/revenue/geo`, "programme.manage", "programme"),
+  r("GET", "affiliate-programme", "/traffic", `${A}/traffic`, "programme.manage", "programme"),
   r("GET", "affiliate-programme", "/commission-plans", `${A}/commission-plans`, "programme.manage", "programme"),
   r("POST", "affiliate-programme", "/commission-plans", `${A}/commission-plans`, "programme.manage", "programme"),
   r("PATCH", "affiliate-programme", "/commission-plans/{plan}", `${A}/commission-plans/{plan}`, "programme.manage", "programme"),

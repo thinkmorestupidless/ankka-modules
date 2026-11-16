@@ -157,7 +157,7 @@ or *moved*. The two rows once marked *decide* were settled on 2026-11-15: both k
 
 | Capability | Owner | Status |
 |---|---|---|
-| Programme dashboard; reporting by campaign and country | programme `revenue/*` | kept |
+| Programme dashboard; reporting by campaign and country | programme `revenue/*`, `traffic` (A3) | kept: clicks, registrations, first deposits, qualified first deposits, the click to first deposit, click to registration and registration to first deposit rates, each with the change on the month before (DR-19). Impressions, unique clicks and CTR dropped: the original's page read them and nothing in it counted them (always `—`); no brand reports an impression and a click fact carries no visitor's digest (spec 012 FR-006 keeps it at the brand) |
 | Plans | programme `commission-plans` | kept |
 | Accounts: list, create, approve, reject, status, edit, notes, audit, password, email, network, reparent | programme `accounts/*` | kept |
 | View as the affiliate | programme | gap (built, decided 2026-11-15) |
