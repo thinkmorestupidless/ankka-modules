@@ -1956,6 +1956,7 @@ export const en = {
   "players.field.id": "Player id",
   "players.field.registered": "Registered",
   "players.field.lastLogin": "Last sign-in",
+  "players.lastLogin.never": "Never",
   "players.identity.flags": "{count, plural, one {# open flag} other {# open flags}}",
   "players.protection.noLimits": "No limits set.",
   "players.protection.break": "On a break.",
