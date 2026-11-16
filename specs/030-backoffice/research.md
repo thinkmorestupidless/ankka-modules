@@ -882,3 +882,11 @@ seeded brand fills in the rest.
   the programme answered nor by dropping the figures.
 - The other findings (DR-01 to DR-18) were defects and are fixed; DR-08 needed only the doubles to
   answer players' facets. Times are in the brand's reporting zone, which `/api/me` now answers.
+- The programme's traffic (030 A3, 2b53578d, 8221308e) counts clicks, registrations, FTDs and QFTDs
+  per period, affiliate and link. The original counted clicks only: its dashboard read impressions,
+  unique clicks and QFTDs that nothing wrote. Impressions and unique clicks stay uncounted (no fact
+  carries them; unique clicks would need the visitor digest on spec 012's click fact), so CTR too.
+- Decision (Trevor): a qualified first deposit is the player's first deposit at or above the
+  minimum of a plan that pays CPA, once per player.
+- Gap, accepted (Trevor): a click's month is its time in the brand's reporting zone at read time,
+  while player facts keep the period set on arrival; after a zone change, past clicks move month.
