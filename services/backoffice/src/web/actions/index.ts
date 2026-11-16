@@ -287,6 +287,11 @@ export const Actions = {
   // payments role at a level, and the page offers each under the payments permission its row names
   // (routes.ts). Routing (RoutingRoutes, RoutingTree): a draft saved once edited; simulate and deploy with a
   // draft; retire with a version live; roll back to a version not live, which becomes the draft.
+  "routing.saveDraft": { label: "action.routing.saveDraft.label", effect: "action.routing.saveDraft.effect", permission: "payments.admin", reason: "none", offeredIn: ["edited"] },
+  "routing.simulate": { label: "action.routing.simulate.label", effect: "action.routing.simulate.effect", permission: "payments.admin", reason: "none", offeredIn: ["drafted"] },
+  "routing.deploy": { label: "action.routing.deploy.label", effect: "action.routing.deploy.effect", permission: "payments.admin", reason: "none", offeredIn: ["drafted"] },
+  "routing.retire": { label: "action.routing.retire.label", effect: "action.routing.retire.effect", permission: "payments.admin", reason: "none", offeredIn: ["live"] },
+  "routing.rollback": { label: "action.routing.rollback.label", effect: "action.routing.rollback.effect", permission: "payments.admin", reason: "none", offeredIn: ["earlier"] },
   // the hierarchy (HierarchyEndpoints): a holding and a company at the installation's level only
   "payments.status": { label: "action.payments.status.label", effect: "action.payments.status.effect", permission: "payments.admin", reason: "none" },
   "payments.createHolding": { label: "action.payments.createHolding.label", effect: "action.payments.createHolding.effect", permission: "payments.admin", reason: "none" },
@@ -310,6 +315,10 @@ export const Actions = {
   "payments.key.generate": { label: "action.payments.key.generate.label", effect: "action.payments.key.generate.effect", permission: "payments.admin", reason: "none" },
   "payments.key.disable": { label: "action.payments.key.disable.label", effect: "action.payments.key.disable.effect", permission: "payments.admin", reason: "none", offeredIn: ["active"] },
   "payments.rate": { label: "action.payments.rate.label", effect: "action.payments.rate.effect", permission: "payments.admin", reason: "none" },
+  // the operator's work: an outcome re-driven (psp-gateway), a lost answer marked seen (ingest), a credit retried (merchant)
+  "payments.outcome.redrive": { label: "action.payments.outcome.redrive.label", effect: "action.payments.outcome.redrive.effect", permission: "payments.operate", reason: "none" },
+  "payments.lost.seen": { label: "action.payments.lost.seen.label", effect: "action.payments.lost.seen.effect", permission: "payments.operate", reason: "none", offeredIn: ["unseen"] },
+  "payments.deposit.retryCredit": { label: "action.payments.deposit.retryCredit.label", effect: "action.payments.deposit.retryCredit.effect", permission: "payments.operate", reason: "none" },
 } as const satisfies Record<string, ActionDescription>;
 
 export type ActionId = keyof typeof Actions;
