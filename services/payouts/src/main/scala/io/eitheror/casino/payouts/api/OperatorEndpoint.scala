@@ -98,6 +98,25 @@ object Operator:
         ok(Json.obj("requests" -> Json.arr(p.rows.map(row)*), "total" -> p.total, "page" -> p.page, "pageSize" -> p.pageSize,
           "counts" -> Json.obj("pendingReview" -> c.pendingReview, "needsReview" -> c.needsReview)))
 
+  /** A page and its size from the query (spec 030 L), or the first parameter that is not valid. */
+  def paging(q: String => Option[String]): Either[String, (Int, Int)] =
+    def number(name: String, default: Int) =
+      q(name).map(_.trim).filter(_.nonEmpty).fold[Either[String, Int]](Right(default))(v => v.toIntOption.toRight(name))
+    for
+      page <- number("page", 1)
+      size <- number("pageSize", 50)
+      _    <- Either.cond(page >= 1, (), "page")
+      _    <- Either.cond(size >= 1 && size <= WithdrawalQueue.MaxPageSize, (), "pageSize")
+    yield (page, size)
+
+  /** A player's requests in every state, newest first, a page at a time (spec 030 Y4). */
+  def history(ctx: Ctx, playerId: String, q: String => Option[String]): Reply =
+    paging(q) match
+      case Left(parameter) => invalid(parameter)
+      case Right((page, size)) =>
+        val p = WithdrawalQueue.ofPlayer(ctx.queue, playerId, page, size)
+        ok(Json.obj("requests" -> Json.arr(p.rows.map(row)*), "total" -> p.total, "page" -> p.page, "pageSize" -> p.pageSize))
+
   /** A row as contracts/routes.md has it. */
   def row(r: QueueRow): JsonNode =
     Json.obj("requestId" -> r.requestId, "playerId" -> r.playerId, "kycStatus" -> r.kyc, "amount" -> r.amount, "currency" -> r.currency,

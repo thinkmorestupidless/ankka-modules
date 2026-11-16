@@ -18,6 +18,7 @@ import { freshness, named } from "./composite/freshness.ts";
 import { knownKind, PageSize as WorklistPageSize, readKind, wanted, worklist } from "./composite/worklist.ts";
 import { kindsFor } from "../shared/worklist.ts";
 import { kept, start as startJob, states as jobStates } from "./composite/jobs.ts";
+import { withdrawals } from "./composite/withdrawals.ts";
 import { batchStream, readBatch } from "./composite/batch.ts";
 import { brandReads, inBrand, permissionsOf, PlatformAdmin, type BrandReads } from "./roles.ts";
 
@@ -210,6 +211,15 @@ export function createApp(deps: Deps): Hono<Env> {
     const services = named(c.req.query("services"), deps.table);
     if (services === undefined) return c.json({ error: "invalid_services", message: "services is a list of up to 12 service names" }, 400);
     return c.json({ services: await freshness({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 3_000) }, services, c.get("token").accessToken) });
+  });
+
+  // payouts' queue with a name or an email typed in its search resolved to player ids by players' search (Y2).
+  app.get("/api/withdrawals", async (c) => {
+    c.set("logPath", "/api/withdrawals");
+    const token = c.get("token");
+    if (!inBrand(token.roles, deps.brand)) return c.json({ error: "brand_not_in_roles", brand: deps.brand }, 403);
+    if ((c.req.query("q") ?? "").length > 256) return c.json({ error: "invalid_search", message: "a search is at most 256 characters" }, 400);
+    return withdrawals({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 5_000) }, new URL(c.req.url).searchParams, token.accessToken);
   });
 
   // The operator's started jobs (FR-029): kept in their preferences, each job the owner's.

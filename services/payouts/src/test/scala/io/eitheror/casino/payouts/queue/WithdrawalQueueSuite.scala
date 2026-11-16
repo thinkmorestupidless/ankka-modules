@@ -107,3 +107,26 @@ class WithdrawalQueueSuite extends munit.FunSuite with LogCapturing:
     val c = WithdrawalQueue.counts(queue)
     assertEquals((c.pendingReview, c.needsReview), now())
     assert(c.needsReview >= 1 && c.pendingReview >= 8, c.toString)
+
+  test("several players by their ids, separated by commas (spec 030 Y2); none named is no row"):
+    val f = WithdrawalQueue.Filter(status = None, player = Some(s"qp-$tag-1, qp-$tag-4,qp-$tag-1,"))
+    assertEquals(WithdrawalQueue.page(queue, f, 1, 200).rows.map(_.requestId), Vector(s"q-$tag-4", s"q-$tag-1"))
+    assertEquals(WithdrawalQueue.page(queue, f, 1, 200).total, 2L)
+    assertEquals(WithdrawalQueue.page(queue, WithdrawalQueue.Filter(status = None, player = Some(" , ")), 1, 200).total, 0L)
+
+  test("a player's requests in every state a page at a time, newest first, with their total (spec 030 Y4)"):
+    val player = s"qh-$tag"
+    val ids = (0 until 3).toVector.map { i =>
+      val id = s"qh-$tag-$i"
+      entity(id).call(WithdrawalRequest.open).invoke(Open(id, player, 1000L, 1000L, "EUR", bank, payee, Forfeit(), "verified",
+        start.plus(Duration.ofMinutes(i.toLong)))): Unit
+      id
+    }
+    entity(ids(0)).call(WithdrawalRequest.cancel).invoke(Cancel(Actor.Player, None, start)): Unit
+    entity(ids(1)).call(WithdrawalRequest.approve).invoke(Approve("op-1", start)): Unit
+    kit.eventually("the player's rows")(Option.when(WithdrawalQueue.ofPlayer(queue, player, 1, 200).rows.map(_.status).toSet ==
+      Set("cancelled", "approved", "pending_review"))(()))
+    val first  = WithdrawalQueue.ofPlayer(queue, player, 1, 2)
+    val second = WithdrawalQueue.ofPlayer(queue, player, 2, 2)
+    assertEquals((first.rows.map(_.requestId), first.total, first.pageSize), (Vector(ids(2), ids(1)), 3L, 2))
+    assertEquals((second.rows.map(_.requestId), second.page), (Vector(ids(0)), 2))
