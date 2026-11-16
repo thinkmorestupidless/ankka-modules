@@ -335,7 +335,7 @@ function Transactions({ search, set, zone }: ReportProps) {
             <p className="figures">{t("reports.pageOf", { page: l.page + 1, pages: Math.max(1, l.totalPages), count: l.totalCount })}</p>
             <Table
               caption={t("reports.transactions")}
-              head={[t("reports.at"), t("dashboard.player"), t("reports.type"), t("reports.amount"), t("reports.reference"), t("reports.transaction")]}
+              head={[t("reports.at"), t("dashboard.player"), t("reports.type"), t("reports.amount"), t("reports.referenceHeading"), t("reports.transaction")]}
               numeric={[3]}
               rows={l.transactions.map((r) => ({
                 key: r.transactionId,
