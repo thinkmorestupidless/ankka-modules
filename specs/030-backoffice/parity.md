@@ -33,7 +33,7 @@ or *moved*. The two rows once marked *decide* were settled on 2026-11-15: both k
 | Capability | Owner | Status |
 |---|---|---|
 | Player list: search, status, VIP | players `/players` | kept |
-| Player list facets: identity queue states, birthday window, potential VIP, online, country, currency, counts | players | gap |
+| Player list facets: identity queue states, birthday window, potential VIP, online, country, currency, counts | players `/players?facets=true` | kept (identity filtered as verified or not; the queue's states are on `/identity`) |
 | Profile read and edit | players `profile` | kept |
 | Correct date of birth with a reason | players `date-of-birth` | kept |
 | Notes: add, pin, unpin | players `notes` | kept |

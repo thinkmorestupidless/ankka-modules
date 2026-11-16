@@ -1483,7 +1483,7 @@
       "paymentId": "c4e6a8b0-3d5f-4a7b-9c1d-2e3f4a5b6c7d",
       "psp": "paysafe",
       "reference": "PSP_7781234",
-      "status": "SUCCEEDED"
+      "status": "captured"
      }
     }
    },
