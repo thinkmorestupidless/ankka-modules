@@ -122,7 +122,7 @@ function Analytics({ merchantId }: { merchantId: string }) {
         </div>
         {Object.entries(s.statusCounts).map(([k, n]) => (
           <div key={k}>
-            <dt>{word("payments.deposits.status", k)}</dt>
+            <dt>{word("payments.deposits.status", k.toLowerCase())}</dt>
             <dd className="figures">{n}</dd>
           </div>
         ))}

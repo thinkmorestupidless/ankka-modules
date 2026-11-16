@@ -1336,7 +1336,7 @@
       "paymentId": "c4e6a8b0-3d5f-4a7b-9c1d-2e3f4a5b6c7d",
       "psp": "paysafe",
       "pspTransactionId": "PSP_1",
-      "status": "SUCCEEDED",
+      "status": "captured",
       "terminalId": "t-1"
      },
      {
@@ -1349,13 +1349,13 @@
       "paymentId": "d5f7b9c1-4e6a-4b8c-8d2e-3f4a5b6c7d8e",
       "psp": "paysafe",
       "pspTransactionId": null,
-      "status": "FAILED",
+      "status": "failed",
       "terminalId": "t-1"
      }
     ],
     "statusCounts": {
-     "FAILED": 1,
-     "SUCCEEDED": 1
+     "failed": 1,
+     "captured": 1
     },
     "total": 2
    }
@@ -1384,8 +1384,8 @@
      }
     ],
     "statusCounts": {
-     "FAILED": 1,
-     "SUCCEEDED": 2
+     "failed": 1,
+     "captured": 2
     },
     "totalCount": 3
    }
@@ -1943,6 +1943,103 @@
   }
  },
  "players": {
+  "GET /v1/casino/backoffice/{brand}/players": {
+   "body": {
+    "items": [
+     {
+      "playerId": "p-ana",
+      "twinId": "casino-goldvibe/p-ana",
+      "username": "ana.souza",
+      "email": "ana@example.test",
+      "accountStatus": "active",
+      "country": "BR",
+      "currency": "BRL",
+      "registeredAt": "2026-09-01T13:00:00Z",
+      "vipTier": null,
+      "potVip": false,
+      "suspectedDuplicate": false
+     },
+     {
+      "playerId": "p-kenji",
+      "twinId": "casino-goldvibe/p-kenji",
+      "username": "kenji.sato",
+      "email": "kenji@example.test",
+      "accountStatus": "active",
+      "country": "JP",
+      "currency": "JPY",
+      "registeredAt": "2026-09-14T02:30:00Z",
+      "vipTier": "gold",
+      "potVip": false,
+      "suspectedDuplicate": false
+     },
+     {
+      "playerId": "p-fahad",
+      "twinId": "casino-goldvibe/p-fahad",
+      "username": "fahad.k",
+      "email": "fahad@example.test",
+      "accountStatus": "suspended",
+      "country": "KW",
+      "currency": "KWD",
+      "registeredAt": "2026-10-02T18:45:00Z",
+      "vipTier": null,
+      "potVip": true,
+      "suspectedDuplicate": true
+     },
+     {
+      "playerId": "p-lena",
+      "twinId": "casino-goldvibe/p-lena",
+      "username": "lena.m",
+      "email": "lena@example.test",
+      "accountStatus": "active",
+      "country": "PT",
+      "currency": "EUR",
+      "registeredAt": "2026-10-20T09:10:00Z",
+      "vipTier": null,
+      "potVip": false,
+      "suspectedDuplicate": false
+     }
+    ],
+    "total": 4,
+    "facets": {
+     "status": {
+      "active": 3,
+      "suspended": 1
+     },
+     "country": {
+      "BR": 1,
+      "JP": 1,
+      "KW": 1,
+      "PT": 1
+     },
+     "currency": {
+      "BRL": 1,
+      "JPY": 1,
+      "KWD": 1,
+      "EUR": 1
+     },
+     "vipOnly": {
+      "true": 1
+     },
+     "potVip": {
+      "true": 1,
+      "false": 3
+     },
+     "online": {
+      "true": 1,
+      "false": 3
+     },
+     "identity": {
+      "verified": 2,
+      "unverified": 2
+     },
+     "birthdayWithinDays": {
+      "0": 0,
+      "7": 1,
+      "30": 1
+     }
+    }
+   }
+  },
   "GET /v1/casino/backoffice/{brand}/fraud-cases": {
    "body": {
     "cases": [

@@ -751,6 +751,7 @@ export const en = {
   "protection.case.choose": "Choose a case",
   "protection.case.self_exclusion": "Self-exclusion",
   "protection.case.cool_off": "Break",
+  "protection.case.cooling_off": "Break",
   "protection.case.deposit_limit": "Deposit limit",
   "protection.case.loss_limit": "Loss limit",
   "protection.case.session_limit": "Play time",
