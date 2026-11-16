@@ -5,6 +5,7 @@ import { Status } from "../../src/web/components/status.tsx";
 import { Money } from "../../src/web/components/money.tsx";
 import { DateTime, useZone, ZoneNote } from "../../src/web/components/date.tsx";
 import { MeContext } from "../../src/web/frame/context.ts";
+import { CountText } from "../../src/web/areas/affiliates/parts.tsx";
 import type { Me } from "../../src/shared/access.ts";
 import { hrefOf, NavigateContext, RecordLink, RecordLinks } from "../../src/web/components/links.tsx";
 import { BirthDateInput } from "../../src/web/components/date-input.tsx";
@@ -93,6 +94,18 @@ describe("a date", () => {
   test("the zone note names the zone", () => {
     render(<ZoneNote zone="Europe/Lisbon" />);
     expect(screen.getByText("Times are in Europe/Lisbon.")).toBeTruthy();
+  });
+});
+
+describe("a count", () => {
+  test("is a number, or a dash when the owner gave none: never NaN (DR-16)", () => {
+    expect(render(<CountText value={1234} />).container.textContent).toBe("1,234");
+    cleanup();
+    for (const missing of [undefined, null, Number.NaN, "4"]) {
+      const { container } = render(<CountText value={missing} />);
+      expect(container.textContent).toBe("—");
+      cleanup();
+    }
   });
 });
 
