@@ -165,6 +165,8 @@
 .bo-input[aria-invalid="true"] { border-color: var(--danger); }
 
 .bo-link { color: var(--primary); text-underline-offset: 2px; }
+/* a button that reads as a link: no face of its own, so its text is on the surface it sits on */
+button.bo-link { background: none; border: 0; padding: 0; font: inherit; text-decoration: underline; cursor: pointer; }
 .bo-links { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; list-style: none; margin: 0; padding: 0; }
 
 /* read by a screen reader, not shown */
