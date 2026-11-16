@@ -1,8 +1,10 @@
 // A player's sessions (T076; FR-023, P5): each player session with its game sessions, and a gap players
 // found in a game session's data (what was wagered against what its rounds staked) named with both
 // figures. A game session opened (`?gameSession=`) shows its bets (P6) with their totals per currency; an
-// active session can be closed.
-import { useMemo } from "react";
+// active session can be closed, an active game session ended, and every open game session ended at once.
+// `/players/sessions` (`BrandSessionsPage`): the brand's player sessions (P5), filtered by status and the
+// start's period, each linking to its player and closed from there by force.
+import { useId, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { t } from "../../../shared/messages/index.ts";
@@ -10,9 +12,11 @@ import { players } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
 import { DateTime, ZoneNote } from "../../components/date.tsx";
-import { completeOf, List, memoryStore, useListState, useRouterListStore } from "../../components/list/index.ts";
+import { useFreshness } from "../../components/freshness.tsx";
+import { RecordLink } from "../../components/links.tsx";
+import { completeOf, List, memoryStore, useListState, useRouterListStore, type Column } from "../../components/list/index.ts";
 import { Money } from "../../components/money.tsx";
-import { Status } from "../../components/status.tsx";
+import { Status, statusWord } from "../../components/status.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 import { readJson, refusalOf } from "../corrections/shared.tsx";
@@ -99,11 +103,30 @@ export function PlayerSessions({ player }: { player: string }) {
     queryFn: () => readJson<{ sessions: PlayerSession[]; total: number }>(players.getPlayersPlayerSessions({ playerId: player }, { query: { page: String(list.state.page), pageSize: String(PageSize) } })),
     enabled: player !== "",
   });
+  const [ended, setEnded] = useState<number | undefined>(undefined);
   const open = (id: string) => void navigate({ to: ".", search: (prev: Record<string, unknown>) => ({ ...prev, gameSession: id, round: undefined }) } as never);
+  const refresh = () => void client.invalidateQueries({ queryKey: ["players", "player-sessions", player] });
+  const playing = q.data?.sessions.some((s) => s.gameSessions.some((g) => g.status === "active")) ?? false;
   return (
     <section aria-labelledby="sessions-title">
       <h2 id="sessions-title">{t("players.tab.sessions")}</h2>
       <ZoneNote zone={tz} />
+      {readOnly || !playing ? null : (
+        <Action
+          action={Actions["player.forceEndAllGameSessions"]}
+          me={me}
+          bags={bags}
+          run={() => players.postPlayersSessionsForceEndAll({ playerId: player })}
+          onDone={(answer) => {
+            void answer
+              .json()
+              .then((j: { ended?: number }) => setEnded(j.ended ?? 0))
+              .catch(() => setEnded(undefined));
+            refresh();
+          }}
+        />
+      )}
+      {ended !== undefined ? <p role="status">{t("sessions.endedCount", { count: ended })}</p> : null}
       {q.isError ? <RefusalNotice refusal={refusalOf(q.error)} /> : !q.data ? <p role="status">{t("list.loading")}</p> : null}
       {q.data && q.data.sessions.length === 0 ? <p className="bo-muted">{t("sessions.none")}</p> : null}
       {q.data?.sessions.map((s) => (
@@ -124,7 +147,7 @@ export function PlayerSessions({ player }: { player: string }) {
               bags={bags}
               state={s.status}
               run={() => players.postPlayersPlayerSessionsForceClose({ playerId: player, sessionId: s.sessionId })}
-              onDone={() => void client.invalidateQueries({ queryKey: ["players", "player-sessions", player] })}
+              onDone={refresh}
             />
           )}
           {s.gameSessions.length === 0 ? <p className="bo-muted">{t("sessions.noGames")}</p> : (
@@ -139,6 +162,8 @@ export function PlayerSessions({ player }: { player: string }) {
                   <th scope="col" className="figures">{t("rounds.won")}</th>
                   <th scope="col" className="figures">{t("rounds.net")}</th>
                   <th scope="col">{t("sessions.gap")}</th>
+                  <th scope="col">{t("rounds.status")}</th>
+                  <th scope="col">{t("identity.document.actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -161,6 +186,22 @@ export function PlayerSessions({ player }: { player: string }) {
                         </>
                       ) : null}
                     </td>
+                    <td>
+                      <Status value={g.status} />
+                    </td>
+                    <td>
+                      {readOnly ? null : (
+                        <Action
+                          action={Actions["player.forceEndGameSession"]}
+                          me={me}
+                          bags={bags}
+                          state={g.status}
+                          subject={<p>{g.gameId ?? g.sessionId}</p>}
+                          run={() => players.postPlayersSessionsForceEnd({ playerId: player, sessionId: g.sessionId })}
+                          onDone={refresh}
+                        />
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -176,6 +217,103 @@ export function PlayerSessions({ player }: { player: string }) {
       {typeof opened === "string" && opened !== "" ? (
         <SessionBets key={opened} player={player} sessionId={opened} tz={tz} />
       ) : null}
+    </section>
+  );
+}
+
+interface BrandSession {
+  sessionId: string;
+  playerId: string;
+  status: string;
+  startedAt: string;
+  endedAt?: string | null;
+  reason?: string | null;
+}
+
+/** The statuses players filters the brand's sessions by (OperatorSessionRoutes.SessionFilters). */
+export const SessionStatuses = ["active", "ended", "completed", "expired", "forced", "suspended", "superseded"] as const;
+
+/** `/players/sessions`: the brand's player sessions, newest first (P5), the filters and page in the URL. */
+export function BrandSessionsPage() {
+  const tz = zone();
+  const me = useOperator();
+  const bags = useBags();
+  const readOnly = useReadOnlyMode();
+  const client = useQueryClient();
+  const list = useListState(useRouterListStore());
+  const freshness = useFreshness(["players"]);
+  const statusId = useId();
+  const fromId = useId();
+  const toId = useId();
+  const f = list.state.filters;
+  const query: Record<string, string> = { page: String(list.state.page), pageSize: String(PageSize) };
+  for (const k of ["status", "from", "to"]) if (f[k]) query[k] = f[k];
+  const q = useQuery({
+    queryKey: ["players", "brand-sessions", query],
+    queryFn: () => readJson<{ sessions: BrandSession[]; total: number }>(players.getSessions({ query })),
+    placeholderData: (prev) => prev,
+  });
+  const columns: Column<BrandSession>[] = [
+    { id: "player", header: "sessions.player", cell: (s) => <RecordLink to={{ kind: "player", id: s.playerId }}>{s.playerId}</RecordLink> },
+    { id: "started", header: "sessions.started", cell: (s) => <DateTime instant={s.startedAt} zone={tz} /> },
+    { id: "ended", header: "sessions.ended", cell: (s) => (s.endedAt ? <DateTime instant={s.endedAt} zone={tz} /> : null) },
+    { id: "status", header: "rounds.status", cell: (s) => <Status value={s.status} /> },
+    {
+      id: "actions",
+      header: "identity.document.actions",
+      cell: (s) =>
+        readOnly ? null : (
+          <Action
+            action={Actions["player.forceCloseSession"]}
+            me={me}
+            bags={bags}
+            state={s.status}
+            subject={<p>{s.playerId}</p>}
+            run={() => players.postPlayersPlayerSessionsForceClose({ playerId: s.playerId, sessionId: s.sessionId })}
+            onDone={() => void client.invalidateQueries({ queryKey: ["players", "brand-sessions"] })}
+          />
+        ),
+    },
+  ];
+  return (
+    <section>
+      <h1>{t("sessions.brand.title")}</h1>
+      <div role="search" className="bo-players-filters">
+        <div className="bo-field">
+          <label htmlFor={statusId}>{t("sessions.filter.status")}</label>
+          <select id={statusId} value={f.status ?? ""} onChange={(e) => list.setFilter("status", e.target.value)}>
+            <option value="">{t("players.filter.any")}</option>
+            {SessionStatuses.map((s) => (
+              <option key={s} value={s}>
+                {statusWord(s)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="bo-field">
+          <label htmlFor={fromId}>{t("sessions.filter.from")}</label>
+          <input id={fromId} type="date" className="bo-input" value={f.from ?? ""} onChange={(e) => list.setFilter("from", e.target.value)} />
+        </div>
+        <div className="bo-field">
+          <label htmlFor={toId}>{t("sessions.filter.to")}</label>
+          <input id={toId} type="date" className="bo-input" value={f.to ?? ""} onChange={(e) => list.setFilter("to", e.target.value)} />
+        </div>
+      </div>
+      <p className="bo-muted">{t("bets.daysNote")}</p>
+      <ZoneNote zone={tz} />
+      {q.isError ? <RefusalNotice refusal={refusalOf(q.error)} /> : null}
+      <List
+        caption="sessions.brand.caption"
+        columns={columns}
+        rows={q.data?.sessions}
+        rowKey={(s) => s.sessionId}
+        total={q.data?.total}
+        complete={q.data ? completeOf({ page: list.state.page, pageSize: PageSize, total: q.data.total }) : false}
+        fetching={q.isFetching}
+        freshness={freshness}
+        zone={tz}
+        list={list}
+      />
     </section>
   );
 }
