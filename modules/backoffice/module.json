@@ -85,6 +85,11 @@
   ],
   "configuration": [
     {
+      "key": "keycloak-jwks-base",
+      "type": "url",
+      "secret": false
+    },
+    {
       "key": "casino-brand",
       "type": "string",
       "secret": false
