@@ -39,6 +39,9 @@ const toneOf: Record<string, Tone> = {
   closed: "neutral",
   erasure_pending: "waiting",
   erased: "neutral",
+  // merchant's payments
+  captured: "positive",
+  expired: "neutral",
   // rounds, cases, documents
   settled: "positive",
   unsettled: "warning",
