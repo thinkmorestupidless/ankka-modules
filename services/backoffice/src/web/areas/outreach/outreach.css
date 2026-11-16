@@ -1,0 +1,19 @@
+/* US11: the online notices, who is online, and a player's messages. */
+.bo-online-notices { display: grid; gap: 1px; }
+.bo-online-notices .bo-notice { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.bo-online-notices .bo-notice > svg { color: var(--primary); }
+.bo-online-desktop { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+.bo-messages-compose { display: grid; gap: 12px; max-width: 720px; margin-bottom: 24px; }
+.bo-messages-compose fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 6px; }
+.bo-messages-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.bo-messages-choice { display: inline-flex; gap: 6px; align-items: center; }
+.bo-messages-preview {
+  display: grid;
+  gap: 4px;
+  padding: 12px 16px;
+  background: var(--surface-1);
+  border-radius: var(--radius-card);
+}
+.bo-messages-preview p { margin: 0; }
+.bo-messages-body { white-space: pre-wrap; }

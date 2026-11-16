@@ -6,6 +6,8 @@ import type { Me } from "../../shared/access.ts";
 import { render } from "../../shared/messages/index.ts";
 import { NotInBrand } from "../areas/access/NotInBrand.tsx";
 import { JobNotices } from "../areas/jobs/notices.tsx";
+import { OnlineNotices } from "../areas/outreach/notices.tsx";
+import { askedForNotices } from "../areas/outreach/online.tsx";
 import { areaOf, areasFor } from "./areas.ts";
 import { MeContext, ReadOnlyContext } from "./context.ts";
 import { useEvents } from "./events.ts";
@@ -38,6 +40,7 @@ export function Frame({ me, readOnly, children }: { me: Me; readOnly: boolean; c
               </p>
             ) : null}
             <JobNotices />
+            <OnlineNotices />
             <main id="page" className="bo-page" tabIndex={-1}>
               {children ?? <Outlet />}
             </main>
@@ -66,7 +69,7 @@ export function Shell() {
   const state = useMe();
   const readOnly = useReadOnly();
   useTheme(state.state === "signedIn" ? state.me : undefined);
-  useEvents(state.state === "signedIn");
+  useEvents(state.state === "signedIn", state.state === "signedIn" && askedForNotices(state.me.preferences));
   if (state.state !== "signedIn") return <Outside state={state} />;
   return <Frame me={state.me} readOnly={readOnly} />;
 }

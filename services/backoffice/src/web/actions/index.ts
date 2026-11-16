@@ -125,6 +125,8 @@ export const Actions = {
   "note.write": { label: "action.note.write.label", effect: "action.note.write.effect", permission: "note.write", reason: "none" },
   "note.pin": { label: "action.note.pin.label", effect: "action.note.pin.effect", permission: "note.write", reason: "none", offeredIn: ["unpinned"] },
   "note.unpin": { label: "action.note.unpin.label", effect: "action.note.unpin.effect", permission: "note.write", reason: "none", offeredIn: ["pinned"] },
+  // players: an inbox item to the player (OperatorStatusRoutes.message: no reason recorded; refused for a closed account)
+  "message.send": { label: "action.message.send.label", effect: "action.message.send.effect", permission: "message.send", reason: "none" },
 
   // responsible-gambling: a break lifted is recorded with its reason (ProfileRoutes.scala)
   "protection.liftBreak": {

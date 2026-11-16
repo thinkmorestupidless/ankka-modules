@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useParams } from "@tanstack/react-router";
 import type { MessageKey } from "../../../shared/messages/index.ts";
 import { PlayerIdentity } from "./identity.tsx";
+import { PlayerMessages } from "./messages.tsx";
 import { PlayerProtection } from "./protection.tsx";
 import { PlayerRewards } from "./rewards.tsx";
 import { PlayerWithdrawals } from "./withdrawals.tsx";
@@ -16,7 +17,10 @@ export interface ExtraTab {
 }
 
 /** Other areas' tabs of the player's page, in the order shown after withdrawals. */
-export const ExtraTabs: ExtraTab[] = [{ id: "rewards", label: "players.tab.rewards", show: (player) => <PlayerRewards player={player} /> }];
+export const ExtraTabs: ExtraTab[] = [
+  { id: "rewards", label: "players.tab.rewards", show: (player) => <PlayerRewards player={player} /> },
+  { id: "messages", label: "players.tab.messages", show: (player) => <PlayerMessages player={player} /> },
+];
 
 const usePlayer = () => (useParams({ strict: false }) as { player?: string }).player;
 
