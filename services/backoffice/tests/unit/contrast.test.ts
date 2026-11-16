@@ -57,7 +57,8 @@ const contrast = (x: Oklch, y: Oklch) => {
 const tokens = designTable();
 const surfaces = ["surface-0", "surface-1", "surface-2"];
 const pairs: [string, string, number][] = [
-  ...surfaces.flatMap((s) => [["text", s, 4.5], ["text-muted", s, 4.5]] as [string, string, number][]),
+  // series-3 is also the warning tone's text (components/status.tsx): text on every surface
+  ...surfaces.flatMap((s) => [["text", s, 4.5], ["text-muted", s, 4.5], ["series-3", s, 4.5]] as [string, string, number][]),
   ["on-primary", "primary", 4.5],
   ...["surface-0", "surface-1"].flatMap(
     (s) =>
