@@ -784,3 +784,20 @@ amendment (K5 in contracts/amendments.md). The document route passes kyc's bytes
   most 50 are kept. Erasure empties them, and an erased player records no new one. The journal still
   holds the earlier events until ankka 042 (R8), as for every personal field.
 - What a player plays counts settled rounds only, per game and currency, all time unless bounded.
+
+### The test payment and operators paged, 2026-11-16 (T107, H4, H5, T2)
+
+- The original's "Send Test Payment" dialog called a route no server had. It is built here from the
+  amendment: merchant's `…/psp-credentials/{provider}/test-payment?name=` asks psp-gateway's
+  `POST /v1/psp/test-payment`, which admits only merchant.
+- Only Unity Finance (its test card), Gigadat and Digitarium (their sandboxes) have a test mode; the
+  other six answer 501 `test_mode_unavailable`. For Gigadat and Digitarium the credential's
+  environment is forced to `sandbox`, so a test never charges a production account.
+- The amount is one whole unit of the currency, or the catalogue's minimum where higher; USD by
+  default (CAD for Gigadat). The outcome is the provider's answer to the initiation (`accepted`,
+  `refused`, `unavailable`), all as 200. A credential can be tested whatever its status.
+- Nothing is recorded: no session, no payment, no deposit, no fact. A test changes nothing, so no
+  audit record is written.
+- `/v1/operators` is paged newest first, `pageSize` 1 to 200 (25 by default).
+- Decision (Trevor): configuration.feature's first scenario is reworded from a "minimum withdrawal" to
+  the withdrawal turnover multiplier, which is what exists.

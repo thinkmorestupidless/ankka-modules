@@ -273,7 +273,7 @@ refused.
 - [X] T104 [P] [US9] `svc/wallet/` W3: `PUT wallet-config/rewards`, with tests
 - [X] T105 [P] [US9] `svc/players/` P7, P8, P9: manager tags; seen devices recorded at log-in as `Personal` under the player's subject and erased with the player; what a player plays; binding `features/players/manager-tags.feature`, `devices.feature`, `games-played.feature`
 - [X] T106 [P] [US9] `svc/merchant/` H3: deposit bounds per method and currency, enforced by the deposit workflow, binding `features/payments/deposit-bounds.feature`
-- [ ] T107 [P] [US9] `svc/merchant/` H4, H5 and `svc/psp-gateway/` T2: the test payment through the gateway, never crediting a wallet; paging on `/v1/operators`, with tests; amends specs 004, 005
+- [X] T107 [P] [US9] `svc/merchant/` H4, H5 and `svc/psp-gateway/` T2: the test payment through the gateway, never crediting a wallet; paging on `/v1/operators`, with tests; amends specs 004, 005
 - [X] T108 [US9] Extend `s/routes.ts` with the configuration, merchant, psp-gateway, ingest, attribution, support-agent and engagement rows; implement `w/components/config-form.tsx` that marks each value differing from the brand's default or its licence profile (FR-034)
 - [X] T109 [P] [US9] Implement `w/areas/configuration/brand.tsx` (sites, countries, currencies and zone, withdrawal, wagering and reward settings, reporting settings, the modules page with why a module is off)
 - [X] T110 [P] [US9] Implement `w/areas/configuration/games.tsx` (providers, provider configuration and catalogue refresh, developers, categories, per-game overrides) and `callbacks.tsx` (unacknowledged calls: replay, resolve)
