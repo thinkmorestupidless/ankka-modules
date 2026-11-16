@@ -179,7 +179,9 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
 
   withAcl(may("player.read")) {
   get("/players") { () =>
-    status.players(query.raw("search"), query.raw("status"), query.raw("vipOnly"), query.raw("page"), query.raw("pageSize"))
+    val q = query
+    status.players(OperatorStatusRoutes.PlayersQuery(q.raw("search"), q.raw("status"), q.raw("vipOnly"), q.raw("page"), q.raw("pageSize"),
+      q.raw("country"), q.raw("currency"), q.raw("potVip"), q.raw("online"), q.raw("identity"), q.raw("birthdayWithinDays"), q.raw("facets")))
   }
   }
   withAcl(may("player.read")) {

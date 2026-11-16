@@ -193,17 +193,46 @@ final class OperatorStatusRoutes(ctx: Ctx):
 
   // ── the reads ──────────────────────────────────────────────────────────────────────────────────
 
-  /** The original's list: `search`, `status`, `page` (from 1), `pageSize` (1–200, 25); `{items, total}`. */
-  def players(search: Option[String], status: Option[String], vipOnly: Option[String], page: Option[String], pageSize: Option[String]): Reply =
-    val n    = page.flatMap(_.toIntOption).filter(_ >= 1).getOrElse(1)
-    val size = pageSize.flatMap(_.toIntOption).filter(s => s >= 1 && s <= 200).getOrElse(25)
-    val all = search.map(_.trim).filter(_.nonEmpty) match
-      case Some(q) => PlayersView.find(views, q, ListLimit)
-      case None =>
-        val st = status.map(_.trim).filter(s => s.nonEmpty && s != "all" && s != "rg-flagged")
-        PlayersView.page(views, PlayersView.Filter(status = st), 0, ListLimit)
-    val seen = all.filter(r => !vipOnly.contains("true") || r.vipTier.exists(_.nonEmpty))
-    ok(Json.obj("items" -> Json.arr(seen.slice((n - 1) * size, n * size).map(row)*), "total" -> seen.size))
+  /**
+   * The operator's list (spec 030 P2), a view query with no row cap, newest registered first: `search`,
+   * `status` (`all` and `rg-flagged` for any, as before), `vipOnly`, and `country`, `currency`, `potVip`,
+   * `online` (`true` or `false`), `identity` (`verified` or `unverified`) and `birthdayWithinDays` (0 to 366,
+   * 0 today), all combined with AND; a value out of range is no filter. `page` (from 1) and `pageSize` (1 to
+   * 200, 25) are answered back beside `items` and `total`, out of range taken as their defaults. `facets=true`
+   * adds `facets`: for each filter, the players matching each of its values with every other filter applied.
+   */
+  def players(q: PlayersQuery): Reply =
+    val n    = q.page.flatMap(_.trim.toIntOption).filter(n => n >= 1 && n <= 1_000_000).getOrElse(1)
+    val size = q.pageSize.flatMap(_.trim.toIntOption).filter(s => s >= 1 && s <= 200).getOrElse(25)
+    val f    = q.filter(now())
+    val rows = PlayersView.page(views, f, (n - 1) * size, size)
+    val o    = Json.obj("items" -> Json.arr(rows.map(row)*), "total" -> PlayersView.total(views, f), "page" -> n, "pageSize" -> size)
+    if q.facets.exists(_.trim.equalsIgnoreCase("true")) then Json.set(o, "facets", facets(f))
+    ok(o)
+
+  /** Each filter's values with the players matching each, every other filter applied and its own left out. */
+  private def facets(f: PlayersView.Filter): ObjectNode =
+    import scala.concurrent.{ExecutionContext, Future}
+    given ExecutionContext = ExecutionContext.parasitic
+    def counts(pairs: Vector[(String, PlayersView.Filter)]): Future[ObjectNode] =
+      Future.sequence(pairs.map((k, g) => PlayersView.totalAsync(views, g).map(k -> _)))
+        .map(cs => Json.obj(cs.map((k, c) => k -> Long.box(c))*))
+    def distinct(field: String, without: PlayersView.Filter)(set: (PlayersView.Filter, String) => PlayersView.Filter) =
+      counts(PlayersView.valuesOf(views, without, field).map(v => v -> set(without, v)))
+    val bools = Vector("true" -> true, "false" -> false)
+    val windows = Vector(0, 7, 30)
+    val all = Vector(
+      "status"   -> distinct("status", f.copy(status = None))((g, v) => g.copy(status = Some(v))),
+      "country"  -> distinct("country", f.copy(country = None))((g, v) => g.copy(country = Some(v))),
+      "currency" -> distinct("currency", f.copy(currency = None))((g, v) => g.copy(currency = Some(v))),
+      "vipOnly"  -> counts(Vector("true" -> f.copy(vipOnly = true))),
+      "potVip"   -> counts(bools.map((k, b) => k -> f.copy(potVip = Some(b)))),
+      "online"   -> counts(bools.map((k, b) => k -> f.copy(online = Some(b)))),
+      "identity" -> counts(PlayersView.Identity.all.map(v => v -> f.copy(identity = Some(v)))),
+      "birthdayWithinDays" -> counts(windows.map(d => d.toString -> f.copy(birthdayWithin = Some(d))))
+    )
+    val answered = scala.concurrent.Await.result(Future.sequence(all.map((k, fo) => fo.map(k -> _))), FacetsBound)
+    Json.obj(answered*)
 
   private def row(r: PlayerRow): ObjectNode =
     Json.obj("playerId" -> r.playerId, "twinId" -> s"casino-${ctx.slug}/${r.playerId}", "username" -> r.displayName.reveal,
@@ -437,6 +466,39 @@ object OperatorStatusRoutes:
   val ActivityPage: Int            = 50
   val ListLimit: Int               = 10000
   val AgentBound: FiniteDuration   = 5.seconds
+  val FacetsBound: FiniteDuration  = 10.seconds
+
+  /** The players list's query parameters, as given (spec 030 P2). */
+  final case class PlayersQuery(
+      search: Option[String] = None,
+      status: Option[String] = None,
+      vipOnly: Option[String] = None,
+      page: Option[String] = None,
+      pageSize: Option[String] = None,
+      country: Option[String] = None,
+      currency: Option[String] = None,
+      potVip: Option[String] = None,
+      online: Option[String] = None,
+      identity: Option[String] = None,
+      birthdayWithinDays: Option[String] = None,
+      facets: Option[String] = None
+  ):
+    private def present(v: Option[String]): Option[String] = v.map(_.trim).filter(_.nonEmpty)
+    private def bool(v: Option[String]): Option[Boolean] = present(v).map(_.toLowerCase).collect { case "true" => true; case "false" => false }
+
+    def filter(at: Instant): PlayersView.Filter =
+      PlayersView.Filter(
+        status = present(status).filter(s => s != "all" && s != "rg-flagged"),
+        search = present(search),
+        vipOnly = bool(vipOnly).contains(true),
+        country = present(country),
+        currency = present(currency),
+        potVip = bool(potVip),
+        online = bool(online),
+        identity = present(identity).map(_.toLowerCase).filter(PlayersView.Identity.all.contains),
+        birthdayWithin = present(birthdayWithinDays).flatMap(_.toIntOption).filter(d => d >= 0 && d <= 366),
+        today = LocalDate.ofInstant(at, java.time.ZoneOffset.UTC)
+      )
 
   def brandJson(c: BrandConfig): ObjectNode =
     Json.obj("name" -> c.name, "legalName" -> c.legalName, "playerSiteBase" -> c.playerSiteBase, "reportingZone" -> c.reportingZone,
