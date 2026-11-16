@@ -17,6 +17,7 @@ import { Status } from "../../components/status.tsx";
 import { word } from "../word.ts";
 import { readQueue, type Row } from "./read.ts";
 import "./withdrawals.css";
+import { RecordLink } from "../../components/links.tsx";
 
 export const PageSize = 50;
 
@@ -41,7 +42,7 @@ export function queryOf(s: ListState, pageSize = PageSize): Record<string, strin
 
 const columns = (tz: string): Column<Row>[] => [
   { id: "created", header: "withdrawals.queue.created", sort: "created", cell: (r) => <DateTime instant={r.createdAt} zone={tz} /> },
-  { id: "player", header: "withdrawals.queue.player", cell: (r) => <code>{r.playerId}</code> },
+  { id: "player", header: "withdrawals.queue.player", cell: (r) => <RecordLink to={{ kind: "player", id: r.playerId }}>{r.playerId}</RecordLink> },
   { id: "kyc", header: "withdrawals.queue.kyc", cell: (r) => <Status value={r.kycStatus || "unverified"} /> },
   { id: "amount", header: "withdrawals.queue.amount", numeric: true, cell: (r) => <Money value={{ minor: r.amount, currency: r.currency }} /> },
   { id: "terminal", header: "withdrawals.queue.terminal", cell: (r) => r.terminalName },

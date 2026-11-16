@@ -15,6 +15,7 @@ import { List, useListState, useRouterListStore, type Column } from "../../compo
 import { RefusalNotice } from "../../components/action/index.ts";
 import { Status } from "../../components/status.tsx";
 import { Filters, readQueue, type QueueRow } from "./kyc.ts";
+import { RecordLink } from "../../components/links.tsx";
 
 export const PageSize = 50;
 
@@ -36,7 +37,7 @@ export function pageOf(rows: readonly QueueRow[], counts: Record<string, number>
 }
 
 const columns = (filter: string, tz: string): Column<QueueRow>[] => [
-  { id: "player", header: "identity.queue.player", cell: (r) => <code>{r.playerId}</code> },
+  { id: "player", header: "identity.queue.player", cell: (r) => <RecordLink to={{ kind: "player", id: r.playerId }}>{r.playerId}</RecordLink> },
   { id: "since", header: "identity.queue.since", cell: (r) => (waitingSince(filter, r) ? <DateTime instant={waitingSince(filter, r)!} zone={tz} /> : null) },
   { id: "status", header: "identity.queue.status", cell: (r) => <Status value={r.status ?? "unverified"} /> },
   { id: "awaiting", header: "identity.queue.awaiting", numeric: true, cell: (r) => r.awaiting ?? 0 },
