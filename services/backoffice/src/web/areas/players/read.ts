@@ -49,6 +49,18 @@ export interface Standing {
   };
 }
 
+/**
+ * The player's currency from players' profile answer (OperatorProfileRoutes.profile: `{player, wallet,
+ * activeSessions, pinnedNotes}`): the player's own, else the wallet's; a blank one is none. An answer of the
+ * player alone (the older doubles) is read the same way.
+ */
+export function profileCurrency(body: unknown): string | undefined {
+  const o = (v: unknown): Record<string, unknown> => (v !== null && typeof v === "object" ? (v as Record<string, unknown>) : {});
+  const text = (v: unknown) => (typeof v === "string" && v.trim() !== "" ? v.trim() : undefined);
+  const b = o(body);
+  return text(o(b.player ?? b).currency) ?? text(o(b.wallet).currency);
+}
+
 export const readStanding = (player: string) => readJson<Standing>(fetch(`/api/players/${encodeURIComponent(player)}/standing`, { headers: { Accept: "application/json" } }));
 
 export interface Line {

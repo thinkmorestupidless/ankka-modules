@@ -5,6 +5,7 @@ import { describe, expect, test } from "vitest";
 import { walletMinor, walletText } from "../../src/web/areas/corrections/shared.tsx";
 import { parseRows, readStream, type Answered } from "../../src/web/areas/corrections/batch.tsx";
 import { amountOf } from "../../src/web/areas/corrections/adjust.tsx";
+import { profileCurrency } from "../../src/web/areas/players/read.ts";
 
 describe("the wallet's amount text", () => {
   test.each([
@@ -75,4 +76,19 @@ describe("the streamed answer", () => {
     const done = await readStream(new Response('{"row":1,"player":"a","currency":"EUR","outcome":"made"}\n'), () => {});
     expect(done).toBeUndefined();
   });
+});
+
+describe("the player's currency an adjustment is in", () => {
+  test("is the player's own, as players answers the profile", () => {
+    expect(profileCurrency({ player: { playerId: "p-ana", currency: "BRL" }, wallet: { currency: "EUR" }, activeSessions: [], pinnedNotes: [] })).toBe("BRL");
+  });
+
+  test("is the wallet's when the player's is blank or missing", () => {
+    expect(profileCurrency({ player: { playerId: "p-ana", currency: "" }, wallet: { realBalance: "0.00", currency: "BRL" } })).toBe("BRL");
+    expect(profileCurrency({ player: { playerId: "p-ana" }, wallet: { currency: "KWD" } })).toBe("KWD");
+  });
+
+  test("is read from an answer of the player alone", () => expect(profileCurrency({ playerId: "p-ana", currency: "JPY" })).toBe("JPY"));
+
+  test.each([[{ player: { currency: "" }, wallet: null }], [{}], [null], ["BRL"]])("is none in %j", (body) => expect(profileCurrency(body)).toBeUndefined());
 });
