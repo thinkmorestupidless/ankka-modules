@@ -2,7 +2,7 @@
 // what each carries, read again at most every 10 seconds, and the brand's enabled modules, every
 // minute (amendment P14). A failed read keeps the last copy; before the first, there is none.
 import permissionsFile from "../shared/generated/operator-permissions.v1.json" with { type: "json" };
-import { programmePermissionsOf } from "../shared/access.ts";
+import { paymentsPermissionsOf, programmePermissionsOf } from "../shared/access.ts";
 
 export const PlatformAdmin = "platform_admin";
 export const AllPermissions: readonly string[] = permissionsFile.permissions;
@@ -54,10 +54,11 @@ export function parseBags(body: unknown): Bags {
 
 /**
  * The permissions `roles` carry with the brand's `bags`; `platform_admin` carries every one. The
- * affiliate programme's, which its realm roles give and no bag does, follow (`programmePermissionsOf`).
+ * affiliate programme's and the shared payments', which realm roles give and no bag does, follow
+ * (`programmePermissionsOf`, `paymentsPermissionsOf`).
  */
 export function permissionsOf(roles: readonly string[], bags: Bags): string[] {
-  const programme = programmePermissionsOf(roles);
+  const programme = [...programmePermissionsOf(roles), ...paymentsPermissionsOf(roles)];
   if (roles.includes(PlatformAdmin)) return [...AllPermissions, ...programme];
   const held = new Set<string>();
   for (const r of roles) for (const p of bags[r] ?? []) held.add(p);

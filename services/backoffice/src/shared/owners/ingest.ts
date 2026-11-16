@@ -21,27 +21,27 @@ function call(method: string, path: string, options: Options): Promise<Response>
   });
 }
 
-/** GET /ingest/sub-brands/{subBrand}/requests: resource_viewer */
+/** GET /ingest/sub-brands/{subBrand}/requests: payments.read */
 export function getIngestSubBrandsRequests(params: { subBrand: string }, options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/ingest/ingest/sub-brands/${encodeURIComponent(params.subBrand)}/requests`, options);
 }
 
-/** GET /ingest/sub-brands/{subBrand}/rate: resource_viewer */
+/** GET /ingest/sub-brands/{subBrand}/rate: payments.read */
 export function getIngestSubBrandsRate(params: { subBrand: string }, options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/ingest/ingest/sub-brands/${encodeURIComponent(params.subBrand)}/rate`, options);
 }
 
-/** PUT /ingest/sub-brands/{subBrand}/rate: resource_viewer */
+/** PUT /ingest/sub-brands/{subBrand}/rate: payments.admin */
 export function putIngestSubBrandsRate(params: { subBrand: string }, options: Options = {}): Promise<Response> {
   return call("PUT", `/api/s/ingest/ingest/sub-brands/${encodeURIComponent(params.subBrand)}/rate`, options);
 }
 
-/** GET /ingest/lost-answers: resource_viewer */
+/** GET /ingest/lost-answers: payments.read */
 export function getIngestLostAnswers(options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/ingest/ingest/lost-answers`, options);
 }
 
-/** POST /ingest/lost-answers/{recordId}/seen: resource_viewer */
+/** POST /ingest/lost-answers/{recordId}/seen: payments.operate */
 export function postIngestLostAnswersSeen(params: { recordId: string }, options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/ingest/ingest/lost-answers/${encodeURIComponent(params.recordId)}/seen`, options);
 }

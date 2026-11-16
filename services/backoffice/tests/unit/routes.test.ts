@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { match, PaymentsRoles, table } from "../../src/server/routes.ts";
 import permissions from "../../src/shared/generated/operator-permissions.v1.json" with { type: "json" };
 import { harness, rows } from "./support.ts";
-import { ProgrammePermissions } from "../../src/shared/access.ts";
+import { PaymentsPermissions, ProgrammePermissions } from "../../src/shared/access.ts";
 
 describe("matching a row", () => {
   test("by method, service and path template, with the parameters", () => {
@@ -29,7 +29,7 @@ describe("the table", () => {
   });
 
   test("every row's permission is one the contract names, or the affiliate programme's", () => {
-    const known = new Set([...permissions.permissions, ...Object.keys(ProgrammePermissions)]);
+    const known = new Set([...permissions.permissions, ...Object.keys(ProgrammePermissions), ...Object.keys(PaymentsPermissions)]);
     const byRole = (row: (typeof table)[number]) => row.where === "payments" && PaymentsRoles.includes(row.permission);
     for (const row of table.filter((r) => !byRole(r))) expect(known.has(row.permission), `${row.method} ${row.service} ${row.path}: ${row.permission}`).toBe(true);
   });

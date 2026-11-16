@@ -58,8 +58,11 @@ export function upstreamPath(m: Matched, brand: string): string {
 }
 
 /**
- * The payments roles (contract `Routes.PaymentsRoles`): a payments route (`where` not the brand) names
- * the least of them its ACL admits, since `Routes.paymentsOperator` admits by role and no bag gives one.
+ * The payments roles (contract `Routes.PaymentsRoles`). merchant, psp-gateway and ingest admit any of them
+ * at a level (`Routes.paymentsOperator`), and no bag gives one, so their rows name the payments permission
+ * the page offers the route under (`PaymentsPermissions` in shared/access.ts): `payments.read` for a read,
+ * `payments.operate` for the operator's work, `payments.admin` for the hierarchy, providers, terminals and
+ * routing (T112 to T114).
  */
 export const PaymentsRoles: readonly string[] = [
   "resource_viewer", "resource_developer", "resource_finance", "resource_operator", "support_agent",
@@ -282,62 +285,63 @@ export const table: readonly Row[] = [
   // merchant (shared `payments`): PaymentsEndpoint at /v1/payments; admits a brand's operator once amendment H1, H2 (T071) lands
   // merchant (shared `payments`), US9 (T108): the hierarchy, provider configurations, terminals, keys, routing
   // rules, deposits and operators, each admitted by `Routes.paymentsOperator` (any payments role at a level;
-  // only an invitation compares roles, `Privilege.canAssignRole`), so the column names the least role admitted
-  r("POST", "merchant", "/holdings", "/v1/holdings", "resource_viewer", "payments"),
-  r("GET", "merchant", "/holdings", "/v1/holdings", "resource_viewer", "payments"),
-  r("GET", "merchant", "/holdings/{id}", "/v1/holdings/{id}", "resource_viewer", "payments"),
-  r("PUT", "merchant", "/holdings/{id}/status", "/v1/holdings/{id}/status", "resource_viewer", "payments"),
-  r("GET", "merchant", "/holdings/{id}/companies", "/v1/holdings/{id}/companies", "resource_viewer", "payments"),
-  r("POST", "merchant", "/companies", "/v1/companies", "resource_viewer", "payments"),
-  r("GET", "merchant", "/companies", "/v1/companies", "resource_viewer", "payments"),
-  r("GET", "merchant", "/companies/{id}", "/v1/companies/{id}", "resource_viewer", "payments"),
-  r("PUT", "merchant", "/companies/{id}/status", "/v1/companies/{id}/status", "resource_viewer", "payments"),
-  r("POST", "merchant", "/sub-brands", "/v1/sub-brands", "resource_viewer", "payments"),
-  r("GET", "merchant", "/sub-brands", "/v1/sub-brands", "resource_viewer", "payments"),
-  r("GET", "merchant", "/sub-brands/{id}", "/v1/sub-brands/{id}", "resource_viewer", "payments"),
-  r("PUT", "merchant", "/sub-brands/{id}/status", "/v1/sub-brands/{id}/status", "resource_viewer", "payments"),
-  r("POST", "merchant", "/sub-brands/{id}/psp-credentials", "/v1/sub-brands/{id}/psp-credentials", "resource_viewer", "payments"),
-  r("GET", "merchant", "/sub-brands/{id}/psp-credentials", "/v1/sub-brands/{id}/psp-credentials", "resource_viewer", "payments"),
-  r("GET", "merchant", "/sub-brands/{id}/psp-credentials/{provider}", "/v1/sub-brands/{id}/psp-credentials/{provider}", "resource_viewer", "payments"),
-  r("PUT", "merchant", "/sub-brands/{id}/psp-credentials/{provider}", "/v1/sub-brands/{id}/psp-credentials/{provider}", "resource_viewer", "payments"),
-  r("DELETE", "merchant", "/sub-brands/{id}/psp-credentials/{provider}", "/v1/sub-brands/{id}/psp-credentials/{provider}", "resource_viewer", "payments"),
-  r("POST", "merchant", "/sub-brands/{id}/psp-credentials/{provider}/activate", "/v1/sub-brands/{id}/psp-credentials/{provider}/activate", "resource_viewer", "payments"),
-  r("POST", "merchant", "/sub-brands/{id}/psp-credentials/{provider}/disable", "/v1/sub-brands/{id}/psp-credentials/{provider}/disable", "resource_viewer", "payments"),
+  // only an invitation compares roles, `Privilege.canAssignRole`), so the column names the payments
+  // permission the page offers it under (T112 to T114)
+  r("POST", "merchant", "/holdings", "/v1/holdings", "payments.admin", "payments"),
+  r("GET", "merchant", "/holdings", "/v1/holdings", "payments.read", "payments"),
+  r("GET", "merchant", "/holdings/{id}", "/v1/holdings/{id}", "payments.read", "payments"),
+  r("PUT", "merchant", "/holdings/{id}/status", "/v1/holdings/{id}/status", "payments.admin", "payments"),
+  r("GET", "merchant", "/holdings/{id}/companies", "/v1/holdings/{id}/companies", "payments.read", "payments"),
+  r("POST", "merchant", "/companies", "/v1/companies", "payments.admin", "payments"),
+  r("GET", "merchant", "/companies", "/v1/companies", "payments.read", "payments"),
+  r("GET", "merchant", "/companies/{id}", "/v1/companies/{id}", "payments.read", "payments"),
+  r("PUT", "merchant", "/companies/{id}/status", "/v1/companies/{id}/status", "payments.admin", "payments"),
+  r("POST", "merchant", "/sub-brands", "/v1/sub-brands", "payments.admin", "payments"),
+  r("GET", "merchant", "/sub-brands", "/v1/sub-brands", "payments.read", "payments"),
+  r("GET", "merchant", "/sub-brands/{id}", "/v1/sub-brands/{id}", "payments.read", "payments"),
+  r("PUT", "merchant", "/sub-brands/{id}/status", "/v1/sub-brands/{id}/status", "payments.admin", "payments"),
+  r("POST", "merchant", "/sub-brands/{id}/psp-credentials", "/v1/sub-brands/{id}/psp-credentials", "payments.admin", "payments"),
+  r("GET", "merchant", "/sub-brands/{id}/psp-credentials", "/v1/sub-brands/{id}/psp-credentials", "payments.read", "payments"),
+  r("GET", "merchant", "/sub-brands/{id}/psp-credentials/{provider}", "/v1/sub-brands/{id}/psp-credentials/{provider}", "payments.read", "payments"),
+  r("PUT", "merchant", "/sub-brands/{id}/psp-credentials/{provider}", "/v1/sub-brands/{id}/psp-credentials/{provider}", "payments.admin", "payments"),
+  r("DELETE", "merchant", "/sub-brands/{id}/psp-credentials/{provider}", "/v1/sub-brands/{id}/psp-credentials/{provider}", "payments.admin", "payments"),
+  r("POST", "merchant", "/sub-brands/{id}/psp-credentials/{provider}/activate", "/v1/sub-brands/{id}/psp-credentials/{provider}/activate", "payments.admin", "payments"),
+  r("POST", "merchant", "/sub-brands/{id}/psp-credentials/{provider}/disable", "/v1/sub-brands/{id}/psp-credentials/{provider}/disable", "payments.admin", "payments"),
   // the test payment (H4, T107): the credential's name as `?name=`, the provider's test mode, no deposit
-  r("POST", "merchant", "/sub-brands/{id}/psp-credentials/{provider}/test-payment", "/v1/sub-brands/{id}/psp-credentials/{provider}/test-payment", "resource_viewer", "payments"),
-  r("GET", "merchant", "/sub-brands/{id}/gateway-config", "/v1/sub-brands/{id}/gateway-config", "resource_viewer", "payments"),
-  r("GET", "merchant", "/sub-brands/{id}/deposit-bounds", "/v1/sub-brands/{id}/deposit-bounds", "resource_viewer", "payments"),
-  r("PUT", "merchant", "/sub-brands/{id}/deposit-bounds", "/v1/sub-brands/{id}/deposit-bounds", "resource_viewer", "payments"),
-  r("GET", "merchant", "/merchants/{id}", "/v1/merchants/{id}", "resource_viewer", "payments"),
-  r("POST", "merchant", "/merchants/{id}/keys", "/v1/merchants/{id}/keys", "resource_viewer", "payments"),
-  r("GET", "merchant", "/merchants/{id}/keys", "/v1/merchants/{id}/keys", "resource_viewer", "payments"),
-  r("POST", "merchant", "/merchants/{id}/keys/{keyId}/disable", "/v1/merchants/{id}/keys/{keyId}/disable", "resource_viewer", "payments"),
-  r("GET", "merchant", "/merchants/{id}/psp-configurations", "/v1/merchants/{id}/psp-configurations", "resource_viewer", "payments"),
-  r("POST", "merchant", "/merchants/{id}/gateways/{gateway}/integrations", "/v1/merchants/{id}/gateways/{gateway}/integrations", "resource_viewer", "payments"),
-  r("GET", "merchant", "/merchants/{id}/gateways/integrations", "/v1/merchants/{id}/gateways/integrations", "resource_viewer", "payments"),
-  r("GET", "merchant", "/merchants/{id}/gateways/integrations/{tid}", "/v1/merchants/{id}/gateways/integrations/{tid}", "resource_viewer", "payments"),
-  r("PUT", "merchant", "/merchants/{id}/gateways/integrations/{tid}/properties", "/v1/merchants/{id}/gateways/integrations/{tid}/properties", "resource_viewer", "payments"),
-  r("PUT", "merchant", "/merchants/{id}/gateways/integrations/{tid}/capability", "/v1/merchants/{id}/gateways/integrations/{tid}/capability", "resource_viewer", "payments"),
-  r("POST", "merchant", "/merchants/{id}/gateways/integrations/{tid}/activate", "/v1/merchants/{id}/gateways/integrations/{tid}/activate", "resource_viewer", "payments"),
-  r("POST", "merchant", "/merchants/{id}/gateways/integrations/{tid}/disable", "/v1/merchants/{id}/gateways/integrations/{tid}/disable", "resource_viewer", "payments"),
-  r("DELETE", "merchant", "/merchants/{id}/gateways/integrations/{tid}", "/v1/merchants/{id}/gateways/integrations/{tid}", "resource_viewer", "payments"),
-  r("GET", "merchant", "/merchants/{id}/gateway-config", "/v1/merchants/{id}/gateway-config", "resource_viewer", "payments"),
-  r("GET", "merchant", "/catalog/gateway/{gateway}", "/v1/catalog/gateway/{gateway}", "resource_viewer", "payments"),
-  r("GET", "merchant", "/payments/cashier/uncredited", "/v1/payments/cashier/uncredited", "resource_viewer", "payments"),
-  r("POST", "merchant", "/payments/cashier/{paymentId}/retry-credit", "/v1/payments/cashier/{paymentId}/retry-credit", "resource_viewer", "payments"),
-  r("GET", "merchant", "/payments/routing-rules/state", "/v1/payments/routing-rules/state", "resource_viewer", "payments"),
-  r("POST", "merchant", "/payments/routing-rules", "/v1/payments/routing-rules", "resource_viewer", "payments"),
-  r("POST", "merchant", "/payments/routing-rules/deploy", "/v1/payments/routing-rules/deploy", "resource_viewer", "payments"),
-  r("POST", "merchant", "/payments/routing-rules/simulate", "/v1/payments/routing-rules/simulate", "resource_viewer", "payments"),
-  r("POST", "merchant", "/payments/routing-rules/rollback/{version}", "/v1/payments/routing-rules/rollback/{version}", "resource_viewer", "payments"),
-  r("POST", "merchant", "/payments/routing-rules/retire", "/v1/payments/routing-rules/retire", "resource_viewer", "payments"),
-  r("GET", "merchant", "/payments/terminals", "/v1/payments/terminals", "resource_viewer", "payments"),
+  r("POST", "merchant", "/sub-brands/{id}/psp-credentials/{provider}/test-payment", "/v1/sub-brands/{id}/psp-credentials/{provider}/test-payment", "payments.admin", "payments"),
+  r("GET", "merchant", "/sub-brands/{id}/gateway-config", "/v1/sub-brands/{id}/gateway-config", "payments.read", "payments"),
+  r("GET", "merchant", "/sub-brands/{id}/deposit-bounds", "/v1/sub-brands/{id}/deposit-bounds", "payments.read", "payments"),
+  r("PUT", "merchant", "/sub-brands/{id}/deposit-bounds", "/v1/sub-brands/{id}/deposit-bounds", "payments.admin", "payments"),
+  r("GET", "merchant", "/merchants/{id}", "/v1/merchants/{id}", "payments.read", "payments"),
+  r("POST", "merchant", "/merchants/{id}/keys", "/v1/merchants/{id}/keys", "payments.admin", "payments"),
+  r("GET", "merchant", "/merchants/{id}/keys", "/v1/merchants/{id}/keys", "payments.read", "payments"),
+  r("POST", "merchant", "/merchants/{id}/keys/{keyId}/disable", "/v1/merchants/{id}/keys/{keyId}/disable", "payments.admin", "payments"),
+  r("GET", "merchant", "/merchants/{id}/psp-configurations", "/v1/merchants/{id}/psp-configurations", "payments.read", "payments"),
+  r("POST", "merchant", "/merchants/{id}/gateways/{gateway}/integrations", "/v1/merchants/{id}/gateways/{gateway}/integrations", "payments.admin", "payments"),
+  r("GET", "merchant", "/merchants/{id}/gateways/integrations", "/v1/merchants/{id}/gateways/integrations", "payments.read", "payments"),
+  r("GET", "merchant", "/merchants/{id}/gateways/integrations/{tid}", "/v1/merchants/{id}/gateways/integrations/{tid}", "payments.read", "payments"),
+  r("PUT", "merchant", "/merchants/{id}/gateways/integrations/{tid}/properties", "/v1/merchants/{id}/gateways/integrations/{tid}/properties", "payments.admin", "payments"),
+  r("PUT", "merchant", "/merchants/{id}/gateways/integrations/{tid}/capability", "/v1/merchants/{id}/gateways/integrations/{tid}/capability", "payments.admin", "payments"),
+  r("POST", "merchant", "/merchants/{id}/gateways/integrations/{tid}/activate", "/v1/merchants/{id}/gateways/integrations/{tid}/activate", "payments.admin", "payments"),
+  r("POST", "merchant", "/merchants/{id}/gateways/integrations/{tid}/disable", "/v1/merchants/{id}/gateways/integrations/{tid}/disable", "payments.admin", "payments"),
+  r("DELETE", "merchant", "/merchants/{id}/gateways/integrations/{tid}", "/v1/merchants/{id}/gateways/integrations/{tid}", "payments.admin", "payments"),
+  r("GET", "merchant", "/merchants/{id}/gateway-config", "/v1/merchants/{id}/gateway-config", "payments.read", "payments"),
+  r("GET", "merchant", "/catalog/gateway/{gateway}", "/v1/catalog/gateway/{gateway}", "payments.read", "payments"),
+  r("GET", "merchant", "/payments/cashier/uncredited", "/v1/payments/cashier/uncredited", "payments.read", "payments"),
+  r("POST", "merchant", "/payments/cashier/{paymentId}/retry-credit", "/v1/payments/cashier/{paymentId}/retry-credit", "payments.operate", "payments"),
+  r("GET", "merchant", "/payments/routing-rules/state", "/v1/payments/routing-rules/state", "payments.read", "payments"),
+  r("POST", "merchant", "/payments/routing-rules", "/v1/payments/routing-rules", "payments.admin", "payments"),
+  r("POST", "merchant", "/payments/routing-rules/deploy", "/v1/payments/routing-rules/deploy", "payments.admin", "payments"),
+  r("POST", "merchant", "/payments/routing-rules/simulate", "/v1/payments/routing-rules/simulate", "payments.admin", "payments"),
+  r("POST", "merchant", "/payments/routing-rules/rollback/{version}", "/v1/payments/routing-rules/rollback/{version}", "payments.admin", "payments"),
+  r("POST", "merchant", "/payments/routing-rules/retire", "/v1/payments/routing-rules/retire", "payments.admin", "payments"),
+  r("GET", "merchant", "/payments/terminals", "/v1/payments/terminals", "payments.read", "payments"),
   // an invitation is refused `403 PRIVILEGE_ESCALATION` for a role the inviter does not strictly outrank
-  r("POST", "merchant", "/operators", "/v1/operators", "resource_viewer", "payments"),
-  r("POST", "merchant", "/operators/{id}/resend-invitation", "/v1/operators/{id}/resend-invitation", "resource_viewer", "payments"),
-  r("POST", "merchant", "/operators/{id}/reset-password", "/v1/operators/{id}/reset-password", "resource_viewer", "payments"),
-  r("PUT", "merchant", "/operators/{id}/scope", "/v1/operators/{id}/scope", "resource_viewer", "payments"),
-  r("DELETE", "merchant", "/operators/{id}", "/v1/operators/{id}", "resource_viewer", "payments"),
+  r("POST", "merchant", "/operators", "/v1/operators", "payments.operate", "payments"),
+  r("POST", "merchant", "/operators/{id}/resend-invitation", "/v1/operators/{id}/resend-invitation", "payments.operate", "payments"),
+  r("POST", "merchant", "/operators/{id}/reset-password", "/v1/operators/{id}/reset-password", "payments.operate", "payments"),
+  r("PUT", "merchant", "/operators/{id}/scope", "/v1/operators/{id}/scope", "payments.operate", "payments"),
+  r("DELETE", "merchant", "/operators/{id}", "/v1/operators/{id}", "payments.operate", "payments"),
   // merchant's operators, for the timeline's actors by name (research R12): merchant lists them to payments
   // operators only, so a brand's operator is refused and the timeline shows ids; a literal, before `/{paymentId}`
   r("GET", "merchant", "/operators", "/v1/operators", "player.read", "payments"),
@@ -346,16 +350,16 @@ export const table: readonly Row[] = [
   r("GET", "merchant", "/{paymentId}", "/v1/payments/{paymentId}", "wallet.read", "payments"),
 
   // psp-gateway (shared `payments`): OutcomesEndpoint at /v1/psp/outcomes, `Routes.paymentsOperator`
-  r("GET", "psp-gateway", "/psp/outcomes/undelivered", "/v1/psp/outcomes/undelivered", "resource_viewer", "payments"),
-  r("GET", "psp-gateway", "/psp/outcomes/refused", "/v1/psp/outcomes/refused", "resource_viewer", "payments"),
-  r("POST", "psp-gateway", "/psp/outcomes/{reference}/redrive", "/v1/psp/outcomes/{reference}/redrive", "resource_viewer", "payments"),
+  r("GET", "psp-gateway", "/psp/outcomes/undelivered", "/v1/psp/outcomes/undelivered", "payments.read", "payments"),
+  r("GET", "psp-gateway", "/psp/outcomes/refused", "/v1/psp/outcomes/refused", "payments.read", "payments"),
+  r("POST", "psp-gateway", "/psp/outcomes/{reference}/redrive", "/v1/psp/outcomes/{reference}/redrive", "payments.operate", "payments"),
 
   // ingest (shared `payments`): the merchant edge's request log, rate limits and lost answers, `Routes.paymentsOperator`
-  r("GET", "ingest", "/ingest/sub-brands/{subBrand}/requests", "/v1/ingest/sub-brands/{subBrand}/requests", "resource_viewer", "payments"),
-  r("GET", "ingest", "/ingest/sub-brands/{subBrand}/rate", "/v1/ingest/sub-brands/{subBrand}/rate", "resource_viewer", "payments"),
-  r("PUT", "ingest", "/ingest/sub-brands/{subBrand}/rate", "/v1/ingest/sub-brands/{subBrand}/rate", "resource_viewer", "payments"),
-  r("GET", "ingest", "/ingest/lost-answers", "/v1/ingest/lost-answers", "resource_viewer", "payments"),
-  r("POST", "ingest", "/ingest/lost-answers/{recordId}/seen", "/v1/ingest/lost-answers/{recordId}/seen", "resource_viewer", "payments"),
+  r("GET", "ingest", "/ingest/sub-brands/{subBrand}/requests", "/v1/ingest/sub-brands/{subBrand}/requests", "payments.read", "payments"),
+  r("GET", "ingest", "/ingest/sub-brands/{subBrand}/rate", "/v1/ingest/sub-brands/{subBrand}/rate", "payments.read", "payments"),
+  r("PUT", "ingest", "/ingest/sub-brands/{subBrand}/rate", "/v1/ingest/sub-brands/{subBrand}/rate", "payments.admin", "payments"),
+  r("GET", "ingest", "/ingest/lost-answers", "/v1/ingest/lost-answers", "payments.read", "payments"),
+  r("POST", "ingest", "/ingest/lost-answers/{recordId}/seen", "/v1/ingest/lost-answers/{recordId}/seen", "payments.operate", "payments"),
 
   // reporting: ReportingEndpoint at /v1/casino/brands/<slug>/reporting, each route's permission its `Access`'s.
   // A `format=csv` read is an export (a document, `202 {reference}` over the synchronous limit); the page

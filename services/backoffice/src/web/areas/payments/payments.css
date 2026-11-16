@@ -1,0 +1,258 @@
+/* The payments area (contracts/design.md): the sections as pills, the level picker and its banner kept
+   here only, tables at the list's row height, and the routing tree drawn left to right as the original's
+   canvas draws it. */
+
+.bo-pay-head h1 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.bo-pay-head p {
+  margin: 2px 0 8px;
+}
+
+.bo-pay-sections ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+.bo-pay-pill {
+  display: inline-block;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 4px 12px;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.bo-pay-pill[aria-current="page"] {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.bo-pay-pill:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.bo-pay-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  border: 1px solid var(--surface-2);
+  border-radius: 12px;
+  padding: 8px 12px;
+  margin: 0 0 8px;
+}
+
+.bo-pay-picker p {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+}
+
+.bo-pay-banner {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: var(--surface-2);
+  border-left: 4px solid var(--primary);
+  border-radius: 8px;
+  padding: 6px 12px;
+  margin: 0 0 12px;
+}
+
+.bo-pay-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--text-table);
+  margin: 8px 0 12px;
+}
+
+.bo-pay-table caption {
+  text-align: left;
+  font-weight: 600;
+  padding: 4px 0;
+}
+
+.bo-pay-table th,
+.bo-pay-table td {
+  height: var(--row);
+  padding: 2px 8px;
+  border-bottom: 1px solid var(--surface-2);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.bo-pay-table [data-numeric] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.bo-pay-dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 8px 0 12px;
+}
+
+.bo-pay-dl > div {
+  display: contents;
+}
+
+.bo-pay-dl dd {
+  margin: 0;
+}
+
+.bo-pay-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.bo-pay-figures > div {
+  background: var(--surface-1);
+  border-radius: 12px;
+  padding: 8px 12px;
+  min-width: 120px;
+}
+
+.bo-pay-figures dd {
+  margin: 0;
+  font-size: var(--figure-min);
+  font-variant-numeric: tabular-nums;
+}
+
+.bo-pay-filters,
+.bo-pay-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  margin: 8px 0;
+}
+
+.bo-pay-add {
+  border: 1px solid var(--surface-2);
+  border-radius: 12px;
+  padding: 8px 12px;
+}
+
+.bo-pay-routing section {
+  margin: 16px 0;
+}
+
+/* the tree: the payment, then each decision and its branches to the right */
+.bo-tree {
+  margin: 8px 0;
+  overflow-x: auto;
+  padding: 8px 0;
+}
+
+.bo-tree-row {
+  display: flex;
+  align-items: flex-start;
+}
+
+.bo-tree-start {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--on-primary);
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.bo-tree-edge {
+  flex: none;
+  width: 24px;
+  height: 2px;
+  margin-top: 18px;
+  background: var(--text-muted);
+}
+
+.bo-tree-start + .bo-tree-edge {
+  margin-top: 35px;
+}
+
+.bo-tree-node {
+  flex: none;
+  min-width: 160px;
+  border: 2px solid var(--primary);
+  border-radius: 8px;
+  background: var(--surface-1);
+  padding: 6px 10px;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.bo-tree-node[data-kind="leaf"] {
+  border-color: var(--series-3);
+}
+
+.bo-tree-node[data-reached] {
+  box-shadow: 0 0 0 3px var(--focus);
+}
+
+.bo-tree-node[data-missing],
+.bo-tree-node[data-loop] {
+  border-color: var(--danger);
+}
+
+.bo-tree-node ul {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.bo-tree-branches {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.bo-tree-branch {
+  flex: none;
+  border: 1px solid var(--surface-2);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--surface-2);
+}
+
+.bo-tree-edit,
+.bo-tree-condition {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  font-weight: 400;
+}
+
+.bo-tree-terminals {
+  display: grid;
+  gap: 2px;
+}
+
+.bo-pay-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 4px 0 8px;
+  padding: 0;
+}

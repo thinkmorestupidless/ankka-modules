@@ -44,7 +44,7 @@ describe("/api/me", () => {
   test("platform_admin carries every permission", async () => {
     const h = as(["platform_admin"]);
     const me = (await (await h.ask("GET", "/api/me", { session: "s-me" })).json()) as { permissions: string[] };
-    expect(me.permissions).toEqual([...AllPermissions, "programme.manage", "programme.managers"]);
+    expect(me.permissions).toEqual([...AllPermissions, "programme.manage", "programme.managers", "payments.read", "payments.operate", "payments.admin"]);
   });
 
   test("a programme manager carries the programme's permission, from the realm role, and none of a bag", async () => {
