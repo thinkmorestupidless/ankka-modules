@@ -95,6 +95,17 @@ object WithdrawalQueue extends View.Companion[WithdrawalQueueView, RequestEvent,
       player: Option[String] = None,
       staleBefore: Option[Instant] = None
   ):
+    /**
+     * `player` is one player id, or several separated by commas (spec 030 Y2: the backoffice resolves a name
+     * or an email to ids through players' search first); at most `MaxPlayers` are taken.
+     */
+    private def players(raw: String): SqlFragment =
+      val ids = raw.split(',').iterator.map(_.trim).filter(_.nonEmpty).distinct.take(MaxPlayers).toVector
+      if ids.isEmpty then sql"1 = 0"
+      else
+        SqlFragment.raw("(") ++ ids.map(p => jsonText("playerId") ++ sql" = $p").reduce((a, b) => a ++ SqlFragment.raw(" OR ") ++ b) ++
+          SqlFragment.raw(")")
+
     def condition: SqlFragment =
       val parts = Vector(
         status.map(s => jsonText("status") ++ sql" = $s"),
@@ -102,7 +113,7 @@ object WithdrawalQueue extends View.Companion[WithdrawalQueueView, RequestEvent,
         kyc.map(k => jsonText("kyc") ++ sql" = $k"),
         method.map(m => jsonText("method") ++ sql" = $m"),
         band.map(b => jsonText("amountBand") ++ sql" = $b"),
-        player.map(p => jsonText("playerId") ++ sql" = $p"),
+        player.map(players),
         staleBefore.map(t => SqlFragment.raw("(payload::jsonb->>'initiatedAt')::timestamptz") ++ sql" < CAST(${t.toString} AS timestamptz)")
       ).flatten
       if parts.isEmpty then sql"1 = 1" else parts.reduce((a, b) => a ++ SqlFragment.raw(" AND ") ++ b)
@@ -111,6 +122,9 @@ object WithdrawalQueue extends View.Companion[WithdrawalQueueView, RequestEvent,
   final case class Page(rows: Vector[QueueRow], total: Long, page: Int, pageSize: Int)
 
   val MaxPageSize = 200
+
+  /** The most player ids one filter names. */
+  val MaxPlayers = 200
 
   // The request id breaks a tie, so a page is the same slice each time it is asked for.
   private val Newest = SqlFragment.raw("(payload::jsonb->>'createdAt')::timestamptz DESC, payload::jsonb->>'requestId' DESC")
@@ -130,6 +144,10 @@ object WithdrawalQueue extends View.Companion[WithdrawalQueueView, RequestEvent,
 
   def counts(queue: ViewQueries[QueueRow]): Counts =
     Counts(queue.count(PendingReview.condition), queue.count(NeedsReview.condition))
+
+  /** One page of the player's requests in every state, newest first (spec 030 Y4). */
+  def ofPlayer(queue: ViewQueries[QueueRow], playerId: String, page: Int, pageSize: Int): Page =
+    this.page(queue, Filter(status = None, player = Some(playerId)), page, pageSize)
 
   /** The player's requests, newest first. */
   def byPlayer(queue: ViewQueries[QueueRow], playerId: String, limit: Int = 1000): Vector[QueueRow] =

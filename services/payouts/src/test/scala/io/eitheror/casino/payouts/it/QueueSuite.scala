@@ -88,6 +88,23 @@ class QueueSuite extends munit.FunSuite with LogCapturing:
     assertEquals((row.text("kycStatus"), row.long("amount"), row.text("method"), row.text("destinationLastFour")),
       (Some("verified"), Some(600000L), Some("CARD"), Some("3000")))
 
+  test("a player's withdrawal history holds every state, a page at a time with its total (spec 030 Y4)"):
+    scene.terminals()
+    val p = scene.player("h", balance = 1000000L)
+    def next() = kit.advance(JDuration.ofSeconds(1))
+    val cancelled = scene.request(p, amount = 1000L)
+    assertEquals(kit.request("DELETE", kit.playerPath(s"/$p/withdrawal-requests/$cancelled"), None, kit.asPlayer(p)).status, 200)
+    next()
+    val pending = scene.request(p, amount = 2000L)
+    def history(query: String) = kit.request("GET", kit.playerPath(s"/$p/withdrawal-history?$query"), None, kit.asOperator())
+    val all = kit.eventually("both")(Some(history("")).filter(_.json.long("total").contains(2L)))
+    assertEquals((ids(all), all.json.long("page"), all.json.long("pageSize")), (Vector(pending, cancelled), Some(1L), Some(50L)), all.text)
+    assertEquals(all.json.objects("requests").flatMap(_.text("status")), Vector("PENDING_REVIEW", "CANCELLED"))
+    val second = history("pageSize=1&page=2")
+    assertEquals((ids(second), second.json.long("total")), (Vector(cancelled), Some(2L)), second.text)
+    val refused = history("pageSize=0")
+    assertEquals((refused.status, refused.str("field")), (400, "pageSize"), refused.text)
+
   test("without a player, the default lists only requests pending review"):
     val a = queue("pageSize=200")
     assertEquals(a.status, 200, a.text)
