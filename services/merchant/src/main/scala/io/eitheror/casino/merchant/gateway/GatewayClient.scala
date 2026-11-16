@@ -57,6 +57,12 @@ trait GatewayClient:
   def initiate(page: HostedPage): Either[GatewayRefusal, Initiated]
   def session(paymentId: String): SessionStatus
 
+  /**
+   * A test payment with the named credential, in the provider's test mode (spec 030 H4, spec 005 T2):
+   * the gateway's answer as it came. It is no deposit: nothing here records a payment.
+   */
+  def testPayment(subBrandId: String, provider: String, credentialName: String, currency: Option[String]): Reply
+
 object GatewayClient:
   /** `psp-gateway` in this project, over HTTP as this service. */
   def http(services: ServiceClients): GatewayClient = HttpGateway(Http(services, "psp-gateway"))
@@ -79,6 +85,10 @@ private final class HttpGateway(http: Http) extends GatewayClient:
       case Reply.Answered(400, Some(b), _) if b.text("error").contains("player_error") && b.text("message").isDefined =>
         Left(GatewayRefusal.Player(b.text("message").get))
       case Reply.Answered(s, _, text) => Left(GatewayRefusal.Failure(s, text.take(300)))
+
+  def testPayment(subBrandId: String, provider: String, credentialName: String, currency: Option[String]): Reply =
+    http.post("/v1/psp/test-payment", Json.obj("subBrandId" -> subBrandId, "psp" -> provider, "credentialName" -> credentialName,
+      "currency" -> currency))
 
   def session(paymentId: String): SessionStatus =
     http.get(s"/v1/psp/sessions/${Http.segment(paymentId)}") match

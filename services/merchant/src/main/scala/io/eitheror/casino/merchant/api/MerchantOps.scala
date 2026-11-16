@@ -209,6 +209,35 @@ final class MerchantOps(ctx: Ctx):
       ok(Json.obj("methodGateways" -> o))
     }
 
+  // ── the test payment (spec 030 H4) ───────────────────────────────────────────────────────────
+
+  /**
+   * One payment of the provider's smallest amount in its test mode with the named credential, through
+   * psp-gateway (spec 005 T2), answering the provider's outcome. It is no deposit: no payment, session
+   * or workflow is made, so nothing is published, counted or credited. The body may name a `currency`.
+   * The gateway's refusals are passed on, their code in this service's upper case.
+   */
+  def testPayment(op: Operator, id: String, provider: String, name: Option[String], text: String): Respond[Bytes] =
+    named(op, id, provider, name) { (_, c) =>
+      val currency = Json.parseObject(text).flatMap(_.text("currency"))
+      io.eitheror.casino.merchant.deposits.DepositRuntime.gateway(ctx.clients.services).testPayment(id, c.provider, c.name, currency) match
+        case io.eitheror.casino.merchant.gateway.Reply.Unreachable(why) => refuse(503, "UNAVAILABLE", why)
+        case io.eitheror.casino.merchant.gateway.Reply.Answered(status, Some(b: ObjectNode), _) if status / 100 == 2 =>
+          val minor = b.long("amount").getOrElse(0L)
+          val cur   = b.textOr("currency", "")
+          val decimal = io.eitheror.casino.contract.money.Currency.from(cur).toOption
+            .map(io.eitheror.casino.contract.money.Amounts.render(minor, _)).getOrElse(minor.toString)
+          val o = Json.obj("subBrandId" -> id, "credentialName" -> c.name)
+          o.setAll[ObjectNode](b)
+          Json.set(o, "amountCents", minor)
+          Json.set(o, "amount", decimal)
+          ok(o)
+        case io.eitheror.casino.merchant.gateway.Reply.Answered(status, Some(b), _) if b.text("error").isDefined =>
+          refuse(status, b.textOr("error", "").toUpperCase, b.textOr("message", ""), "provider" -> b.text("provider"))
+        case io.eitheror.casino.merchant.gateway.Reply.Answered(status, _, _) =>
+          refuse(502, "GATEWAY_ERROR", s"psp-gateway answered $status")
+    }
+
   // ── deposit bounds (spec 030 H3) ─────────────────────────────────────────────────────────────
 
   def depositBounds(op: Operator, id: String): Respond[Bytes] = scoped(op, id)(s => ok(Render.depositBounds(s)))
