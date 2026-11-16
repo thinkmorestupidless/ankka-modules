@@ -15,7 +15,8 @@ interface Kept {
   reason?: string;
   start?: { minor: bigint; currency: string };
   players?: string[];
-  closed?: string;
+  /** The batch's one debit row: its player's real balance is less than the debit. */
+  short?: string;
 }
 const kept = new WeakMap<World, Kept>();
 const state = (w: World) => kept.get(w) ?? (kept.set(w, {}), kept.get(w)!);
@@ -141,15 +142,15 @@ Then("the balance is still {string}", async ({ world }, balance: string) => {
 
 // --- an adjustment batch ----------------------------------------------------------------------------
 
-Given("an incident affecting five players, one of them closed", async ({ world }) => {
+// The four others are credited 5.00 EUR; the short player is debited 5.00 EUR with 3.00 EUR, which
+// the wallet refuses (DEBIT_EXCEEDS_BALANCE), as it would any debit past the balance.
+const shortBalance = 300;
+Given("an incident affecting five players, one of them debited more than their real balance", async ({ world }) => {
   const players = Array.from({ length: 5 }, () => randomUUID());
-  const closed = players[2]!;
-  Object.assign(state(world), { players, closed });
+  const short = players[2]!;
+  Object.assign(state(world), { players, short });
   await world.doubles.wallets({
-    wallets: players.map((player, i) => ({
-      player, currency: "EUR", real: 1000 * (i + 1),
-      ...(player === closed ? { refuse: { status: 409, error: "ACCOUNT_CLOSED", message: "The player's account is closed" } } : {}),
-    })),
+    wallets: players.map((player, i) => ({ player, currency: "EUR", real: player === short ? shortBalance : 1000 * (i + 1) })),
   });
 });
 
@@ -171,7 +172,7 @@ When("a finance operator makes an adjustment batch for the five with one reason 
   await m.getByLabel(t("corrections.batch.reason")).fill("Free spins lost in the 15 November outage");
   await m.getByLabel(t("corrections.cause.kind")).selectOption({ label: t("corrections.cause.incident") });
   await m.getByLabel(t("corrections.cause.ref")).fill("INC-2026-1115");
-  await m.getByLabel(t("corrections.batch.rows")).fill(s.players!.map((p) => `${p},EUR,5.00`).join("\n"));
+  await m.getByLabel(t("corrections.batch.rows")).fill(s.players!.map((p) => `${p},EUR,${p === s.short ? "-5.00" : "5.00"}`).join("\n"));
   await m.getByRole("button", { name: t("corrections.batch.validate") }).click();
   await expect(m.locator("[data-batch-row]")).toHaveCount(5);
   await runBatch(world);
@@ -182,9 +183,9 @@ const outcomes = (w: World, outcome: string) => main(w).locator(`[data-batch-res
 Then("four are listed as made and one as refused with its reason", async ({ world }) => {
   await expect(outcomes(world, "made")).toHaveCount(4);
   await expect(outcomes(world, "refused")).toHaveCount(1);
-  const refused = main(world).locator(`[data-batch-result] [data-player="${state(world).closed}"]`);
+  const refused = main(world).locator(`[data-batch-result] [data-player="${state(world).short}"]`);
   await expect(refused).toHaveAttribute("data-outcome", "refused");
-  await expect(refused).toContainText(t("refusal.account_closed"));
+  await expect(refused).toContainText(t("refusal.debit_exceeds_balance"));
   // a made row says the balance before and after
   const first = main(world).locator(`[data-batch-result] [data-player="${state(world).players![0]}"]`);
   await expect(first).toContainText(formatMoney({ minor: 1000n, currency: "EUR" }));
@@ -201,7 +202,7 @@ Then("four are listed as already made and none is made twice", async ({ world })
   await expect(outcomes(world, "made")).toHaveCount(0);
   for (const [i, player] of s.players!.entries()) {
     const rows = (await walletRead(world, player, "EUR", "transactions")).transactions ?? [];
-    expect(rows, player).toHaveLength(player === s.closed ? 0 : 1);
-    expect((await walletRead(world, player, "EUR", "balance")).realBalance).toBe(player === s.closed ? `${10 * (i + 1)}.00` : `${10 * (i + 1) + 5}.00`);
+    expect(rows, player).toHaveLength(player === s.short ? 0 : 1);
+    expect((await walletRead(world, player, "EUR", "balance")).realBalance).toBe(player === s.short ? "3.00" : `${10 * (i + 1) + 5}.00`);
   }
 });
