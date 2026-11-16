@@ -857,3 +857,17 @@ directly, and the token cache. It prints each and writes `test-results/it/perf-<
 On 2026-11-16 `ankka-control-plane` was stopped and `eitheror-dev` held 10 of Docker's 16 GB, so
 no brand could be applied or seeded. `just backoffice-it goldvibe tests/it/perf.it.ts` on the
 seeded brand fills in the rest.
+
+### Accessibility, 2026-11-16 (T134)
+
+- The a11y suite covers the router's 82 paths in dark and light, each seeded so it renders content;
+  a test fails a path added to the router and not to the suite. Keyboard checks cover the 22 pages with
+  actions: Tab reaches every enabled control, Enter and Space open dialogs, focus stays in a dialog,
+  and Escape closes it and returns focus.
+- Fixed: a balance card's `dl` per currency; series-3 in light is `oklch(0.53 0.12 85)` so warning
+  text holds 4.5:1 on every surface (design.md amended); `button.bo-link` carries no button chrome; the
+  transactions report's heading had a message needing a value.
+- A disabled action is a native disabled button, so Tab does not land on it; the role that would
+  allow it is the text beside it, which a screen reader reads.
+- FR-044's check of the original's record is narrowed to recordings: a driver may name the new
+  scenarios it does not drive, and T131 adds recordings.

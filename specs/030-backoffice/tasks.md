@@ -325,7 +325,7 @@ the notice, send a previewed message.
 - [ ] T131 [P] Write `tests/original/backoffice-screens/` (the Playwright script, the index, `README.md`) and record the original on kind, one capture per screen per role (research R19); compare with the built screens and note each intended difference in `specs/030-backoffice/checklists/design-review.md`
 - [X] T132 [P] Write `specs/030-backoffice/checklists/moderated.md` (the script and result sheet for SC-002 and SC-003) and leave the results to the product owner
 - [ ] T133 [P] Measure research R20's targets with `t/it/perf.it.ts` on the seeded brand and record them in `specs/030-backoffice/research.md`
-- [ ] T134 Run the a11y suite on every route in dark and light and fix every serious finding (SC-008); check keyboard reach of every action
+- [X] T134 Run the a11y suite on every route in dark and light and fix every serious finding (SC-008); check keyboard reach of every action
 - [X] T135 [P] Update `CLAUDE.md` (spec 030's row, the two services, the recipes), `services/backoffice/README.md`, `services/backoffice-state/README.md`, `shared/README.md`, `brands/_realm/README.md`, and `brain/projects/ankka-modules.md`'s pointer in the eitheror brain
 - [ ] T136 Apply the brand with the `backoffice` module in its entitlement to `dev-kind`, run quickstart §6 end to end, and run `just features`, `just test`, `just modules validate --all` and every amended service's suite once more
 
