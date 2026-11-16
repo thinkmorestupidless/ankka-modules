@@ -15,6 +15,7 @@ import { DashboardPage } from "../areas/dashboard/DashboardPage.tsx";
 import { ReportPage } from "../areas/reports/ReportsPage.tsx";
 import { WalletsTab } from "../areas/corrections/adjust.tsx";
 import { AccountsPage } from "../areas/corrections/accounts.tsx";
+import { BatchPage } from "../areas/corrections/batch.tsx";
 import { IdentityQueuePage } from "../areas/identity/queue.tsx";
 import { IdentityTab, ProtectionTab } from "../areas/players/tabs.tsx";
 import { ProtectionCasesPage } from "../areas/protection/cases.tsx";
@@ -36,7 +37,7 @@ export const Pages: [string, Page][] = [
   ["/players/$player/wallets", WalletsTab],
   ["/withdrawals", page("area.withdrawals")],
   ["/withdrawals/$request", page("area.withdrawals")],
-  ["/adjustments/batch", page("area.adjustments")],
+  ["/adjustments/batch", () => <BatchPage />],
   ["/adjustments/accounts", () => <AccountsPage />],
   ["/rewards", page("area.rewards")],
   ["/offers", page("area.offers")],
