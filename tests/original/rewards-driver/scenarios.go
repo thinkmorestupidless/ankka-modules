@@ -119,7 +119,17 @@ var NotDriven = map[string]string{
 	"a player with no reward sees the offers visible to them by code or targeting":                                         suite + "TestScenario16_RewardGrant_TargetSelectActivateForfeit (state)",
 	"a player reading their reward state sees the active reward's balance, requirement and progress and their history":     suite + "TestScenario245_TurnoverDisplayFollowsWalletPending, TestScenario16_*",
 	"targeting an offer of free rounds, or of a deposit match with free rounds, is refused":                                suite + "TestScenarioFreeSpinsPlay_CustomerIOGrant",
+	// spec 030's amendments: new behaviour of the service, not the original's
+	"a platform administrator is admitted to every action on a reward":                                                                                       spec030,
+	"an operator holding only a payments role is refused every action on a reward":                                                                           spec030,
+	"each action on a reward is admitted to the default roles that carry its permission and refused to the others [create or change an offer]":               spec030,
+	"each action on a reward is admitted to the default roles that carry its permission and refused to the others [forfeit or reclaim a reward]":             spec030,
+	"each action on a reward is admitted to the default roles that carry its permission and refused to the others [give a reward from an offer or by hand]":  spec030,
+	"each action on a reward is admitted to the default roles that carry its permission and refused to the others [read the brand's rewards and one reward]": spec030,
 }
+
+// spec030 is why spec 030's amendment scenarios are not driven against the original.
+const spec030 = "spec 030 amends the service with it: the original has no such behaviour; the service's bound features hold it"
 
 // Scenarios is every recording the driver makes, in the features' order.
 func Scenarios() []Def {

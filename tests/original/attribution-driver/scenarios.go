@@ -131,10 +131,11 @@ var NotDriven = map[string]string{
 
 // NotDrivenFeatures are the features the original has nothing of, and why.
 var NotDrivenFeatures = map[string]string{
-	"bonus-codes.feature": "the original's registration notification carries no bonus code",
-	"carriers.feature":    "the original has no topic, feed or webhook for networks",
-	"closure.feature":     "the original has no closure notification",
-	"networks.feature":    "the original knows no networks, key documents or legacy-tag transition",
+	"bonus-codes.feature":    "the original's registration notification carries no bonus code",
+	"carriers.feature":       "the original has no topic, feed or webhook for networks",
+	"closure.feature":        "the original has no closure notification",
+	"networks.feature":       "the original knows no networks, key documents or legacy-tag transition",
+	"operator-roles.feature": "spec 030: the original has no permissions or roles kept by the brand; the service's bound features hold them",
 }
 
 // Scenarios is every recording, in the features' order.
