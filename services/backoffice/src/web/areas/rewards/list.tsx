@@ -18,6 +18,7 @@ import { statusWord } from "../../components/status.tsx";
 import { useOperator } from "../../frame/context.ts";
 import { word } from "../word.ts";
 import { PageSize, readRewards, type Reward } from "./read.ts";
+import { RecordLink } from "../../components/links.tsx";
 
 
 /** rewards' states (RewardStatus), as the list filters them. */
@@ -33,7 +34,7 @@ export function queryOf(s: ListState, pageSize = PageSize): Record<string, strin
 
 const columns = (tz: string): Column<Reward>[] => [
   { id: "granted", header: "rewards.record.granted", cell: (r) => (r.grantedAt ? <DateTime instant={r.grantedAt} zone={tz} /> : null) },
-  { id: "player", header: "rewards.record.player", cell: (r) => <code>{r.playerId}</code> },
+  { id: "player", header: "rewards.record.player", cell: (r) => <RecordLink to={{ kind: "player", id: r.playerId }}>{r.playerId}</RecordLink> },
   { id: "offer", header: "rewards.record.offer", cell: (r) => r.offerName || r.offerId },
   { id: "type", header: "rewards.record.type", cell: (r) => word("rewards.type", r.type.toLowerCase()) },
   { id: "state", header: "rewards.record.state", cell: (r) => statusWord(r.status.toLowerCase()) },

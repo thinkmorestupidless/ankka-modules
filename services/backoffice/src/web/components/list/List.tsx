@@ -106,8 +106,11 @@ export function List<Row>(props: ListProps<Row>) {
     if (scroller.current) list.setScroll(scroller.current.scrollTop);
     onOpen(row);
   };
+  // a link or a control inside the row does its own thing: following a player's link does not also open the row
+  const fromControl = (ev: { target: EventTarget; currentTarget: EventTarget }) =>
+    ev.target !== ev.currentTarget && ev.target instanceof Element && ev.target.closest("a, button, input, select, textarea, label") !== null;
   const onKey = (ev: KeyboardEvent, row: Row) => {
-    if (ev.key === "Enter") open(row);
+    if (ev.key === "Enter" && !fromControl(ev)) open(row);
   };
 
   return (
@@ -168,7 +171,7 @@ export function List<Row>(props: ListProps<Row>) {
                   aria-current={props.current === k ? "true" : undefined}
                   data-openable={onOpen ? true : undefined}
                   tabIndex={onOpen ? 0 : undefined}
-                  onClick={onOpen ? () => open(row) : undefined}
+                  onClick={onOpen ? (ev) => !fromControl(ev) && open(row) : undefined}
                   onKeyDown={onOpen ? (ev) => onKey(ev, row) : undefined}
                 >
                   <td>

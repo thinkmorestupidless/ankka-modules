@@ -14,6 +14,7 @@ import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 import { word } from "../word.ts";
 import { json, refusalOf, actorName, type FraudFlag } from "./programme.ts";
+import { RecordLink } from "../../components/links.tsx";
 
 const Shows = ["open", "dismissed", "all"] as const;
 const stateOf = (f: FraudFlag) => (f.dismissed ? "dismissed" : "open");
@@ -90,7 +91,7 @@ export function FraudSection() {
   const q = useQuery({ queryKey: ["programme", "fraud-flags"], queryFn: () => json<FraudFlag[]>(programme.getFraudFlags()) });
   const rows = q.data?.filter((f) => show === "all" || stateOf(f) === show);
   const columns: Column<FraudFlag>[] = [
-    { id: "player", header: "affiliates.flag.player", cell: (f) => <code>{f.playerId}</code> },
+    { id: "player", header: "affiliates.flag.player", cell: (f) => <RecordLink to={{ kind: "player", id: f.playerId }}>{f.playerId}</RecordLink> },
     { id: "reason", header: "affiliates.flag.reason", cell: (f) => word("affiliates.flagReason", f.reason) },
     { id: "period", header: "affiliates.period", cell: (f) => f.period },
     { id: "affiliate", header: "affiliates.affiliate", cell: (f) => <code>{f.affiliateId}</code> },

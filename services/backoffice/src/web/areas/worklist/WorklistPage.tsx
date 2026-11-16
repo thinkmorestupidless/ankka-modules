@@ -49,7 +49,7 @@ function Detail({ item }: { item: Item }) {
 const columns = (tz: string): Column<Item>[] => [
   { id: "since", header: "worklist.since", cell: (i) => <DateTime instant={i.since} zone={tz} /> },
   { id: "kind", header: "worklist.kind", cell: (i) => t(labelOf(i.kind)) },
-  { id: "subject", header: "worklist.subject", cell: (i) => (i.subject.player ? <code>{i.subject.player}</code> : <code>{i.id}</code>) },
+  { id: "subject", header: "worklist.subject", cell: (i) => (i.subject.player ? <RecordLink to={{ kind: "player", id: i.subject.player }}>{i.subject.player}</RecordLink> : <code>{i.id}</code>) },
   { id: "amount", header: "worklist.amount", numeric: true, cell: (i) => (i.amount ? <Money value={i.amount} /> : null) },
   { id: "detail", header: "worklist.detail", cell: (i) => <Detail item={i} /> },
 ];

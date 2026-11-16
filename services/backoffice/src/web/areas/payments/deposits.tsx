@@ -22,6 +22,7 @@ import { read } from "../configuration/page.tsx";
 import { word } from "../word.ts";
 import { Rows, useChanged, usePayments, type Col } from "./parts.tsx";
 import { useScope } from "./hierarchy.tsx";
+import { RecordLink } from "../../components/links.tsx";
 
 export interface DepositRow {
   paymentId: string;
@@ -224,7 +225,7 @@ export function DepositsSection() {
     { id: "amount", header: "payments.deposits.amount", numeric: true, cell: (r) => money(r.amountCents, r.currency) },
     { id: "status", header: "payments.deposits.statusHeader", cell: (r) => <Status value={r.status} /> },
     { id: "psp", header: "payments.deposits.provider", cell: (r) => r.psp },
-    { id: "customer", header: "payments.deposits.customer", cell: (r) => r.customerRef },
+    { id: "customer", header: "payments.deposits.customer", cell: (r) => (r.customerRef ? <RecordLink to={{ kind: "player", id: r.customerRef }}>{r.customerRef}</RecordLink> : null) },
     { id: "payment", header: "payments.deposits.payment", cell: (r) => r.paymentId },
     { id: "failure", header: "payments.deposits.failure", cell: (r) => r.failureReason ?? "" },
   ];
