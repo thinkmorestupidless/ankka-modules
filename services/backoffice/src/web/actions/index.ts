@@ -67,10 +67,6 @@ export const Actions = {
   "wallet.adjustBatch": { label: "action.wallet.adjustBatch.label", effect: "action.wallet.adjustBatch.effect", permission: "adjustment.make", reason: "none" },
   // a non-player account (spec 022 FR-009: the wallet requires a reason, and the fact carries the category)
   "wallet.adjustAccount": { label: "action.wallet.adjustAccount.label", effect: "action.wallet.adjustAccount.effect", permission: "adjustment.make", reason: "required" },
-  // a player's turnover terms (AudienceEndpoints turnover-override: no reason, the actor recorded; an
-  // empty body clears them back to the brand's)
-  "wallet.turnoverOverride": { label: "action.wallet.turnoverOverride.label", effect: "action.wallet.turnoverOverride.effect", permission: "turnover.override", reason: "none" },
-  "wallet.clearTurnoverOverride": { label: "action.wallet.clearTurnoverOverride.label", effect: "action.wallet.clearTurnoverOverride.effect", permission: "turnover.override", reason: "none" },
 
   // players: a player's standing (OperatorStatusRoutes.scala)
   "player.suspend": {
@@ -282,6 +278,34 @@ export const Actions = {
   "attribution.retireKey": { label: "action.attribution.retireKey.label", effect: "action.attribution.retireKey.effect", permission: "config.attribution", reason: "none" },
   "fact.resend": { label: "action.fact.resend.label", effect: "action.fact.resend.effect", permission: "fact.redeliver", reason: "none", offeredIn: ["undelivered"] },
   "fact.discard": { label: "action.fact.discard.label", effect: "action.fact.discard.effect", permission: "fact.redeliver", reason: "none", offeredIn: ["undelivered"] },
+
+  // the shared payments (T112 to T114): merchant, psp-gateway and ingest record no reason; each admits any
+  // payments role at a level, and the page offers each under the payments permission its row names
+  // (routes.ts). Routing (RoutingRoutes, RoutingTree): a draft saved once edited; simulate and deploy with a
+  // draft; retire with a version live; roll back to a version not live, which becomes the draft.
+  // the hierarchy (HierarchyEndpoints): a holding and a company at the installation's level only
+  "payments.status": { label: "action.payments.status.label", effect: "action.payments.status.effect", permission: "payments.admin", reason: "none" },
+  "payments.createHolding": { label: "action.payments.createHolding.label", effect: "action.payments.createHolding.effect", permission: "payments.admin", reason: "none" },
+  "payments.createCompany": { label: "action.payments.createCompany.label", effect: "action.payments.createCompany.effect", permission: "payments.admin", reason: "none" },
+  "payments.createSubBrand": { label: "action.payments.createSubBrand.label", effect: "action.payments.createSubBrand.effect", permission: "payments.admin", reason: "none" },
+  // a provider's configuration (MerchantOps: credentials); activated while disabled, disabled while active; tested whatever its status
+  "payments.credential.create": { label: "action.payments.credential.create.label", effect: "action.payments.credential.create.effect", permission: "payments.admin", reason: "none" },
+  "payments.credential.replace": { label: "action.payments.credential.replace.label", effect: "action.payments.credential.replace.effect", permission: "payments.admin", reason: "none" },
+  "payments.credential.activate": { label: "action.payments.credential.activate.label", effect: "action.payments.credential.activate.effect", permission: "payments.admin", reason: "none", offeredIn: ["disabled"] },
+  "payments.credential.disable": { label: "action.payments.credential.disable.label", effect: "action.payments.credential.disable.effect", permission: "payments.admin", reason: "none", offeredIn: ["active"] },
+  "payments.credential.delete": { label: "action.payments.credential.delete.label", effect: "action.payments.credential.delete.effect", permission: "payments.admin", reason: "none" },
+  "payments.credential.test": { label: "action.payments.credential.test.label", effect: "action.payments.credential.test.effect", permission: "payments.admin", reason: "none" },
+  // a terminal (MerchantOps: integrations): ACTIVE or INACTIVE
+  "payments.terminal.create": { label: "action.payments.terminal.create.label", effect: "action.payments.terminal.create.effect", permission: "payments.admin", reason: "none" },
+  "payments.terminal.properties": { label: "action.payments.terminal.properties.label", effect: "action.payments.terminal.properties.effect", permission: "payments.admin", reason: "none" },
+  "payments.terminal.capability": { label: "action.payments.terminal.capability.label", effect: "action.payments.terminal.capability.effect", permission: "payments.admin", reason: "none" },
+  "payments.terminal.activate": { label: "action.payments.terminal.activate.label", effect: "action.payments.terminal.activate.effect", permission: "payments.admin", reason: "none", offeredIn: ["inactive"] },
+  "payments.terminal.disable": { label: "action.payments.terminal.disable.label", effect: "action.payments.terminal.disable.effect", permission: "payments.admin", reason: "none", offeredIn: ["active"] },
+  "payments.terminal.delete": { label: "action.payments.terminal.delete.label", effect: "action.payments.terminal.delete.effect", permission: "payments.admin", reason: "none" },
+  "payments.bounds": { label: "action.payments.bounds.label", effect: "action.payments.bounds.effect", permission: "payments.admin", reason: "none" },
+  "payments.key.generate": { label: "action.payments.key.generate.label", effect: "action.payments.key.generate.effect", permission: "payments.admin", reason: "none" },
+  "payments.key.disable": { label: "action.payments.key.disable.label", effect: "action.payments.key.disable.effect", permission: "payments.admin", reason: "none", offeredIn: ["active"] },
+  "payments.rate": { label: "action.payments.rate.label", effect: "action.payments.rate.effect", permission: "payments.admin", reason: "none" },
 } as const satisfies Record<string, ActionDescription>;
 
 export type ActionId = keyof typeof Actions;

@@ -37,6 +37,7 @@ import { SendsPage } from "../areas/configuration/sends.tsx";
 import { AgentPage } from "../areas/configuration/agent.tsx";
 import { AttributionPage } from "../areas/configuration/attribution.tsx";
 import { CallbacksPage } from "../areas/configuration/callbacks.tsx";
+import { PaymentsArea } from "../areas/payments/area.tsx";
 import { BrandSitePage, ConfigurationIndexPage, CountriesPage, CurrenciesPage, ModulesRoute, ReportingSettingsPage, RewardSettingsPage, WithdrawalSettingsPage } from "../areas/configuration/brand.tsx";
 
 const page = (label: MessageKey): Page => () => <Placeholder label={label} />;
@@ -82,8 +83,8 @@ export const Pages: [string, Page][] = [
   ["/configuration/identity-policy", () => <IdentityPolicyPage />],
   ["/configuration/protection-settings", () => <ProtectionSettingsPage />],
   ["/configuration/$area", page("area.configuration")],
-  ["/payments", page("area.payments")],
-  ["/payments/$area", page("area.payments")],
+  ["/payments", () => <PaymentsArea />],
+  ["/payments/$area", () => <PaymentsArea />],
   ["/team", () => <TeamPage />],
   ["/team/roles", () => <TeamPage />],
   ["/affiliates", () => <AffiliatesArea />],

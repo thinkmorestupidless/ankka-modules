@@ -21,17 +21,17 @@ function call(method: string, path: string, options: Options): Promise<Response>
   });
 }
 
-/** GET /psp/outcomes/undelivered: resource_viewer */
+/** GET /psp/outcomes/undelivered: payments.read */
 export function getPspOutcomesUndelivered(options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/psp-gateway/psp/outcomes/undelivered`, options);
 }
 
-/** GET /psp/outcomes/refused: resource_viewer */
+/** GET /psp/outcomes/refused: payments.read */
 export function getPspOutcomesRefused(options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/psp-gateway/psp/outcomes/refused`, options);
 }
 
-/** POST /psp/outcomes/{reference}/redrive: resource_viewer */
+/** POST /psp/outcomes/{reference}/redrive: payments.operate */
 export function postPspOutcomesRedrive(params: { reference: string }, options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/psp-gateway/psp/outcomes/${encodeURIComponent(params.reference)}/redrive`, options);
 }

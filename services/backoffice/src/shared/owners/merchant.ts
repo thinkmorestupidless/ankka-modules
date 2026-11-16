@@ -21,267 +21,267 @@ function call(method: string, path: string, options: Options): Promise<Response>
   });
 }
 
-/** POST /holdings: resource_viewer */
+/** POST /holdings: payments.admin */
 export function postHoldings(options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/merchant/holdings`, options);
 }
 
-/** GET /holdings: resource_viewer */
+/** GET /holdings: payments.read */
 export function getHoldings(options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/merchant/holdings`, options);
 }
 
-/** GET /holdings/{id}: resource_viewer */
+/** GET /holdings/{id}: payments.read */
 export function getHoldingsById(params: { id: string }, options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/merchant/holdings/${encodeURIComponent(params.id)}`, options);
 }
 
-/** PUT /holdings/{id}/status: resource_viewer */
+/** PUT /holdings/{id}/status: payments.admin */
 export function putHoldingsStatus(params: { id: string }, options: Options = {}): Promise<Response> {
   return call("PUT", `/api/s/merchant/holdings/${encodeURIComponent(params.id)}/status`, options);
 }
 
-/** GET /holdings/{id}/companies: resource_viewer */
+/** GET /holdings/{id}/companies: payments.read */
 export function getHoldingsCompanies(params: { id: string }, options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/merchant/holdings/${encodeURIComponent(params.id)}/companies`, options);
 }
 
-/** POST /companies: resource_viewer */
+/** POST /companies: payments.admin */
 export function postCompanies(options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/merchant/companies`, options);
 }
 
-/** GET /companies: resource_viewer */
+/** GET /companies: payments.read */
 export function getCompanies(options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/merchant/companies`, options);
 }
 
-/** GET /companies/{id}: resource_viewer */
+/** GET /companies/{id}: payments.read */
 export function getCompaniesById(params: { id: string }, options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/merchant/companies/${encodeURIComponent(params.id)}`, options);
 }
 
-/** PUT /companies/{id}/status: resource_viewer */
+/** PUT /companies/{id}/status: payments.admin */
 export function putCompaniesStatus(params: { id: string }, options: Options = {}): Promise<Response> {
   return call("PUT", `/api/s/merchant/companies/${encodeURIComponent(params.id)}/status`, options);
 }
 
-/** POST /sub-brands: resource_viewer */
+/** POST /sub-brands: payments.admin */
 export function postSubBrands(options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/merchant/sub-brands`, options);
 }
 
-/** GET /sub-brands: resource_viewer */
+/** GET /sub-brands: payments.read */
 export function getSubBrands(options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/merchant/sub-brands`, options);
 }
 
-/** GET /sub-brands/{id}: resource_viewer */
+/** GET /sub-brands/{id}: payments.read */
 export function getSubBrandsById(params: { id: string }, options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/merchant/sub-brands/${encodeURIComponent(params.id)}`, options);
 }
 
-/** PUT /sub-brands/{id}/status: resource_viewer */
+/** PUT /sub-brands/{id}/status: payments.admin */
 export function putSubBrandsStatus(params: { id: string }, options: Options = {}): Promise<Response> {
   return call("PUT", `/api/s/merchant/sub-brands/${encodeURIComponent(params.id)}/status`, options);
 }
 
-/** POST /sub-brands/{id}/psp-credentials: resource_viewer */
+/** POST /sub-brands/{id}/psp-credentials: payments.admin */
 export function postSubBrandsPspCredentials(params: { id: string }, options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/merchant/sub-brands/${encodeURIComponent(params.id)}/psp-credentials`, options);
 }
 
-/** GET /sub-brands/{id}/psp-credentials: resource_viewer */
+/** GET /sub-brands/{id}/psp-credentials: payments.read */
 export function getSubBrandsPspCredentials(params: { id: string }, options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/merchant/sub-brands/${encodeURIComponent(params.id)}/psp-credentials`, options);
 }
 
-/** GET /sub-brands/{id}/psp-credentials/{provider}: resource_viewer */
+/** GET /sub-brands/{id}/psp-credentials/{provider}: payments.read */
 export function getSubBrandsPspCredentialsByProvider(params: { id: string; provider: string }, options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/merchant/sub-brands/${encodeURIComponent(params.id)}/psp-credentials/${encodeURIComponent(params.provider)}`, options);
 }
 
-/** PUT /sub-brands/{id}/psp-credentials/{provider}: resource_viewer */
+/** PUT /sub-brands/{id}/psp-credentials/{provider}: payments.admin */
 export function putSubBrandsPspCredentialsByProvider(params: { id: string; provider: string }, options: Options = {}): Promise<Response> {
   return call("PUT", `/api/s/merchant/sub-brands/${encodeURIComponent(params.id)}/psp-credentials/${encodeURIComponent(params.provider)}`, options);
 }
 
-/** DELETE /sub-brands/{id}/psp-credentials/{provider}: resource_viewer */
+/** DELETE /sub-brands/{id}/psp-credentials/{provider}: payments.admin */
 export function deleteSubBrandsPspCredentialsByProvider(params: { id: string; provider: string }, options: Options = {}): Promise<Response> {
   return call("DELETE", `/api/s/merchant/sub-brands/${encodeURIComponent(params.id)}/psp-credentials/${encodeURIComponent(params.provider)}`, options);
 }
 
-/** POST /sub-brands/{id}/psp-credentials/{provider}/activate: resource_viewer */
+/** POST /sub-brands/{id}/psp-credentials/{provider}/activate: payments.admin */
 export function postSubBrandsPspCredentialsActivate(params: { id: string; provider: string }, options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/merchant/sub-brands/${encodeURIComponent(params.id)}/psp-credentials/${encodeURIComponent(params.provider)}/activate`, options);
 }
 
-/** POST /sub-brands/{id}/psp-credentials/{provider}/disable: resource_viewer */
+/** POST /sub-brands/{id}/psp-credentials/{provider}/disable: payments.admin */
 export function postSubBrandsPspCredentialsDisable(params: { id: string; provider: string }, options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/merchant/sub-brands/${encodeURIComponent(params.id)}/psp-credentials/${encodeURIComponent(params.provider)}/disable`, options);
 }
 
-/** POST /sub-brands/{id}/psp-credentials/{provider}/test-payment: resource_viewer */
+/** POST /sub-brands/{id}/psp-credentials/{provider}/test-payment: payments.admin */
 export function postSubBrandsPspCredentialsTestPayment(params: { id: string; provider: string }, options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/merchant/sub-brands/${encodeURIComponent(params.id)}/psp-credentials/${encodeURIComponent(params.provider)}/test-payment`, options);
 }
 
-/** GET /sub-brands/{id}/gateway-config: resource_viewer */
+/** GET /sub-brands/{id}/gateway-config: payments.read */
 export function getSubBrandsGatewayConfig(params: { id: string }, options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/merchant/sub-brands/${encodeURIComponent(params.id)}/gateway-config`, options);
 }
 
-/** GET /sub-brands/{id}/deposit-bounds: resource_viewer */
+/** GET /sub-brands/{id}/deposit-bounds: payments.read */
 export function getSubBrandsDepositBounds(params: { id: string }, options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/merchant/sub-brands/${encodeURIComponent(params.id)}/deposit-bounds`, options);
 }
 
-/** PUT /sub-brands/{id}/deposit-bounds: resource_viewer */
+/** PUT /sub-brands/{id}/deposit-bounds: payments.admin */
 export function putSubBrandsDepositBounds(params: { id: string }, options: Options = {}): Promise<Response> {
   return call("PUT", `/api/s/merchant/sub-brands/${encodeURIComponent(params.id)}/deposit-bounds`, options);
 }
 
-/** GET /merchants/{id}: resource_viewer */
+/** GET /merchants/{id}: payments.read */
 export function getMerchantsById(params: { id: string }, options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/merchant/merchants/${encodeURIComponent(params.id)}`, options);
 }
 
-/** POST /merchants/{id}/keys: resource_viewer */
+/** POST /merchants/{id}/keys: payments.admin */
 export function postMerchantsKeys(params: { id: string }, options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/merchant/merchants/${encodeURIComponent(params.id)}/keys`, options);
 }
 
-/** GET /merchants/{id}/keys: resource_viewer */
+/** GET /merchants/{id}/keys: payments.read */
 export function getMerchantsKeys(params: { id: string }, options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/merchant/merchants/${encodeURIComponent(params.id)}/keys`, options);
 }
 
-/** POST /merchants/{id}/keys/{keyId}/disable: resource_viewer */
+/** POST /merchants/{id}/keys/{keyId}/disable: payments.admin */
 export function postMerchantsKeysDisable(params: { id: string; keyId: string }, options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/merchant/merchants/${encodeURIComponent(params.id)}/keys/${encodeURIComponent(params.keyId)}/disable`, options);
 }
 
-/** GET /merchants/{id}/psp-configurations: resource_viewer */
+/** GET /merchants/{id}/psp-configurations: payments.read */
 export function getMerchantsPspConfigurations(params: { id: string }, options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/merchant/merchants/${encodeURIComponent(params.id)}/psp-configurations`, options);
 }
 
-/** POST /merchants/{id}/gateways/{gateway}/integrations: resource_viewer */
+/** POST /merchants/{id}/gateways/{gateway}/integrations: payments.admin */
 export function postMerchantsGatewaysIntegrations(params: { id: string; gateway: string }, options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/merchant/merchants/${encodeURIComponent(params.id)}/gateways/${encodeURIComponent(params.gateway)}/integrations`, options);
 }
 
-/** GET /merchants/{id}/gateways/integrations: resource_viewer */
+/** GET /merchants/{id}/gateways/integrations: payments.read */
 export function getMerchantsGatewaysIntegrations(params: { id: string }, options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/merchant/merchants/${encodeURIComponent(params.id)}/gateways/integrations`, options);
 }
 
-/** GET /merchants/{id}/gateways/integrations/{tid}: resource_viewer */
+/** GET /merchants/{id}/gateways/integrations/{tid}: payments.read */
 export function getMerchantsGatewaysIntegrationsByTid(params: { id: string; tid: string }, options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/merchant/merchants/${encodeURIComponent(params.id)}/gateways/integrations/${encodeURIComponent(params.tid)}`, options);
 }
 
-/** PUT /merchants/{id}/gateways/integrations/{tid}/properties: resource_viewer */
+/** PUT /merchants/{id}/gateways/integrations/{tid}/properties: payments.admin */
 export function putMerchantsGatewaysIntegrationsProperties(params: { id: string; tid: string }, options: Options = {}): Promise<Response> {
   return call("PUT", `/api/s/merchant/merchants/${encodeURIComponent(params.id)}/gateways/integrations/${encodeURIComponent(params.tid)}/properties`, options);
 }
 
-/** PUT /merchants/{id}/gateways/integrations/{tid}/capability: resource_viewer */
+/** PUT /merchants/{id}/gateways/integrations/{tid}/capability: payments.admin */
 export function putMerchantsGatewaysIntegrationsCapability(params: { id: string; tid: string }, options: Options = {}): Promise<Response> {
   return call("PUT", `/api/s/merchant/merchants/${encodeURIComponent(params.id)}/gateways/integrations/${encodeURIComponent(params.tid)}/capability`, options);
 }
 
-/** POST /merchants/{id}/gateways/integrations/{tid}/activate: resource_viewer */
+/** POST /merchants/{id}/gateways/integrations/{tid}/activate: payments.admin */
 export function postMerchantsGatewaysIntegrationsActivate(params: { id: string; tid: string }, options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/merchant/merchants/${encodeURIComponent(params.id)}/gateways/integrations/${encodeURIComponent(params.tid)}/activate`, options);
 }
 
-/** POST /merchants/{id}/gateways/integrations/{tid}/disable: resource_viewer */
+/** POST /merchants/{id}/gateways/integrations/{tid}/disable: payments.admin */
 export function postMerchantsGatewaysIntegrationsDisable(params: { id: string; tid: string }, options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/merchant/merchants/${encodeURIComponent(params.id)}/gateways/integrations/${encodeURIComponent(params.tid)}/disable`, options);
 }
 
-/** DELETE /merchants/{id}/gateways/integrations/{tid}: resource_viewer */
+/** DELETE /merchants/{id}/gateways/integrations/{tid}: payments.admin */
 export function deleteMerchantsGatewaysIntegrationsByTid(params: { id: string; tid: string }, options: Options = {}): Promise<Response> {
   return call("DELETE", `/api/s/merchant/merchants/${encodeURIComponent(params.id)}/gateways/integrations/${encodeURIComponent(params.tid)}`, options);
 }
 
-/** GET /merchants/{id}/gateway-config: resource_viewer */
+/** GET /merchants/{id}/gateway-config: payments.read */
 export function getMerchantsGatewayConfig(params: { id: string }, options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/merchant/merchants/${encodeURIComponent(params.id)}/gateway-config`, options);
 }
 
-/** GET /catalog/gateway/{gateway}: resource_viewer */
+/** GET /catalog/gateway/{gateway}: payments.read */
 export function getCatalogGatewayByGateway(params: { gateway: string }, options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/merchant/catalog/gateway/${encodeURIComponent(params.gateway)}`, options);
 }
 
-/** GET /payments/cashier/uncredited: resource_viewer */
+/** GET /payments/cashier/uncredited: payments.read */
 export function getPaymentsCashierUncredited(options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/merchant/payments/cashier/uncredited`, options);
 }
 
-/** POST /payments/cashier/{paymentId}/retry-credit: resource_viewer */
+/** POST /payments/cashier/{paymentId}/retry-credit: payments.operate */
 export function postPaymentsCashierRetryCredit(params: { paymentId: string }, options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/merchant/payments/cashier/${encodeURIComponent(params.paymentId)}/retry-credit`, options);
 }
 
-/** GET /payments/routing-rules/state: resource_viewer */
+/** GET /payments/routing-rules/state: payments.read */
 export function getPaymentsRoutingRulesState(options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/merchant/payments/routing-rules/state`, options);
 }
 
-/** POST /payments/routing-rules: resource_viewer */
+/** POST /payments/routing-rules: payments.admin */
 export function postPaymentsRoutingRules(options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/merchant/payments/routing-rules`, options);
 }
 
-/** POST /payments/routing-rules/deploy: resource_viewer */
+/** POST /payments/routing-rules/deploy: payments.admin */
 export function postPaymentsRoutingRulesDeploy(options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/merchant/payments/routing-rules/deploy`, options);
 }
 
-/** POST /payments/routing-rules/simulate: resource_viewer */
+/** POST /payments/routing-rules/simulate: payments.admin */
 export function postPaymentsRoutingRulesSimulate(options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/merchant/payments/routing-rules/simulate`, options);
 }
 
-/** POST /payments/routing-rules/rollback/{version}: resource_viewer */
+/** POST /payments/routing-rules/rollback/{version}: payments.admin */
 export function postPaymentsRoutingRulesRollbackByVersion(params: { version: string }, options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/merchant/payments/routing-rules/rollback/${encodeURIComponent(params.version)}`, options);
 }
 
-/** POST /payments/routing-rules/retire: resource_viewer */
+/** POST /payments/routing-rules/retire: payments.admin */
 export function postPaymentsRoutingRulesRetire(options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/merchant/payments/routing-rules/retire`, options);
 }
 
-/** GET /payments/terminals: resource_viewer */
+/** GET /payments/terminals: payments.read */
 export function getPaymentsTerminals(options: Options = {}): Promise<Response> {
   return call("GET", `/api/s/merchant/payments/terminals`, options);
 }
 
-/** POST /operators: resource_viewer */
+/** POST /operators: payments.operate */
 export function postOperators(options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/merchant/operators`, options);
 }
 
-/** POST /operators/{id}/resend-invitation: resource_viewer */
+/** POST /operators/{id}/resend-invitation: payments.operate */
 export function postOperatorsResendInvitation(params: { id: string }, options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/merchant/operators/${encodeURIComponent(params.id)}/resend-invitation`, options);
 }
 
-/** POST /operators/{id}/reset-password: resource_viewer */
+/** POST /operators/{id}/reset-password: payments.operate */
 export function postOperatorsResetPassword(params: { id: string }, options: Options = {}): Promise<Response> {
   return call("POST", `/api/s/merchant/operators/${encodeURIComponent(params.id)}/reset-password`, options);
 }
 
-/** PUT /operators/{id}/scope: resource_viewer */
+/** PUT /operators/{id}/scope: payments.operate */
 export function putOperatorsScope(params: { id: string }, options: Options = {}): Promise<Response> {
   return call("PUT", `/api/s/merchant/operators/${encodeURIComponent(params.id)}/scope`, options);
 }
 
-/** DELETE /operators/{id}: resource_viewer */
+/** DELETE /operators/{id}: payments.operate */
 export function deleteOperatorsById(params: { id: string }, options: Options = {}): Promise<Response> {
   return call("DELETE", `/api/s/merchant/operators/${encodeURIComponent(params.id)}`, options);
 }

@@ -42,13 +42,67 @@ export function programmePermissionsOf(roles: readonly string[]): string[] {
 }
 
 /**
+ * The shared payments' privilege table (contract `Routes.PaymentsRoles`): a role and its level. merchant
+ * admits any of them at a level (`Routes.paymentsOperator`) and compares them only on an invitation, which
+ * gives a role only below the inviter's highest (`Privilege.canAssignRole`).
+ */
+export const PaymentsLevels: Readonly<Record<string, number>> = {
+  resource_viewer: 10,
+  resource_developer: 20,
+  resource_finance: 25,
+  resource_operator: 30,
+  support_agent: 30,
+  resource_admin: 40,
+  resource_owner: 50,
+  fraud_analyst: 60,
+  compliance_officer: 60,
+  platform_admin: 100,
+};
+
+/**
+ * What the payments pages offer, by the least level that gives it (no bag gives a payments role): reading
+ * any of it (every payments role), the operator's work on payments and the team (`resource_operator`, the
+ * original's operator), and administering the hierarchy, providers, terminals and routing (`resource_admin`,
+ * as the original's payments console admitted to those pages). merchant still decides every call.
+ */
+export const PaymentsPermissions: Readonly<Record<string, number>> = {
+  "payments.read": 10,
+  "payments.operate": 30,
+  "payments.admin": 40,
+};
+
+/** The operator's level in the payments: the highest of their payments roles, 0 with none. */
+export function paymentsLevel(roles: readonly string[]): number {
+  return Math.max(0, ...roles.map((r) => PaymentsLevels[r] ?? 0));
+}
+
+/** The payments permissions `roles` give. */
+export function paymentsPermissionsOf(roles: readonly string[]): string[] {
+  const level = paymentsLevel(roles);
+  return Object.keys(PaymentsPermissions).filter((p) => level >= PaymentsPermissions[p]!);
+}
+
+/** The payments roles, lowest level first, then by name. */
+export const PaymentsRoleNames: readonly string[] = Object.keys(PaymentsLevels).sort(
+  (a, b) => PaymentsLevels[a]! - PaymentsLevels[b]! || a.localeCompare(b),
+);
+
+/** Whether `roles` strictly outrank `role`, so merchant lets their holder give it (`Privilege.canAssignRole`). */
+export function mayGiveRole(roles: readonly string[], role: string): boolean {
+  const level = PaymentsLevels[role];
+  return level !== undefined && paymentsLevel(roles) > level;
+}
+
+/**
  * The roles whose bag holds `permission`, the default roles first in the matrix's order, then the
  * brand's own by name: what a disabled action names as the role it needs (FR-005). A programme
- * permission names the realm roles that give it.
+ * permission names the realm roles that give it, a payments permission the payments roles at its level.
  */
 export function rolesGiving(permission: string, bags: RoleBags): string[] {
   const realm = ProgrammePermissions[permission];
   if (realm) return [...realm];
+  const least = PaymentsPermissions[permission];
+  if (least !== undefined) return PaymentsRoleNames.filter((r) => PaymentsLevels[r]! >= least);
   const giving = Object.keys(bags).filter((r) => bags[r]!.includes(permission));
   const rank = (r: string) => (Defaults.includes(r) ? Defaults.indexOf(r) : Defaults.length);
   return giving.sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));

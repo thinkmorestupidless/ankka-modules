@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { holds, programmePermissionsOf, rolesGiving, runs } from "../../src/shared/access.ts";
+import { holds, mayGiveRole, paymentsPermissionsOf, programmePermissionsOf, rolesGiving, runs } from "../../src/shared/access.ts";
 import { OperatorBags } from "./bags.ts";
 
 describe("holding a permission", () => {
@@ -24,6 +24,22 @@ describe("the role a disabled action needs", () => {
     expect(rolesGiving("programme.managers", {})).toEqual(["brand_admin", "platform_admin"]);
     expect(programmePermissionsOf(["brand_goldvibe", "affiliate_manager"])).toEqual(["programme.manage"]);
     expect(programmePermissionsOf(["brand_goldvibe", "brand_support"])).toEqual([]);
+  });
+
+  test("a payments permission comes from the payments role's level, and names the roles at or above it (T112)", () => {
+    expect(paymentsPermissionsOf(["brand_goldvibe", "resource_viewer"])).toEqual(["payments.read"]);
+    expect(paymentsPermissionsOf(["resource_operator"])).toEqual(["payments.read", "payments.operate"]);
+    expect(paymentsPermissionsOf(["resource_admin"])).toEqual(["payments.read", "payments.operate", "payments.admin"]);
+    expect(paymentsPermissionsOf(["brand_admin"])).toEqual([]);
+    expect(rolesGiving("payments.admin", {})).toContain("resource_admin");
+    expect(rolesGiving("payments.admin", {})).not.toContain("resource_operator");
+  });
+
+  test("a payments role is given only by one strictly above it, as merchant refuses PRIVILEGE_ESCALATION (T114)", () => {
+    expect(mayGiveRole(["resource_operator"], "resource_viewer")).toBe(true);
+    expect(mayGiveRole(["resource_operator"], "support_agent")).toBe(false);
+    expect(mayGiveRole(["resource_operator"], "resource_admin")).toBe(false);
+    expect(mayGiveRole(["brand_admin"], "resource_viewer")).toBe(false);
   });
 
   test("none when no role carries it", () => {
