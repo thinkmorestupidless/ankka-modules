@@ -838,3 +838,22 @@ amendment (K5 in contracts/amendments.md). The document route passes kyc's bytes
   would close the gap.
 - Fix-ups: proxy forwards a valid `Idempotency-Key` (1 to 200 printable ASCII) and refuses a bad one
   400; the programme's adjustment is sent under one key per composition, a new key after any edit.
+
+### R20 measured, 2026-11-16 (T133)
+
+`services/backoffice/tests/it/perf.it.ts` measures R20's targets: 40 calls each of the worklist, a
+seeded player's first standing and search (ten each of a player id, an email, a request id and a
+reward id) as a signed-in `brand_admin`, a proxied read beside the same read made of `players`
+directly, and the token cache. It prints each and writes `test-results/it/perf-<slug>.json`.
+
+| Measure | Target | Measured |
+|---|---|---|
+| Token for a request, cached | under 5 ms p95 | p95 under 0.001 ms, max 0.6 ms over 10,000 (in process, the state service stubbed) |
+| Worklist | 2 s p95, 3.5 s max | not yet: `dev-kind` was down (below) |
+| Player page, first standing | 1.5 s p95 | not yet |
+| Search | 2 s p95 | not yet |
+| A proxied read | owner + 30 ms p95 | not yet; needs `BACKOFFICE_IT_OWNER_TOKEN`, a file holding the same operator's token for the direct call, which a person fetches |
+
+On 2026-11-16 `ankka-control-plane` was stopped and `eitheror-dev` held 10 of Docker's 16 GB, so
+no brand could be applied or seeded. `just backoffice-it goldvibe tests/it/perf.it.ts` on the
+seeded brand fills in the rest.
