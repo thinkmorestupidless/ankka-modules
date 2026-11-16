@@ -9,7 +9,7 @@ import { OperatorBags } from "./bags.ts";
 describe("the catalogue", () => {
   test("every message parses and renders with its values", () => {
     for (const key of Object.keys(en) as (keyof typeof en)[]) {
-      expect(() => t(key, { permission: "p", roles: "r", source: "s", code: "c", given: "g", detail: "d", module: "m", minor: "1", currency: "EUR", zone: "UTC", name: "n", modules: "core", brand: "b", role: "brand_b", count: 2, permissions: "p", operator: "o", value: 5, progress: 40, kind: "k", reference: "r", range: "7 days", hours: "2", rate: "90%", day: "1 Oct 2026", amount: "1.00", basis: "b", page: 1, pages: 2, from: "f", to: "t", filter: "f", id: "i", players: "p", categories: "c", fields: "f", days: 7, note: "n", profile: "p", restrictions: "r", reason: "r" }), key).not.toThrow();
+      expect(() => t(key, { permission: "p", roles: "r", source: "s", code: "c", given: "g", detail: "d", module: "m", minor: "1", currency: "EUR", zone: "UTC", name: "n", modules: "core", brand: "b", role: "brand_b", count: 2, permissions: "p", operator: "o", value: 5, progress: 40, kind: "k", reference: "r", range: "7 days", hours: "2", rate: "90%", day: "1 Oct 2026", amount: "1.00", basis: "b", page: 1, pages: 2, from: "f", to: "t", filter: "f", id: "i", players: "p", categories: "c", fields: "f", days: 7, note: "n", profile: "p", restrictions: "r", reason: "r", line: 2, made: 4, refused: 1, already: 0 }), key).not.toThrow();
     }
   });
 

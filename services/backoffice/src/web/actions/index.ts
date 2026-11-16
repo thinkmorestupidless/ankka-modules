@@ -61,6 +61,12 @@ export const Actions = {
     reason: "required",
   },
 
+  // an adjustment batch (FR-028): its reason is part of the batch (its id is made from it), so it is
+  // written on the batch's form, not in the confirmation, and a repeat is the same batch
+  "wallet.adjustBatch": { label: "action.wallet.adjustBatch.label", effect: "action.wallet.adjustBatch.effect", permission: "adjustment.make", reason: "none" },
+  // a non-player account (spec 022 FR-009: the wallet requires a reason, and the fact carries the category)
+  "wallet.adjustAccount": { label: "action.wallet.adjustAccount.label", effect: "action.wallet.adjustAccount.effect", permission: "adjustment.make", reason: "required" },
+
   // players: a player's standing (OperatorStatusRoutes.scala)
   "player.suspend": {
     label: "action.player.suspend.label",

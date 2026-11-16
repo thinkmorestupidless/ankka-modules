@@ -1,0 +1,17 @@
+/* areas/corrections: an adjustment, non-player accounts, an adjustment batch (US5) */
+.bo-corrections { display: grid; gap: 16px; }
+.bo-corrections-balances { display: flex; flex-wrap: wrap; gap: 24px; margin: 0; }
+.bo-corrections-balances > div { display: grid; gap: 2px; }
+.bo-corrections-balances dt { font-size: 12px; color: var(--text-muted); }
+.bo-corrections-balances dd { margin: 0; font-size: 18px; font-variant-numeric: tabular-nums; }
+.bo-corrections-form { display: grid; gap: 12px; max-width: 560px; }
+.bo-corrections-form fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.bo-corrections-form legend { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; width: 100%; }
+.bo-corrections-choice { display: inline-flex; gap: 6px; align-items: center; }
+.bo-corrections-amount { display: inline-flex; gap: 8px; align-items: center; }
+.bo-corrections-cause { display: grid !important; gap: 12px; }
+.bo-corrections-rows { font-family: var(--font-mono, ui-monospace, monospace); }
+.bo-corrections-made { margin: 0; }
+.bo-corrections-checked ul { margin: 4px 0 0; padding-inline-start: 20px; }
+.bo-corrections-nav { display: flex; gap: 16px; margin-bottom: 8px; font-size: 14px; }
+.bo-corrections-nav a[aria-current="page"] { font-weight: 600; text-decoration: none; }
