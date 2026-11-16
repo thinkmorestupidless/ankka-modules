@@ -294,11 +294,23 @@ function EmailChange({ a, done }: { a: Account; done(): void }) {
   );
 }
 
+const newKey = () => `programme-adjust/${crypto.randomUUID()}`;
+
+/**
+ * An adjustment of the affiliate's balance, sent under an `Idempotency-Key` of its own (the programme's
+ * Settlement.adjust): the key is kept while the programme's answer is not known, so trying the same
+ * adjustment again cannot make it twice; an answer, or a change to what is composed, takes a new key.
+ */
 function Adjustment({ a, done }: { a: Account; done(): void }) {
   const me = useOperator();
   const bags = useBags();
   const id = { type: useId(), amount: useId(), currency: useId() };
-  const [f, setF] = useState({ type: "CREDIT", amount: "", currency: "" });
+  const [f, setFields] = useState({ type: "CREDIT", amount: "", currency: "" });
+  const [key, setKey] = useState(newKey);
+  const setF = (change: (x: typeof f) => typeof f) => {
+    setFields(change);
+    setKey(newKey());
+  };
   const currency = f.currency.trim().toUpperCase();
   const amount = isCurrency(currency) ? amountOf(f.amount, currency) : undefined;
   return (
@@ -325,7 +337,12 @@ function Adjustment({ a, done }: { a: Account; done(): void }) {
           bags={bags}
           ready={amount !== undefined && amount > 0}
           subject={<p>{t(f.type === "CREDIT" ? "affiliates.adjustment.crediting" : "affiliates.adjustment.debiting", { amount: f.amount.trim(), currency, name: accountName(a) })}</p>}
-          run={(reason) => programme.postAccountsAdjustments({ affiliate: a.affiliateId }, { body: { type: f.type, amount, currency, reason: reason ?? "" } })}
+          run={async (reason) => {
+            const answer = await programme.postAccountsAdjustments({ affiliate: a.affiliateId }, { body: { type: f.type, amount, currency, reason: reason ?? "" }, idempotencyKey: key });
+            // the programme answered (made or refused): the next adjustment is another; not answered: the same key again
+            if (answer.status !== 503) setKey(newKey());
+            return answer;
+          }}
           onDone={() => {
             setF((x) => ({ ...x, amount: "" }));
             done();
