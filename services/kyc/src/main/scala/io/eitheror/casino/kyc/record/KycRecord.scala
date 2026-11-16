@@ -306,7 +306,26 @@ object KycRecord
 
   private val ClosedByVerification: Set[FlagReason] = Set(FlagReason.Threshold, FlagReason.Window, FlagReason.LargeDeposit)
 
-  def applied(s: KycState, event: KycEvent): KycState = event match
+  /** The decision an event records, when it is one (spec 030 K3); applied after the event, so replay rebuilds the list. */
+  def decision(event: KycEvent): Option[Decision] = event match
+    case e: DocumentReviewed =>
+      Some(Decision("document_reviewed", Actor.operator(e.review.operatorId), e.at, documentId = Some(e.documentId), category = Some(e.category.wire),
+        outcome = Some(e.review.outcome.wire), reasonCode = e.review.reasonCode.map(_.wire)))
+    case e: ModeChanged     => Some(Decision("mode_changed", Actor.operator(e.operatorId), e.at, from = Some(e.previous.wire), to = Some(e.mode.wire)))
+    case e: StatusChanged   => Some(Decision("status_changed", e.actor, e.at, from = Some(e.previous.wire), to = Some(e.status.wire), cause = Some(e.reason)))
+    case e: RequiredChanged =>
+      Some(Decision("required_changed", Actor.operator(e.operatorId), e.at, from = Some(e.previous.map(_.wire).mkString(",")),
+        to = Some(e.categories.map(_.wire).mkString(","))))
+    case e: SofCleared    => Some(Decision("sof_cleared", Actor.operator(e.operatorId), e.at, to = Some(Sof.Cleared.wire)))
+    case e: SofReset      => Some(Decision("sof_reset", Actor.operator(e.operatorId), e.at, to = Some(Sof.Unverified.wire)))
+    case e: FlagDismissed => Some(Decision("flag_dismissed", Actor.operator(e.operatorId), e.at, reasonCode = Some(e.reason.wire)))
+    case _                => None
+
+  def applied(s: KycState, event: KycEvent): KycState =
+    val next = changed(s, event)
+    decision(event).fold(next)(d => next.copy(decisions = next.decisions :+ d))
+
+  private def changed(s: KycState, event: KycEvent): KycState = event match
     case e: UploadOffered    => s.copy(playerId = e.playerId, offers = s.offers + (e.offer.documentId -> e.offer))
     case e: DocumentRecorded =>
       s.copy(playerId = e.playerId, documents = s.documents :+ e.document, offers = s.offers - e.document.id, documentsChangedAt = Some(e.at))

@@ -99,6 +99,23 @@ async function read<T>(r: Promise<Response>): Promise<T> {
 
 export const readQueue = (filter: string) => read<Queue>(kyc.getQueue({ query: { filter } }));
 export const readIdentity = (playerId: string) => read<PlayerIdentity>(kyc.getByPlayerId({ playerId }));
+
+/** One of kyc's decisions on a player's identity (amendment K3): the fields its kind names, the others absent. */
+export interface KycDecision {
+  kind: string;
+  actor: { kind: string; id?: string | null };
+  at: string;
+  documentId?: string;
+  category?: string;
+  outcome?: string;
+  reasonCode?: string;
+  from?: string | string[];
+  to?: string | string[];
+  cause?: string;
+}
+
+export const readDecisions = (playerId: string) =>
+  read<{ decisions?: KycDecision[] }>(kyc.getDecisions({ playerId })).then((d) => d.decisions ?? []);
 export const readPolicy = () => read<Policy>(kyc.getPolicy());
 
 /** Where a document is shown: the server's composite route, by its two ids and nothing else (FR-031). */

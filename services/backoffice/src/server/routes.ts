@@ -152,6 +152,7 @@ export const table: readonly Row[] = [
   r("POST", "kyc", "/policy/profile", `${P}/kyc/policy/profile`, "config.brand"),
   r("GET", "kyc", "/queue", `${P}/kyc/queue`, "identity.review"),
   r("GET", "kyc", "/{playerId}", `${P}/kyc/{playerId}`, "identity.read"),
+  r("GET", "kyc", "/{playerId}/decisions", `${P}/kyc/{playerId}/decisions`, "identity.read"),
   r("POST", "kyc", "/{playerId}/uploads", `${P}/kyc/{playerId}/uploads`, "identity.review"),
   r("POST", "kyc", "/{playerId}/documents", `${P}/kyc/{playerId}/documents`, "identity.review"),
   r("GET", "kyc", "/{playerId}/views/{documentId}", `${P}/kyc/{playerId}/views/{documentId}`, "identity.review"),
@@ -169,6 +170,7 @@ export const table: readonly Row[] = [
   // the brand's cases by status, oldest first (G2); a literal segment, so before the player's row
   r("GET", "responsible-gambling", "/cases", `${P}/rg/cases`, "protection.read"),
   r("GET", "responsible-gambling", "/{player}", `${P}/rg/{player}`, "protection.read"),
+  r("GET", "responsible-gambling", "/{player}/history", `${P}/rg/{player}/history`, "protection.read"),
   r("PUT", "responsible-gambling", "/{player}/limits/{type}", `${P}/rg/{player}/limits/{type}`, "protection.change"),
   r("DELETE", "responsible-gambling", "/{player}/limits/{type}", `${P}/rg/{player}/limits/{type}`, "protection.change"),
   r("PUT", "responsible-gambling", "/{player}/cooling-off", `${P}/rg/{player}/cooling-off`, "protection.change"),

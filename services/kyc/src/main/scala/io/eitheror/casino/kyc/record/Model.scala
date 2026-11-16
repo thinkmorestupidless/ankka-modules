@@ -148,6 +148,26 @@ final case class Flag(reason: FlagReason, at: Instant, dismissed: Option[Dismiss
 /** Lifetime deposits in one currency, and the wallet's highest ordinal counted (R6). */
 final case class Deposits(total: Long = 0L, lastOrdinal: Int = 0)
 
+/**
+ * One decision on the player's identity, as `GET /{playerId}/decisions` lists it (spec 030 K3): a document's
+ * review, a change of mode, status or required categories, a source of funds review or a flag dismissed, with
+ * who made it and when. Kept in wire words and never personal: the override's reason and a dismissal's note
+ * stay on the record alone. `from` and `to` are the values before and after; `cause` is a status change's
+ * reason code.
+ */
+final case class Decision(
+    kind: String,
+    actor: Actor,
+    at: Instant,
+    documentId: Option[String] = None,
+    category: Option[String] = None,
+    outcome: Option[String] = None,
+    reasonCode: Option[String] = None,
+    from: Option[String] = None,
+    to: Option[String] = None,
+    cause: Option[String] = None
+)
+
 final case class KycState(
     playerId: String = "",
     documents: Vector[Document] = Vector.empty,
@@ -164,7 +184,8 @@ final case class KycState(
     flags: Vector[Flag] = Vector.empty,
     deposits: Map[String, Deposits] = Map.empty,
     closed: Boolean = false,
-    erased: Boolean = false
+    erased: Boolean = false,
+    decisions: Vector[Decision] = Vector.empty
 ):
   def document(id: String): Option[Document] = documents.find(_.id == id)
 

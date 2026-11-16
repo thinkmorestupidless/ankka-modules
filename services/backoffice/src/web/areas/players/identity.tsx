@@ -3,7 +3,8 @@
 // the server's document route (its ids the only input, FR-031) and approved, or rejected with one of
 // kyc's reason codes; the verification mode, the documents asked of the player, the source of funds,
 // the flags, and the final decision. Each action states what it changes for the player before it is
-// confirmed, and is offered only in the states kyc accepts it in. kyc decides every rule.
+// confirmed, and is offered only in the states kyc accepts it in. kyc decides every rule. Below them,
+// kyc's decisions on the player in order, each with who made it and when (amendment K3).
 import { useId, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { t } from "../../../shared/messages/index.ts";
@@ -15,7 +16,7 @@ import { Money } from "../../components/money.tsx";
 import { Status } from "../../components/status.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
-import { Categories, documentHref, readIdentity, ReasonCodes, type KycDocument, type PlayerIdentity as Identity } from "../identity/kyc.ts";
+import { Categories, documentHref, readDecisions, readIdentity, ReasonCodes, type KycDecision, type KycDocument, type PlayerIdentity as Identity } from "../identity/kyc.ts";
 import { word } from "../word.ts";
 
 const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -222,6 +223,71 @@ function Flags({ identity, done }: { identity: Identity; done(): void }) {
   );
 }
 
+/** A decision's value in the catalogue's words: a mode, a status, or a list of categories. */
+function valueOf(kind: string, v: string | string[] | undefined): string {
+  if (v === undefined) return "";
+  if (Array.isArray(v)) return v.length === 0 ? t("identity.missing.none") : v.map((c) => word("identity.category", c)).join(", ");
+  if (kind === "mode_changed") return t(v === "manual" ? "identity.mode.manual" : "identity.mode.automatic");
+  if (kind === "sof_cleared" || kind === "sof_reset") return word("identity.sof", v);
+  return word("status", v);
+}
+
+/** What a decision changed, beyond its kind. */
+function detailOf(d: KycDecision): string {
+  switch (d.kind) {
+    case "document_reviewed":
+      return [d.category ? word("identity.category", d.category) : "", d.outcome ? word("status", d.outcome) : "", d.reasonCode ? word("identity.reason", d.reasonCode) : ""]
+        .filter(Boolean)
+        .join(", ");
+    case "flag_dismissed":
+      return d.reasonCode ? word("identity.flag", d.reasonCode) : "";
+    case "sof_cleared":
+    case "sof_reset":
+      return valueOf(d.kind, d.to);
+    default:
+      return d.from !== undefined && d.to !== undefined ? t("identity.decisions.change", { from: valueOf(d.kind, d.from), to: valueOf(d.kind, d.to) }) : "";
+  }
+}
+
+function actorOf(d: KycDecision): string {
+  if (d.actor.kind === "operator") return d.actor.id ?? word("identity.decisions.actor", "operator");
+  return word("identity.decisions.actor", d.actor.kind);
+}
+
+/** kyc's decisions on the player, oldest first, each with who made it and when (amendment K3). */
+function Decisions({ player }: { player: string }) {
+  const tz = zone();
+  const q = useQuery({ queryKey: ["kyc", "decisions", player], queryFn: () => readDecisions(player) });
+  if (q.isError) return <RefusalNotice refusal={q.error as never} />;
+  if (!q.data) return <p role="status">{t("list.loading")}</p>;
+  if (q.data.length === 0) return <p className="bo-muted">{t("identity.decisions.none")}</p>;
+  return (
+    <table className="bo-table">
+      <caption className="bo-sr-only">{t("identity.decisions")}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{t("identity.decisions.at")}</th>
+          <th scope="col">{t("identity.decisions.what")}</th>
+          <th scope="col">{t("identity.decisions.detail")}</th>
+          <th scope="col">{t("identity.decisions.by")}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {q.data.map((d, i) => (
+          <tr key={`${d.at}-${i}`} data-decision={d.kind}>
+            <td>
+              <DateTime instant={d.at} zone={tz} />
+            </td>
+            <th scope="row">{word("identity.decisions.kind", d.kind)}</th>
+            <td>{detailOf(d)}</td>
+            <td>{actorOf(d)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 export function PlayerIdentity({ player }: { player: string }) {
   const me = useOperator();
   const bags = useBags();
@@ -298,6 +364,11 @@ export function PlayerIdentity({ player }: { player: string }) {
       <section aria-labelledby="identity-flags">
         <h3 id="identity-flags">{t("identity.flags")}</h3>
         <Flags identity={id} done={done} />
+      </section>
+
+      <section aria-labelledby="identity-decisions">
+        <h3 id="identity-decisions">{t("identity.decisions")}</h3>
+        <Decisions player={player} />
       </section>
     </section>
   );

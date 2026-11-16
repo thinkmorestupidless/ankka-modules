@@ -12,6 +12,7 @@ import io.eitheror.casino.rg.profile.*
 import io.eitheror.casino.rg.settings.{BrandSettingsEntity, ChangeSettings}
 import io.eitheror.casino.rg.usage.{DayAt, SessionDayEntity}
 
+import java.time.Instant
 import scala.util.Try
 
 import Answers.*
@@ -135,6 +136,20 @@ final class OperatorEndpoint(ctx: Ctx, bags: RoleBags) extends HttpEndpoint(s"/v
     }
   }
 
+  /**
+   * The player's history for an operator (spec 030 G3): what the player's own `{player}/history` answers, newest
+   * first; `from` (inclusive) and `to` (exclusive), ISO instants, bound it.
+   */
+  withAcl(may("protection.read")) {
+    get("/{player}/history") { (p: String) =>
+      OperatorEndpoint.period(query.raw) match
+        case Left(field) => refusal(400, "invalid_request", s"$field is not an ISO instant", "field" -> field)
+        case Right((from, to)) =>
+          Try(ctx.state(p)).fold(_ => refusal(503, "service_unavailable", "The history cannot be read"), s =>
+            ok(Render.history(s.copy(history = s.history.filter(h => from.forall(!h.occurredAt.isBefore(_)) && to.forall(h.occurredAt.isBefore))))))
+    }
+  }
+
   private def caseReply(status: Int)(a: ProfileAnswer): Reply =
     a.refusal.fold(a.caseId.flatMap(a.state.caseOf).fold(refusal(404, "case_not_found", "No such case"))(c => json(status, Render.rgCase(c))))(refused)
 
@@ -161,6 +176,12 @@ final class OperatorEndpoint(ctx: Ctx, bags: RoleBags) extends HttpEndpoint(s"/v
   }
 
 object OperatorEndpoint:
+  /** `from` and `to` as instants when given; Left names the first that is not one. */
+  def period(q: String => Option[String]): Either[String, (Option[Instant], Option[Instant])] =
+    def instant(name: String): Either[String, Option[Instant]] =
+      q(name).map(_.trim).filter(_.nonEmpty).fold(Right(None))(v => Try(Instant.parse(v)).toOption.map(Some(_)).toRight(name))
+    for f <- instant("from"); t <- instant("to") yield (f, t)
+
   /** The query as a status, a page and a page size, or the first parameter that is not valid. */
   def casesQuery(q: String => Option[String]): Either[String, (Option[String], Int, Int)] =
     def opt(name: String) = q(name).map(_.trim).filter(_.nonEmpty)
