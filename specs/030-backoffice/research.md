@@ -667,3 +667,27 @@ amendment (K5 in contracts/amendments.md). The document route passes kyc's bytes
   decision.
 - Gap: a streamed document is still under `pass()`'s 15 s timeout for the whole body. That is enough
   at kyc's upload cap, but not for a slow, large transfer.
+
+### players for the investigation, 2026-11-16 (T066–T068)
+
+- The regression from P1 (bd098288): the operator endpoint's `Acl.DenyAll` is checked for any path no
+  route matches, so an unknown route answered 403. The endpoint ACL is `Routes.operator(slug)` again,
+  and every route keeps its own permission (8d6ede28).
+- The players list combines `search` with the filters, as the original's spec 180 does. Each facet
+  applies every other filter and leaves out its own. `identity` is `verified` or `unverified` only,
+  which is all players knows. Online means an open player session. Birthday windows are today, 7 and
+  30 days; a 29 February birthday counts on 28 February in a common year.
+- A game session's gap follows the original: the wallet's bets naming the session against the sum of
+  its rounds' stakes, rollbacks not counted. The gap compares two topics read by separate consumers,
+  so their lag can show a gap for a moment, as in the original.
+- Bets are read from rounds (a new `rounds` view, `RoundEntry` per round), so `betId` is now the round
+  id. The totals are summed in memory over up to 100,000 matching rounds, because the view client
+  cannot sum.
+- The new consumers (`casino.rounds`, `money.transactions` into `SessionWagers`) read from the earliest
+  message on first deployment; the players view is raised to version 2 and rebuilt.
+- A player session ended by an operator has status `forced`, and its game sessions' audit records name
+  the operator.
+- Risks: the birthday filter, like the existing display-name search, compares a personal field as
+  text. ankka 042's encryption of personal fields will refuse both queries at start. players'
+  `lists.feature` freshness scenario stays unbound: "the views are catching up" cannot be shown while
+  `rebuilding` is always false (V2).
