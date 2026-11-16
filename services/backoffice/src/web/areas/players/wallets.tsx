@@ -1,12 +1,15 @@
 // A player's wallet (T076; FR-024, FR-027): the wallet's movements in the player's currency, newest
 // first, a page at a time with the wallet's total, each linking to what it names (a round, a payment, a
-// reward, an adjustment's cause); and the adjustment (corrections' `PlayerAdjust`, T086) below them.
-// `?adjustment=` or `?payment=` marks the movement a link opened.
+// reward, an adjustment's cause); the player's own turnover terms for withdrawals (the wallet's
+// `turnover-override`), set or cleared back to the brand's; and the adjustment (corrections'
+// `PlayerAdjust`, T086) below them. `?adjustment=` or `?payment=` marks the movement a link opened.
+import { useId, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
 import { t } from "../../../shared/messages/index.ts";
 import { players, wallet } from "../../../shared/owners/index.ts";
-import { RefusalNotice } from "../../components/action/index.ts";
+import { Actions } from "../../actions/index.ts";
+import { Action, RefusalNotice } from "../../components/action/index.ts";
 import { DateTime, ZoneNote } from "../../components/date.tsx";
 import { useFreshness } from "../../components/freshness.tsx";
 import { RecordLinks, type RecordRef } from "../../components/links.tsx";
@@ -16,6 +19,8 @@ import { minorOfText } from "../../../shared/money.ts";
 import { PlayerAdjust } from "../corrections/adjust.tsx";
 import { readJson, refusalOf } from "../corrections/shared.tsx";
 import { word } from "../word.ts";
+import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
+import { useBags } from "../bags.ts";
 
 const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 const PageSize = 50;
@@ -89,6 +94,86 @@ function Movements({ player, currency }: { player: string; currency: string }) {
   );
 }
 
+/** How the wallet counts turnover (TurnoverTerms): the brand's choices, as its configuration offers them. */
+const Definitions = ["gross_wagered", "net_loss"] as const;
+
+/**
+ * The player's turnover terms in this currency (the original's *Turnover override*): a multiplier and
+ * how turnover is counted, in place of the brand's, or cleared back to the brand's. The wallet answers
+ * the brand's terms (`wallet-config`) but not a player's override, so the page shows the brand's and
+ * what the operator last set here.
+ */
+function TurnoverOverride({ player, currency }: { player: string; currency: string }) {
+  const me = useOperator();
+  const bags = useBags();
+  const readOnly = useReadOnlyMode();
+  const multiplierId = useId();
+  const definitionId = useId();
+  const brand = useQuery({
+    queryKey: ["wallet", "wallet-config", "turnover"],
+    queryFn: () => readJson<{ turnover?: { multiplier: number; definition: string } }>(wallet.getWalletConfig()),
+  });
+  const [multiplier, setMultiplier] = useState("");
+  const [definition, setDefinition] = useState<string>("gross_wagered");
+  const [set, setSet] = useState<{ multiplier: number; definition: string } | null | undefined>(undefined);
+  const whole = /^\d{1,6}$/.test(multiplier.trim());
+  const terms = brand.data?.turnover;
+  return (
+    <section aria-labelledby="turnover-title" data-turnover-override>
+      <h3 id="turnover-title">{t("wallets.turnover.title")}</h3>
+      {terms ? (
+        <p>{t("wallets.turnover.brand", { value: terms.multiplier, basis: word("config.withdrawals.definition", terms.definition) })}</p>
+      ) : brand.isError ? (
+        <RefusalNotice refusal={refusalOf(brand.error)} />
+      ) : null}
+      {set ? <p role="status">{t("wallets.turnover.set", { value: set.multiplier, basis: word("config.withdrawals.definition", set.definition) })}</p> : null}
+      {set === null ? <p role="status">{t("wallets.turnover.cleared")}</p> : null}
+      {readOnly ? null : (
+        <div className="bo-actions">
+          <Action
+            action={Actions["wallet.turnoverOverride"]}
+            me={me}
+            bags={bags}
+            ready={whole}
+            subject={
+              <>
+                <div className="bo-field">
+                  <label htmlFor={multiplierId}>{t("wallets.turnover.multiplier")}</label>
+                  <input id={multiplierId} className="bo-input" inputMode="numeric" value={multiplier} onChange={(e) => setMultiplier(e.target.value)} />
+                </div>
+                <div className="bo-field">
+                  <label htmlFor={definitionId}>{t("config.withdrawals.definition")}</label>
+                  <select id={definitionId} value={definition} onChange={(e) => setDefinition(e.target.value)}>
+                    {Definitions.map((d) => (
+                      <option key={d} value={d}>
+                        {word("config.withdrawals.definition", d)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <p className="bo-muted">{t("wallets.turnover.currency", { currency })}</p>
+              </>
+            }
+            run={() => wallet.putWalletsTurnoverOverride({ player, currency }, { body: { multiplier: Number(multiplier.trim()), definition } })}
+            onDone={() => {
+              setSet({ multiplier: Number(multiplier.trim()), definition });
+              setMultiplier("");
+            }}
+          />
+          <Action
+            action={Actions["wallet.clearTurnoverOverride"]}
+            me={me}
+            bags={bags}
+            subject={<p className="bo-muted">{t("wallets.turnover.currency", { currency })}</p>}
+            run={() => wallet.putWalletsTurnoverOverride({ player, currency }, { body: {} })}
+            onDone={() => setSet(null)}
+          />
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function PlayerWallets({ player }: { player: string }) {
   const profile = useQuery({
     queryKey: ["players", "profile", player],
@@ -98,7 +183,12 @@ export function PlayerWallets({ player }: { player: string }) {
   return (
     <section aria-labelledby="wallets-title">
       <h2 id="wallets-title">{t("players.tab.wallets")}</h2>
-      {profile.isError ? <RefusalNotice refusal={refusalOf(profile.error)} /> : currency ? <Movements player={player} currency={currency} /> : null}
+      {profile.isError ? <RefusalNotice refusal={refusalOf(profile.error)} /> : currency ? (
+        <>
+          <Movements player={player} currency={currency} />
+          <TurnoverOverride key={currency} player={player} currency={currency} />
+        </>
+      ) : null}
       <PlayerAdjust player={player} />
     </section>
   );
