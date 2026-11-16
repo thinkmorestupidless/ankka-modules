@@ -19,6 +19,7 @@ import { BatchPage } from "../areas/corrections/batch.tsx";
 import { IdentityQueuePage } from "../areas/identity/queue.tsx";
 import { PlayerPage } from "../areas/players/page.tsx";
 import { PlayersListPage } from "../areas/players/list.tsx";
+import { OnlinePage } from "../areas/outreach/online.tsx";
 import { SearchPage } from "../areas/search/SearchPage.tsx";
 import { RewardsPage } from "../areas/rewards/list.tsx";
 import { OffersPage } from "../areas/rewards/offers.tsx";
@@ -43,6 +44,8 @@ export const Pages: [string, Page][] = [
   ["/", () => <Home />],
   ["/search", () => <SearchPage />],
   ["/players", () => <PlayersListPage />],
+  // who is online (US11): before a player, whose ids are never "online"
+  ["/players/online", () => <OnlinePage />],
   ["/players/$player", () => <PlayerPage />],
   // a tab of the player's page (page.tsx); a tab another area routes on its own stays before it
   ["/players/$player/$tab", () => <PlayerPage />],

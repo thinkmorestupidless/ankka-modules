@@ -96,18 +96,36 @@ describe("/api/events", () => {
 
 describe("the page's listener", () => {
   class FakeSource {
-    listeners = new Map<string, () => void>();
+    listeners = new Map<string, (e?: { data?: unknown }) => void>();
     closed = false;
-    addEventListener(type: string, l: () => void) {
+    addEventListener(type: string, l: (e?: { data?: unknown }) => void) {
       this.listeners.set(type, l);
     }
     close() {
       this.closed = true;
     }
-    emit(type: string) {
-      this.listeners.get(type)?.();
+    emit(type: string, data?: unknown) {
+      this.listeners.get(type)?.(data === undefined ? undefined : { data });
     }
   }
+
+  test("leaves a notice that opens the player on player_online, and re-reads who is online", async () => {
+    const { listen } = await import("../../src/web/frame/events.ts");
+    const notices = await import("../../src/web/areas/outreach/notices.tsx");
+    const src = new FakeSource();
+    const invalidated: unknown[] = [];
+    listen(() => src, { invalidateQueries: async (q?: unknown) => void invalidated.push(q) } as never, () => undefined);
+    src.emit("player_online", JSON.stringify({ playerId: "p-ana", emailPrefix: "ana.souza", sessionId: "s1", occurredAt: "2026-11-16T10:00:00Z" }));
+    src.emit("player_online", "not json");
+    src.emit("presence", JSON.stringify({ online: [], count: 0 }));
+    expect(notices.onlineNoticesNow().map((n) => n.playerId)).toEqual(["p-ana"]);
+    notices.dismissOnline("p-ana");
+    expect(notices.onlineNoticesNow()).toEqual([]);
+    expect(invalidated).toEqual([{ queryKey: ["presence"] }, { queryKey: ["presence"] }, { queryKey: ["presence"] }]);
+    expect(notices.onlineNoticeOf('{"playerId":"p-ana","emailPrefix":"ana.souza"}')).toEqual({ playerId: "p-ana", emailPrefix: "ana.souza", sessionId: "", occurredAt: "" });
+    expect(notices.onlineNoticeOf('{"emailPrefix":"x"}')).toBeUndefined();
+    expect(notices.playerHref("p ana")).toBe("/players/p%20ana");
+  });
 
   test("re-reads the operator on permissions_changed", async () => {
     const { listen } = await import("../../src/web/frame/events.ts");
