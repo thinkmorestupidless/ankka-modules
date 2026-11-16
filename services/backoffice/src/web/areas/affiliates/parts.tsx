@@ -45,10 +45,15 @@ export const RevenueColumns: readonly FigureColumn[] = [
 
 const counts = new Intl.NumberFormat("en-GB");
 
+/** A count as a number, or a dash when the owner's answer has none: never "NaN" (DR-16). */
+export function CountText({ value }: { value: unknown }) {
+  return typeof value === "number" && Number.isFinite(value) ? <>{counts.format(value)}</> : <span className="bo-muted">—</span>;
+}
+
 /** A figure's cell: money in its currency, a count; a money figure of a row with no currency has none to show. */
 export function FigureCell({ f, column }: { f: Figure; column: FigureColumn }) {
   const v = f[column.key] as number;
-  if (!column.money) return <>{counts.format(v)}</>;
+  if (!column.money) return <CountText value={v} />;
   return f.currency ? <Money value={{ minor: v, currency: f.currency }} /> : <span className="bo-muted">{t("affiliates.noCurrency")}</span>;
 }
 

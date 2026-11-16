@@ -315,15 +315,9 @@
   "GET /v1/affiliates/{brand}/revenue/by-campaign": {
    "body": [
     {
-     "affiliateId": "aff-rio",
      "brandId": "goldvibe",
      "campaign": "autumn",
-     "commission": 42875,
-     "currency": "BRL",
-     "deposits": 250000,
-     "ftds": 4,
-     "ngr": 91500,
-     "registrations": 12
+     "ftdCount": 4
     }
    ]
   },
@@ -332,11 +326,8 @@
     {
      "brandId": "goldvibe",
      "country": "BR",
-     "currency": "BRL",
-     "deposits": 250000,
-     "ftds": 4,
-     "ngr": 91500,
-     "registrations": 12
+     "ftdCount": 4,
+     "registrationCount": 12
     }
    ]
   },

@@ -42,6 +42,8 @@ for (const theme of ["dark", "light"] as const) {
         await expect(page.locator("html"), "the page applies the operator's theme").toHaveAttribute("data-theme", theme, { timeout: 5_000 });
         await expect(page.getByRole("main"), "the page renders").not.toBeEmpty();
         expect(errors, `${route} renders without an error`).toEqual([]);
+        // a figure the owner did not answer is a dash, never "NaN" (DR-16)
+        await expect(page.getByRole("main"), `${route} shows no NaN`).not.toContainText(/\bNaN\b/);
         const { violations } = await new AxeBuilder({ page }).analyze();
         const serious = violations.filter((v) => v.impact === "serious" || v.impact === "critical");
         expect(

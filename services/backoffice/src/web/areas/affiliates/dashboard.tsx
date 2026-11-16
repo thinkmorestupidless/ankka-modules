@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { t, type MessageKey } from "../../../shared/messages/index.ts";
 import { affiliateProgramme as programme } from "../../../shared/owners/index.ts";
-import { FiguresTable, PeriodField, Read } from "./parts.tsx";
+import { CountText, FiguresTable, PeriodField, Read } from "./parts.tsx";
 import { json, thisMonth, type AccountsPage, type FraudFlag, type Payout, type Revenue } from "./programme.ts";
 import { useZone } from "../../components/date.tsx";
 
@@ -78,7 +78,7 @@ export function DashboardSection() {
                 {rows.map((c) => (
                   <tr key={c.campaign}>
                     <th scope="row">{c.campaign}</th>
-                    <td data-numeric>{counts.format(c.ftdCount)}</td>
+                    <td data-numeric><CountText value={c.ftdCount} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -109,8 +109,8 @@ export function DashboardSection() {
                 {rows.map((g) => (
                   <tr key={g.country}>
                     <th scope="row">{g.country}</th>
-                    <td data-numeric>{counts.format(g.registrationCount)}</td>
-                    <td data-numeric>{counts.format(g.ftdCount)}</td>
+                    <td data-numeric><CountText value={g.registrationCount} /></td>
+                    <td data-numeric><CountText value={g.ftdCount} /></td>
                   </tr>
                 ))}
               </tbody>

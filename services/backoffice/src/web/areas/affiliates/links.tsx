@@ -11,10 +11,8 @@ import { Action } from "../../components/action/index.ts";
 import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
-import { Read } from "./parts.tsx";
+import { CountText, Read } from "./parts.tsx";
 import { accountName, json, type AccountsPage, type Link } from "./programme.ts";
-
-const counts = new Intl.NumberFormat("en-GB");
 
 /** The brand's active affiliates, for a picker (the programme pages at most 200). */
 export function useActiveAccounts() {
@@ -54,8 +52,8 @@ export function LinksTable({ links, names }: { links: readonly Link[]; names?: R
               <td>
                 <code>{l.landingUrl ?? l.landingPath ?? ""}</code>
               </td>
-              <td data-numeric>{counts.format(l.clicks)}</td>
-              <td data-numeric>{counts.format(l.registrations)}</td>
+              <td data-numeric><CountText value={l.clicks} /></td>
+              <td data-numeric><CountText value={l.registrations} /></td>
               <td>{l.createdAt ? <DateTime instant={l.createdAt} zone={tz} /> : null}</td>
             </tr>
           ))}
