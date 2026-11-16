@@ -183,3 +183,16 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.bo-aff-part {
+  margin-block: 24px;
+}
+.bo-aff-notes {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.bo-aff-notes p {
+  margin: 0;
+}

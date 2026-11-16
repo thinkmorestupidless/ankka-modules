@@ -231,6 +231,27 @@ export const Actions = {
   "programme.manager.add": { label: "action.programme.manager.add.label", effect: "action.programme.manager.add.effect", permission: "programme.managers", reason: "none" },
   "programme.manager.reset": { label: "action.programme.manager.reset.label", effect: "action.programme.manager.reset.effect", permission: "programme.managers", reason: "none" },
   "programme.manager.revoke": { label: "action.programme.manager.revoke.label", effect: "action.programme.manager.revoke.effect", permission: "programme.managers", reason: "none" },
+  // accounts: status at the brand through approve and reject (pending only) and the network routes (suspend an
+  // active membership, reactivate a suspended one); the reset sends a link, no password
+  "programme.account.create": { label: "action.programme.account.create.label", effect: "action.programme.account.create.effect", permission: "programme.manage", reason: "none" },
+  "programme.account.approve": { label: "action.programme.account.approve.label", effect: "action.programme.account.approve.effect", permission: "programme.manage", reason: "none", offeredIn: ["pending"] },
+  "programme.account.reject": { label: "action.programme.account.reject.label", effect: "action.programme.account.reject.effect", permission: "programme.manage", reason: "optional", reasonField: "reason", offeredIn: ["pending"] },
+  "programme.account.suspend": { label: "action.programme.account.suspend.label", effect: "action.programme.account.suspend.effect", permission: "programme.manage", reason: "none", offeredIn: ["active"] },
+  "programme.account.reactivate": { label: "action.programme.account.reactivate.label", effect: "action.programme.account.reactivate.effect", permission: "programme.manage", reason: "none", offeredIn: ["suspended"] },
+  "programme.account.resendInvitation": { label: "action.programme.account.resendInvitation.label", effect: "action.programme.account.resendInvitation.effect", permission: "programme.manage", reason: "none", offeredIn: ["active"] },
+  "programme.account.resetPassword": { label: "action.programme.account.resetPassword.label", effect: "action.programme.account.resetPassword.effect", permission: "programme.manage", reason: "none" },
+  "programme.account.updateEmail": { label: "action.programme.account.updateEmail.label", effect: "action.programme.account.updateEmail.effect", permission: "programme.manage", reason: "none" },
+  "programme.account.edit": { label: "action.programme.account.edit.label", effect: "action.programme.account.edit.effect", permission: "programme.manage", reason: "none" },
+  "programme.account.note": { label: "action.programme.account.note.label", effect: "action.programme.account.note.effect", permission: "programme.manage", reason: "none" },
+  // an adjustment's reason is required by the programme (AdjustmentBody)
+  "programme.account.adjust": { label: "action.programme.account.adjust.label", effect: "action.programme.account.adjust.effect", permission: "programme.manage", reason: "required", reasonField: "reason" },
+  // payouts (Settlement.transition): pending → approved or rejected, approved → paid
+  "programme.payouts.close": { label: "action.programme.payouts.close.label", effect: "action.programme.payouts.close.effect", permission: "programme.manage", reason: "none" },
+  "programme.payout.approve": { label: "action.programme.payout.approve.label", effect: "action.programme.payout.approve.effect", permission: "programme.manage", reason: "none", offeredIn: ["pending"] },
+  "programme.payout.reject": { label: "action.programme.payout.reject.label", effect: "action.programme.payout.reject.effect", permission: "programme.manage", reason: "optional", reasonField: "reason", offeredIn: ["pending"] },
+  "programme.payout.pay": { label: "action.programme.payout.pay.label", effect: "action.programme.payout.pay.effect", permission: "programme.manage", reason: "none", offeredIn: ["approved"] },
+  // a fraud flag (Records.dismiss): the reason required, kept with the manager
+  "programme.flag.dismiss": { label: "action.fraud.dismiss.label", effect: "action.programme.flag.dismiss.effect", permission: "programme.manage", reason: "required", reasonField: "reason", offeredIn: ["open"] },
   // end of US10
   // engagement: its CRM settings and seed; a parked send retried (no reason) or discarded with the reason
   // engagement requires; support-agent's settings; attribution's windows, networks, webhooks and keys (it
