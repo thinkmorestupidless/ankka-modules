@@ -5,6 +5,7 @@ import type { Preferences } from "../../src/server/session.ts";
 import type { Seed } from "./server.ts";
 import type { FraudSeed } from "./fraud.ts";
 import type { WalletSeed } from "./wallet.ts";
+import type { FlagSeed } from "./programme.ts";
 
 export interface Claims {
   sub?: string;
@@ -111,6 +112,11 @@ export class DoublesClient {
   /** The wallet's balances kept by the double from here on: read, adjusted under a key, a repeat answered its first outcome. */
   wallets(seed: WalletSeed): Promise<unknown> {
     return this.ask("PUT", "/wallets", seed);
+  }
+
+  /** The affiliate programme's fraud flags kept by the double from here on: listed by brand, dismissed with a reason. */
+  fraudFlags(seed: FlagSeed): Promise<unknown> {
+    return this.ask("PUT", "/fraud-flags", seed);
   }
 
   tokenLife(ms: number): Promise<unknown> {
