@@ -8,12 +8,14 @@ import "./affiliates.css";
 import { holds } from "../../../shared/access.ts";
 import { t, type MessageKey } from "../../../shared/messages/index.ts";
 import { useOperator } from "../../frame/context.ts";
-import { Placeholder } from "../../frame/pages.tsx";
+import { AccountsSection } from "./accounts.tsx";
 import { CreativesSection } from "./creatives.tsx";
 import { DashboardSection } from "./dashboard.tsx";
+import { FraudSection } from "./fraud.tsx";
 import { LinksSection } from "./links.tsx";
 import { ManagersSection } from "./managers.tsx";
 import { MessagesSection } from "./messages.tsx";
+import { PayoutsSection } from "./payouts.tsx";
 import { PlansSection } from "./plans.tsx";
 import { SettingsSection } from "./settings.tsx";
 
@@ -24,17 +26,14 @@ interface Section {
   show(): ReactElement;
 }
 
-/** A section T119 builds. */
-const notYet = (key: MessageKey) => <Placeholder label={key} />;
-
 export const Sections: readonly Section[] = [
   { id: "dashboard", label: "affiliates.section.dashboard", permission: "programme.manage", show: () => <DashboardSection /> },
-  { id: "accounts", label: "affiliates.section.accounts", permission: "programme.manage", show: () => notYet("affiliates.section.accounts") },
+  { id: "accounts", label: "affiliates.section.accounts", permission: "programme.manage", show: () => <AccountsSection /> },
   { id: "plans", label: "affiliates.section.plans", permission: "programme.manage", show: () => <PlansSection /> },
   { id: "links", label: "affiliates.section.links", permission: "programme.manage", show: () => <LinksSection /> },
   { id: "creatives", label: "affiliates.section.creatives", permission: "programme.manage", show: () => <CreativesSection /> },
-  { id: "payouts", label: "affiliates.section.payouts", permission: "programme.manage", show: () => notYet("affiliates.section.payouts") },
-  { id: "fraud", label: "affiliates.section.fraud", permission: "programme.manage", show: () => notYet("affiliates.section.fraud") },
+  { id: "payouts", label: "affiliates.section.payouts", permission: "programme.manage", show: () => <PayoutsSection /> },
+  { id: "fraud", label: "affiliates.section.fraud", permission: "programme.manage", show: () => <FraudSection /> },
   { id: "messages", label: "affiliates.section.messages", permission: "programme.manage", show: () => <MessagesSection /> },
   { id: "settings", label: "affiliates.section.settings", permission: "programme.manage", show: () => <SettingsSection /> },
   { id: "managers", label: "affiliates.section.managers", permission: "programme.managers", show: () => <ManagersSection /> },

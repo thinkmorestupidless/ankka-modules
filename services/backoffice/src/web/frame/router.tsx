@@ -11,6 +11,7 @@ import { PreferencesPage } from "../areas/preferences/PreferencesPage.tsx";
 import { TeamPage } from "../areas/team/TeamPage.tsx";
 import { Home } from "./home.tsx";
 import { AffiliatesArea } from "../areas/affiliates/area.tsx";
+import { AccountPage } from "../areas/affiliates/account.tsx";
 import { JobsPage } from "../areas/jobs/JobsPage.tsx";
 import { DashboardPage } from "../areas/dashboard/DashboardPage.tsx";
 import { ReportPage } from "../areas/reports/ReportsPage.tsx";
@@ -83,6 +84,7 @@ export const Pages: [string, Page][] = [
   ["/team", () => <TeamPage />],
   ["/team/roles", () => <TeamPage />],
   ["/affiliates", () => <AffiliatesArea />],
+  ["/affiliates/accounts/$affiliate", () => <AccountPage />],
   ["/affiliates/$area", () => <AffiliatesArea />],
   ["/jobs", () => <JobsPage />],
   ["/preferences", () => <PreferencesPage />],
