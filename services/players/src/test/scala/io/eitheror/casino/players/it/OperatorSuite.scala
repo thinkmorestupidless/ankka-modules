@@ -75,7 +75,7 @@ class OperatorSuite extends munit.FunSuite with LogCapturing:
     val (_, id, sid, games) = playing()
     assertEquals(kit.request("PUT", kit.servicePath(s"/$id/exclusion"), Some("{}"), kit.asOperator()).status, 403)
     assertEquals(svc("PUT", s"/$id/exclusion", "kyc").status, 403)
-    assertEquals(op("PUT", s"/players/$id/exclusion").status, 403) // no operator route: the endpoint denies what no route admits
+    assertEquals(op("PUT", s"/players/$id/exclusion").status, 404) // no operator route
     val r = svc("PUT", s"/$id/exclusion", "responsible-gambling", "at" -> "2026-10-25T10:00:00Z")
     assertEquals(r.status, 200, r.text)
     assertEquals((player(id).status, player(id).exclusionAt.map(_.toString)), (Status.SelfExcluded, Some("2026-10-25T10:00:00Z")))

@@ -79,8 +79,9 @@ final class SessionEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/sessions
  * amendment P1, contracts/roles.md), decided from the brand's roles `players` keeps.
  */
 final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoffice/${ctx.slug}"):
-  // every route names its own permission; this is never reached
-  val acl: Acl = Acl.DenyAll
+  // every route names its own permission; this admits only the routes none matches, so that an operator of
+  // the brand asking for a path no route serves is answered 404, and anyone else is refused as before
+  val acl: Acl = Routes.operator(ctx.slug, ctx.authenticate())
 
   private def may(permission: String) = Routes.operatorMay(ctx.slug, permission, PlayersRuntime.bags, ctx.authenticate())
 
