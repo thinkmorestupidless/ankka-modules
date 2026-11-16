@@ -19,6 +19,8 @@ trait RealmAdmin:
   def createRole(realm: String, role: String, description: String): Unit
   def clientExists(realm: String, clientId: String): Boolean
   def createClient(realm: String, json: String): Unit
+  /** Sets an existing client's secret; true when it changed, false when it already held it or there is no such client. */
+  def setClientSecret(realm: String, clientId: String, secret: String): Boolean
   def calls: Vector[String]
 
 object Realm:
@@ -215,6 +217,12 @@ object Realm:
       if !admin.clientExists(OperatorsRealm, id) then
         admin.createClient(OperatorsRealm, backofficeClient(slug, address, secret))
         made += s"client $id added to realm $OperatorsRealm" + (if secret.isEmpty then " (its secret minted: set backoffice-client-secret to it)" else "")
+      else
+        // the secret is the brand's (`<slug>-backoffice` CLIENT_SECRET, also its `backoffice-client-secret`):
+        // a client made without it, whose secret Keycloak minted, is given it, so the two always agree
+        secret.foreach { s =>
+          if admin.setClientSecret(OperatorsRealm, id, s) then made += s"client $id in realm $OperatorsRealm given the brand's secret"
+        }
     }
     made.toVector
 
@@ -264,6 +272,19 @@ final class KeycloakAdmin(base: String, username: String, password: String, ca: 
     val response = client.send(request, HttpResponse.BodyHandlers.ofString())
     response.statusCode == 200 && mapper.readTree(response.body).elements().asScala.exists(_.path("clientId").asText() == clientId)
   def createClient(realm: String, json: String) = created(send("POST", s"/realms/$realm/clients", Some(json)), "the client")
+  def setClientSecret(realm: String, clientId: String, secret: String): Boolean =
+    log += s"GET /realms/$realm/clients?clientId=$clientId"
+    val request = HttpRequest.newBuilder(URI.create(s"${base.stripSuffix("/")}/admin/realms/$realm/clients?clientId=${enc(clientId)}"))
+      .header("Authorization", s"Bearer $token").GET().build()
+    val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+    val found =
+      if response.statusCode != 200 then None
+      else mapper.readTree(response.body).elements().asScala.find(_.path("clientId").asText() == clientId)
+    found.filter(_.path("secret").asText() != secret).map(_.path("id").asText()).exists { internal =>
+      val status = send("PUT", s"/realms/$realm/clients/$internal", Some(mapper.writeValueAsString(java.util.Map.of("clientId", clientId, "secret", secret))))
+      if status != 204 && status != 200 then throw ControlPlaneError(status, s"Keycloak did not take the secret of client $clientId ($status)")
+      true
+    }
 
 object KeycloakAdmin:
   /**
@@ -302,3 +323,11 @@ final class InMemoryRealms extends RealmAdmin:
   def createClient(realm: String, json: String) =
     log += s"POST /realms/$realm/clients"
     clients((realm, mapper.readTree(json).get("clientId").asText())) = json
+  def setClientSecret(realm: String, clientId: String, secret: String) =
+    log += s"PUT /realms/$realm/clients/$clientId secret"
+    clients.get(realm -> clientId).filter(j => mapper.readTree(j).path("secret").asText() != secret).exists { json =>
+      val node = mapper.readTree(json).asInstanceOf[com.fasterxml.jackson.databind.node.ObjectNode]
+      node.put("secret", secret)
+      clients((realm, clientId)) = mapper.writeValueAsString(node)
+      true
+    }
