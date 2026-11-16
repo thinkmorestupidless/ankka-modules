@@ -37,6 +37,7 @@ public by `withAcl(Routes.public)`.
 | O29–O34 | `GET /{brand}/accounts/{aff}/view/{page}` | `page` ∈ `dashboard`, `stats`, `commission`, `links`, `payouts`, `notifications`, and (new, FR-036) `postbacks`; `commission` takes `?period=` (**reshaped** from `view/commission/{period}`); also served at `/{brand}/accounts/{aff}/portal/{page}` (spec 030 A2); every answered read under either is audited `VIEWED_AS` |
 | O35, O36 | `GET`, `POST /{brand}/tracking-links` | the link gains a signed tag |
 | O37–O39 | `GET /{brand}/revenue`, `/revenue/by-campaign`, `/revenue/geo` | per currency |
+| new | `GET /{brand}/traffic?period=` | spec 030 A3: `{brandId, period, clickCount, registrationCount, ftdCount, qftdCount, affiliates: [{affiliateId, …, links: [{btag, …}]}]}`, the brand's counts for the period (the `revenue` grammar), per affiliate and per link; no currency |
 | O40 | `POST /{brand}/payouts/close?period=` | starts or rejoins the `Close` workflow; answers when it ends or after 10 s with `202` and the workflow's id |
 | O41 | `GET /{brand}/payouts` | |
 | O42 | `PATCH /{brand}/payouts/{payout}/status` | `{status, overrideCommission?, reason?}`; the figure as an adjustment (FR-019); to `paid`, `409 claims_changed` when a close claimed for the payout since it was read: read it again and pay |

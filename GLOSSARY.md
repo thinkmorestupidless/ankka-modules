@@ -499,6 +499,11 @@ Whether a period's negative NGR persists as a deficit into the next period, or t
 ### first-deposit guard
 The programme's record that CPA was paid for a player at a brand, set once for the player's life and never by a first deposit below the plan's minimum deposit.
 
+### qualified first deposit
+A player's first deposit at or above the minimum deposit of a plan that pays CPA: the deposit the first-deposit guard is set by, counted once for the player's life in the period it occurred in.
+
+Avoid: QFTD
+
 ### commission
 What an affiliate is owed for the players they sent: CPA, RevShare, override and adjustments, as payable facts in a ledger.
 

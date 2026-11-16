@@ -4,11 +4,14 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.core.EntityId
 import io.eitheror.casino.attribution.TagOutcome
 import io.eitheror.casino.programme.accounts.AffiliateState
-import io.eitheror.casino.programme.brands.{AddBrand, BrandProgramme, Plan}
+import io.eitheror.casino.programme.brands.{AddBrand, BrandProgramme, Plan, UpdateBrand}
 import io.eitheror.casino.programme.links.{BonusCode, CreateLink, Link}
 import io.eitheror.casino.programme.players.{ClickRecord, PlayerFacts}
+import io.eitheror.casino.contract.facts.AttributionFact
+import io.eitheror.casino.programme.intake.FactInbox
 import io.eitheror.casino.programme.it.{BrandKeys, BrandSide, Facts, Reply}
 
+import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.Executors
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -31,14 +34,21 @@ class LinkSteps extends ProgrammeFeatures("links.feature"):
   private var uuid: String         = null
   private var replies: Seq[Reply]  = Nil
   private var keyDoc: BrandKeys    = null
+  private var links: Vector[String] = Vector.empty
+  private var period: String       = null
+  private var zoneBefore: Option[String] = None
 
   override def beforeEach(context: BeforeEach): Unit =
     super.beforeEach(context)
     aff = null; link = null; tag = null; held = Map.empty; revoked = (Set.empty, Set.empty); outcome = null; factId = null; uuid = null
-    replies = Nil; keyDoc = null
+    replies = Nil; keyDoc = null; links = Vector.empty; period = null; zoneBefore = None
 
   override def afterEach(context: AfterEach): Unit =
-    try if keyDoc != null then keyDoc.stop() finally super.afterEach(context)
+    try
+      if keyDoc != null then keyDoc.stop()
+      zoneBefore.foreach(z => kit.components.forKeyValueEntity(EntityId("goldvibe")).call(BrandProgramme.update)
+        .invoke(UpdateBrand(reportingZone = Some(z))): Unit)
+    finally super.afterEach(context)
 
   // ── helpers ─────────────────────────────────────────────────────────────────────────────────────
 
@@ -242,4 +252,98 @@ class LinkSteps extends ProgrammeFeatures("links.feature"):
     val account: AffiliateState = kit.components.forEventSourcedEntity(EntityId(aff))
       .call(io.eitheror.casino.programme.accounts.Affiliate.get).invoke()
     assert(!account.productElementNames.exists(_.toLowerCase.contains("click")), account.productElementNames.mkString(","))
+  }
+
+  // ── traffic (spec 030 A3) ───────────────────────────────────────────────────────────────────────
+
+  /** Publishes a fact on goldvibe's topic and waits for the inbox's outcome, so the next fact finds the player bound. */
+  private def send(fact: AttributionFact): String =
+    kit.publish(fact)
+    kit.eventually(s"the outcome of ${fact.factId}")(
+      kit.components.forKeyValueEntity(FactInbox.entityId("goldvibe", fact.factId)).call(FactInbox.get).invoke().outcome)
+
+  /** A player registered through `on` with a first deposit of `amount`, as a brand emits it: `first-deposit`, then `deposit`. */
+  private def depositor(on: String, amount: Long, at: Instant): Unit =
+    val facts = Facts("goldvibe", aff, on)
+    val p     = kit.fresh("ps")
+    send(facts.registration(p, at)): Unit
+    send(facts.firstDeposit(p, amount, at.plusSeconds(60))): Unit
+    send(facts.deposit(p, amount, at.plusSeconds(60))): Unit
+
+  private def clicksOn(on: String, n: Int, at: Instant): Unit =
+    (1 to n).foreach(_ => send(Facts("goldvibe", aff, on, clickId = Some(kit.fresh("clk"))).click(at)): Unit)
+
+  private def traffic(p: String): com.fasterxml.jackson.databind.JsonNode =
+    val r = kit.request("GET", s"/v1/affiliates/goldvibe/traffic?period=$p", headers = kit.asManager())
+    assertEquals(r.status, 200, r.text)
+    r.json
+
+  private def counts(n: com.fasterxml.jackson.databind.JsonNode): (Long, Long, Long, Long) =
+    (n.get("clickCount").asLong, n.get("registrationCount").asLong, n.get("ftdCount").asLong, n.get("qftdCount").asLong)
+
+  /** This scenario's affiliate in a traffic answer, once it is there. */
+  private def mine(answer: com.fasterxml.jackson.databind.JsonNode): Option[com.fasterxml.jackson.databind.JsonNode] =
+    answer.get("affiliates").elements().asScala.find(_.get("affiliateId").asText == aff)
+
+  /** Polls the read until this scenario's affiliate counts `expected`. */
+  private def readUntil(expected: (Long, Long, Long, Long)): com.fasterxml.jackson.databind.JsonNode =
+    kit.eventually(s"the affiliate's traffic $expected")(Option(traffic(period)).filter(a => mine(a).map(counts).contains(expected)))
+
+  Given("an affiliate with two links at brand {string}, each with clicks, registrations and first deposits in one period") { (brand: String) =>
+    assertEquals(slug(brand), "goldvibe")
+    aff = newAffiliate()
+    links = Vector(createLink(aff).get("btag").asText, createLink(aff).get("btag").asText)
+    period = "2026-09"
+    val at = Instant.parse("2026-09-10T12:00:00Z")
+    clicksOn(links(0), 2, at)
+    depositor(links(0), 2_000, at)
+    clicksOn(links(1), 1, at)
+    send(Facts("goldvibe", aff, links(1)).registration(kit.fresh("ps"), at)): Unit
+  }
+  When("a manager reads the brand's traffic for that period") { () => assert(period != null) }
+  Then("the traffic counts the clicks, registrations, first deposits and qualified first deposits of the affiliate and of each link") { () =>
+    val answer = readUntil((3L, 2L, 1L, 1L))
+    assertEquals(answer.get("period").asText, period)
+    val byLink = mine(answer).get.get("links").elements().asScala.map(l => l.get("btag").asText -> counts(l)).toMap
+    assertEquals(byLink, Map(links(0) -> (2L, 1L, 1L, 1L), links(1) -> (1L, 1L, 0L, 0L)))
+  }
+  Then("the brand's counts include the affiliate's") { () =>
+    val answer = traffic(period)
+    val (c, r, f, q) = counts(answer)
+    assert(c >= 3 && r >= 2 && f >= 1 && q >= 1, answer.toString)
+    val sum = answer.get("affiliates").elements().asScala.map(counts).foldLeft((0L, 0L, 0L, 0L))((a, b) => (a._1 + b._1, a._2 + b._2, a._3 + b._3, a._4 + b._4))
+    assertEquals(sum, (c, r, f, q))
+  }
+
+  Given("brand {string} with the reporting zone {string}") { (brand: String, zone: String) =>
+    assertEquals(slug(brand), "goldvibe")
+    val entity = kit.components.forKeyValueEntity(EntityId("goldvibe"))
+    zoneBefore = Some(entity.call(BrandProgramme.get).invoke().reportingZone)
+    entity.call(BrandProgramme.update).invoke(UpdateBrand(reportingZone = Some(zone))): Unit
+  }
+  Given("a click late on the last day of a month in that zone") { () =>
+    aff = newAffiliate()
+    links = Vector(createLink(aff).get("btag").asText)
+    // 23:30 on 31 October in São Paulo is 02:30 on 1 November in UTC.
+    clicksOn(links(0), 1, Instant.parse("2026-11-01T02:30:00Z"))
+  }
+  When("a manager reads the brand's traffic for that month and for the next") { () => period = "2026-10" }
+  Then("the click counts in that month and not in the next") { () =>
+    readUntil((1L, 0L, 0L, 0L)): Unit
+    assertEquals(mine(traffic("2026-11")), None)
+  }
+
+  Given("an affiliate on a plan that pays CPA with a minimum deposit at brand {string}") { (brand: String) =>
+    assertEquals(slug(brand), "goldvibe")
+    aff = kit.affiliate(id("aff"), "goldvibe", kit.plan("goldvibe", kit.fresh("p"), Plan.Cpa, cpa = 5_000, minimumDeposit = 2_000))
+    links = Vector(createLink(aff).get("btag").asText)
+    period = "2026-09"
+  }
+  Given("one player whose first deposit is below the minimum deposit and one whose first deposit meets it") { () =>
+    val at = Instant.parse("2026-09-12T12:00:00Z")
+    depositor(links(0), 1_999, at)
+    depositor(links(0), 2_000, at)
+  }
+  Then("the traffic counts two first deposits and one qualified first deposit") { () =>
+    readUntil((0L, 2L, 2L, 1L)): Unit
   }

@@ -19,6 +19,11 @@ object Clicks extends View.Companion[ClicksView, ClickState, ClickState](
   val withClickId = query("with-click-id")(
     s"SELECT payload FROM $table WHERE payload::jsonb->>'brand' = :brand AND payload::jsonb->>'clickId' = :click_id")
 
+  /** A brand's clicks that occurred between two days (`yyyy-MM-dd`, the second exclusive): what `Traffic` holds to a period. */
+  val ofBrand = query("of-brand")(
+    s"SELECT payload FROM $table WHERE payload::jsonb->>'brand' = :brand " +
+      "AND payload::jsonb->>'occurredAt' >= :from AND payload::jsonb->>'occurredAt' < :until")
+
   def create(ctx: ViewComponentContext) = new ClicksView
 
 /**
