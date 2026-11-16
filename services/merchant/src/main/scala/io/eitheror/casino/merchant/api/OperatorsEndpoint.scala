@@ -103,10 +103,19 @@ final class OperatorsEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/operators"):
       }
     }
 
+    /**
+     * The operators in the caller's scope, newest first, paged (spec 030 H5): `page` from 1, `pageSize`
+     * 1 to 200 (25 by default), and `total` however few a page lists.
+     */
     get("/") { () =>
       val caller = op
       val rows   = ctx.views.forView(OperatorsView).all(10_000).filter(r => OperatorsView.inScope(caller.scope, r))
-      ok(Json.obj("operators" -> Json.arr(rows.map(r => summary(operator(r.operatorId).call(OperatorEntity.get).invoke()))*)))
+      val states = rows.map(r => operator(r.operatorId).call(OperatorEntity.get).invoke())
+        .sortBy(s => (s.createdAt.map(-_.toEpochMilli).getOrElse(0L), s.id))
+      val page = request.query.raw("page").flatMap(_.toIntOption).map(math.max(1, _)).getOrElse(1)
+      val size = request.query.raw("pageSize").flatMap(_.toIntOption).filter(n => n >= 1 && n <= 200).getOrElse(25)
+      ok(Json.obj("operators" -> Json.arr(states.slice((page - 1) * size, page * size).map(summary)*), "total" -> states.size,
+        "page" -> page, "pageSize" -> size))
     }
 
     /** The caller covers the operator: the platform any, otherwise one at or under the caller's entity. */

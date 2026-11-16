@@ -106,7 +106,7 @@ Dropped: `/v1/payments/risk/*` (FR-036).
 | Method, path | Does | Body in → out |
 |---|---|---|
 | `POST /` | create and invite | `email`, `role`, `scopeId`, `scopeLevel`, `firstName?`, `lastName?` → `operatorId`, `email`, `role`, `scopeId`, `scopeLevel`; `403` when the role's privilege is not below the caller's or the scope not within the caller's |
-| `GET /` | list in scope | → `operators[{operatorId, email, username, enabled, roles[], scopeId, scopeLevel, scopeAncestors[], pending, firstName?, lastName?}]` |
+| `GET /?page=&pageSize=` | list in scope, newest first, paged *(spec 030 H5, FR-028b)*: `pageSize` 1 to 200, 25 otherwise | → `operators[{operatorId, email, username, enabled, roles[], scopeId, scopeLevel, scopeAncestors[], pending, firstName?, lastName?}]`, `total`, `page`, `pageSize` |
 | `POST /accept-invitation` | public within the realm's flow: no token | `token`, `password` → `204` |
 | `POST /{id}/resend-invitation`, `POST /{id}/reset-password` | | |
 | `PUT /{id}/scope` | | `scopeId`, `scopeLevel` → `operatorId`, `scopeId`, `scopeLevel` |

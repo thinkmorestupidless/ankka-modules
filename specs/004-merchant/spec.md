@@ -530,6 +530,7 @@ original refuses a capture it cannot trust rather than credit it.
   touching nothing, a role reserved by `OperatorPermissions.reserved` (every realm role but the four
   default brand roles, `platform_admin`, the payments roles, another brand's `brand_<slug>`). The
   roles each brand gave are kept on the operator, and each setting is an audit record.
+- **FR-028b** *(amended by spec 030, H5)*: `GET /v1/operators` MUST page the operators in the caller's scope newest first: `page` from 1, `pageSize` 1 to 200 (25 otherwise), answering `total`, `page` and `pageSize` beside `operators`.
 
 **Backoffice reads**
 
