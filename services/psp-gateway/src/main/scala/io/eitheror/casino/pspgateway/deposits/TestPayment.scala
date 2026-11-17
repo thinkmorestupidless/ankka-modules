@@ -21,16 +21,26 @@ object TestMode:
   private def sandboxed(c: Credential): Credential = Credential(c.values + ("environment" -> "sandbox"))
 
   /**
-   * Unity Finance's test card (`CARD_TEST`, its `card` payway, `adapter.go:255`); Gigadat's `sandbox`
-   * flag and Digitarium's sandbox host, each chosen by the credential's `environment`, set to `sandbox`
-   * whatever the credential says. The other six have none in their adapters: BounceMoney has no
-   * sandbox, and Cozeni's and the rest's are an installation's base URL, not a request's.
+   * Gigadat's `sandbox` flag and Digitarium's sandbox host, each chosen by the credential's
+   * `environment`, set to `sandbox` whatever the credential says: the request itself keeps the charge
+   * out of production. No other adapter has a test mode a request can force, so the other seven answer
+   * `test_mode_unavailable`:
+   *  - Unity Finance has one address for test and live (the original's spec 109 research, *Endpoints*);
+   *    test mode is a setting of each checkout in its portal, which the gateway cannot see. `CARD_TEST`
+   *    is only the generic `card` payway (`adapter.go:255`) on the checkout `checkoutId.CARD_TEST`
+   *    names; on a live checkout its page takes a real card, and the charge would be one nothing records.
+   *  - BounceMoney has no sandbox, and Cozeni's and the rest's are an installation's base URL, not a request's.
    */
   def of(provider: Provider): Option[TestMode] = provider match
-    case Provider.UnityFinance => Some(TestMode("test_card", "CARD_TEST", Currency.unsafe("USD"), identity))
     case Provider.Gigadat      => Some(TestMode("sandbox", "INTERAC", Currency.unsafe("CAD"), sandboxed))
     case Provider.Digitarium   => Some(TestMode("sandbox", "BASIC_CARD", Currency.unsafe("USD"), sandboxed))
     case _                     => None
+
+  /** Why `provider` has no test mode, for the refusal. */
+  def unavailable(provider: Provider): String = provider match
+    case Provider.UnityFinance =>
+      "unityfinance's test mode is a setting of the checkout in its portal, which no request can force; a test charge could take live money"
+    case p => s"${p.wire} offers no test mode"
 
   /** The smallest test charge: one whole unit of the currency, or the catalogue's minimum where that is more. */
   def amount(provider: Provider, currency: Currency): Long =
@@ -64,7 +74,7 @@ final class TestPayment(merchant: MerchantClient, settings: Settings, call: Prov
   private def made(provider: Provider, subBrandId: String, name: String, asked: Option[Currency]): Answer =
     TestMode.of(provider) match
       case None =>
-        Answer.refusal(501, "test_mode_unavailable", Some(s"${provider.wire} offers no test mode"), Some(provider.wire))
+        Answer.refusal(501, "test_mode_unavailable", Some(TestMode.unavailable(provider)), Some(provider.wire))
       case Some(mode) =>
         val currency = asked.getOrElse(mode.currency)
         val amount   = TestMode.amount(provider, currency)
