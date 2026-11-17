@@ -6,7 +6,7 @@
 // `onlineNotices` preference) it relays `player_online` from engagement's agent stream (FR-036; spec 014
 // FR-024), and `presence` after that stream dropped and was opened again.
 import type { Hono } from "hono";
-import { streamSSE } from "hono/streaming";
+import { streamSSE, type SSEStreamingApi } from "hono/streaming";
 import type { Env } from "./main.ts";
 import { inBrand, permissionsOf, type BrandReads } from "./roles.ts";
 import type { Token, TokenCache } from "./session.ts";
@@ -261,13 +261,37 @@ export async function standing(deps: Pick<EventsDeps, "brand" | "reads">, token:
   return permissionsOf(token.roles, bags).join(" ");
 }
 
+/**
+ * The most event streams one sign-in holds open at once: one a tab, and each polls its sources and may
+ * hold its own connection to engagement. A browser's tabs share the sign-in, so this bounds one
+ * operator's tabs; a stream past it is refused 429 and the page's EventSource does not retry it.
+ */
+export const StreamsPerSession = 8;
+
 export function eventRoutes(app: Hono<Env>, deps: EventsDeps): void {
+  const open = new Map<string, number>();
   app.get("/api/events", (c) => {
     c.set("logPath", "/api/events");
     const session = c.get("session");
     const first = c.get("token");
+    const held = open.get(session) ?? 0;
+    if (held >= StreamsPerSession) return c.json({ error: "too_many_streams", message: `at most ${StreamsPerSession} event streams at once` }, 429);
+    open.set(session, held + 1);
+    const release = () => {
+      const n = (open.get(session) ?? 1) - 1;
+      if (n <= 0) open.delete(session);
+      else open.set(session, n);
+    };
     c.header("X-Accel-Buffering", "no");
     return streamSSE(c, async (stream) => {
+      try {
+        await follow(stream);
+      } finally {
+        release();
+      }
+    });
+
+    async function follow(stream: SSEStreamingApi): Promise<void> {
       let last = await standing(deps, first);
       // engagement's agent stream, for an operator who asked: open while they are of this brand and hold
       // presence.read (or while the brand's roles cannot be read: engagement decides then); ended with this stream.
@@ -345,6 +369,6 @@ export function eventRoutes(app: Hono<Env>, deps: EventsDeps): void {
         deps.shutdown?.removeEventListener("abort", end);
         relay?.abort();
       }
-    });
+    }
   });
 }

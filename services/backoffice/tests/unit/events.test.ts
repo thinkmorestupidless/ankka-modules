@@ -100,6 +100,24 @@ describe("/api/events", () => {
     expect(Date.now() - started).toBeLessThan(1_000);
   });
 
+  test("holds at most eight streams open for one sign-in; a ninth is refused until one ends", async () => {
+    const h = live();
+    const streams = await Promise.all(Array.from({ length: 8 }, () => h.ask("GET", "/api/events", { session: "s-ev" })));
+    expect(streams.map((r) => r.status)).toEqual(Array(8).fill(200));
+    const ninth = await h.ask("GET", "/api/events", { session: "s-ev" });
+    expect(ninth.status).toBe(429);
+    expect(await ninth.json()).toMatchObject({ error: "too_many_streams" });
+    await streams[0]!.body!.cancel();
+    let again: Response | undefined;
+    for (let i = 0; i < 50 && again?.status !== 200; i++) {
+      await new Promise((r) => setTimeout(r, 20));
+      again = await h.ask("GET", "/api/events", { session: "s-ev" });
+      if (again.status === 200) break;
+    }
+    expect(again!.status).toBe(200);
+    for (const r of [...streams.slice(1), again!]) await r.body!.cancel();
+  });
+
   test("names its route in the log, never the session", async () => {
     const h = live();
     await until(await h.ask("GET", "/api/events", { session: "s-ev" }), "nothing", 50);
