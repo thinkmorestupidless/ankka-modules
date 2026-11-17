@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { decimalOf, exponentOf, formatMoney, parseMoney, sumMoney, UnknownCurrency } from "../../src/shared/money.ts";
+import { decimalOf, exponentOf, formatMoney, parseMoney, sumMoney, UnknownCurrency, walletMinor, walletMinorText, walletText } from "../../src/shared/money.ts";
 
 describe("minor units by the contract's table", () => {
   test.each([
@@ -70,5 +70,32 @@ describe("summing", () => {
 
   test("never across currencies", () => {
     expect(() => sumMoney([{ minor: "100", currency: "EUR" }, { minor: "100", currency: "JPY" }])).toThrow(RangeError);
+  });
+});
+
+describe("the wallet's amount text", () => {
+  // The wallet writes minor units over 100 with two decimals whatever the currency (Wire.major).
+  test("is minor units over 100 in every currency, never the currency's own count", () => {
+    expect(walletMinor("12.50")).toBe(1250n); // EUR: 1250 cents
+    expect(walletMinor("5.00")).toBe(500n); // JPY: 500 yen, not 5
+    expect(walletMinor("1500.00")).toBe(150000n); // CLP: 150000 pesos
+    expect(walletMinor("1.50")).toBe(150n); // KWD: 150 fils, not 1500
+    expect(walletMinor("-0.07")).toBe(-7n);
+    expect(walletMinorText("5.00")).toBe("500");
+  });
+
+  test("shown in the currency, the figure is the wallet's", () => {
+    expect(formatMoney({ minor: walletMinor("5.00")!, currency: "JPY" })).toBe(formatMoney({ minor: 500n, currency: "JPY" }));
+    expect(formatMoney({ minor: walletMinor("1.50")!, currency: "KWD" })).toBe(formatMoney({ minor: 150n, currency: "KWD" }));
+  });
+
+  test("anything but two decimals is no wallet amount", () => {
+    for (const text of ["5", "5.0", "1.500", "12,50", "", " ", "abc", 500, null, undefined]) expect(walletMinor(text)).toBeUndefined();
+  });
+
+  test("written back by the same rule", () => {
+    expect(walletText(500n)).toBe("5.00");
+    expect(walletText(-1250n)).toBe("-12.50");
+    expect(walletMinor(walletText(123456789n))).toBe(123456789n);
   });
 });

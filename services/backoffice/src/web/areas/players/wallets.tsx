@@ -15,7 +15,7 @@ import { useFreshness } from "../../components/freshness.tsx";
 import { RecordLinks, type RecordRef } from "../../components/links.tsx";
 import { completeOf, List, useListState, useRouterListStore, type Column } from "../../components/list/index.ts";
 import { Money } from "../../components/money.tsx";
-import { minorOfText } from "../../../shared/money.ts";
+import { walletMinorText } from "../../../shared/money.ts";
 import { PlayerAdjust } from "../corrections/adjust.tsx";
 import { readJson, refusalOf } from "../corrections/shared.tsx";
 import { word } from "../word.ts";
@@ -60,7 +60,7 @@ function Movements({ player, currency }: { player: string; currency: string }) {
     queryFn: () => readJson<{ transactions: Movement[]; total: number }>(wallet.getWalletsTransactions({ player, currency }, { query: { page: String(list.state.page - 1), pageSize: String(PageSize) } })),
   });
   const money = (text: string | null | undefined) => {
-    const minor = minorOfText(text, currency);
+    const minor = walletMinorText(text);
     return minor === undefined ? (text ?? null) : <Money value={{ minor, currency }} />;
   };
   const columns: Column<Movement>[] = [

@@ -5,7 +5,10 @@
 //
 // An erased player (spec edge case 5) is answered under the pseudonym only: the player's id, the
 // account status and the dates the brand keeps; no name, email, address, date of birth or note text.
-import { minorOfText as minorOf } from "../../shared/money.ts";
+import { walletMinorText } from "../../shared/money.ts";
+
+/** The wallet's amount text as minor units (shared/money.ts, the wallet's rule; the currency does not change it). */
+const minorOf = (text: unknown, _currency: string): string | undefined => walletMinorText(text);
 
 export { minorOf };
 import { arr, ask, num, obj, str, type AskDeps, type Asked, type Obj } from "./ask.ts";
