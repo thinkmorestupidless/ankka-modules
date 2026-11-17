@@ -165,6 +165,9 @@ export function BatchPage() {
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState<Done | undefined>(undefined);
   const [cut, setCut] = useState(false);
+  // One key per batch composed on this page: kept while the list is corrected and sent again, so made rows
+  // are not made twice; a batch composed another time (the page opened again) is another batch.
+  const [key] = useState(() => crypto.randomUUID());
 
   const named = causeOf(cause.kind, cause.ref);
   const signature = JSON.stringify([category, reason.trim(), named ?? null, text]);
@@ -190,6 +193,7 @@ export function BatchPage() {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Backoffice": "1", Accept: "application/x-ndjson" },
       body: JSON.stringify({
+        key,
         reason: reason.trim(),
         category,
         ...(named ? { cause: named } : {}),

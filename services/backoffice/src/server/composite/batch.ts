@@ -29,6 +29,8 @@ export interface BatchRow {
 }
 
 export interface Batch {
+  /** The page's key for this composed batch: one per batch the operator makes, kept when a corrected list is sent again. */
+  key: string;
   reason: string;
   category: string;
   cause?: { kind: (typeof CauseKinds)[number]; ref: string };
@@ -65,11 +67,14 @@ const obj = (v: unknown): Obj | undefined => (v !== null && typeof v === "object
 const Segment = /^[A-Za-z0-9._:-]{1,128}$/;
 const Currency = /^[A-Z]{3}$/;
 const Category = /^[a-z][a-z0-9_]{0,63}$/;
+const BatchKey = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 /** The batch as the page sent it, or what is wrong with it (row numbers from 1). */
 export function readBatch(body: unknown): { batch: Batch } | { error: string; row?: number } {
   const b = obj(body);
   if (!b) return { error: "the body is not a JSON object" };
+  const key = typeof b.key === "string" ? b.key.toLowerCase() : "";
+  if (!BatchKey.test(key)) return { error: "a batch carries its key, a UUID the page makes for it" };
   const reason = typeof b.reason === "string" ? b.reason.trim() : "";
   if (reason === "" || reason.length > 1000) return { error: "a batch names its reason, at most 1000 characters" };
   const category = typeof b.category === "string" ? b.category : "";
@@ -96,14 +101,18 @@ export function readBatch(body: unknown): { batch: Batch } | { error: string; ro
     if (typeof minor !== "number" || !Number.isSafeInteger(minor) || minor <= 0) return { error: "a row's amount is a positive whole number of minor units", row: n };
     rows.push({ player: r.player, currency: r.currency, walletType: r.walletType, direction: r.direction, amountMinor: minor });
   }
-  return { batch: { reason, category, ...(cause ? { cause } : {}), rows } };
+  return { batch: { key, reason, category, ...(cause ? { cause } : {}), rows } };
 }
 
 const sha256 = (v: unknown) => createHash("sha256").update(JSON.stringify(v)).digest("hex");
 
-/** The batch's id: the same reason, category and cause are the same batch, whichever rows it holds. */
-export function batchId(b: Pick<Batch, "reason" | "category" | "cause">): string {
-  return sha256([b.reason, b.category, b.cause ? [b.cause.kind, b.cause.ref] : null]);
+/**
+ * The batch's id: its key with its reason, category and cause, whichever rows it holds. The same key resent
+ * with a corrected list is the same batch, so rows already made answer `already_made`; a batch made later
+ * with the same reason and rows has another key, so it is paid.
+ */
+export function batchId(b: Pick<Batch, "key" | "reason" | "category" | "cause">): string {
+  return sha256([b.key, b.reason, b.category, b.cause ? [b.cause.kind, b.cause.ref] : null]);
 }
 
 /**
