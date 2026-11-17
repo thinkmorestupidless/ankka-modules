@@ -81,6 +81,19 @@ describe("the brand's roles", () => {
     expect(row.textContent).toMatch(/2 permissions/);
   });
 
+  it("does not create a role without a name, nor one whose name the brand already uses", async () => {
+    players();
+    team();
+    fireEvent.click(await screen.findByRole("button", { name: "New role" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create the role" }));
+    expect((within(await screen.findByRole("dialog")).getByRole("button", { name: "Confirm" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "vip_host" } });
+    expect(screen.getByText(/already has a role named vip_host/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Create the role" }));
+    expect((within(await screen.findByRole("dialog")).getByRole("button", { name: "Confirm" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
   it("creates a role from permissions, stating what it carries before it is confirmed", async () => {
     const calls = players();
     team();
