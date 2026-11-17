@@ -327,6 +327,11 @@ async function main(): Promise<void> {
   const seed = existsSync(inst.seedFile) ? readSeed(inst) : fresh(inst.brand, o);
   if (seed.brand !== inst.brand) throw new Error(`${inst.seedFile} is the seed of ${seed.brand}, not ${inst.brand}`);
   seed.refused = {};
+  // a smaller --players on a seed taken up again drops the players not yet registered beyond it
+  if (seed.players.length > o.players) {
+    seed.players = seed.players.filter((p) => p.index < o.players || p.playerId);
+    seed.wanted = { players: o.players, rewards: o.rewards, withdrawals: o.withdrawals };
+  }
   console.log(`seeding ${inst.brand} at ${inst.backoffice} (run ${seed.run}; ${seed.players.length} players, ${o.rewards} rewards, ${o.withdrawals} withdrawal requests)`);
   const signIn = () => Operator.signIn(inst, operators(inst).brand_admin, "brand_admin");
   const seeder = new Seeder(inst, seed, await signIn(), signIn, o);
