@@ -59,7 +59,11 @@ export function formatMoney(money: Money, locale = "en-GB"): string {
   return format.format(decimalOf(money) as unknown as number);
 }
 
-/** Typed text to minor units: refused when it has more decimals than the currency has minor units. */
+/**
+ * Typed text to minor units: refused when it has more decimals than the currency has minor units. The
+ * decimal mark is ".", and "," or a space groups thousands (so "1,500" is fifteen hundred in every
+ * currency); the amount fields' hint says so.
+ */
 export function parseMoney(text: string, currency: string): bigint | undefined {
   const e = exponentOf(currency);
   const m = /^\s*(-)?(\d+)(?:\.(\d*))?\s*$/.exec(text.replace(/[,  ](?=\d{3}\b)/g, ""));
