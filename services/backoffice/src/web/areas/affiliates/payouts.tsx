@@ -5,7 +5,7 @@
 // refuses (`status_transition`). The export is the programme's CSV for the period, downloaded as is.
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { t } from "../../../shared/messages/index.ts";
+import { t, type MessageKey } from "../../../shared/messages/index.ts";
 import { affiliateProgramme as programme } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action } from "../../components/action/index.ts";
@@ -15,7 +15,7 @@ import { Status } from "../../components/status.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 import { useActiveAccounts } from "./links.tsx";
-import { PeriodField, Read } from "./parts.tsx";
+import { PeriodField, Read, ScrollRegion } from "./parts.tsx";
 import { accountName, actorName, json, thisMonth, type Payout } from "./programme.ts";
 
 /** The programme's export for a period, read through the backoffice's own route (a GET, as the signed-in operator). */
@@ -76,12 +76,14 @@ function Row({ p, names, done, viewOnly }: { p: Payout; names: ReadonlyMap<strin
 }
 
 /** `readOnly`: the payouts as shown, with no action on them (the affiliate's own view, as a manager reads it). */
+const PayoutsCaption: MessageKey = "affiliates.section.payouts";
+
 export function PayoutsTable({ payouts, names, done, readOnly = false }: { payouts: readonly Payout[]; names: ReadonlyMap<string, string>; done(): void; readOnly?: boolean }) {
   if (payouts.length === 0) return <p className="bo-muted">{t("affiliates.payout.none")}</p>;
   return (
-    <div className="bo-aff-scroll">
+    <ScrollRegion label={PayoutsCaption}>
       <table className="bo-aff-table">
-        <caption className="bo-sr-only">{t("affiliates.section.payouts")}</caption>
+        <caption className="bo-sr-only">{t(PayoutsCaption)}</caption>
         <thead>
           <tr>
             <th scope="col">{t("affiliates.affiliate")}</th>
@@ -114,7 +116,7 @@ export function PayoutsTable({ payouts, names, done, readOnly = false }: { payou
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }
 

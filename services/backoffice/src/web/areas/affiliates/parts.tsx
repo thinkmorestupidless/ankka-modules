@@ -8,6 +8,18 @@ import { Money } from "../../components/money.tsx";
 import { refusalOf, type Figure } from "./programme.ts";
 
 /** A month as the programme names a period (`yyyy-MM`). */
+/**
+ * A table wider than the page scrolls across inside this region, which the keyboard can reach and focus to
+ * scroll (axe: scrollable-region-focusable), named by the table it holds.
+ */
+export function ScrollRegion({ label, children }: { label: MessageKey; children: ReactNode }) {
+  return (
+    <div className="bo-aff-scroll" role="region" aria-label={t(label)} tabIndex={0}>
+      {children}
+    </div>
+  );
+}
+
 export function PeriodField({ value, onChange, label = "affiliates.period" }: { value: string; onChange(period: string): void; label?: MessageKey }) {
   const id = useId();
   return (
@@ -60,7 +72,7 @@ export function FigureCell({ f, column }: { f: Figure; column: FigureColumn }) {
 export function FiguresTable({ figures, caption, columns = RevenueColumns }: { figures: readonly Figure[]; caption: MessageKey; columns?: readonly FigureColumn[] }) {
   if (figures.length === 0) return <p className="bo-muted">{t("affiliates.noFigures")}</p>;
   return (
-    <div className="bo-aff-scroll">
+    <ScrollRegion label={caption}>
       <table className="bo-aff-table">
         <caption className="bo-sr-only">{t(caption)}</caption>
         <thead>
@@ -86,6 +98,6 @@ export function FiguresTable({ figures, caption, columns = RevenueColumns }: { f
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }
