@@ -83,7 +83,9 @@ export class FraudCases {
     if (!m || this.cases.size === 0 || (answer.status ?? 200) !== 200 || typeof answer.body !== "object" || answer.body === null) return answer;
     const player = decodeURIComponent(m[1]!);
     const cases = [...(this.flags.get(player) ?? [])];
-    const body: Record<string, unknown> = { ...(answer.body as Record<string, unknown>) };
+    // players answers `{player, wallet, activeSessions, pinnedNotes}`; the flag is the player's
+    const outer = answer.body as Record<string, unknown>;
+    const body: Record<string, unknown> = { ...((outer.player ?? {}) as Record<string, unknown>) };
     delete body.suspectedDuplicate;
     delete body.linkedPlayerIds;
     delete body.duplicateSignals;
@@ -93,6 +95,6 @@ export class FraudCases {
       body.linkedPlayerIds = [...new Set(linked)].sort();
       body.duplicateSignals = [...new Set(cases.flatMap((id) => this.cases.get(id)!.signals))].sort();
     }
-    return { ...answer, body };
+    return { ...answer, body: { ...outer, player: body } };
   }
 }

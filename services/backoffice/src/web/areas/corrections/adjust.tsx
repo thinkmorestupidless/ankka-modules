@@ -14,7 +14,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import "./corrections.css";
 import { t, type MessageKey } from "../../../shared/messages/index.ts";
 import { parseMoney } from "../../../shared/money.ts";
-import { players, wallet } from "../../../shared/owners/index.ts";
+import { wallet } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
 import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
@@ -22,7 +22,7 @@ import { Money, moneyText } from "../../components/money.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 import { word } from "../word.ts";
-import { profileCurrency } from "../players/read.ts";
+import { profileCurrency, profileQuery } from "../players/read.ts";
 import { CategorySelect, CauseFields, causeOf, readJson, refusalOf, walletMinor, type Category, type Cause, type CauseKind } from "./shared.tsx";
 
 interface Balance {
@@ -241,10 +241,7 @@ function Adjuster({ player, currency }: { player: string; currency: string }) {
 
 /** A player's balance adjusted in the player's currency as players names it (`player.currency`). */
 export function PlayerAdjust({ player }: { player: string }) {
-  const profile = useQuery({
-    queryKey: ["players", "profile", player],
-    queryFn: () => readJson<unknown>(players.getPlayersProfile({ playerId: player })),
-  });
+  const profile = useQuery(profileQuery(player));
   const currency = profile.data === undefined ? undefined : profileCurrency(profile.data);
   return (
     <section>

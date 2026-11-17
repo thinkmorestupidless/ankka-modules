@@ -8,6 +8,7 @@ import { useRouter, useRouterState } from "@tanstack/react-router";
 import { useId, useState } from "react";
 import { t } from "../../../shared/messages/index.ts";
 import { players } from "../../../shared/owners/index.ts";
+import { flagOf, profileKey, profileQuery } from "../players/read.ts";
 import { explain } from "../../../shared/refusals.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
@@ -40,12 +41,6 @@ async function readCases(status: string): Promise<FraudCase[]> {
   return ((await r.json()) as { cases: FraudCase[] }).cases;
 }
 
-async function readFlag(player: string): Promise<{ flagged: boolean; username?: string }> {
-  const r = await players.getPlayersProfile({ playerId: player });
-  if (!r.ok) throw explain(r.status, await r.text());
-  const p = (await r.json()) as { suspectedDuplicate?: boolean; username?: string; email?: string };
-  return { flagged: p.suspectedDuplicate === true, username: p.username ?? p.email };
-}
 
 const columns = (tz: string): Column<FraudCase>[] => [
   { id: "case", header: "fraud.case", cell: (c) => <code>{c.caseId.slice(0, 8)}</code> },
@@ -61,7 +56,7 @@ function CaseDetail({ c, onDecided }: { c: FraudCase; onDecided(next: Partial<Fr
   const bags = useBags();
   const readOnly = useReadOnlyMode();
   const tz = useZone();
-  const flags = useQueries({ queries: c.playerIds.map((p) => ({ queryKey: ["players", "profile", p], queryFn: () => readFlag(p) })) });
+  const flags = useQueries({ queries: c.playerIds.map((p) => ({ ...profileQuery(p), select: flagOf })) });
   const state = c.status.toLowerCase();
   const decided = async (answer: Response) => onDecided((await answer.clone().json().catch(() => ({}))) as Partial<FraudCase>);
   return (
@@ -139,7 +134,7 @@ export function FraudCasesPage() {
   const decided = (base: FraudCase) => (next: Partial<FraudCase>) => {
     setKept({ ...base, ...next, caseId: base.caseId, playerIds: base.playerIds, signals: base.signals, detectedAt: base.detectedAt });
     void client.invalidateQueries({ queryKey: ["fraud"] });
-    for (const p of base.playerIds) void client.invalidateQueries({ queryKey: ["players", "profile", p] });
+    for (const p of base.playerIds) void client.invalidateQueries({ queryKey: profileKey(p) });
   };
 
   const rows = q.data;

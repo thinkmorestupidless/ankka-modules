@@ -14,6 +14,7 @@ import { ConfigForm } from "../../components/config-form.tsx";
 import { DateTime, useZone } from "../../components/date.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
+import { profileKey, profileQuery, tierOf } from "./read.ts";
 import { keyOf, read } from "../configuration/page.tsx";
 
 interface Tags {
@@ -106,10 +107,10 @@ function TagsEditor({ player, held }: { player: string; held: Tags }) {
 
 export function PlayerTier({ player }: { player: string }) {
   const client = useQueryClient();
-  const profile = useQuery({ queryKey: ["players", "tier", player], queryFn: () => read<{ vipTier?: string | null; potVip?: boolean }>(players.getPlayersProfile({ playerId: player })) });
+  const profile = useQuery({ ...profileQuery(player), select: tierOf });
   const tags = useQuery({ queryKey: ["players", "tags", player], queryFn: () => read<Tags>(players.getPlayersTags({ playerId: player })) });
   const saved = () => {
-    void client.invalidateQueries({ queryKey: ["players", "tier", player] });
+    void client.invalidateQueries({ queryKey: profileKey(player) });
     void client.invalidateQueries({ queryKey: ["players", "standing", player] });
   };
   return (

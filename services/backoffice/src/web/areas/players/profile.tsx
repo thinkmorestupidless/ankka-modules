@@ -13,6 +13,7 @@ import { BirthDateInput } from "../../components/date-input.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 import { readJson, refusalOf } from "../corrections/shared.tsx";
+import { profileKey, profileQuery } from "./read.ts";
 
 /** What an operator may edit (OperatorProfileRoutes.OperatorFields). */
 export const Editable = ["firstName", "lastName", "country", "addressLine1", "city", "stateProv", "postalCode", "phone"] as const;
@@ -127,15 +128,9 @@ function Consents({ player }: { player: string }) {
 
 export function PlayerProfile({ player }: { player: string }) {
   const client = useQueryClient();
-  const q = useQuery({
-    queryKey: ["players", "profile", player],
-    queryFn: async () => {
-      const b = await readJson<{ player?: Player } & Player>(players.getPlayersProfile({ playerId: player }));
-      return b.player ?? b;
-    },
-  });
+  const q = useQuery({ ...profileQuery(player), select: (b) => b.player as unknown as Player });
   const done = () => {
-    void client.invalidateQueries({ queryKey: ["players", "profile", player] });
+    void client.invalidateQueries({ queryKey: profileKey(player) });
     void client.invalidateQueries({ queryKey: ["players", "standing", player] });
   };
   return (

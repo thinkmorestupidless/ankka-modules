@@ -1,6 +1,43 @@
 // What the player's page reads: the standing and the timeline from the page's server (composite routes),
 // the rest from the owners through the route table. A refusal is thrown as `explain` gives it.
+import { players } from "../../../shared/owners/index.ts";
 import { readJson } from "../corrections/shared.tsx";
+
+/**
+ * players' operator profile as OperatorProfileRoutes answers it: the player under `player`, beside the
+ * wallet, the active sessions and the pinned notes. Every screen reads it through [[profileQuery]], so one
+ * cache entry holds one shape; a screen takes the part it needs with `select`.
+ */
+export interface ProfileAnswer {
+  player: Record<string, unknown> & {
+    playerId?: string;
+    currency?: string | null;
+    email?: string;
+    username?: string;
+    vipTier?: string | null;
+    potVip?: boolean;
+    suspectedDuplicate?: boolean;
+  };
+  wallet?: { realBalance?: string; bonusBalance?: string; currency?: string } | null;
+  activeSessions?: unknown[];
+  pinnedNotes?: unknown[];
+}
+
+/** The VIP form's values: the player's tier and the potential-VIP mark. */
+export const tierOf = (b: ProfileAnswer): { vipTier?: string | null; potVip?: boolean } => ({ vipTier: b.player.vipTier, potVip: b.player.potVip });
+
+/** A fraud case's player: whether players still flags them a suspected duplicate, and the name shown. */
+export const flagOf = (b: ProfileAnswer): { flagged: boolean; username?: string } => ({
+  flagged: b.player.suspectedDuplicate === true,
+  username: b.player.username ?? b.player.email,
+});
+
+export const profileKey = (player: string) => ["players", "profile", player] as const;
+
+export const profileQuery = (player: string) => ({
+  queryKey: profileKey(player),
+  queryFn: () => readJson<ProfileAnswer>(players.getPlayersProfile({ playerId: player })),
+});
 
 export type Part<T> = { state: "ok"; data: T } | { state: "unavailable"; reason: string };
 
