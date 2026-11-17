@@ -309,6 +309,7 @@ export const en = {
   "dashboard.range.90d": "90 days",
   "dashboard.currency": "Currency",
   "dashboard.needs": "You need the dashboard.read permission to read the dashboard.",
+  "dashboard.waitsOnFigures": "Not shown: these are read in the currency today's figures name, and today's figures could not be read.",
   "dashboard.now": "Now and today",
   "dashboard.figuresIn": "Figures in {currency}",
   "dashboard.ggr": "GGR",
