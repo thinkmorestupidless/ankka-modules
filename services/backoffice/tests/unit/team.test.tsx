@@ -8,7 +8,7 @@ import type { Me } from "../../src/shared/access.ts";
 import permissionsFile from "../../src/shared/generated/operator-permissions.v1.json" with { type: "json" };
 import { difference, PermissionGroups } from "../../src/shared/permissions.ts";
 import { has } from "../../src/shared/messages/index.ts";
-import { lacking } from "../../src/web/areas/team/assign.tsx";
+import { AssignPage, lacking } from "../../src/web/areas/team/assign.tsx";
 import { TeamPage } from "../../src/web/areas/team/TeamPage.tsx";
 import { MeContext, ReadOnlyContext } from "../../src/web/frame/context.ts";
 
@@ -161,6 +161,47 @@ describe("an operator's roles", () => {
     fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Confirm" }));
     expect((await screen.findByText(/op-b now holds: vip_host/)).textContent).toBeTruthy();
     expect(calls.find((c) => c.method === "PUT")).toMatchObject({ url: "/api/s/players/role-assignments/op-b", body: { roles: ["vip_host"] } });
+  });
+
+  it("with nothing ticked, says before it is confirmed that every role the brand gave is taken away", async () => {
+    players();
+    team();
+    fireEvent.change(await screen.findByLabelText("Operator"), { target: { value: "op-b" } });
+    fireEvent.click(screen.getByRole("button", { name: "Give these roles" }));
+    expect(within(await screen.findByRole("dialog")).getByText(/No role is ticked: every role this brand gave op-b is taken away/)).toBeTruthy();
+  });
+
+  it("opened for an operator from the list, starts from the roles they hold and says what is given and taken away", async () => {
+    const calls = players();
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MeContext.Provider value={admin}>
+          <AssignPage operator="op-b" held={["brand_support", "brand_goldvibe", "payments_viewer"]} />
+        </MeContext.Provider>
+      </QueryClientProvider>,
+    );
+    expect(((await screen.findByRole("checkbox", { name: "brand_support" })) as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(screen.getByRole("checkbox", { name: "brand_support" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "vip_host" }));
+    fireEvent.click(screen.getByRole("button", { name: "Give these roles" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog.querySelector("[data-gives]")!.textContent).toBe("op-b is given vip_host.");
+    expect(dialog.querySelector("[data-takes]")!.textContent).toBe("op-b loses brand_support.");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Confirm" }));
+    // only the brand's roles are sent: merchant's other roles are not players' to set
+    await waitFor(() => expect(calls.find((c) => c.method === "PUT")).toMatchObject({ body: { roles: ["vip_host"] } }));
+  });
+
+  it("shows the refusal when the brand's roles cannot be read, not a loading line for ever", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ error: "forbidden", message: "forbidden: the roles.read permission is needed" }, { status: 403 })));
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MeContext.Provider value={admin}>
+          <AssignPage />
+        </MeContext.Provider>
+      </QueryClientProvider>,
+    );
+    expect((await screen.findByRole("alert")).textContent).toMatch(/roles.read/);
   });
 
   it("is not offered to an operator who may not give roles", async () => {

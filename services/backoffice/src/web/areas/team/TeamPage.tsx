@@ -10,15 +10,15 @@ import { RolesPage } from "./roles.tsx";
 
 export function TeamPage() {
   const me = useOperator();
-  const [operator, setOperator] = useState<string | undefined>(undefined);
+  const [operator, setOperator] = useState<{ id: string; roles: readonly string[] } | undefined>(undefined);
   const gives = holds(me, "roles.give");
   return (
     <>
       {/* one h1 a page (DR-15): the area's; each part below is a section under it */}
       <h1>{t("area.team")}</h1>
-      {holds(me, "payments.read") ? <OperatorsPage onRoles={gives ? setOperator : undefined} /> : null}
+      {holds(me, "payments.read") ? <OperatorsPage onRoles={gives ? (id, roles) => setOperator({ id, roles }) : undefined} /> : null}
       {holds(me, "roles.read") ? <RolesPage /> : null}
-      {gives ? <AssignPage key={operator ?? ""} operator={operator} /> : null}
+      {gives ? <AssignPage key={operator?.id ?? ""} operator={operator?.id} held={operator?.roles} /> : null}
     </>
   );
 }

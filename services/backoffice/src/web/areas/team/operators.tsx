@@ -201,7 +201,7 @@ function Rescope({ o, done }: { o: PaymentsOperator; done(): void }) {
   );
 }
 
-export function OperatorsPage({ onRoles }: { onRoles?(operator: string): void }) {
+export function OperatorsPage({ onRoles }: { onRoles?(operator: string, roles: readonly string[]): void }) {
   const me = useOperator();
   const bags = useBags();
   const readOnly = useReadOnlyMode();
@@ -236,7 +236,7 @@ export function OperatorsPage({ onRoles }: { onRoles?(operator: string): void })
                   <Rescope o={o} done={done} />
                   <Action action={Actions["operator.revoke"]} me={me} bags={bags} subject={subject} run={() => merchant.deleteOperatorsById({ id: o.operatorId })} onDone={done} />
                   {onRoles ? (
-                    <button type="button" className="bo-button" onClick={() => onRoles(o.operatorId)}>
+                    <button type="button" className="bo-button" onClick={() => onRoles(o.operatorId, o.roles)}>
                       {t("team.operators.brandRoles")}
                     </button>
                   ) : null}
