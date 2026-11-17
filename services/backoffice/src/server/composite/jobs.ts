@@ -89,7 +89,30 @@ function asked(body: unknown): { kind: string; values: Record<string, string> } 
   return missing ? `${kind} needs ${missing}` : { kind, values };
 }
 
-async function keep(deps: JobsDeps, subject: string, job: Job): Promise<boolean> {
+/** Each state service's writes of one operator's jobs, one after another: two quick starts both kept. */
+const writing = new WeakMap<StateClient, Map<string, Promise<unknown>>>();
+
+function oneAtATime<T>(state: StateClient, subject: string, write: () => Promise<T>): Promise<T> {
+  const bySubject = writing.get(state) ?? new Map<string, Promise<unknown>>();
+  writing.set(state, bySubject);
+  const before = bySubject.get(subject) ?? Promise.resolve();
+  const mine = before.then(write, write);
+  bySubject.set(subject, mine);
+  void mine.finally(() => {
+    if (bySubject.get(subject) === mine) bySubject.delete(subject);
+  }).catch(() => undefined);
+  return mine;
+}
+
+/**
+ * The job kept first among the operator's at most 20. Read and written again whole, so two starts at one
+ * instance are written one after the other; two at once at two instances can still keep only one.
+ */
+function keep(deps: JobsDeps, subject: string, job: Job): Promise<boolean> {
+  return oneAtATime(deps.state, subject, () => keepNow(deps, subject, job));
+}
+
+async function keepNow(deps: JobsDeps, subject: string, job: Job): Promise<boolean> {
   try {
     const held = (await deps.state.preferences(subject)).jobs ?? [];
     const jobs = [job, ...held.filter((j) => j.reference !== job.reference)].slice(0, MaxJobs);

@@ -181,14 +181,17 @@ async function one(deps: BatchDeps, token: string, key: string, n: number, r: Ba
   return { ...base, outcome: made.json.repeated === true ? "already_made" : "made", before: str(made.json.before), after: str(made.json.after) };
 }
 
-/** Every row, eight at a time, each outcome given to `emit` as it is known; the counts at the end. */
-export async function runBatch(deps: BatchDeps, b: Batch, token: string, emit: (o: RowOutcome) => void): Promise<Done> {
+/**
+ * Every row, eight at a time, each outcome given to `emit` as it is known; the counts at the end. Once
+ * `stop` ends (the page went), no further row is asked; the rows already asked finish at the wallet.
+ */
+export async function runBatch(deps: BatchDeps, b: Batch, token: string, emit: (o: RowOutcome) => void, stop?: AbortSignal): Promise<Done> {
   const id = batchId(b);
   const keys = rowIds(b.rows).map((row) => keyOf(id, row));
   const done: Done = { done: true, batch: id, made: 0, refused: 0, alreadyMade: 0 };
   let next = 0;
   const worker = async () => {
-    while (next < b.rows.length) {
+    while (next < b.rows.length && !stop?.aborted) {
       const i = next++;
       const o = await one(deps, token, keys[i]!, i + 1, b.rows[i]!, b);
       if (o.outcome === "made") done.made++;
@@ -201,17 +204,23 @@ export async function runBatch(deps: BatchDeps, b: Batch, token: string, emit: (
   return done;
 }
 
-/** The streamed answer: one line of JSON a row, then the counts. */
+/** The streamed answer: one line of JSON a row, then the counts. A page that goes stops the batch. */
 export function batchStream(deps: BatchDeps, b: Batch, token: string): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
+  const gone = new AbortController();
   return new ReadableStream<Uint8Array>({
     async start(controller) {
-      const line = (v: unknown) => controller.enqueue(encoder.encode(`${JSON.stringify(v)}\n`));
+      const line = (v: unknown) => {
+        if (!gone.signal.aborted) controller.enqueue(encoder.encode(`${JSON.stringify(v)}\n`));
+      };
       try {
-        line(await runBatch(deps, b, token, line));
+        line(await runBatch(deps, b, token, line, gone.signal));
       } finally {
-        controller.close();
+        if (!gone.signal.aborted) controller.close();
       }
+    },
+    cancel() {
+      gone.abort();
     },
   });
 }
