@@ -376,8 +376,9 @@ export function createApp(deps: Deps): Hono<Env> {
   });
 
   app.all("/api/s/:service/*", async (c) => {
-    const service = c.req.param("service");
+    // the service and the rest from one reading of the path, as the page sent it
     const pathname = new URL(c.req.url).pathname;
+    const service = pathname.split("/")[3] ?? "";
     const prefix = `/api/s/${service}`;
     const m = /^[a-z0-9-]+$/.test(service) ? match(deps.table, c.req.method, service, pathname.slice(prefix.length)) : undefined;
     if (m === undefined || m.row.composite) return c.json({ error: "no_such_route" }, 404);

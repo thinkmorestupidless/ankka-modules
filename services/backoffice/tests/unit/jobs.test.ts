@@ -78,6 +78,21 @@ describe("POST /api/jobs", () => {
     expect(h.calls).toHaveLength(0);
   });
 
+  test("two starts at once are both kept", async () => {
+    let n = 0;
+    const h = jobs(() => Response.json({ reference: `r-${++n}`, status: "generating" }, { status: 202 }));
+    const read = h.state.preferences.bind(h.state);
+    // the state service is slow to read: both starts would read before either wrote
+    h.state.preferences = async () => {
+      const held = structuredClone(await read());
+      await new Promise((r) => setTimeout(r, 10));
+      return held;
+    };
+    const answers = await Promise.all([post(h, { kind: "revenue", params: {} }), post(h, { kind: "players", params: {} })]);
+    expect(answers.map((r) => r.status)).toEqual([200, 200]);
+    expect(h.state.prefs.jobs.map((j) => j.reference).sort()).toEqual(["r-1", "r-2"]);
+  });
+
   test("is a write: it needs the page's own origin", async () => {
     const h = jobs(() => Response.json({}));
     const r = await h.ask("POST", "/api/jobs", { session: "s-j", body: "{}" });

@@ -203,6 +203,22 @@ describe("POST /api/adjustment-batches", () => {
     expect(w.most()).toBeGreaterThan(1);
   });
 
+  test("a page that goes stops the batch: no row is asked after it", async () => {
+    const h = harness({ table });
+    const players = Array.from({ length: 40 }, (_, i) => `p-${i}`);
+    const w = wallet(Object.fromEntries(players.map((p) => [p, 0])));
+    h.answer(w.answer);
+    const r = await h.ask("POST", "/api/adjustment-batches", { session: "s-1", headers: write, body: body(players.map((p) => row(p))) });
+    const reader = r.body!.getReader();
+    await reader.read();
+    await reader.cancel();
+    const asked = adjustCalls(h).length;
+    await new Promise((res) => setTimeout(res, 100));
+    // the eight in flight finish at the wallet; none is started after
+    expect(adjustCalls(h).length).toBeLessThanOrEqual(asked + 8);
+    expect(adjustCalls(h).length).toBeLessThan(40);
+  });
+
   test("at most 500 rows", async () => {
     const h = harness({ table });
     const r = await h.ask("POST", "/api/adjustment-batches", { session: "s-1", headers: write, body: body(Array.from({ length: 501 }, () => row(A))) });

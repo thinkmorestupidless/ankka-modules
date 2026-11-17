@@ -43,6 +43,8 @@ export interface OnlineDeps {
   backoff?: { firstMs: number; mostMs: number };
   /** Nothing heard for this long ends the stream (engagement pings every 15 s). */
   idleMs?: number;
+  /** The clock a connection's length is told by; the server's own when given. */
+  now?: () => number;
 }
 
 /** A player who came online, as the page is told it. */
@@ -159,6 +161,7 @@ export async function relayOnline(
   const { firstMs, mostMs } = deps.backoff ?? { firstMs: 1_000, mostMs: 60_000 };
   const idleMs = deps.idleMs ?? 45_000;
   const bearer = () => ({ Authorization: `Bearer ${accessToken()}` });
+  const now = deps.now ?? Date.now;
 
   const presence = async (within: AbortSignal) => {
     if (presenceUrl === undefined) return;
@@ -219,12 +222,12 @@ export async function relayOnline(
   let wait = firstMs;
   let again = false;
   while (!signal.aborted) {
-    const started = Date.now();
+    const started = now();
     const outcome = await once(again);
     if (signal.aborted) break;
     again = true;
     if (outcome === "refused") wait = mostMs;
-    else if (Date.now() - started >= Lasting) wait = firstMs;
+    else if (now() - started >= Lasting) wait = firstMs;
     await pause(wait, signal);
     wait = Math.min(wait * 2, mostMs);
   }
