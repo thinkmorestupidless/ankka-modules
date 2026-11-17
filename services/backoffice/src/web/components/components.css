@@ -131,15 +131,23 @@
   left: 50%;
   transform: translate(-50%, -50%);
   width: min(480px, calc(100vw - 32px));
+  /* a dialog taller than the screen scrolls, so its buttons are always reachable */
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  overscroll-behavior: contain;
   background: var(--surface-1);
   color: var(--text);
   border-radius: var(--radius-card);
   padding: 24px;
   display: grid;
+  /* the column keeps the dialog's width: a wide subject (a table of inputs) scrolls inside it, and the
+     buttons stay on the screen */
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
 .bo-dialog h2 { margin: 0; font-size: 18px; }
 .bo-dialog p { margin: 0; }
+.bo-dialog [data-subject] { overflow-x: auto; }
 .bo-dialog textarea,
 .bo-input {
   font: inherit;
