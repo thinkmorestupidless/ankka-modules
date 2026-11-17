@@ -32,14 +32,25 @@ object Settings:
   /** The client's secret's configuration key (amendment D3; `<slug>-backoffice/CLIENT_SECRET` in the secrets file). */
   val ClientSecret = "backoffice-client-secret"
 
-  /** The settings from the environment, refused naming the variable when one cannot be read. */
+  /** The explicit local mode, where the brand's client may have no secret (a dev realm's). */
+  val LocalMode = "BACKOFFICE_LOCAL"
+
+  /**
+   * The settings from the environment, refused naming the variable when one cannot be read. An empty
+   * client secret is refused outside [[LocalMode]]: without it every sign-in fails as `realm_unavailable`.
+   */
   def fromEnvironment(env: Map[String, String] = sys.env): Either[String, Settings] =
     for
       brand   <- required(env, "CASINO_BRAND")
       realm   <- required(env, "ANKKA_AUTH_STAFF_ISSUER").flatMap(uri("ANKKA_AUTH_STAFF_ISSUER", _))
       address <- required(env, "BACKOFFICE_HOST").flatMap(uri("BACKOFFICE_HOST", _))
       client   = env.get("BACKOFFICE_CLIENT").map(_.trim).filter(_.nonEmpty).getOrElse(s"backoffice-$brand")
-      secret   = env.get("BACKOFFICE_CLIENT_SECRET").map(_.trim).getOrElse("")
+      secret  <- env.get("BACKOFFICE_CLIENT_SECRET").map(_.trim).filter(_.nonEmpty) match
+                   case Some(s)                                           => Right(s)
+                   case None if env.get(LocalMode).map(_.trim).contains("true") => Right("")
+                   case None =>
+                     Left(s"BACKOFFICE_CLIENT_SECRET is not set: every sign-in at $client would fail. It is the brand's " +
+                       s"`backoffice-client-secret`; set $LocalMode=true only to run against a realm whose client needs none")
       calls   <- env.get("KEYCLOAK_URL").map(_.trim).filter(_.nonEmpty) match
                    case Some(v) => uri("KEYCLOAK_URL", v).map(Some(_))
                    case None    => Right(None)
