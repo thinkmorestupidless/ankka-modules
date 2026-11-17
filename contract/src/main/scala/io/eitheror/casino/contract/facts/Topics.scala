@@ -88,12 +88,19 @@ object Published:
     ZWL ZWN ZWR
   """.trim.split("\\s+").toVector
 
-  /** Each code with its minor-unit count as `Amounts.exponent` reads it (research R6). */
+  /**
+   * Each code with its minor-unit count as `Amounts.exponent` reads it (research R6). A code
+   * `Currency.from` refuses is an error in [[CurrencyCodes]], never written with a guessed exponent.
+   */
   def currencies: String =
     val root = json.createObjectNode()
     root.put("version", 1)
     val cs = root.putObject("currencies")
-    CurrencyCodes.foreach(code => cs.put(code, Currency.from(code).map(Amounts.exponent).getOrElse(2)))
+    CurrencyCodes.foreach { code =>
+      val exponent = Currency.from(code).map(Amounts.exponent)
+        .fold(why => throw IllegalStateException(s"$code is in CurrencyCodes but Currency.from refuses it: $why"), identity)
+      cs.put(code, exponent)
+    }
     json.writeValueAsString(root) + "\n"
 
   val files: Vector[(String, String)] = Vector(
