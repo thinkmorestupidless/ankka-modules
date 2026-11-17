@@ -1,3 +1,5 @@
+import http from "node:http";
+import type { AddressInfo } from "node:net";
 import { describe, expect, test } from "vitest";
 import { Brand, harness, SecretToken, whole, write } from "./support.ts";
 import { table } from "../../src/server/routes.ts";
@@ -123,6 +125,52 @@ describe("the owner's answer", () => {
     const r = await h.ask("GET", "/api/s/players/players/p-1/profile", { session: "s-1" });
     expect(r.status).toBe(503);
     expect(await r.json()).toEqual({ error: "source_unavailable", source: "players" });
+  });
+
+  /** A body of `parts`, each `gapMs` after the last; none after the first `stallAfter`. */
+  const slow = (parts: string[], gapMs: number, stallAfter = parts.length) =>
+    new ReadableStream<Uint8Array>({
+      async start(c) {
+        for (const [i, p] of parts.entries()) {
+          if (i >= stallAfter) return;
+          await new Promise((r) => setTimeout(r, gapMs));
+          c.enqueue(new TextEncoder().encode(p));
+        }
+        c.close();
+      },
+    });
+
+  test("a body that keeps arriving is passed whole, though it takes longer than the bound", async () => {
+    // a real owner over a real connection, as fetch's own timeout would cut it
+    const owner = http.createServer((_req, res) => {
+      res.writeHead(200, { "Content-Type": "text/csv" });
+      let n = 0;
+      const tick = setInterval(() => {
+        res.write("abcdef"[n]!);
+        if (++n === 6) {
+          clearInterval(tick);
+          res.end();
+        }
+      }, 20);
+    });
+    await new Promise<void>((r) => owner.listen(0, "127.0.0.1", r));
+    try {
+      const h = harness({ timeoutMs: 60, fetch, servicesUrl: `http://127.0.0.1:${(owner.address() as AddressInfo).port}` });
+      const r = await h.ask("GET", "/api/s/reporting/exports/e-1", { session: "s-1" });
+      expect(r.status).toBe(200);
+      expect(await r.text()).toBe("abcdef");
+    } finally {
+      owner.closeAllConnections();
+      await new Promise((r) => owner.close(r));
+    }
+  });
+
+  test("a body the owner stops sending for longer than the bound is cut", async () => {
+    const h = harness({ timeoutMs: 40 });
+    h.answer(() => new Response(slow(["a", "b", "c"], 5, 1), { headers: { "Content-Type": "text/csv" } }));
+    const r = await h.ask("GET", "/api/s/reporting/exports/e-1", { session: "s-1" });
+    expect(r.status).toBe(200);
+    await expect(r.text()).rejects.toThrow();
   });
 
   test("an owner slower than the bound is the same", async () => {
