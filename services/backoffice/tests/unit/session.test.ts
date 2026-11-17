@@ -61,6 +61,16 @@ describe("a write's origin", () => {
     expect(h.calls).toHaveLength(1);
   });
 
+  test("is the configured address's, whatever the forwarded headers say or leave out", async () => {
+    const h = harness();
+    // an installation with no base domain sends no X-Forwarded-* headers: the write still reaches the owner
+    const bare = await h.ask("PATCH", path, { session: "s-1", headers: { ...write, "X-Forwarded-Proto": "", "X-Forwarded-Host": "" }, body: "{}" });
+    expect(bare.status).toBe(200);
+    // a request whose forwarded host matches a foreign Origin is still refused
+    const forged = await h.ask("PATCH", path, { session: "s-1", headers: { ...write, Origin: "https://elsewhere.example", "X-Forwarded-Host": "elsewhere.example" }, body: "{}" });
+    expect(forged.status).toBe(403);
+  });
+
   test("a read needs neither", async () => {
     const h = harness();
     const r = await h.ask("GET", "/api/s/players/players/p-1/profile", { session: "s-1" });
