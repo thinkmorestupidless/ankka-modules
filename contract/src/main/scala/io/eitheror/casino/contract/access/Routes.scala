@@ -89,19 +89,15 @@ object Routes:
    */
   def operatorMay(slug: String, permission: String, bags: RoleBags, authenticate: => Acl = Oidc.authenticate()): Acl =
     require(OperatorPermissions.known(permission), s"$permission is not a permission of contract.access.OperatorPermissions")
-    val base = operator(slug, authenticate)
-    base match
-      case Acl.Authenticate(decide) =>
-        Acl.Authenticate { (context: RequestContext) =>
-          decide(context) match
-            case allowed @ AuthDecision.Allow(principal) =>
-              bags.permissionsOf(principal.roles) match
-                case None                               => AuthDecision.Unavailable(s"${Refusal.RolesUnread}: the brand's roles have not been read yet")
-                case Some(held) if held(permission)     => allowed
-                case Some(_)                            => AuthDecision.Forbidden(s"$Forbidden: the $permission permission is needed")
-            case other => other
-        }
-      case other => other
+    decideAllowed(authenticate) { (allowed, principal) =>
+      operatorRefusal(principal, slug) match
+        case Some(refusal) => AuthDecision.Forbidden(refusal)
+        case None =>
+          bags.permissionsOf(principal.roles) match
+            case None                           => AuthDecision.Unavailable(s"${Refusal.RolesUnread}: the brand's roles have not been read yet")
+            case Some(held) if held(permission) => allowed
+            case Some(_)                        => AuthDecision.Forbidden(s"$Forbidden: the $permission permission is needed")
+    }
 
   /** A brand operator without the role a route needs (spec 023 FR-004). */
   val Forbidden = "forbidden"
@@ -372,11 +368,15 @@ object Routes:
     p.claims.get("iss").map(_.stripSuffix("/")).map(_.split('/').last)
 
   private def refine(base: Acl)(refuse: Principal => Option[String]): Acl =
+    decideAllowed(base)((allowed, principal) => refuse(principal).fold(allowed)(AuthDecision.Forbidden(_)))
+
+  /** `base`'s decision, with what an admitted principal gets decided by `decide`; every other decision as `base` made it. */
+  private def decideAllowed(base: Acl)(decide: (AuthDecision.Allow, Principal) => AuthDecision): Acl =
     base match
-      case Acl.Authenticate(decide) =>
+      case Acl.Authenticate(authenticate) =>
         Acl.Authenticate { (context: RequestContext) =>
-          decide(context) match
-            case allowed @ AuthDecision.Allow(principal) => refuse(principal).fold(allowed)(AuthDecision.Forbidden(_))
+          authenticate(context) match
+            case allowed @ AuthDecision.Allow(principal) => decide(allowed, principal)
             case other                                   => other
         }
       case other => throw IllegalArgumentException(s"a signed-in route needs an authenticating ACL, not $other")

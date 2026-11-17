@@ -22,6 +22,7 @@ final class RoleBags(fetch: () => Either[String, String], clock: Clock = Clock.s
   private val current = AtomicReference[RoleBags.State](RoleBags.State.Unread)
   private val lastTry = AtomicReference[Option[Instant]](None)
   private val running = AtomicReference[Option[ScheduledExecutorService]](None)
+  private val lastFailure = AtomicReference[Option[String]](None)
 
   def state: RoleBags.State = current.get
 
@@ -31,10 +32,12 @@ final class RoleBags(fetch: () => Either[String, String], clock: Clock = Clock.s
     val tried = lastTry.getAndSet(Some(now)).isDefined
     val read = Try(fetch()).toEither.left.map(e => s"the roles could not be read: ${e.getMessage}").flatten.flatMap(RoleBags.parse)
     val before = current.get
-    val after = current.updateAndGet {
-      case _ if read.isRight                        => RoleBags.State.Read(read.toOption.get, now, None)
-      case RoleBags.State.Read(roles, at, _)        => RoleBags.State.Read(roles, at, read.left.toOption)
-      case RoleBags.State.Unread                    => RoleBags.State.Unread
+    read.left.foreach(why => lastFailure.set(Some(why)))
+    val after = current.updateAndGet { kept =>
+      (read, kept) match
+        case (Right(roles), _)                          => RoleBags.State.Read(roles, now, None)
+        case (Left(why), RoleBags.State.Read(roles, at, _)) => RoleBags.State.Read(roles, at, Some(why))
+        case (Left(_), RoleBags.State.Unread)           => RoleBags.State.Unread
     }
     // the service's status (contracts/roles.md): a read that fails is said once, and its recovery
     (problemOf(before, tried), read) match
@@ -47,11 +50,16 @@ final class RoleBags(fetch: () => Either[String, String], clock: Clock = Clock.s
     case RoleBags.State.Read(_, _, problem) => problem
     case RoleBags.State.Unread              => Option.when(tried)("unread")
 
-  /** When the roles were last read and why the latest read failed, for a service's status. */
-  def status: String = RoleBags.describe(state)
+  /**
+   * When the roles were last read and why the latest read failed, for a service's status; while they
+   * have never been read, why the latest try failed.
+   */
+  def status: String = state match
+    case RoleBags.State.Unread => lastFailure.get.fold(RoleBags.describe(state))(why => s"${RoleBags.describe(state)}; the latest read failed: $why")
+    case read                  => RoleBags.describe(read)
 
-  /** Reads the roles when [[RoleBags.Interval]] has passed since the last try, or none was made. */
-  def refreshIfDue(): Unit =
+  /** Reads the roles when [[RoleBags.Interval]] has passed since the last try, or none was made (the suite's clock). */
+  private[access] def refreshIfDue(): Unit =
     val due = lastTry.get.forall(t => !clock.instant().isBefore(t.plus(RoleBags.Interval)))
     if due then refresh()
 
@@ -64,13 +72,19 @@ final class RoleBags(fetch: () => Either[String, String], clock: Clock = Clock.s
 
   /**
    * Reads now and then every [[RoleBags.Interval]] on a daemon thread of its own, until `stop`. A
-   * service calls it once at start, after its own HTTP client exists.
+   * service calls it once at start, after its own HTTP client exists; a second call while it runs
+   * starts nothing.
    */
-  def start(): RoleBags =
-    val scheduler = RoleBags.scheduler()
-    running.set(Some(scheduler))
-    scheduler.scheduleWithFixedDelay(() => Try(refresh()): Unit, 0, RoleBags.Interval.toMillis, TimeUnit.MILLISECONDS): Unit
+  def start(): RoleBags = synchronized {
+    if running.get.isEmpty then
+      val scheduler = RoleBags.scheduler()
+      running.set(Some(scheduler))
+      scheduler.scheduleWithFixedDelay(() => Try(refresh()): Unit, 0, RoleBags.Interval.toMillis, TimeUnit.MILLISECONDS): Unit
     this
+  }
+
+  /** Whether [[start]] has a reader running, for the suites. */
+  private[access] def started: Boolean = running.get.isDefined
 
   def stop(): Unit = running.getAndSet(None).foreach(_.shutdownNow(): Unit)
 
@@ -92,10 +106,14 @@ object RoleBags:
     case State.Read(roles, at, None)      => s"${roles.size} roles read at $at"
     case State.Read(roles, at, Some(why)) => s"${roles.size} roles kept from $at; the latest read failed: $why"
 
-  /** A copy that is already read, for a service's own tests and for `players`, which reads its own view. */
+  /**
+   * A copy that is already read, for a service's own tests and for `players`, which reads its own view.
+   * It holds `roles` as given: [[parse]]'s refusal of an answer missing a default role guards a read
+   * from `players`, not a copy a test or `players` states.
+   */
   def fixed(roles: Map[String, Set[String]]): RoleBags =
     val bags = RoleBags(() => Right(render(roles)))
-    bags.refresh()
+    bags.current.set(State.Read(roles.view.mapValues(_.filter(OperatorPermissions.known)).toMap, Instant.now(), None))
     bags
 
   private val json = ObjectMapper()
@@ -103,6 +121,8 @@ object RoleBags:
   /**
    * `players`' answer, `{"roles":[{"name":…,"permissions":[…],…}]}`, as each role's bag. A permission the
    * contract does not know is dropped; an answer of another shape is a failed read, never an empty brand.
+   * So is an answer missing one of [[OperatorPermissions.DefaultRoles]] (an empty one included): a brand
+   * cannot delete a default role, so such an answer is `players` seeding or recovering, not the brand.
    */
   def parse(body: String): Either[String, Map[String, Set[String]]] =
     Try(json.readTree(body)).toOption.filter(n => n != null && n.path("roles").isArray)
@@ -113,6 +133,10 @@ object RoleBags:
             name -> role.path("permissions").elements().asScala.map(_.asText).filter(OperatorPermissions.known).toSet
           }
         }.toMap
+      }
+      .flatMap { roles =>
+        val missing = OperatorPermissions.DefaultRoles.keySet.diff(roles.keySet).toVector.sorted
+        Either.cond(missing.isEmpty, roles, s"the roles answer lacks the default roles ${missing.mkString(", ")}")
       }
 
   /** The answer `parse` reads, for roles given here. */
