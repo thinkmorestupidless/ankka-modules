@@ -17,7 +17,13 @@ class RoleBagsSuite extends munit.FunSuite:
     override def withZone(z: java.time.ZoneId): Clock = this
     def instant                 = at
 
+  /** `players`' answer: the default roles, which a brand cannot delete, with `roles` over them. */
   private def answer(roles: (String, Seq[String])*): String =
+    val defaults = OperatorPermissions.DefaultRoles.keys.toVector.sorted.map(_ -> Seq.empty[String])
+    bare((defaults.filterNot(d => roles.exists(_._1 == d._1)) ++ roles)*)
+
+  /** An answer of exactly `roles`. */
+  private def bare(roles: (String, Seq[String])*): String =
     roles.map((n, ps) => s"""{"name":"$n","description":"","permissions":[${ps.map(p => s"\"$p\"").mkString(",")}],"default":false}""")
       .mkString("""{"roles":[""", ",", "]}")
 
@@ -140,4 +146,43 @@ class RoleBagsSuite extends munit.FunSuite:
     bags.refresh()
     assertEquals(bags.permissionsOf(Set("desk", "cashier")), Some(Set("player.read", "withdrawal.review")))
     assertEquals(bags.permissionsOf(Set(OperatorPermissions.PlatformAdmin)), Some(OperatorPermissions.All.toSet))
+  }
+
+  test("an empty answer, or one missing a default role, is a failed read: the kept copy stays (review S2)") {
+    val (bags, next, _, _) = fixture(Right(answer("brand_finance" -> Seq("adjustment.make"))))
+    bags.refresh()
+    val finance = Request(token = Some(operatorWith("brand_goldvibe", "brand_finance")))
+    for body <- Seq("""{"roles":[]}""", """{"roles":[{"description":"no name"}]}""", bare("brand_finance" -> Seq("adjustment.make"), "brand_support" -> Seq())) do
+      next.set(Right(body))
+      bags.refresh()
+      bags.state match
+        case RoleBags.State.Read(roles, _, Some(why)) =>
+          assertEquals(roles("brand_finance"), Set("adjustment.make"), body)
+          assert(why.contains("default roles") || why.contains("lacks"), why)
+        case other => fail(s"$body: $other")
+      assertEquals(decide(acl(bags, "adjustment.make"), finance, self), Outcome.Served, body)
+  }
+
+  test("an empty first answer leaves the bags unread, and the status says why") {
+    val (bags, _, _, _) = fixture(Right("""{"roles":[]}"""))
+    bags.refresh()
+    assertEquals(bags.state, RoleBags.State.Unread)
+    assert(bags.status.contains("brand_admin"), bags.status)
+  }
+
+  test("a fixed copy holds the roles it is given, default roles or not") {
+    val bags = RoleBags.fixed(Map("desk" -> Set("player.read", "player.teleport")))
+    assertEquals(bags.permissionsOf(Set("desk")), Some(Set("player.read")))
+  }
+
+  test("a second start while the reader runs starts no second reader") {
+    val (bags, _, calls, _) = fixture(Right(answer()))
+    bags.start()
+    bags.start()
+    try
+      assert(bags.started)
+      Thread.sleep(200)
+      assertEquals(calls.get, 1)
+    finally bags.stop()
+    assert(!bags.started)
   }
