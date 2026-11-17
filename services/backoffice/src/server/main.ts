@@ -488,15 +488,17 @@ async function main(): Promise<void> {
   });
   const serve = getRequestListener(app.fetch);
   let page: ((req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void) | undefined;
-  if (!production) {
-    const { createServer } = await import("vite");
-    page = (await createServer({ configFile: path.join(root, "vite.config.ts"), server: { middlewareMode: true }, appType: "spa" })).middlewares;
-  }
   const ours = (url: string) => url === "/healthz" || url.startsWith("/api/") || url.startsWith("/auth/");
   const server = http.createServer((req, res) => {
     if (page && !ours(req.url ?? "/")) return page(req, res, () => void res.writeHead(404).end());
     void serve(req, res);
   });
+  if (!production) {
+    const { createServer } = await import("vite");
+    // Hot reload on this server's own port: Vite's default is a fixed port (24678) that any other Vite on
+    // the machine may hold, and the page's socket then fails.
+    page = (await createServer({ configFile: path.join(root, "vite.config.ts"), server: { middlewareMode: true, hmr: { server } }, appType: "spa" })).middlewares;
+  }
   server.listen(port, () => console.log(JSON.stringify({ started: "backoffice", port })));
   // A rollout stops an instance: take nothing new, end the event streams (each page opens another, at
   // another instance), let requests in flight finish, and cut what is left before ankka's proxy gives
