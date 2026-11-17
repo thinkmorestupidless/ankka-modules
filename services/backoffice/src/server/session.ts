@@ -98,10 +98,17 @@ export function stateClient(servicesUrl: string, fetchFn: typeof fetch, timeoutM
   };
 }
 
-/** A token kept until 30 seconds before its expiry, so the state service is asked to refresh it in time. */
+/**
+ * A token kept until 30 seconds before its expiry, so the state service is asked to refresh it in time,
+ * and for at most 10 seconds after it was read, so a sign-out at another instance ends this one's use of
+ * the session within that (FR-003). Parallel requests for a session whose token must be read again wait
+ * for one ask of the state service.
+ */
 export class TokenCache {
   static readonly Margin = 30_000;
-  private readonly kept = new Map<string, Token>();
+  static readonly Reuse = 10_000;
+  private readonly kept = new Map<string, { token: Token; at: number }>();
+  private readonly asking = new Map<string, Promise<Token | undefined>>();
 
   private readonly state: StateClient;
   private readonly now: () => number;
@@ -113,20 +120,35 @@ export class TokenCache {
 
   async token(session: string): Promise<Token | undefined> {
     const held = this.kept.get(session);
-    if (held && held.expiresAt - this.now() > TokenCache.Margin) return { ...held, rolesChanged: false };
-    const fresh = await this.state.token(session);
-    if (fresh === undefined) this.kept.delete(session);
-    else this.keep(session, fresh);
-    return fresh;
+    const now = this.now();
+    if (held && held.token.expiresAt - now > TokenCache.Margin && now - held.at < TokenCache.Reuse) return { ...held.token, rolesChanged: false };
+    const joined = this.asking.get(session);
+    // the roles' change is said once, to the request whose ask learnt it
+    if (joined) return joined.then((t) => (t === undefined ? undefined : { ...t, rolesChanged: false }));
+    const asked = this.ask(session);
+    this.asking.set(session, asked);
+    try {
+      return await asked;
+    } finally {
+      this.asking.delete(session);
+    }
   }
 
   forget(session: string): void {
     this.kept.delete(session);
   }
 
+  private async ask(session: string): Promise<Token | undefined> {
+    const fresh = await this.state.token(session);
+    if (fresh === undefined) this.kept.delete(session);
+    else this.keep(session, fresh);
+    return fresh;
+  }
+
   private keep(session: string, token: Token): void {
-    if (this.kept.size > 10_000) for (const [s, t] of this.kept) if (t.expiresAt <= this.now()) this.kept.delete(s);
-    this.kept.set(session, token);
+    const now = this.now();
+    if (this.kept.size > 10_000) for (const [s, k] of this.kept) if (k.token.expiresAt <= now || now - k.at >= TokenCache.Reuse) this.kept.delete(s);
+    this.kept.set(session, { token, at: now });
   }
 }
 
