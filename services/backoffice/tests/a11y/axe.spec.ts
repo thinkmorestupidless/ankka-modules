@@ -10,7 +10,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { DoublesClient } from "../doubles/client.ts";
 import { DoublesUrl, operator } from "../doubles/env.ts";
 import { signIn } from "../doubles/sign-in.ts";
-import { byPath, routes } from "./routes.ts";
+import { byPath, player, routes, withdrawal } from "./routes.ts";
 import { seedPages } from "./seed.ts";
 
 const doubles = new DoublesClient(DoublesUrl);
@@ -54,3 +54,56 @@ for (const theme of ["dark", "light"] as const) {
     }
   });
 }
+
+// The states platform_admin never sees: an action shown disabled with the role it needs, a refusal, the
+// not-in-brand page, and a confirmation dialog open. One theme is enough for these: the two are held
+// by every route above.
+async function axeOn(page: import("@playwright/test").Page, what: string) {
+  const { violations } = await new AxeBuilder({ page }).analyze();
+  const serious = violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+  expect(serious.map((v) => `${v.impact} ${v.id}: ${v.help} (${v.nodes.map((n) => n.target.join(" ")).slice(0, 3).join("; ")})`), `axe on ${what}`).toEqual([]);
+}
+
+const settle = (page: import("@playwright/test").Page) => page.waitForLoadState("networkidle", { timeout: 10_000 }).catch(() => undefined);
+
+test.describe("as brand_support", () => {
+  test.beforeEach(async ({ page }) => {
+    await doubles.reset();
+    await seedPages(doubles);
+    await signIn(page, doubles, operator("brand_support"));
+  });
+
+  for (const route of [`/players/${player}`, `/players/${player}/protection`, `/players/${player}/timeline`, `/withdrawals/${withdrawal}`, "/reports/revenue", "/configuration/brand"]) {
+    test(route, async ({ page }) => {
+      await page.goto(route);
+      await settle(page);
+      await expect(page.getByRole("main"), "the page renders").not.toBeEmpty();
+      await axeOn(page, `${route} as brand_support`);
+    });
+  }
+
+  test("a disabled action, with the role it needs, is among what was checked", async ({ page }) => {
+    await page.goto(`/players/${player}/timeline`);
+    await settle(page);
+    await expect(page.locator("[data-action-disabled]").first()).toBeVisible();
+  });
+});
+
+test("not in the brand", async ({ page }) => {
+  await doubles.reset();
+  await signIn(page, doubles, operator("brand-less"));
+  await page.goto("/");
+  await settle(page);
+  await axeOn(page, "the not-in-brand page");
+});
+
+test("a confirmation dialog open", async ({ page }) => {
+  await doubles.reset();
+  await seedPages(doubles);
+  await signIn(page, doubles, admin);
+  await page.goto(`/players/${player}`);
+  await settle(page);
+  await page.locator('main button[aria-haspopup="dialog"]').first().click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await axeOn(page, `/players/${player} with a confirmation open`);
+});
