@@ -18,8 +18,8 @@ import Answers.*
 
 /**
  * The brand's roles (spec 030 amendments P12, P13; contracts/roles.md): every role and what it carries,
- * a role made, changed, reset and deleted, and an operator's roles given. Every change is checked against
- * every role as the view holds them, and is in force in `players` at once and in every other service of
+ * a role made, changed, reset and deleted, and an operator's roles given. Whether a change leaves a role
+ * able to change roles is decided by [[RoleChangers]], one writer; a change is in force in `players` at once and in every other service of
  * the brand within its next read of `GET …/players/roles`.
  */
 final class RolesRoutes(ctx: Ctx):
@@ -44,17 +44,16 @@ final class RolesRoutes(ctx: Ctx):
             RoleRules.unknown(permissions) match
               case Some(unknown) =>
                 refusal(400, RoleRules.UnknownPermission, s"$unknown is not a permission", "permission" -> unknown)
-              case None if RoleRules.leavesNoChanger(Roles.bags(views), name, Some(permissions)) =>
-                lastChanger(name)
               case None =>
-                done(components.forEventSourcedEntity(Role.id(name)).call(Role.set).invoke(SetRole(name, description, permissions, author(p), now())))
+                oneWriter(name, permissions(RoleRules.Change))(
+                  components.forEventSourcedEntity(Role.id(name)).call(Role.set).invoke(SetRole(name, description, permissions, author(p), now())))
 
   def reset(p: Principal, name: String): Reply =
     (OperatorPermissions.DefaultRoles.get(name), RoleRules.nameRefusal(name)) match
       case (None, Some((code, message))) => refusal(400, code, message)
       case (None, None) => refusal(409, RoleRules.NotDefault, s"$name is not a default role: it has no default permissions to reset to")
-      case (Some(bag), _) if RoleRules.leavesNoChanger(Roles.bags(views), name, Some(bag)) => lastChanger(name)
-      case (Some(_), _) => done(components.forEventSourcedEntity(Role.id(name)).call(Role.reset).invoke(RoleAct(author(p), now())))
+      case (Some(bag), _) =>
+        oneWriter(name, bag(RoleRules.Change))(components.forEventSourcedEntity(Role.id(name)).call(Role.reset).invoke(RoleAct(author(p), now())))
 
   def delete(p: Principal, name: String): Reply =
     RoleRules.nameRefusal(name) match
@@ -64,8 +63,33 @@ final class RolesRoutes(ctx: Ctx):
   private def deleteRole(p: Principal, name: String): Reply =
     if OperatorPermissions.DefaultRoles.contains(name) then
       refusal(409, RoleRules.DefaultRole, s"$name is a default role: it is reset, never deleted")
-    else if RoleRules.leavesNoChanger(Roles.bags(views), name, None) then lastChanger(name)
-    else done(components.forEventSourcedEntity(Role.id(name)).call(Role.delete).invoke(RoleAct(author(p), now())))
+    else oneWriter(name, carries = false)(components.forEventSourcedEntity(Role.id(name)).call(Role.delete).invoke(RoleAct(author(p), now())))
+
+  /**
+   * A change to `name` that leaves it carrying `roles.change` (`carries`) or not, decided by [[RoleChangers]],
+   * the one writer of who carries it (FR-008d): one that takes it away is claimed there first and refused when
+   * no role would carry it, so two changes at once cannot both take the last; one that gives it is recorded
+   * there once the role holds it.
+   */
+  private def oneWriter(name: String, carries: Boolean)(write: => RoleAnswer): Reply =
+    val changers = components.forKeyValueEntity(RoleChangers.id)
+    def claim() =
+      val known = if changers.call(RoleChangers.get).invoke().holders.isDefined then Set.empty[String] else changersNow()
+      changers.call(RoleChangers.claim).invoke(ClaimChange(name, carries, known))
+    if carries then
+      val a = write
+      if a.refusal.isEmpty then claim(): Unit
+      done(a)
+    else if claim().refused then lastChanger(name)
+    else done(write)
+
+  /** The roles carrying `roles.change` now: the default roles from their entities, the brand's others from the view. */
+  private def changersNow(): Set[String] =
+    val defaults = OperatorPermissions.DefaultRoles.keySet.filter { r =>
+      val s = components.forEventSourcedEntity(Role.id(r)).call(Role.get).invoke()
+      s.exists && s.permissions(RoleRules.Change)
+    }
+    defaults ++ Roles.bags(views).collect { case (r, bag) if bag(RoleRules.Change) && !OperatorPermissions.DefaultRoles.contains(r) => r }
 
   /**
    * `{"roles": […]}`: every role the brand gives `operator`, replacing what it gave before. Refused, naming

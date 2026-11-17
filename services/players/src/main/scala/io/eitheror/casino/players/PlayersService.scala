@@ -28,6 +28,7 @@ object PlayersService:
     FraudCaseEntity.descriptor,
     io.eitheror.casino.players.roles.Role.descriptor,
     io.eitheror.casino.players.roles.RoleAssignment.descriptor,
+    io.eitheror.casino.players.roles.RoleChangers.descriptor,
     LookupIndexEntity.descriptor,
     PendingRegistration.descriptor,
     RegistrationWorkflow.descriptor,
