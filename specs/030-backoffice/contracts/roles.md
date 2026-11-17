@@ -110,7 +110,11 @@ The backoffice's server uses the same routes to answer `/api/me` and `/api/permi
 ## Rules the owner holds (players)
 
 - a role's permissions must all be names the contract knows;
-- the last role carrying `roles.change` cannot lose it or be deleted;
+- the last role carrying `roles.change` cannot lose it or be deleted; one writer (`RoleChangers`)
+  decides it, so two changes at once cannot both take it away;
+- a change or reset of a role may add only permissions its changer holds: one that would add another
+  is refused `403 forbidden`, naming the permission, as a giving is (so `roles.change` is not every
+  permission; `brand_admin` and `platform_admin` hold every permission and are not limited by it);
 - a default role can be changed and reset to the matrix above, and cannot be deleted; a role the
   brand created can be deleted;
 - no realm role but the four default roles, and no name under `brand_`, `audit_compliance_` or
@@ -120,7 +124,7 @@ The backoffice's server uses the same routes to answer `/api/me` and `/api/permi
   lists the realm's roles and a contract test holds it equal to `brands/_realm/eitheror-operators.json`,
   so a new realm role is reserved by being added to the realm;
 - giving roles (`role-assignments`) is refused when the giver's own permissions do not include
-  every permission the roles carry; when it passes, `players` asks merchant to set them;
+  every permission the roles carry, or the roles it takes away from the operator; when it passes, `players` asks merchant to set them;
 - every change and every giving is an audit record.
 
 ## Published form
