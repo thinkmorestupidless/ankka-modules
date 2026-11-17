@@ -11,6 +11,8 @@ export function useZone(): string {
 }
 
 export function DateTime({ instant, zone }: { instant: string | number; zone: string }) {
+  // an instant an owner answers that does not parse is shown as given, never thrown on (it would take the page down)
+  if (Number.isNaN(new Date(instant).getTime())) return <span className="bo-date">{String(instant)}</span>;
   const iso = new Date(instant).toISOString();
   return (
     <time className="bo-date" dateTime={iso} title={t("date.zone", { zone })} data-zone={zone}>
