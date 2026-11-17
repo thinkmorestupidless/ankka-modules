@@ -58,7 +58,7 @@ describe("a reward's actions", () => {
 });
 
 describe("an award's body", () => {
-  const form = { how: "offer" as const, offerId: "", deposit: "", currency: "", amount: "", wager: "", maxConvertible: "", gameId: "", provider: "", spinCount: "", spinValue: "", destination: "real_balance" as const, expiryDays: "" };
+  const form = { how: "offer" as const, offerId: "", deposit: "", currency: "", amount: "", wager: "", maxConvertible: "", roundsMaxConvertible: "", gameId: "", provider: "", spinCount: "", spinValue: "", destination: "real_balance" as const, expiryDays: "" };
 
   test("an offer, with a deposit in the offer's currency when given", () => {
     expect(awardOf({ ...form, offerId: "o-1" }, "EUR")).toEqual({ offerId: "o-1" });
@@ -75,7 +75,20 @@ describe("an award's body", () => {
     const rounds = { ...form, how: "freeRounds" as const, gameId: "vs20doghouse", spinCount: "20", spinValue: "20" };
     expect(awardOf(rounds, undefined)).toEqual({ type: "FREE_SPINS", gameId: "vs20doghouse", spinCount: 20, spinValue: 20, winningsDestination: "real_balance" });
     expect(awardOf({ ...rounds, destination: "bonus_balance" }, undefined)).toBeUndefined();
-    expect(awardOf({ ...rounds, destination: "bonus_balance", maxConvertible: "5000", wager: "5" }, undefined)).toMatchObject({ maxConvertibleAmount: 5000, wageringMultiplier: 5 });
+    expect(awardOf({ ...rounds, destination: "bonus_balance", roundsMaxConvertible: "5000", wager: "5" }, undefined)).toMatchObject({ maxConvertibleAmount: 5000, wageringMultiplier: 5 });
+  });
+
+  test("free rounds' amounts are typed in the player's currency when it is known", () => {
+    const rounds = { ...form, how: "freeRounds" as const, gameId: "vs20doghouse", spinCount: "20", spinValue: "0.20", destination: "bonus_balance" as const, roundsMaxConvertible: "50" };
+    expect(awardOf(rounds, undefined, "EUR")).toMatchObject({ spinValue: 20, maxConvertibleAmount: 5000 });
+    expect(awardOf({ ...rounds, spinValue: "20", roundsMaxConvertible: "50" }, undefined, "JPY")).toMatchObject({ spinValue: 20, maxConvertibleAmount: 50 });
+  });
+
+  test("the most a bonus may convert never carries over to free rounds", () => {
+    const typed = { ...form, how: "bonus" as const, currency: "EUR", amount: "10", wager: "1", maxConvertible: "50" };
+    expect(awardOf(typed, undefined)).toMatchObject({ maxConvertibleAmount: 5000 });
+    const switched = { ...typed, how: "freeRounds" as const, gameId: "g", spinCount: "1", spinValue: "20", destination: "bonus_balance" as const };
+    expect(awardOf(switched, undefined)).toBeUndefined();
   });
 });
 

@@ -1201,6 +1201,10 @@ export const en = {
   "rewards.grant.expiryDays": "The rounds expire after (days, optional)",
   "rewards.grant.minorUnits": "In minor units of the player's currency.",
   "rewards.grant.granted": "Awarded.",
+  "rewards.grant.amounts.depositAmount": "Sized on a deposit of",
+  "rewards.grant.amounts.bonusAmount": "Bonus",
+  "rewards.grant.amounts.spinValue": "Each round worth",
+  "rewards.grant.amounts.maxConvertibleAmount": "Converts at most",
   "rewards.destination.real_balance": "The real balance",
   "rewards.destination.bonus_balance": "Restricted funds",
   // the offers
