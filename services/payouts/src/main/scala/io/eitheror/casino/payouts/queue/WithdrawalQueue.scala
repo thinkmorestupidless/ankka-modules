@@ -130,8 +130,11 @@ object WithdrawalQueue extends View.Companion[WithdrawalQueueView, RequestEvent,
   private val Newest = SqlFragment.raw("(payload::jsonb->>'createdAt')::timestamptz DESC, payload::jsonb->>'requestId' DESC")
   private val Oldest = SqlFragment.raw("(payload::jsonb->>'createdAt')::timestamptz ASC, payload::jsonb->>'requestId' ASC")
 
+  /** The last page a request may name, so `page * pageSize` stays an `Int` (review S4). */
+  val LastPage: Int = Int.MaxValue / MaxPageSize
+
   def page(queue: ViewQueries[QueueRow], filter: Filter, page: Int, pageSize: Int, oldest: Boolean = false): Page =
-    val p    = math.max(1, page)
+    val p    = math.min(LastPage, math.max(1, page))
     val size = math.min(MaxPageSize, math.max(1, pageSize))
     val upTo = queue.ordered(filter.condition, if oldest then Oldest else Newest, p * size)
     Page(upTo.drop((p - 1) * size).take(size), queue.count(filter.condition), p, size)

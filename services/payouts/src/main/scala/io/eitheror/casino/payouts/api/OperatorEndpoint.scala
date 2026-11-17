@@ -78,7 +78,7 @@ object Operator:
       band <- opt("amountRange").fold[Either[String, Option[String]]](Right(None))(v => Either.cond(Bands(v), Some(v), "amountRange"))
       page <- number("page", 1)
       size <- number("pageSize", 50)
-      _    <- Either.cond(page >= 1, (), "page")
+      _    <- Either.cond(page >= 1 && page <= WithdrawalQueue.LastPage, (), "page")
       _    <- Either.cond(size >= 1 && size <= WithdrawalQueue.MaxPageSize, (), "pageSize")
       oldest <- opt("sort").map(_.toLowerCase) match
         case None | Some("newest") => Right(false)
@@ -105,7 +105,7 @@ object Operator:
     for
       page <- number("page", 1)
       size <- number("pageSize", 50)
-      _    <- Either.cond(page >= 1, (), "page")
+      _    <- Either.cond(page >= 1 && page <= WithdrawalQueue.LastPage, (), "page")
       _    <- Either.cond(size >= 1 && size <= WithdrawalQueue.MaxPageSize, (), "pageSize")
     yield (page, size)
 

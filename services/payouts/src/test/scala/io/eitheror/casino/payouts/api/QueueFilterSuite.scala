@@ -34,3 +34,10 @@ class QueueFilterSuite extends munit.FunSuite:
     assertEquals(paging("page" -> "0"), Left("page"))
     assertEquals(paging("pageSize" -> "201"), Left("pageSize"))
     assertEquals(paging("page" -> "one"), Left("page"))
+
+  test("a page whose rows would overflow an Int is refused, in the queue and the history (review S4)"):
+    def paging(q: (String, String)*) = Operator.paging(q.toMap.get)
+    assertEquals(paging("page" -> "10737419", "pageSize" -> "200"), Left("page"))
+    assertEquals(paging("page" -> io.eitheror.casino.payouts.queue.WithdrawalQueue.LastPage.toString), Right((io.eitheror.casino.payouts.queue.WithdrawalQueue.LastPage, 50)))
+    assertEquals(Operator.filter(Map("page" -> "10737419").get, now).left.toOption, Some("page"))
+    assert(io.eitheror.casino.payouts.queue.WithdrawalQueue.LastPage.toLong * io.eitheror.casino.payouts.queue.WithdrawalQueue.MaxPageSize <= Int.MaxValue)
