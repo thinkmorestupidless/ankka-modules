@@ -123,7 +123,7 @@ class SessionSuite extends munit.FunSuite:
     assertEquals(s.accessToken.map(_.subject), Some(d))
   }
 
-  test("two concurrent token calls near expiry make one refresh") {
+  test("two token calls that both read stale make one refresh: the generation's flow is claimed once (the race itself: StateIt)") {
     val w = Wired()
     StateRuntime.realm = w.realm
     w.open()

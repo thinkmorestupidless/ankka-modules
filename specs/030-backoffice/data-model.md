@@ -38,7 +38,12 @@ Rules:
 | `onlineNotices` | `Boolean` | |
 | `jobs` | `List[Job]`, at most 20, newest first | `Job(reference, kind, startedAt)`; no player id |
 
-A write that names a player id, or any key not above, is refused: `400 unknown_preference`.
+A write that names a player, or any key not above, is refused: `400 unknown_preference`. "Names a
+player" is a rule of form, not a lookup: a value that starts `player/`, `players/`, `player:` or
+`players:` is refused, and so is a kind that is not a lower-case word or a reference with a `/`. A bare
+player id that fits a job reference's form (`[A-Za-z0-9][A-Za-z0-9._:-]{0,127}`) is not told apart from
+an owner's job id, so FR-038's "refused" holds for the shapes above only; the page writes only the job
+references owners answer.
 
 ### `SessionsBySubject` (view)
 
