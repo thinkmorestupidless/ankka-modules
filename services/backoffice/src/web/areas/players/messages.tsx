@@ -56,7 +56,7 @@ type Field = "subject" | "body";
 
 /** `text` with `{{name|there}}` put in place of the selection of `el`, the fallback selected after (the original's insert). */
 export function insertTag(text: string, start: number, end: number, name: string): { text: string; select: [number, number] } {
-  const fallback = "there";
+  const fallback = t("messages.mergeTag.fallback");
   const tag = `{{${name}|${fallback}}}`;
   const from = start + 2 + name.length + 1;
   return { text: text.slice(0, start) + tag + text.slice(end), select: [from, from + fallback.length] };
