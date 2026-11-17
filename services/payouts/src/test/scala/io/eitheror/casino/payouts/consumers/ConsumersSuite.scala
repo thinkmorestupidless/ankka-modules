@@ -5,6 +5,7 @@ import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, EventSourcedTestK
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.contract.money.{Currency, MinorUnits, SignedMinorUnits}
 import io.eitheror.casino.contract.personal.Personal
+import io.eitheror.casino.payouts.PayoutsRuntime
 import io.eitheror.casino.payouts.limits.Counted
 import io.eitheror.casino.payouts.player.*
 import io.eitheror.casino.payouts.request.*
@@ -73,6 +74,13 @@ class ConsumersSuite extends munit.FunSuite with LogCapturing:
     assertEquals(kit.currentState.deposits, Map("unityfinance" -> Set("SEPA")))
 
   test("an opened request counts for its player; a closed-unpaid one stops counting; the others change nothing"):
+    // the consumer stamps the count with payouts' clock, and a request older than 32 days by it is dropped:
+    // the suite's clock is `at`, or the test fails once the real date is 32 days past it
+    val clock = PayoutsRuntime.now
+    PayoutsRuntime.now = () => at
+    try counts() finally PayoutsRuntime.now = clock
+
+  private def counts(): Unit =
     val terminal = TerminalRef("t-1", "sb-1", "Bank", "unityfinance", "EUBANKING", true)
     val opened   = Opened("r-1", "p-1", 5000L, 5000L, "EUR", terminal, Payee(), Forfeit(false, 0L, 0L), "verified", at)
     val Some(Left((player, count))) = RequestsConsumer.change(opened, "r-1"): @unchecked
