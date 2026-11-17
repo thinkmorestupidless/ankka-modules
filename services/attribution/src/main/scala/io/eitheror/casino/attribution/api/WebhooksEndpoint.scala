@@ -102,11 +102,13 @@ final class WebhooksEndpoint(api: Api) extends HttpEndpoint(s"/v1/casino/backoff
             // Oldest first, paged in the view's query (spec 030 E2); unpaged, the declared query in the same order.
             val view  = api.views.forView(Deliveries)
             val of    = Deliveries.undeliveredOf(n)
-            val total = view.count(of)
-            val rows = paging match
-              case None                       => view.ask(Deliveries.undelivered, "network" -> n)
-              case Some(p) if p.skip >= total => Vector.empty
-              case Some(p)                    => view.ordered(of, Deliveries.Oldest, (p.skip + p.pageSize).toInt).drop(p.skip.toInt).toVector
+            // Unpaged, the total is the rows answered: a count asked apart from them could disagree with them.
+            val (rows, total) = paging match
+              case None => val all = view.ask(Deliveries.undelivered, "network" -> n); (all, all.size.toLong)
+              case Some(p) =>
+                val total = view.count(of)
+                val page  = if p.skip >= total then Vector.empty else view.ordered(of, Deliveries.Oldest, (p.skip + p.pageSize).toInt).drop(p.skip.toInt).toVector
+                (page, math.max(total, p.skip + page.size))
             ok(Undelivered(rows.map(r => UndeliveredAnswer(r.delivery, r.subscription, r.network, r.factId, r.kind, r.attempts,
               r.lastStatus, r.lastError, r.firstAttemptAt)), total, paging.map(_.page), paging.map(_.pageSize)))
 
