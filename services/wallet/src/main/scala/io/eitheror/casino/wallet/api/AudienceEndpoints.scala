@@ -81,12 +81,28 @@ private[api] object Major:
       b.primary.map(p => MajorPrimary(p.grantRef, p.status, Wire.major(p.requirement, c), Wire.major(p.wagered, c), p.progressPercent)),
       Wire.major(b.depositPoolBalance, c), Wire.major(b.convertedPoolBalance, c), Wire.major(b.reserved, c), Wire.major(b.available, c))
 
-  def transactions(p: TransactionsPage, c: Currency): MajorTransactions =
-    MajorTransactions(p.transactions.map(r => MajorTransaction(r.transactionId, r.`type`, r.walletType, Wire.major(r.amount, c),
-      Wire.major(r.balanceBefore, c), Wire.major(r.balanceAfter, c), r.status, r.roundKey, r.awardRef, r.paymentReference, r.createdAt,
-      Wire.major(r.depositPart, c), Wire.major(r.convertedPart, c), Wire.major(r.depositPoolAfter, c), Wire.major(r.convertedPoolAfter, c),
-      r.reference, r.reason.map(_.reveal), r.category, r.cause, r.actorId)),
-      p.page, p.pageSize, p.total)
+  /** Who reads a transactions page: the player, or an operator, and whether the player is erased (review S1). */
+  enum Reader:
+    case Player
+    case Operator(erased: Boolean)
+
+  /**
+   * The rows in major units by the currency's exponent. An operator reads an adjustment's category, cause
+   * and actor (spec 030 W2) and its reason (research R10: the timeline shows it), the reason left out once
+   * `players` has asked the wallet to erase the player. The player reads none of the four: they are the
+   * operator's.
+   */
+  def transactions(p: TransactionsPage, c: Currency, reader: Reader): MajorTransactions =
+    MajorTransactions(p.transactions.map { r =>
+      val row = MajorTransaction(r.transactionId, r.`type`, r.walletType, Wire.major(r.amount, c),
+        Wire.major(r.balanceBefore, c), Wire.major(r.balanceAfter, c), r.status, r.roundKey, r.awardRef, r.paymentReference, r.createdAt,
+        Wire.major(r.depositPart, c), Wire.major(r.convertedPart, c), Wire.major(r.depositPoolAfter, c), Wire.major(r.convertedPoolAfter, c),
+        r.reference)
+      reader match
+        case Reader.Player           => row
+        case Reader.Operator(erased) =>
+          row.copy(reason = if erased then None else r.reason.map(_.reveal), category = r.category, cause = r.cause, actorId = r.actorId)
+    }, p.page, p.pageSize, p.total)
 
   def adjustment(b: Balance, o: Outcome, target: String, c: Currency): MajorAdjustment =
     val m = balance(b, c)
@@ -201,9 +217,13 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
 
   withAcl(may("wallet.read")) {
   get("/wallets/{player}/{currency}/transactions") { (player: String, currency: String) =>
-    checked(currency)(c => Wire.json(200, Major.transactions(TransactionsQuery.page(transactions, s"$player/$currency",
-      query.optional[String]("type"), query.optional[String]("walletType"), query.optional[Long]("from"), query.optional[Long]("to"),
-      query.optional[Int]("page").getOrElse(0), query.optional[Int]("pageSize").getOrElse(50)), c)))
+    checked(currency) { c =>
+      val erased = client.forKeyValueEntity(io.eitheror.casino.wallet.erasure.ErasedPlayerEntity.id(player))
+        .call(io.eitheror.casino.wallet.erasure.ErasedPlayerEntity.get).invoke().erased
+      Wire.json(200, Major.transactions(TransactionsQuery.page(transactions, s"$player/$currency",
+        query.optional[String]("type"), query.optional[String]("walletType"), query.optional[Long]("from"), query.optional[Long]("to"),
+        query.optional[Int]("page").getOrElse(0), query.optional[Int]("pageSize").getOrElse(50)), c, Major.Reader.Operator(erased)))
+    }
   }
   }
 
@@ -310,5 +330,5 @@ final class PlayerEndpoint(client: ComponentClient, views: ViewClient, brand: St
   get("/{currency}/transactions") { (currency: String) =>
     checked(currency)(c => Wire.json(200, Major.transactions(TransactionsQuery.page(transactions, s"$player/$currency",
       query.optional[String]("type"), query.optional[String]("walletType"), query.optional[Long]("from"), query.optional[Long]("to"),
-      query.optional[Int]("page").getOrElse(0), query.optional[Int]("pageSize").getOrElse(50)), c)))
+      query.optional[Int]("page").getOrElse(0), query.optional[Int]("pageSize").getOrElse(50)), c, Major.Reader.Player)))
   }

@@ -33,6 +33,7 @@ object WalletService:
     DepositWorkflow.descriptor,
     BrandConfigEntity.descriptor,
     PaymentEntity.descriptor,
+    io.eitheror.casino.wallet.erasure.ErasedPlayerEntity.descriptor,
     TransactionsView.descriptor,
     SumsView.descriptor,
     LifetimeTotalsView.descriptor,

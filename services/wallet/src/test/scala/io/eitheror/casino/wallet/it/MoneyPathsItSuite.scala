@@ -102,6 +102,22 @@ class MoneyPathsItSuite extends Harness:
     assert(adjusted.exists(_.contains(""""cause":{"kind":"round","ref":"r-9"}""")), adjusted.mkString("\n"))
   }
 
+  test("review S1: the player reads no operator's reason, category, cause or actor; an erased player's reason is answered to no one") {
+    deposit("s1", "pay-1", 1000)
+    val (status, _) = sendWithToken("POST", s"/v1/casino/backoffice/$brand/wallets/s1/EUR/adjustments", TestTokens.operator("op-42"),
+      Some("""{"key":"s1-a","amountMinor":200,"reason":"called about his divorce, goodwill","category":"goodwill","cause":{"kind":"incident","ref":"inc-7"}}"""))
+    assertEquals(status, 200)
+    val operatorRows = s"/v1/casino/backoffice/$brand/wallets/s1/EUR/transactions?type=admin_adjust"
+    val before = eventually(sendWithToken("GET", operatorRows, TestTokens.operator("op-42"))._2)(field(_, "total").contains("1"))
+    assert(before.contains("divorce") && before.contains(""""actorId":"op-42""""), before)
+    val own = eventually(sendWithToken("GET", s"/v1/casino/players/$brand/wallets/EUR/transactions", TestTokens.player("s1"))._2)(_.contains("admin_adjust"))
+    Seq("divorce", "actorId", "op-42", "goodwill", "inc-7").foreach(t => assert(!own.contains(t), s"the player read $t: $own"))
+    assertEquals(send("POST", s"/v1/casino/brands/$brand/erasure/players/s1", as = Caller.Service("local", "players"))._1, 200)
+    val after = sendWithToken("GET", operatorRows, TestTokens.operator("op-42"))._2
+    assert(!after.contains("divorce") && !after.contains(""""reason""""), after)
+    assert(after.contains(""""category":"goodwill"""") && after.contains(""""actorId":"op-42""""), after)
+  }
+
   test("an operator from another brand, and a player, are refused the backoffice") {
     assertEquals(sendWithToken("GET", s"/v1/casino/backoffice/$brand/wallets/adj/EUR/balance", TestTokens.operator("op-1", "brand_other"))._1, 403)
     assertEquals(sendWithToken("GET", s"/v1/casino/backoffice/$brand/wallets/adj/EUR/balance", TestTokens.player("adj"))._1, 403)

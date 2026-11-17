@@ -381,12 +381,16 @@ final class ServiceEndpoint(
   /**
    * The wallet holds one personal field, an adjustment's reason, under the player's subject; destroying
    * the subject's key (ankka 042) erases it, so there is nothing else to delete, and the wallet confirms.
-   * Until 042 ships this is a route `players` calls, admitted by name (Layout's erasure grant).
+   * Until 042 ships this is a route `players` calls, admitted by name (Layout's erasure grant), and the
+   * wallet records the player as erased, so no read answers the reason again (review S1).
    */
   withAcl(Acl.allowCallers(Callers.service("players"))) {
     post("/erasure/players/{playerId}") { (playerId: String) =>
+      client.forKeyValueEntity(io.eitheror.casino.wallet.erasure.ErasedPlayerEntity.id(playerId))
+        .call(io.eitheror.casino.wallet.erasure.ErasedPlayerEntity.record)
+        .invoke(io.eitheror.casino.wallet.erasure.RecordErasure(java.time.Instant.now())): Unit
       Wire.json(200, ErasureReply(s"player/$playerId", confirmed = true, destroyed = Vector.empty,
-        note = "the wallet's only personal field, an adjustment's reason, is held under this subject's key"))
+        note = "the wallet's only personal field, an adjustment's reason, is held under this subject's key and is no longer answered"))
     }
   }
 
