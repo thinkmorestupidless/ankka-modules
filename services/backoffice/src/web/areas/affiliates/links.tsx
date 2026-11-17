@@ -4,14 +4,14 @@
 // another, `not_a_member`).
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState } from "react";
-import { t } from "../../../shared/messages/index.ts";
+import { t, type MessageKey } from "../../../shared/messages/index.ts";
 import { affiliateProgramme as programme } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action } from "../../components/action/index.ts";
 import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
-import { CountText, Read } from "./parts.tsx";
+import { CountText, Read, ScrollRegion } from "./parts.tsx";
 import { accountName, json, type AccountsPage, type Link } from "./programme.ts";
 
 /** The brand's active affiliates, for a picker (the programme pages at most 200). */
@@ -19,13 +19,15 @@ export function useActiveAccounts() {
   return useQuery({ queryKey: ["programme", "accounts", "active-picker"], queryFn: () => json<AccountsPage>(programme.getAccounts({ query: { status: "active", pageSize: "200", sortBy: "name", sortDir: "asc" } })) });
 }
 
+const LinksCaption: MessageKey = "affiliates.section.links";
+
 export function LinksTable({ links, names }: { links: readonly Link[]; names?: ReadonlyMap<string, string> }) {
   const tz = useZone();
   if (links.length === 0) return <p className="bo-muted">{t("affiliates.link.none")}</p>;
   return (
-    <div className="bo-aff-scroll">
+    <ScrollRegion label={LinksCaption}>
       <table className="bo-aff-table">
-        <caption className="bo-sr-only">{t("affiliates.section.links")}</caption>
+        <caption className="bo-sr-only">{t(LinksCaption)}</caption>
         <thead>
           <tr>
             <th scope="col">{t("affiliates.link.btag")}</th>
@@ -59,7 +61,7 @@ export function LinksTable({ links, names }: { links: readonly Link[]; names?: R
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }
 
