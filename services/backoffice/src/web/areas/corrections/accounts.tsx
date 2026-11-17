@@ -2,7 +2,8 @@
 // wallet's pool and clearing accounts (spec 022 FR-009, FR-012), read by kind, name and currency and
 // adjusted with a reason and a category. The reason names no player; the wallet publishes only the
 // category. The wallet decides: an account is not taken below its floor, and its refusal is shown as
-// it gives it. Each adjustment is under a key of its own, kept until the wallet has answered.
+// it gives it. Each adjustment is under a key of its own (useKeyed), kept with the adjustment first sent,
+// and the fields locked, until the wallet has settled it.
 import { useId, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import "./corrections.css";
@@ -15,7 +16,7 @@ import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 import { word } from "../word.ts";
 import { amountOf } from "./adjust.tsx";
-import { CategorySelect, CorrectionsNav, readJson, refusalOf, walletMinor, walletText, type Category } from "./shared.tsx";
+import { CategorySelect, CorrectionsNav, readJson, refusalOf, useKeyed, walletMinor, walletText, type Category } from "./shared.tsx";
 
 interface AccountBalance {
   balance: string;
@@ -27,7 +28,6 @@ interface AccountBalance {
 }
 
 type Kind = "pool" | "clearing";
-const newKey = () => `account-adjust/${crypto.randomUUID()}`;
 
 function Account({ kind, name, currency }: { kind: Kind; name: string; currency: string }) {
   const me = useOperator();
@@ -38,7 +38,8 @@ function Account({ kind, name, currency }: { kind: Kind; name: string; currency:
   const [direction, setDirection] = useState<"credit" | "debit">("credit");
   const [amountText, setAmountText] = useState("");
   const [category, setCategory] = useState<Category>("error_correction");
-  const [key, setKey] = useState(newKey);
+  const keyed = useKeyed<{ currency: string; amount: string; reason: string | undefined; category: Category }>("account-adjust");
+  const locked = readOnly || keyed.unknown;
   const [after, setAfter] = useState<bigint | undefined>(undefined);
   const queryKey = ["wallet", "account", kind, name, currency];
   const q = useQuery({ queryKey, queryFn: () => readJson<AccountBalance>(wallet.getAccountsBalance({ kind, name }, { query: { currency } })) });
@@ -54,12 +55,9 @@ function Account({ kind, name, currency }: { kind: Kind; name: string; currency:
     return m === undefined ? text : <Money value={{ minor: m, currency }} />;
   };
 
-  const run = async (reason: string | undefined) => {
-    // the account's route takes the wallet's amount text (minor units over 100), not minor units
-    const answer = await wallet.postAccountsAdjustments({ kind, name }, { body: { key, currency, amount: walletText(signed!), reason, category } });
-    if (answer.status !== 503) setKey(newKey());
-    return answer;
-  };
+  // the account's route takes the wallet's amount text (minor units over 100), not minor units
+  const run = (reason: string | undefined) =>
+    keyed.send({ currency, amount: walletText(signed!), reason, category }, (key, body) => wallet.postAccountsAdjustments({ kind, name }, { body: { key, ...body } }));
   const done = async (answer: Response) => {
     setAfter(walletMinor(((await answer.json()) as AccountBalance).balance));
     setAmountText("");
@@ -91,8 +89,13 @@ function Account({ kind, name, currency }: { kind: Kind; name: string; currency:
           {t("corrections.accounts.made", { to: moneyText({ minor: after, currency }) })}
         </p>
       ) : null}
+      {keyed.unknown ? (
+        <p role="status" className="bo-corrections-unknown" data-unknown>
+          {t("corrections.accounts.unknown")}
+        </p>
+      ) : null}
       <form className="bo-corrections-form" onSubmit={(e) => e.preventDefault()}>
-        <fieldset disabled={readOnly}>
+        <fieldset disabled={locked}>
           <legend id={ids.direction}>{t("corrections.direction")}</legend>
           {(["credit", "debit"] as const).map((d) => (
             <label key={d} className="bo-corrections-choice">
@@ -104,12 +107,12 @@ function Account({ kind, name, currency }: { kind: Kind; name: string; currency:
         <div className="bo-field">
           <label htmlFor={ids.amount}>{t("corrections.amount")}</label>
           <span className="bo-corrections-amount">
-            <input id={ids.amount} className="bo-input" inputMode="decimal" value={amountText} disabled={readOnly} aria-invalid={amountText !== "" && minor === undefined} onChange={(e) => setAmountText(e.target.value)} />
+            <input id={ids.amount} className="bo-input" inputMode="decimal" value={amountText} disabled={locked} aria-invalid={amountText !== "" && minor === undefined} onChange={(e) => setAmountText(e.target.value)} />
             <span>{currency}</span>
           </span>
           {amountText !== "" && minor === undefined ? <span className="bo-field-error">{t("corrections.amount.invalid", { currency })}</span> : null}
         </div>
-        <CategorySelect value={category} onChange={setCategory} disabled={readOnly} />
+        <CategorySelect value={category} onChange={setCategory} disabled={locked} />
       </form>
       {readOnly ? null : (
         <Action

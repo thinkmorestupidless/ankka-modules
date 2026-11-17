@@ -5,7 +5,7 @@
 // the wallet takes a free `category` beside the operator's `reason` and publishes only the category).
 // So the list is the backoffice's catalogue below, with free text beside it, until a brand's own list
 // is kept somewhere the backoffice can read (research, *Found during implementation*).
-import { useId } from "react";
+import { useId, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { t, type MessageKey } from "../../../shared/messages/index.ts";
@@ -26,6 +26,39 @@ export interface Cause {
 }
 
 export { walletMinor, walletText } from "../../../shared/money.ts";
+
+/**
+ * Whether an answer settles a keyed command's outcome: made (2xx), or refused for good (4xx but 408 and
+ * 429). A 5xx (the wallet's 503, an ingress's 502 or 504, a 500 after it committed), a 408 or a 429, or no
+ * answer at all, leaves the outcome unknown (constitution II).
+ */
+export const settles = (status: number): boolean => (status >= 200 && status < 300) || (status >= 400 && status < 500 && status !== 408 && status !== 429);
+
+/**
+ * A command sent under a key of its own. While its outcome is unknown the key and the body first sent are
+ * kept, and sending again sends that body under that key, whatever has been typed since, so the owner
+ * makes it at most once; `unknown` says so, for the screen to lock its fields. Once an answer settles it,
+ * the next command takes a new key.
+ */
+export function useKeyed<B>(prefix: string) {
+  const fresh = () => `${prefix}/${crypto.randomUUID()}`;
+  const [key, setKey] = useState(fresh);
+  const [pending, setPending] = useState<B | undefined>(undefined);
+  const held = useRef<B | undefined>(undefined);
+  const send = async (body: B, post: (key: string, body: B) => Promise<Response>): Promise<Response> => {
+    const sent = held.current ?? body;
+    held.current = sent;
+    setPending(sent);
+    const answer = await post(key, sent); // thrown: the outcome is unknown, and the key and body are kept
+    if (settles(answer.status)) {
+      held.current = undefined;
+      setPending(undefined);
+      setKey(fresh());
+    }
+    return answer;
+  };
+  return { key, unknown: pending !== undefined, send };
+}
 
 /** An owner's answer as JSON; a refusal thrown as `explain` gives it. */
 export async function readJson<T>(answer: Promise<Response>): Promise<T> {

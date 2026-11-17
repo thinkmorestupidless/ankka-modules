@@ -5,9 +5,11 @@
 // the wallet's own before and after once it is made. The wallet decides: a debit larger than the
 // balance is its refusal, shown as it gives it, never reduced here (FR-007).
 //
-// Each adjustment is sent under a key of its own. The key is kept while the wallet's answer is not
-// known (the server not reached, or the wallet not answering in time), so trying again cannot make it
-// twice; once the wallet has answered, made or refused, the next adjustment takes a new key.
+// Each adjustment is sent under a key of its own (useKeyed). The key and the adjustment first sent are
+// kept while the wallet's answer is not known (no answer, a 5xx, a 408 or a 429), and the fields are
+// locked, so trying again sends the same adjustment and cannot make it twice; once the wallet has
+// answered, made or refused, the next adjustment takes a new key. A repeat the wallet recognises is
+// said so (`repeated`).
 import { useId, useState } from "react";
 import { useParams } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,7 +25,7 @@ import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 import { word } from "../word.ts";
 import { profileCurrency, profileQuery } from "../players/read.ts";
-import { CategorySelect, CauseFields, causeOf, readJson, refusalOf, walletMinor, type Category, type Cause, type CauseKind } from "./shared.tsx";
+import { CategorySelect, CauseFields, causeOf, readJson, refusalOf, useKeyed, walletMinor, type Category, type Cause, type CauseKind } from "./shared.tsx";
 
 interface Balance {
   realBalance: string;
@@ -35,6 +37,7 @@ interface Adjusted {
   before: number;
   after: number;
   walletType: string;
+  repeated?: boolean;
 }
 
 interface TransactionRow {
@@ -49,7 +52,6 @@ interface TransactionRow {
   actorId?: string | null;
 }
 
-const newKey = () => `adjust/${crypto.randomUUID()}`;
 
 /** Typed text as minor units of the currency, above zero; undefined otherwise. */
 export function amountOf(text: string, currency: string): bigint | undefined {
@@ -129,7 +131,8 @@ function Adjuster({ player, currency }: { player: string; currency: string }) {
   const [amountText, setAmountText] = useState("");
   const [category, setCategory] = useState<Category>("compensation");
   const [cause, setCause] = useState<{ kind: CauseKind | ""; ref: string }>({ kind: "", ref: "" });
-  const [key, setKey] = useState(newKey);
+  const keyed = useKeyed<{ walletType: "real" | "restricted"; amountMinor: number; reason: string | undefined; category: Category; cause?: Cause }>("adjust");
+  const locked = readOnly || keyed.unknown;
   const [made, setMade] = useState<Adjusted | undefined>(undefined);
 
   const balance = useQuery({
@@ -143,15 +146,10 @@ function Adjuster({ player, currency }: { player: string; currency: string }) {
   const signed = minor === undefined ? undefined : direction === "debit" ? -minor : minor;
   const named = causeOf(cause.kind, cause.ref);
 
-  const run = async (reason: string | undefined) => {
-    const answer = await wallet.postWalletsAdjustments(
-      { player, currency },
-      { body: { key, walletType: target, amountMinor: Number(signed), reason, category, ...(named ? { cause: named } : {}) } },
+  const run = (reason: string | undefined) =>
+    keyed.send({ walletType: target, amountMinor: Number(signed), reason, category, ...(named ? { cause: named } : {}) }, (key, body) =>
+      wallet.postWalletsAdjustments({ player, currency }, { body: { key, ...body } }),
     );
-    // the wallet answered (made or refused): the next adjustment is another; not answered: the same key again
-    if (answer.status !== 503) setKey(newKey());
-    return answer;
-  };
   const done = async (answer: Response) => {
     const a = (await answer.json()) as Adjusted;
     setMade(a);
@@ -176,12 +174,17 @@ function Adjuster({ player, currency }: { player: string; currency: string }) {
 
       {made ? (
         <p role="status" className="bo-corrections-made" data-adjusted>
-          {t("corrections.adjust.made", { from: moneyText({ minor: String(made.before), currency }), to: moneyText({ minor: String(made.after), currency }) })}
+          {t(made.repeated ? "corrections.adjust.repeated" : "corrections.adjust.made", { from: moneyText({ minor: String(made.before), currency }), to: moneyText({ minor: String(made.after), currency }) })}
+        </p>
+      ) : null}
+      {keyed.unknown ? (
+        <p role="status" className="bo-corrections-unknown" data-unknown>
+          {t("corrections.adjust.unknown")}
         </p>
       ) : null}
 
       <form className="bo-corrections-form" onSubmit={(e) => e.preventDefault()}>
-        <fieldset disabled={readOnly}>
+        <fieldset disabled={locked}>
           <legend id={ids.direction}>{t("corrections.direction")}</legend>
           {(["credit", "debit"] as const).map((d) => (
             <label key={d} className="bo-corrections-choice">
@@ -190,7 +193,7 @@ function Adjuster({ player, currency }: { player: string; currency: string }) {
             </label>
           ))}
         </fieldset>
-        <fieldset disabled={readOnly}>
+        <fieldset disabled={locked}>
           <legend id={ids.target}>{t("corrections.target")}</legend>
           {(["real", "restricted"] as const).map((w) => (
             <label key={w} className="bo-corrections-choice">
@@ -202,13 +205,13 @@ function Adjuster({ player, currency }: { player: string; currency: string }) {
         <div className="bo-field">
           <label htmlFor={ids.amount}>{t("corrections.amount")}</label>
           <span className="bo-corrections-amount">
-            <input id={ids.amount} className="bo-input" inputMode="decimal" value={amountText} disabled={readOnly} aria-invalid={amountText !== "" && minor === undefined} onChange={(e) => setAmountText(e.target.value)} />
+            <input id={ids.amount} className="bo-input" inputMode="decimal" value={amountText} disabled={locked} aria-invalid={amountText !== "" && minor === undefined} onChange={(e) => setAmountText(e.target.value)} />
             <span>{currency}</span>
           </span>
           {amountText !== "" && minor === undefined ? <span className="bo-field-error">{t("corrections.amount.invalid", { currency })}</span> : null}
         </div>
-        <CategorySelect value={category} onChange={setCategory} disabled={readOnly} />
-        <CauseFields kind={cause.kind} reference={cause.ref} player={player} disabled={readOnly} onChange={(kind, ref) => setCause({ kind, ref })} />
+        <CategorySelect value={category} onChange={setCategory} disabled={locked} />
+        <CauseFields kind={cause.kind} reference={cause.ref} player={player} disabled={locked} onChange={(kind, ref) => setCause({ kind, ref })} />
       </form>
 
       {readOnly ? null : (
