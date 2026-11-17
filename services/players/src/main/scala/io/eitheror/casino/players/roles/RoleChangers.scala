@@ -11,6 +11,12 @@ import io.eitheror.casino.players.PlayersCodecs
  * a change that gives it is recorded here after the role holds it. Either way a failure part-way leaves
  * this knowing fewer holders than there are, which can only refuse more, never lock the brand out.
  *
+ * One race is accepted, and is the one way this can know a holder too many: two changes to the *same* role
+ * in opposite directions at once, where the one giving `roles.change` writes, the one taking it away claims
+ * and writes, and only then the first records its giving. The role then lacks it while this counts it, so a
+ * later change could take it from the last real holder. It needs two operators editing one role within the
+ * same moment; closing it means the giving's claim carries the role's version (spec 032).
+ *
  * `holders` is `None` until first asked; the first claim brings what the roles held then (`known`, read
  * from the default roles' entities and the brand's roles view).
  */
