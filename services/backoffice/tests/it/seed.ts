@@ -303,6 +303,18 @@ class Seeder {
   }
 }
 
+/** A number, or a hex run id, written in the letters a to z only. */
+export function letters(n: number | string): string {
+  if (typeof n === "string") return [...n].map((c) => String.fromCharCode(97 + parseInt(c, 16))).join("");
+  let s = "";
+  let v = n;
+  do {
+    s = String.fromCharCode(97 + (v % 26)) + s;
+    v = Math.floor(v / 26);
+  } while (v > 0);
+  return s;
+}
+
 function fresh(brand: string, o: Options): Seed {
   const run = randomBytes(4).toString("hex");
   return {
@@ -314,7 +326,9 @@ function fresh(brand: string, o: Options): Seed {
     wanted: { players: o.players, rewards: o.rewards, withdrawals: o.withdrawals },
     players: Array.from({ length: o.players }, (_, index) => ({
       index,
-      email: `seed-${run}-${index}@seed.eitheror.test`,
+      // in letters: players' duplicate check drops an email's digits (spec 011 FR-035), and seeded players
+      // whose emails differ only in digits, from one address, are a duplicate ring to it
+      email: `seed-${letters(run)}-${letters(index)}@seed.eitheror.test`,
       currency: SeedCurrencies[index % SeedCurrencies.length]!,
     })),
     refused: {},
