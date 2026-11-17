@@ -33,7 +33,8 @@ export function pageOf(rows: readonly QueueRow[], counts: Record<string, number>
   const total = counted !== undefined ? counts[counted] : undefined;
   const shown = rows.slice((page - 1) * PageSize, page * PageSize);
   const answered = page * PageSize >= rows.length;
-  return { shown, total, complete: answered && (total === undefined || total <= rows.length), capped: total !== undefined && total > rows.length };
+  // the last page of what kyc answered is the last one to page to, though kyc holds more (capped)
+  return { shown, total, complete: answered && (total === undefined || total <= rows.length), lastPage: answered, capped: total !== undefined && total > rows.length };
 }
 
 const columns = (filter: string, tz: string): Column<QueueRow>[] => [
@@ -90,6 +91,7 @@ export function IdentityQueuePage() {
         rowKey={(r) => r.playerId}
         total={paged?.total}
         complete={paged?.complete ?? false}
+        lastPage={paged?.lastPage}
         fetching={q.isFetching}
         freshness={freshness}
         zone={tz}

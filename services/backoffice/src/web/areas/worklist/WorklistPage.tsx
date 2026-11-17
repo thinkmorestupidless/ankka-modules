@@ -23,7 +23,7 @@ import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 import { word } from "../word.ts";
 import { actionStateOf } from "../withdrawals/read.ts";
-import { actedOn, investigationOf, keyOf, merged, placeAfter, readKindPage, readWorklist, stateOf, stillOpen, type Item, type KindAnswer, type Request } from "./read.ts";
+import { actedOn, everyKindPaging, investigationOf, keyOf, merged, placeAfter, readKindPage, readWorklist, stateOf, stillOpen, type Item, type KindAnswer, type Request } from "./read.ts";
 import "./worklist.css";
 
 const PageSize = 50;
@@ -232,6 +232,7 @@ export function WorklistPage() {
     only !== undefined
       ? oneKind !== undefined && oneKind.page * PageSize >= oneKind.total
       : answered !== undefined && everyRow !== undefined && list.state.page * PageSize >= everyRow.length && answered.every((k) => k.state === "ok" && k.total <= k.items.length);
+  const paging = only === undefined && answered !== undefined ? everyKindPaging(answered, list.state.page, PageSize) : undefined;
   const unavailable = (answered ?? []).filter((k): k is Extract<KindAnswer, { state: "unavailable" }> => k.state === "unavailable");
 
   // the item opened is kept as last seen, so one that leaves the list (acted on elsewhere) stays shown
@@ -286,12 +287,24 @@ export function WorklistPage() {
               rowKey={keyOf}
               total={total}
               complete={complete}
+              lastPage={paging?.lastPage}
               fetching={all.isFetching || one.isFetching}
               zone={tz}
               list={list}
               onOpen={(i) => void place(keyOf(i), keyOf(i))}
               current={current}
             />
+            {paging && paging.more.length > 0 ? (
+              <ul className="bo-worklist-more" aria-label={t("worklist.more")}>
+                {paging.more.map((m) => (
+                  <li key={m.kind} data-more={m.kind}>
+                    <button type="button" className="bo-link" onClick={() => choose(m.kind)}>
+                      {t("worklist.moreIn", { count: m.count, kind: t(labelOf(m.kind)) })}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             {opened ? <ItemPanel key={keyOf(opened)} item={opened} onActed={acted(opened)} onClose={() => void place(current, undefined)} /> : null}
           </div>
         </>

@@ -111,6 +111,28 @@ describe("a list's total and whether it is complete", () => {
   });
 });
 
+describe("a view that reaches only part of an incomplete list", () => {
+  test("offers no Next on its last page, and still says there is more", () => {
+    render(<Harness store={memoryStore()} rows={a} total={300} complete={false} lastPage />);
+    expect(screen.getByRole("button", { name: "Next" })).toHaveProperty("disabled", true);
+    expect(document.querySelector("[data-complete]")!.getAttribute("data-complete")).toBe("false");
+  });
+});
+
+describe("the table's scroll", () => {
+  test("follows the place: a page turned is shown from its top", async () => {
+    const store = memoryStore({ scroll: 120 });
+    const { rerender } = render(<Harness store={store} rows={a} total={300} complete={false} />);
+    const scroller = document.querySelector<HTMLDivElement>(".bo-list-scroll")!;
+    expect(scroller.scrollTop).toBe(120);
+    scroller.scrollTop = 400;
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Next" })));
+    rerender(<Harness store={store} rows={[{ id: "w9", status: "approved" }]} total={300} complete={false} />);
+    expect(store.get().page).toBe(2);
+    expect(scroller.scrollTop).toBe(0);
+  });
+});
+
 describe("freshness and provisional", () => {
   // the tests run from services/backoffice (package.json's `test`)
   const css = readFileSync(join(process.cwd(), "src/web/components/components.css"), "utf8");

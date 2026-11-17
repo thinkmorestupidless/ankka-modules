@@ -33,7 +33,8 @@ describe("the identity queue", () => {
     expect(first).toMatchObject({ total: 120, complete: false, capped: false });
     expect(pageOf(rows, { awaiting: 120 }, "awaiting", 3)).toMatchObject({ complete: true });
     // kyc answers at most 1,000 rows; a count beyond what it gave is not complete
-    expect(pageOf(rows, { awaiting: 1500 }, "awaiting", 3)).toMatchObject({ complete: false, capped: true });
+    expect(pageOf(rows, { awaiting: 1500 }, "awaiting", 3)).toMatchObject({ complete: false, capped: true, lastPage: true });
+    expect(pageOf(rows, { awaiting: 1500 }, "awaiting", 2)).toMatchObject({ lastPage: false });
     // the flagged filter has no single count
     expect(pageOf(rows, {}, "flagged", 1).total).toBeUndefined();
   });

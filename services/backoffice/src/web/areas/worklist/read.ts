@@ -44,6 +44,17 @@ export function merged(kinds: readonly KindAnswer[]): Item[] {
   return items.map((it, i) => [it, i] as const).sort(([a, i], [b, j]) => Date.parse(a.since) - Date.parse(b.since) || i - j).map(([it]) => it);
 }
 
+/**
+ * What "every kind" can page through: the first page of each kind, merged. Its last page is the last of
+ * the merged rows, though a kind holds more, and each kind that holds more is named with how many more,
+ * to be reached under that kind's own filter (FR-009, FR-017).
+ */
+export function everyKindPaging(kinds: readonly KindAnswer[], page: number, pageSize: number): { lastPage: boolean; more: { kind: string; count: number }[] } {
+  const ok = kinds.filter((k): k is Extract<KindAnswer, { state: "ok" }> => k.state === "ok");
+  const length = ok.reduce((n, k) => n + k.items.length, 0);
+  return { lastPage: page * pageSize >= length, more: ok.filter((k) => k.total > k.items.length).map((k) => ({ kind: k.kind, count: k.total - k.items.length })) };
+}
+
 /** Where an item's investigation is: the record it is, or the player it is about. */
 export function investigationOf(item: Item): string | undefined {
   const player = item.subject.player;
