@@ -164,8 +164,12 @@ endpoint code of all 17 services with an operator route; its results are in
   TypeScript process's disk or the browser.
 - **Alternative**: the page's server does the exchange and stores tokens through a plain key value
   route. Rejected: two instances refreshing at once lose the session.
-- **Session entity**: tokens are credentials, not player data; the operator's subject, name and
-  email are `Personal` under `operator/<subject>` (constitution V) and erased by the handler.
+- **Session entity**: the operator's subject, name and email are `Personal` under
+  `operator/<subject>` (constitution V) and erased by the handler. So are the tokens: the access
+  token carries the operator's email and username among its claims (the realm's `profile` scope),
+  so a token in the clear is the operator's personal data in the clear. *Corrected after the review
+  before the pull request:* the first build journalled them in the clear (`Opened`, `Refreshed`);
+  `Signed` and `Renewed` seal them, and the two older events are read, never written.
 
 ## R3. Calls are made by the page's server at the calling address, never under a mount
 

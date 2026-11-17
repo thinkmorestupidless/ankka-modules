@@ -83,7 +83,7 @@ class SessionSuite extends munit.FunSuite:
     assertEquals(w.realm.refreshes.get, 0)
   }
 
-  test("under 30 seconds left the token is refreshed, Refreshed recorded, and the new one answered") {
+  test("under 30 seconds left the token is refreshed, Renewed recorded, and the new one answered") {
     val w = Wired()
     StateRuntime.realm = w.realm
     w.open()
@@ -92,9 +92,35 @@ class SessionSuite extends munit.FunSuite:
       case TokenResult.Answered(token, _, _, _) => assertEquals(token.reveal, "access-token-1")
       case other                               => fail(s"answered $other")
     assertEquals(w.realm.refreshes.get, 1)
-    assert(w.session.allEvents.exists(_.isInstanceOf[SessionEvent.Refreshed]))
+    assert(w.session.allEvents.exists(_.isInstanceOf[SessionEvent.Renewed]))
     assertEquals(w.session.currentState.refreshes, 1)
-    assertEquals(w.session.currentState.refreshToken.map(_.reveal), Some("refresh-token-1"))
+    assertEquals(w.session.currentState.refresh.map(_.reveal), Some("refresh-token-1"))
+  }
+
+  test("the tokens are recorded as personal fields of the operator, and the unsealed events are no longer written") {
+    val w = Wired()
+    StateRuntime.realm = w.realm
+    w.open()
+    w.now = t0.plusSeconds(271)
+    w.tokensFlow.token("s-1"): Unit
+    val events = w.session.allEvents
+    assert(!events.exists(e => e.isInstanceOf[SessionEvent.Opened] || e.isInstanceOf[SessionEvent.Refreshed]), events.toString)
+    val sealedTokens = events.collect {
+      case e: SessionEvent.Signed  => Vector(e.accessToken, e.refreshToken)
+      case e: SessionEvent.Renewed => Vector(e.accessToken, e.refreshToken)
+    }.flatten
+    assertEquals(sealedTokens.size, 4)
+    assert(sealedTokens.forall(_.subject == Session.dataSubject("8c1f-sub")), sealedTokens.toString)
+  }
+
+  test("a session opened before the tokens were sealed still recovers, its tokens read under the operator") {
+    val d = Session.dataSubject("8c1f-sub")
+    val e = SessionEvent.Opened(com.thinkmorestupidless.ankka.core.Personal(d, "8c1f-sub"), com.thinkmorestupidless.ankka.core.Personal(d, "Ada"),
+      com.thinkmorestupidless.ankka.core.Personal(d, "ada@example.com"), Secret("old-access"), Secret("old-refresh"), t0.plusSeconds(300),
+      t0.plusSeconds(1800), Set("brand_goldvibe"), t0)
+    val s = new Session(null).applyEvent(e)
+    assertEquals((s.access.map(_.reveal), s.refresh.map(_.reveal)), (Some("old-access"), Some("old-refresh")))
+    assertEquals(s.accessToken.map(_.subject), Some(d))
   }
 
   test("two concurrent token calls near expiry make one refresh") {

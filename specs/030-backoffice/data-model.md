@@ -12,17 +12,18 @@ roles are not the backoffice's: `players` keeps them (below).
 |---|---|---|
 | `subject` | `Personal[String]` under `operator/<subject>` | the realm's subject |
 | `name`, `email` | `Personal[String]` | from the id token, for display |
-| `accessToken`, `refreshToken` | `Secret` (never logged, never in an event's `toString`) | the realm's |
+| `accessToken`, `refreshToken` | `Personal[String]` of `operator/<subject>` (the access token carries the operator's email and username); answered as a `Secret`, never logged | the realm's |
 | `accessExpiresAt`, `refreshExpiresAt` | `Instant` | |
 | `roles` | `Set[String]` | from the access token, as last refreshed |
 | `endedAt` | `Option[Instant]` | |
 
-Events: `Opened`, `Refreshed`, `Ended(reason: signed_out | expired | revoked | erased)`.
+Events: `Signed`, `Renewed`, `Ended(reason: signed_out | expired | revoked | erased)`; `Opened` and
+`Refreshed`, which held the tokens in the clear, are read and never written.
 
 Rules:
 
 - `token` answers the access token when 30 seconds or more remain; else it refreshes, one refresh
-  at a time (the entity is the one writer), records `Refreshed`, and answers the new one.
+  at a time (the entity is the one writer), records `Renewed`, and answers the new one.
 - a refresh the realm refuses ends the session (`revoked`); every later `token` is `404`.
 - a session ends at the refresh token's expiry by a timer; an ended session's tokens are cleared
   from its state by the `Ended` event, and the entity is deleted after 24 hours.

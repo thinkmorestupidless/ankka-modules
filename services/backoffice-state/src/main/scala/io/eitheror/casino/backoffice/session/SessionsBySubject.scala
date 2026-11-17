@@ -13,11 +13,13 @@ final case class SessionRow(session: String, subject: String, open: Boolean)
 
 final class SessionsBySubjectRows extends View[SessionEvent, SessionRow]:
   def onChange(event: SessionEvent): Effect = event match
+    case e: SessionEvent.Signed =>
+      effects.updateRow(SessionRow(updateContext.subject, Session.subjectOf(e.subject.subject), open = true))
     case e: SessionEvent.Opened =>
       effects.updateRow(SessionRow(updateContext.subject, Session.subjectOf(e.subject.subject), open = true))
     case _: SessionEvent.Ended =>
       rowState.fold(effects.ignore())(r => if r.open then effects.updateRow(r.copy(open = false)) else effects.ignore())
-    case _: SessionEvent.Refreshed => effects.ignore()
+    case _: SessionEvent.Refreshed | _: SessionEvent.Renewed => effects.ignore()
 
 /** Session ids by subject (data-model.md), for sign-out everywhere and erasure. A deleted session's row goes with it. */
 object SessionsBySubject
