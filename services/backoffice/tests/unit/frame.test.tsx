@@ -44,6 +44,10 @@ describe("the rail's areas", () => {
     expect(areasFor(me({ roles: ["brand_spinvibe", "affiliate_manager"], permissions: ["programme.manage"] })).map((a) => a.id)).toEqual(["affiliates"]);
   });
 
+  it("opens the worklist to an operator whose roles in the brand are payments roles only (FR-016)", () => {
+    expect(areasFor(me({ roles: ["brand_spinvibe", "resource_admin"], permissions: ["payments.read", "payments.operate", "payments.admin"] })).map((a) => a.id)[0]).toBe("worklist");
+  });
+
   it("shows every area held when the modules are not known", () => {
     expect(areasFor(me({ brand: { slug: "s", name: "s", modules: null, zone: "America/Sao_Paulo" } })).map((a) => a.id)).toContain("rewards");
   });
@@ -52,6 +56,7 @@ describe("the rail's areas", () => {
     expect(areaOf("/")?.id).toBe("worklist");
     expect(areaOf("/players/p-1")?.id).toBe("players");
     expect(areaOf("/adjustments/batch")?.id).toBe("adjustments");
+    expect(areaOf("/adjustments/accounts")?.id).toBe("adjustments");
     expect(areaOf("/nowhere")).toBeUndefined();
   });
 });

@@ -11,7 +11,10 @@ export type Icon =
 
 export interface Area {
   id: string;
+  /** Where the rail opens it. */
   path: string;
+  /** The paths it holds, where they are wider than the one it opens (`/adjustments` holds the batch and the accounts). */
+  prefix?: string;
   label: MessageKey;
   icon: Icon;
   module: string;
@@ -22,10 +25,11 @@ export interface Area {
 }
 
 export const Areas: readonly Area[] = [
-  { id: "worklist", path: "/", label: "area.worklist", icon: "inbox", module: "core", permissions: ["player.read"], views: ["payouts", "kyc", "responsible-gambling", "players"] },
+  // undelivered outcomes are a payments role's at its level (shared/worklist.ts, FR-016), so a payments role opens it too
+  { id: "worklist", path: "/", label: "area.worklist", icon: "inbox", module: "core", permissions: ["player.read", "payments.read"], views: ["payouts", "kyc", "responsible-gambling", "players"] },
   { id: "players", path: "/players", label: "area.players", icon: "users", module: "core", permissions: ["player.read"], views: ["players"] },
   { id: "withdrawals", path: "/withdrawals", label: "area.withdrawals", icon: "out", module: "core", permissions: ["withdrawal.read"], views: ["payouts"] },
-  { id: "adjustments", path: "/adjustments/batch", label: "area.adjustments", icon: "scale", module: "core", permissions: ["adjustment.make"] },
+  { id: "adjustments", path: "/adjustments/batch", prefix: "/adjustments", label: "area.adjustments", icon: "scale", module: "core", permissions: ["adjustment.make"] },
   { id: "rewards", path: "/rewards", label: "area.rewards", icon: "gift", module: "casino", permissions: ["reward.read"], views: ["rewards"] },
   { id: "offers", path: "/offers", label: "area.offers", icon: "tag", module: "casino", permissions: ["offer.manage"] },
   { id: "identity", path: "/identity", label: "area.identity", icon: "id", module: "core", permissions: ["identity.review"], views: ["kyc"] },
@@ -50,6 +54,7 @@ export function areasFor(me: Pick<Me, "brand" | "permissions">): Area[] {
 /** The area a path is in: the longest area path that prefixes it. */
 export function areaOf(pathname: string): Area | undefined {
   if (pathname === "/") return Areas[0];
-  return Areas.filter((a) => a.path !== "/" && (pathname === a.path || pathname.startsWith(`${a.path}/`)))
-    .sort((a, b) => b.path.length - a.path.length)[0];
+  const held = (a: Area) => a.prefix ?? a.path;
+  return Areas.filter((a) => a.path !== "/" && (pathname === held(a) || pathname.startsWith(`${held(a)}/`)))
+    .sort((a, b) => held(b).length - held(a).length)[0];
 }
