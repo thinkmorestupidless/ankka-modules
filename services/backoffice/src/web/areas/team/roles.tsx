@@ -93,6 +93,8 @@ export function RoleEditor({ role, bags, onDone, onClose }: { role?: Role; bags:
   const after = [...chosen].sort();
   const editable = !readOnly && me.permissions.includes("roles.change");
   const target = role?.name ?? name.trim();
+  // players' PUT makes a role or replaces what an existing one carries, so a new role may not take a name in use
+  const taken = role === undefined && Object.hasOwn(bags, target);
   const put = () => send("PUT", `/roles/${encodeURIComponent(target)}`, { description, permissions: after });
 
   return (
@@ -107,6 +109,7 @@ export function RoleEditor({ role, bags, onDone, onClose }: { role?: Role; bags:
             <span id={`${nameId}-hint`} className="bo-muted">
               {t("roles.nameHint")}
             </span>
+            {taken ? <span className="bo-field-error">{t("roles.nameTaken", { role: target })}</span> : null}
           </>
         )}
       </div>
@@ -142,7 +145,7 @@ export function RoleEditor({ role, bags, onDone, onClose }: { role?: Role; bags:
               />
             </>
           ) : (
-            <Action action={Actions["role.create"]} me={me} bags={bags} ready={target !== ""} subject={<Change role={target} before={[]} after={after} />} run={put} onDone={onDone} />
+            <Action action={Actions["role.create"]} me={me} bags={bags} ready={target !== "" && !taken} subject={<Change role={target} before={[]} after={after} />} run={put} onDone={onDone} />
           )}
           <button type="button" className="bo-button" onClick={onClose}>
             {t("roles.close")}

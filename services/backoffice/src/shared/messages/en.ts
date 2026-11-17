@@ -96,6 +96,7 @@ export const en = {
   "roles.edit": "Change",
   "roles.close": "Close",
   "roles.nameHint": "Lower case letters, digits and underscores.",
+  "roles.nameTaken": "The brand already has a role named {role}; open it to change what it carries.",
   "roles.gains": "Every operator holding {role} gains: {permissions}",
   "roles.loses": "Every operator holding {role} loses: {permissions}",
   "roles.nothingChanges": "Nothing it carries changes.",
