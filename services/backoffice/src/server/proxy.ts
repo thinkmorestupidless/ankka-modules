@@ -59,23 +59,86 @@ export async function pass(deps: ProxyDeps, m: Matched, req: Request, accessToke
     headers.set("idempotency-key", key);
   }
   const body = req.method === "GET" || req.method === "HEAD" ? undefined : await req.arrayBuffer();
+  const bound = new Bound(deps.timeoutMs);
   let answer: Response;
   try {
+    bound.arm();
     answer = await deps.fetch(url, {
       method: req.method,
       headers,
       body,
       redirect: "manual",
-      signal: AbortSignal.timeout(deps.timeoutMs),
+      signal: bound.signal,
     });
   } catch (e) {
     return { response: unavailable(m.row.service), why: e instanceof Error ? e.name : "unknown" };
+  } finally {
+    bound.disarm();
   }
   if (answer.headers.has("x-ankka-answered-by")) {
     await answer.body?.cancel();
     return { response: unavailable(m.row.service), why: `proxy ${answer.status}` };
   }
-  return { response: new Response(answer.body, { status: answer.status, headers: answeredHeaders(answer.headers) }) };
+  const passed = answer.body === null ? null : bound.body(answer.body);
+  return { response: new Response(passed, { status: answer.status, headers: answeredHeaders(answer.headers) }) };
+}
+
+/**
+ * The bound on a call to an owner (plan.md: 15 s for a pass-through): on the start of its answer, then
+ * on each wait for the next part of its body. A long download or export that keeps arriving is never
+ * cut; an owner silent for the bound is. Only the owner's silence counts: no wait is timed while the
+ * page is not reading.
+ */
+class Bound {
+  private readonly controller = new AbortController();
+  private timer: ReturnType<typeof setTimeout> | undefined;
+  readonly signal = this.controller.signal;
+  private readonly ms: number;
+
+  constructor(ms: number) {
+    this.ms = ms;
+  }
+
+  arm(): void {
+    this.disarm();
+    this.timer = setTimeout(() => this.controller.abort(new DOMException(`no answer within ${this.ms} ms`, "TimeoutError")), this.ms);
+  }
+
+  disarm(): void {
+    clearTimeout(this.timer);
+    this.timer = undefined;
+  }
+
+  body(given: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
+    const reader = given.getReader();
+    const signal = this.signal;
+    const next = () =>
+      new Promise<ReadableStreamReadResult<Uint8Array>>((resolve, reject) => {
+        if (signal.aborted) return reject(signal.reason);
+        const stop = () => reject(signal.reason);
+        signal.addEventListener("abort", stop, { once: true });
+        reader.read().then(resolve, reject).finally(() => signal.removeEventListener("abort", stop));
+      });
+    return new ReadableStream<Uint8Array>({
+      pull: async (controller) => {
+        this.arm();
+        try {
+          const { value, done } = await next();
+          if (done) controller.close();
+          else controller.enqueue(value);
+        } catch (e) {
+          void reader.cancel(e).catch(() => undefined);
+          throw e;
+        } finally {
+          this.disarm();
+        }
+      },
+      cancel: async (reason) => {
+        this.disarm();
+        await reader.cancel(reason);
+      },
+    });
+  }
 }
 
 /**
