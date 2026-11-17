@@ -48,6 +48,8 @@ export interface Deps {
   reads?: BrandReads;
   /** How often `/api/events` compares the operator's permissions; 5 s when not given. */
   eventsEveryMs?: number;
+  /** Aborted when the instance is stopping: every `/api/events` stream ends. */
+  shutdown?: AbortSignal;
 }
 
 /** The claims of the realm's token, read without checking it: it came from `backoffice-state`. */
@@ -357,7 +359,7 @@ export function createApp(deps: Deps): Hono<Env> {
       return subject ? (await deps.state.preferences(subject)).onlineNotices === true : false;
     },
   };
-  eventRoutes(app, { brand: deps.brand, tokens, reads, everyMs: deps.eventsEveryMs ?? 5_000, jobs: jobsOf, online });
+  eventRoutes(app, { brand: deps.brand, tokens, reads, everyMs: deps.eventsEveryMs ?? 5_000, jobs: jobsOf, online, shutdown: deps.shutdown });
 
   // The brand's roles as players holds them now, so the page can name a role that would give a permission.
   app.get("/api/permissions", async (c) => {
@@ -432,6 +434,9 @@ export function sharedProjects(text: string | undefined): Record<string, string>
   return out;
 }
 
+/** How long requests in flight are given to finish once the instance is told to stop. */
+const StopWithinMs = 8_000;
+
 function required(name: string): string {
   const v = process.env[name];
   if (!v) {
@@ -446,6 +451,7 @@ async function main(): Promise<void> {
   const port = Number(process.env.PORT ?? 3000);
   const production = process.env.NODE_ENV === "production";
   const servicesUrl = required("ANKKA_SERVICES_URL").replace(/\/$/, "");
+  const stopping = new AbortController();
   const app = createApp({
     brand: required("CASINO_BRAND"),
     servicesUrl,
@@ -459,6 +465,7 @@ async function main(): Promise<void> {
     dist: production ? path.join(root, "dist") : undefined,
     realm: { issuer: required("ANKKA_AUTH_STAFF_ISSUER").replace(/\/$/, ""), clientId: `backoffice-${required("CASINO_BRAND")}` },
     address: required("BACKOFFICE_HOST").replace(/\/$/, ""),
+    shutdown: stopping.signal,
   });
   const serve = getRequestListener(app.fetch);
   let page: ((req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void) | undefined;
@@ -472,11 +479,21 @@ async function main(): Promise<void> {
     void serve(req, res);
   });
   server.listen(port, () => console.log(JSON.stringify({ started: "backoffice", port })));
-  // A rollout stops an instance: finish what is in flight, take nothing new.
-  process.on("SIGTERM", () => {
+  // A rollout stops an instance: take nothing new, end the event streams (each page opens another, at
+  // another instance), let requests in flight finish, and cut what is left before ankka's proxy gives
+  // up on them (it waits ten seconds; reference/web-hosting.md, *Stopping*).
+  const stop = () => {
+    if (stopping.signal.aborted) return;
+    stopping.abort();
     server.close(() => process.exit(0));
     server.closeIdleConnections();
-  });
+    setTimeout(() => {
+      server.closeAllConnections();
+      process.exit(0);
+    }, StopWithinMs).unref();
+  };
+  process.on("SIGTERM", stop);
+  process.on("SIGINT", stop);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main();

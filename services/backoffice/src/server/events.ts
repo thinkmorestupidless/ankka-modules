@@ -24,6 +24,8 @@ export interface EventsDeps {
   jobs?: (accessToken: string, withinMs: number) => Promise<JobState[]>;
   /** engagement's agent stream, relayed for an operator who asked; nothing is relayed when not given. */
   online?: OnlineDeps;
+  /** Ends every stream: the instance is stopping, and an open stream would hold its stop back. */
+  shutdown?: AbortSignal;
 }
 
 /** What the relay of engagement's agent stream needs (`relayOnline`). */
@@ -288,7 +290,13 @@ export function eventRoutes(app: Hono<Env>, deps: EventsDeps): void {
           relay = undefined;
         }
       };
-      stream.onAbort(() => relay?.abort());
+      // the operator went, or the instance is stopping: the stream ends, the page's EventSource opens another
+      const ended = new AbortController();
+      const end = () => ended.abort();
+      stream.onAbort(end);
+      if (deps.shutdown?.aborted) end();
+      deps.shutdown?.addEventListener("abort", end, { once: true });
+      ended.signal.addEventListener("abort", () => relay?.abort(), { once: true });
       const seen = new Map<string, string>();
       let looked = false;
       const jobsDone = async (token: Token): Promise<JobState[]> => {
@@ -306,9 +314,9 @@ export function eventRoutes(app: Hono<Env>, deps: EventsDeps): void {
       await jobsDone(first);
       relaying(first, last);
       try {
-        while (!stream.aborted) {
-          await stream.sleep(deps.everyMs);
-          if (stream.aborted) break;
+        while (!ended.signal.aborted) {
+          await pause(deps.everyMs, ended.signal);
+          if (ended.signal.aborted) break;
           let token: Token | undefined;
           try {
             token = await deps.tokens.token(session);
@@ -334,6 +342,7 @@ export function eventRoutes(app: Hono<Env>, deps: EventsDeps): void {
           }
         }
       } finally {
+        deps.shutdown?.removeEventListener("abort", end);
         relay?.abort();
       }
     });
