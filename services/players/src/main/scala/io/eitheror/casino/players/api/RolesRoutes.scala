@@ -45,15 +45,23 @@ final class RolesRoutes(ctx: Ctx):
               case Some(unknown) =>
                 refusal(400, RoleRules.UnknownPermission, s"$unknown is not a permission", "permission" -> unknown)
               case None =>
-                oneWriter(name, permissions(RoleRules.Change))(
-                  components.forEventSourcedEntity(Role.id(name)).call(Role.set).invoke(SetRole(name, description, permissions, author(p), now())))
+                val role = components.forEventSourcedEntity(Role.id(name))
+                val held = role.call(Role.get).invoke()
+                changerLacks(p, if held.exists then permissions -- held.permissions else permissions) match
+                  case Some(missing) => lacks(missing)
+                  case None =>
+                    oneWriter(name, permissions(RoleRules.Change))(
+                      role.call(Role.set).invoke(SetRole(name, description, permissions, author(p), now())))
 
   def reset(p: Principal, name: String): Reply =
     (OperatorPermissions.DefaultRoles.get(name), RoleRules.nameRefusal(name)) match
       case (None, Some((code, message))) => refusal(400, code, message)
       case (None, None) => refusal(409, RoleRules.NotDefault, s"$name is not a default role: it has no default permissions to reset to")
       case (Some(bag), _) =>
-        oneWriter(name, bag(RoleRules.Change))(components.forEventSourcedEntity(Role.id(name)).call(Role.reset).invoke(RoleAct(author(p), now())))
+        val role = components.forEventSourcedEntity(Role.id(name))
+        changerLacks(p, bag -- role.call(Role.get).invoke().permissions) match
+          case Some(missing) => lacks(missing)
+          case None          => oneWriter(name, bag(RoleRules.Change))(role.call(Role.reset).invoke(RoleAct(author(p), now())))
 
   def delete(p: Principal, name: String): Reply =
     RoleRules.nameRefusal(name) match
@@ -129,6 +137,16 @@ final class RolesRoutes(ctx: Ctx):
         val s = components.forEventSourcedEntity(RoleAssignment.id(operator)).call(RoleAssignment.give)
           .invoke(Give(operator, roles, author(p), now()))
         ok(Json.obj("operator" -> operator, "brand" -> ctx.slug, "roles" -> Json.arr(s.roles.toVector.sorted*)))
+
+  /**
+   * The first of `added`, the permissions a change puts into a role, the changer does not hold: holding
+   * `roles.change` is not holding every permission, so a role is given only what its changer may do.
+   */
+  private def changerLacks(p: Principal, added: Set[String]): Option[String] =
+    RoleRules.escalation(OperatorPermissions.permissionsOf(p.roles, Roles.bags(views)), added)
+
+  private def lacks(missing: String): Reply =
+    refusal(403, RoleRules.GiverLacks, s"the $missing permission is needed to put it into a role", "permission" -> missing)
 
   private def lastChanger(name: String): Reply =
     refusal(409, RoleRules.LastRoleChanger, s"$name is the last role that may change roles: nobody could change roles after this")

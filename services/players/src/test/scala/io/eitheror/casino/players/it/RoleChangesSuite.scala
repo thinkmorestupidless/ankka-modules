@@ -10,7 +10,8 @@ import scala.concurrent.duration.*
 import scala.jdk.CollectionConverters.*
 
 /**
- * Spec 030 P12, FR-008d through the routes: two changes at once each taking `roles.change` from a different role cannot both pass. Each test waits for
+ * Spec 030 P12, FR-008b and FR-008d through the routes: a changer puts into a role only permissions it holds,
+ * and two changes at once each taking `roles.change` from a different role cannot both pass. Each test waits for
  * the roles it made to leave the view, so a suite after it does not find them listed and already deleted.
  */
 class RoleChangesSuite extends munit.FunSuite with LogCapturing:
@@ -34,6 +35,22 @@ class RoleChangesSuite extends munit.FunSuite with LogCapturing:
   private def until(what: String)(p: Map[String, Set[String]] => Boolean): Unit =
     kit.eventually(what, 20.seconds)(Some(roles).filter(p)): Unit
     PlayersRuntime.bags.refresh()
+
+  test("a changer puts into a role only the permissions it holds; what it holds, it can") {
+    assertEquals(set("keeper", Set("roles.read", "roles.change", "player.read"), asPlatform).status, 200)
+    try
+      until("the keeper role")(_.contains("keeper"))
+      val keeper = kit.asOperator(s"$brand,keeper", "op-keeper")
+      val refused = set("desk", Set("player.read", "adjustment.make"), keeper)
+      assertEquals((refused.status, refused.str("error"), refused.str("permission")), (403, "forbidden", "adjustment.make"), refused.text)
+      assert(!roles.contains("desk"))
+      assertEquals(set("desk", Set("player.read"), keeper).status, 200)
+      assertEquals(set("keeper", Set("roles.read", "roles.change", "player.read", "adjustment.make"), keeper).status, 403,
+        "nor into its own role")
+    finally
+      for r <- Vector("desk", "keeper") do delete(r): Unit
+      until("desk and keeper gone")(r => !r.contains("desk") && !r.contains("keeper"))
+  }
 
   test("two changes at once, each taking roles.change from a different role: one passes, the other is refused") {
     given ExecutionContext = ExecutionContext.global
