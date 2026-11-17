@@ -13,3 +13,7 @@ player. It admits only the brand's `backoffice` service.
 just service backoffice-state test   # unit suites
 just backoffice-state-it             # over Postgres and a Keycloak container (Docker)
 ```
+
+It refuses to start without the brand's client secret (`BACKOFFICE_CLIENT_SECRET`), which the
+modules tool sets from the realm's `backoffice-<slug>` client. Only a dev realm's client may have
+none: set `BACKOFFICE_LOCAL=true` to run against one.
