@@ -69,8 +69,15 @@ Then("everything the operator sees and does is in {string}", async ({ world }, b
   await expect(page(world).getByRole("navigation", { name: t("frame.areas") })).toBeVisible();
   const calls = (await world.doubles.calls()).filter((c) => c.owner !== "backoffice-state");
   expect(calls.length, "the server read the brand from its owners").toBeGreaterThan(0);
-  const elsewhere = calls.filter((c) => !c.path.split("/").includes(brand)).map((c) => `${c.owner} ${c.method} ${c.path}`);
-  expect(elsewhere, `every call the server made named ${brand}`).toEqual([]);
+  // A call to a shared project (`psp-gateway.payments`) names no brand: that project decides by the
+  // operator's own roles there. It must still name none of the operator's other brands.
+  const shared = (c: { owner: string }) => c.owner.includes(".");
+  const RoleNames = new Set(["brand_support", "brand_finance", "brand_compliance", "brand_admin"]);
+  const elsewhere = calls.filter((c) => !shared(c) && !c.path.split("/").includes(brand)).map((c) => `${c.owner} ${c.method} ${c.path}`);
+  expect(elsewhere, `every call the server made to the brand's own owners named ${brand}`).toEqual([]);
+  const others = (of(world).identity?.roles ?? []).flatMap((r) => (r.startsWith("brand_") && r !== `brand_${brand}` && !RoleNames.has(r) ? [r.slice("brand_".length)] : []));
+  const leaked = calls.filter((c) => shared(c) && others.some((o) => c.path.split("/").includes(o))).map((c) => `${c.owner} ${c.method} ${c.path}`);
+  expect(leaked, "no call to a shared project named another brand").toEqual([]);
 });
 
 Then("no other brand is offered", async ({ world }) => {
