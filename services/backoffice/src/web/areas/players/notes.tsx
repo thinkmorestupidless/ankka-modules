@@ -88,10 +88,15 @@ export function PlayerNotes({ player }: { player: string }) {
           </li>
         ))}
       </ul>
-      {q.data && !completeOf({ page: list.state.page, pageSize: PageSize, total: q.data.total }) ? (
-        <button type="button" className="bo-button" onClick={() => list.setPage(list.state.page + 1)}>
-          {t("list.next")}
-        </button>
+      {q.data && (list.state.page > 1 || !completeOf({ page: list.state.page, pageSize: PageSize, total: q.data.total })) ? (
+        <nav className="bo-list-foot" aria-label={t("list.pages")}>
+          <button type="button" className="bo-button" disabled={list.state.page <= 1} onClick={() => list.setPage(list.state.page - 1)}>
+            {t("list.previous")}
+          </button>
+          <button type="button" className="bo-button" disabled={completeOf({ page: list.state.page, pageSize: PageSize, total: q.data.total })} onClick={() => list.setPage(list.state.page + 1)}>
+            {t("list.next")}
+          </button>
+        </nav>
       ) : null}
     </section>
   );
