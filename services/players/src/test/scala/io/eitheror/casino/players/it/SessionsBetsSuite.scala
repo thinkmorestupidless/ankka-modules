@@ -107,6 +107,8 @@ class SessionsBetsSuite extends munit.FunSuite with LogCapturing:
     val today = java.time.LocalDate.now(java.time.ZoneOffset.UTC)
     assertEquals(ids(s"fromDate=${today.plusDays(1)}"), Set.empty[String])
     assertEquals(ids(s"fromDate=$today&toDate=$today"), Set(loss, win, cancel))
+    val capped = op("GET", s"/players/$id/bets?status=all&limit=100000").json
+    assertEquals((capped.get("limit").asInt, capped.get("total").asInt, capped.get("summary").get("truncated").asBoolean), (200, 4, false))
     val one = op("GET", s"/players/$id/bets?roundId=$win").json
     assertEquals((one.get("bets").get(0).get("amountMinorUnits").asLong, one.get("summary").get("totalBets").asInt), (200L, 1))
     val session = op("GET", s"/players/$id/sessions/$game/bets?pageSize=2")

@@ -3,7 +3,7 @@ package io.eitheror.casino.players.sessions
 import com.thinkmorestupidless.ankka.core.ComponentId
 import com.thinkmorestupidless.ankka.runtime.ViewClient
 import com.thinkmorestupidless.ankka.sdk.*
-import io.eitheror.casino.players.PlayersCodecs
+import io.eitheror.casino.players.{Json, PlayersCodecs}
 
 /**
  * Both kinds of session, one row each (research R11): a player session (`kind` `player`, its realm
@@ -97,6 +97,24 @@ object SessionsView extends KeyedView.Companion[SessionsViewRows, SessionRow](
 
   def gamesOf(views: ViewClient, playerSessionId: String): Vector[SessionRow] =
     views.forView(SessionsView).ask(byParent, 1000, "parent" -> playerSessionId)
+
+  /** At most this many game sessions are read for one page of player sessions. */
+  val GamesLimit: Int = 5000
+
+  /**
+   * The game sessions of several player sessions in one query, newest first, by their player session: what a
+   * page of player sessions shows, rather than a query per session.
+   */
+  def gamesOfAll(views: ViewClient, playerSessionIds: Vector[String]): Map[String, Vector[SessionRow]] =
+    import com.thinkmorestupidless.ankka.runtime.SqlFragment
+    import com.thinkmorestupidless.ankka.runtime.SqlSyntax.sql
+    if playerSessionIds.isEmpty then Map.empty
+    else
+      val ids = Json.render(Json.arr(playerSessionIds.distinct*))
+      views.forView(SessionsView).ordered(
+        SqlFragment.raw(s"$kind = 'game' AND jsonb_build_array($parent) <@ CAST(") ++ sql"$ids" ++ SqlFragment.raw(" AS jsonb)"),
+        SqlFragment.raw(s"$started DESC, row_key ASC"), GamesLimit
+      ).groupBy(_.parent)
 
   /**
    * Player sessions as an operator lists them (spec 030 P5): one player's or the brand's; `active` (open),

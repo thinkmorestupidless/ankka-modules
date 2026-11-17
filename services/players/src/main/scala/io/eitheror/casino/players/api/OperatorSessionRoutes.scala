@@ -3,6 +3,7 @@ package io.eitheror.casino.players.api
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.http.Principal
+import com.thinkmorestupidless.ankka.sdk.ComponentClient
 import io.eitheror.casino.players.Json
 import io.eitheror.casino.players.player.PlayerEntity
 import io.eitheror.casino.players.rounds.*
@@ -44,18 +45,28 @@ final class OperatorSessionRoutes(ctx: Ctx):
       val (n, size) = paging(page, pageSize)
       val wanted    = SessionsView.Wanted(playerId = Some(playerId))
       val rows      = SessionsView.playerSessions(views, wanted, (n - 1) * size, size)
+      // one query for the page's game sessions, one for their rounds, and the wallet's bets asked at once
+      val games     = SessionsView.gamesOfAll(views, rows.map(_.sessionId))
+      val gameIds   = games.values.flatten.map(_.sessionId).toVector
+      val rounds    = RoundsView.ofSessions(views, gameIds)
+      val truncated = rounds.size >= RoundsView.SumLimit
+      val byGame    = rounds.groupBy(_.sessionId)
+      val asked     = gameIds.map(id => id -> SessionWagers.ofAsync(components, id))
+      val wagers    = asked.map((id, f) => id -> ComponentClient.await(f, WagersBound)).toMap
+      def withGames(o: ObjectNode, playerSessionId: String): ObjectNode =
+        Json.set(o, "gameSessions", Json.arr(games.getOrElse(playerSessionId, Vector.empty).map(g =>
+          gameSession(g, byGame.getOrElse(g.sessionId, Vector.empty), wagers.getOrElse(g.sessionId, SessionWagersState()), truncated))*))
+        o
       ok(Json.obj("sessions" -> Json.arr(rows.map(r => withGames(playerSession(r), r.sessionId))*),
         "total" -> SessionsView.playerSessionsTotal(views, wanted), "page" -> n, "pageSize" -> size))
     }
 
-  private def withGames(o: ObjectNode, playerSessionId: String): ObjectNode =
-    Json.set(o, "gameSessions", Json.arr(SessionsView.gamesOf(views, playerSessionId).map(gameSession)*))
-    o
-
-  private def gameSession(r: SessionRow): ObjectNode =
+  /**
+   * A game session with its rounds' sums beside the wallet's bets. `truncated`: the page's rounds reached
+   * [[RoundsView.SumLimit]], so the sums may be short and no gap is claimed from them.
+   */
+  private def gameSession(r: SessionRow, rounds: Vector[RoundRow], wagers: SessionWagersState, truncated: Boolean): ObjectNode =
     val o       = GameSessionRoutes.wire(r)
-    val rounds  = RoundsView.all(views, RoundsView.Wanted(sessionId = Some(r.sessionId)))
-    val wagers  = SessionWagers.of(components, r.sessionId)
     val totals  = RoundTotals.of(rounds)
     val currency = totals.headOption.map(_.currency).orElse(Option(wagers.currency).filter(_.nonEmpty))
     val staked  = rounds.map(_.stake).sum
@@ -65,8 +76,9 @@ final class OperatorSessionRoutes(ctx: Ctx):
     o.put("netMinorUnits", rounds.map(_.net).sum)
     o.put("wageredMinorUnits", wagers.wagered)
     Json.set(o, "currency", currency.orNull)
+    o.put("truncated", truncated)
     Json.set(o, "gap",
-      if wagers.wagered == staked then null
+      if truncated || wagers.wagered == staked then null
       else Json.obj("wageredMinorUnits" -> wagers.wagered, "roundStakeMinorUnits" -> staked, "currency" -> currency.orNull))
     o
 
@@ -124,9 +136,8 @@ final class OperatorSessionRoutes(ctx: Ctx):
     else
       val (n, size) = paging(page, pageSize)
       val wanted    = RoundsView.Wanted(playerId = Some(playerId), sessionId = Some(sessionId))
-      val all       = RoundsView.all(views, wanted)
       ok(Json.obj("sessionId" -> sessionId, "bets" -> Json.arr(RoundsView.page(views, wanted, (n - 1) * size, size).map(bet)*),
-        "total" -> all.size, "page" -> n, "pageSize" -> size, "summary" -> totals(all)))
+        "total" -> RoundsView.total(views, wanted), "page" -> n, "pageSize" -> size, "summary" -> totals(RoundsView.all(views, wanted))))
 
   /**
    * `GET players/{p}/bets`: the player's rounds as before (`fromDate`, `toDate` as ISO dates, `limit` 50,
@@ -141,7 +152,7 @@ final class OperatorSessionRoutes(ctx: Ctx):
     if f.zip(t).exists((a, b) => a.isAfter(b)) then refusal(400, "invalid_date_range", "fromDate is after toDate")
     else
       known(playerId) {
-        val lim  = q.limit.flatMap(_.toIntOption).filter(_ >= 1).getOrElse(50)
+        val lim  = q.limit.flatMap(_.toIntOption).filter(_ >= 1).map(_.min(MaxBets)).getOrElse(50)
         val off  = q.offset.flatMap(_.toIntOption).filter(_ >= 0).getOrElse(0)
         def day(d: LocalDate) = d.atStartOfDay(java.time.ZoneOffset.UTC).toInstant.toEpochMilli
         val statuses = q.status.map(_.trim.toLowerCase(java.util.Locale.ROOT)) match
@@ -153,13 +164,13 @@ final class OperatorSessionRoutes(ctx: Ctx):
           roundId = q.roundId.map(_.trim).filter(_.nonEmpty), transactionId = q.transactionId.map(_.trim).filter(_.nonEmpty),
           kind = q.kind.map(_.trim.toLowerCase(java.util.Locale.ROOT)).filter(Set("bet", "win")),
           from = f.map(day), to = t.map(d => day(d.plusDays(1))))
-        val all  = RoundsView.all(views, wanted)
-        val page = RoundsView.page(views, wanted, off, lim)
-        val summary = totals(all)
-        summary.put("totalBets", all.size)
+        val total   = RoundsView.total(views, wanted)
+        val page    = RoundsView.page(views, wanted, off, lim)
+        val summary = totals(RoundsView.all(views, wanted))
+        summary.put("totalBets", total)
         Json.set(summary, "fromDate", q.fromDate.orNull)
         Json.set(summary, "toDate", q.toDate.orNull)
-        ok(Json.obj("bets" -> Json.arr(page.map(bet)*), "summary" -> summary, "total" -> all.size, "limit" -> lim, "offset" -> off))
+        ok(Json.obj("bets" -> Json.arr(page.map(bet)*), "summary" -> summary, "total" -> total, "limit" -> lim, "offset" -> off))
       }
 
   /**
@@ -182,14 +193,7 @@ final class OperatorSessionRoutes(ctx: Ctx):
           "lastPlayedAt" -> Instant.ofEpochMilli(g.lastPlayedAt).toString))*), "truncated" -> (rounds.size >= RoundsView.SumLimit)))
       }
 
-  /** `staked`, `won`, `net` and `currency` for one currency (`null`s for several, never summed across), and `totals` per currency. */
-  private def totals(rows: Vector[RoundRow]): ObjectNode =
-    val per = RoundTotals.of(rows)
-    val one = Option.when(per.size <= 1)(per.headOption.getOrElse(RoundTotals("", 0, 0L, 0L, 0L)))
-    Json.obj("staked" -> one.map(t => Long.box(t.staked)).orNull, "won" -> one.map(t => Long.box(t.won)).orNull,
-      "net" -> one.map(t => Long.box(t.net)).orNull, "currency" -> one.map(_.currency).filter(_.nonEmpty).orNull,
-      "totals" -> Json.arr(per.map(t => Json.obj("currency" -> t.currency, "rounds" -> t.rounds, "staked" -> t.staked, "won" -> t.won,
-        "net" -> t.net))*))
+  private def totals(rows: Vector[RoundRow]): ObjectNode = OperatorSessionRoutes.summary(rows, RoundsView.SumLimit)
 
   /** A round as a bet: the original's fields first (`amountMinorUnits` the net, as before), then the round's own. */
   private def bet(r: RoundRow): ObjectNode =
@@ -207,6 +211,25 @@ final class OperatorSessionRoutes(ctx: Ctx):
       pageSize.flatMap(_.trim.toIntOption).filter(s => s >= 1 && s <= 200).getOrElse(25))
 
 object OperatorSessionRoutes:
+  /** The most bets `GET players/{p}/bets` lists in one answer, as the other lists' 200. */
+  val MaxBets: Int = 200
+
+  /** How long a page of player sessions waits for the wallet's bets of its game sessions, asked at once. */
+  val WagersBound: FiniteDuration = 10.seconds
+
+  /**
+   * `staked`, `won`, `net` and `currency` for one currency (`null`s for several, never summed across), `totals`
+   * per currency, and `truncated`: true when `rows` reached `cap`, so the sums are of the first `cap` rounds only
+   * (the view client answers rows, never an aggregate; the count beside them is the view's own `count`).
+   */
+  def summary(rows: Vector[RoundRow], cap: Int): ObjectNode =
+    val per = RoundTotals.of(rows)
+    val one = Option.when(per.size <= 1)(per.headOption.getOrElse(RoundTotals("", 0, 0L, 0L, 0L)))
+    Json.obj("staked" -> one.map(t => Long.box(t.staked)).orNull, "won" -> one.map(t => Long.box(t.won)).orNull,
+      "net" -> one.map(t => Long.box(t.net)).orNull, "currency" -> one.map(_.currency).filter(_.nonEmpty).orNull,
+      "totals" -> Json.arr(per.map(t => Json.obj("currency" -> t.currency, "rounds" -> t.rounds, "staked" -> t.staked, "won" -> t.won,
+        "net" -> t.net))*), "truncated" -> (rows.size >= cap))
+
   /** The `status` values the brand's sessions list filters by. */
   val SessionFilters: Set[String] = SessionStatus.endings + SessionStatus.Active + "ended"
 

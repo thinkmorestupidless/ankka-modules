@@ -163,6 +163,15 @@ object RoundsView extends View.Companion[RoundsViewRows, RoundRow, RoundRow](
   /** Every wanted round, up to [[SumLimit]], for the totals. */
   def all(views: ViewClient, w: Wanted): Vector[RoundRow] = views.forView(RoundsView).where(w.condition, SumLimit)
 
+  /** The rounds of several game sessions in one query, up to [[SumLimit]] in all, by their game session. */
+  def ofSessions(views: ViewClient, sessionIds: Vector[String]): Vector[RoundRow] =
+    if sessionIds.isEmpty then Vector.empty
+    else
+      val ids = io.eitheror.casino.players.Json.render(io.eitheror.casino.players.Json.arr(sessionIds.distinct*))
+      views.forView(RoundsView).where(
+        SqlFragment.raw("jsonb_build_array(COALESCE(payload::jsonb->>'sessionId', '')) <@ CAST(") ++ sql"$ids" ++ SqlFragment.raw(" AS jsonb)"),
+        SumLimit)
+
 /** What a set of rounds staked, won and netted, in one currency (never summed across currencies). */
 final case class RoundTotals(currency: String, rounds: Int, staked: Long, won: Long, net: Long)
 
@@ -221,6 +230,9 @@ object SessionWagers
 
   def of(client: ComponentClient, sessionId: String): SessionWagersState =
     client.forKeyValueEntity(id(sessionId)).call(get).invoke()
+
+  def ofAsync(client: ComponentClient, sessionId: String): scala.concurrent.Future[SessionWagersState] =
+    client.forKeyValueEntity(id(sessionId)).call(get).invokeAsync()
 
 /** `money.transactions`' bets that name a game session into [[SessionWagers]], from the earliest message the broker holds. */
 final class WagersRecorder(client: ComponentClient) extends Consumer[Option[MoneyTransactionsMessage], Nothing]:
