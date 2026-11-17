@@ -54,6 +54,14 @@ Session ids by subject, for sign-out everywhere and erasure.
 `DELETE /subjects/{subject}` ends the subject's sessions (`erased`) and deletes the preferences;
 the erasure handler does the same for the `operator/<subject>` prefix.
 
+The sessions are found through `SessionsBySubject`, which follows the sessions' events eventually, so a
+session signed in a moment before the erasure may not be in it yet. The erasure looks again after 2
+seconds, up to three looks, until a look shows no session it has not ended. The window that is left is
+a session the view shows only after the last look: it keeps its access token until that expires; its
+refresh is refused once the realm has no such operator; and its tokens are `Personal` of
+`operator/<subject>`, so once the installation destroys the subject's key they read as erased when the
+entity is next loaded.
+
 ## Held in the page's server, in memory only
 
 | What | Life | Note |
