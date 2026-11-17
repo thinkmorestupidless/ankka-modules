@@ -109,6 +109,22 @@ When("a payments administrator simulates it, deploys it and rolls it back", asyn
   await world.signInAs(paymentsAdmin, { to: "/payments/routing" });
   await expect(main(world).getByRole("heading", { level: 1 })).toBeVisible();
   await take(world, action("routing.simulate", "T113"));
+  // merchant holds what was deployed, and the page reads its state again after a deploy
+  await world.doubles.fixtures("merchant.payments", {
+    "GET /v1/payments/routing-rules/state": {
+      body: {
+        liveVersion: 3,
+        liveDeployedAt: "2026-11-16T10:00:00Z",
+        history: [
+          { version: 1, deployedAt: "2026-10-01T10:00:00Z" },
+          { version: 2, deployedAt: "2026-11-01T10:00:00Z" },
+          { version: 3, deployedAt: "2026-11-16T10:00:00Z" },
+        ],
+        draft: null,
+        liveTree: Draft,
+      },
+    },
+  });
   await take(world, action("routing.deploy", "T113"));
   await take(world, action("routing.rollback", "T113"));
 });
