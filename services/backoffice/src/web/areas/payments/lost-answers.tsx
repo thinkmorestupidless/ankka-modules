@@ -64,7 +64,7 @@ export function LostAnswersSection() {
     <div>
       <p className="bo-muted">{t("payments.lost.note")}</p>
       <ZoneNote zone={tz} />
-      {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
+      {q.isError ? <RefusalNotice refusal={q.error} /> : null}
       {q.data ? <Rows caption="payments.lost.caption" cols={cols} rows={q.data.lostAnswers} rowKey={(r) => r.recordId} empty="payments.lost.none" /> : null}
     </div>
   );

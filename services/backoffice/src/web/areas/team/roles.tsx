@@ -7,7 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { RoleBags } from "../../../shared/access.ts";
 import { t } from "../../../shared/messages/index.ts";
 import { DefaultBags, describePermission, difference, PermissionGroups } from "../../../shared/permissions.ts";
-import { explain } from "../../../shared/refusals.ts";
+import { refused } from "../../../shared/refusals.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
@@ -30,7 +30,7 @@ export function send(method: string, path: string, body?: unknown, fetchFn: type
 
 export async function readRoles(fetchFn: typeof fetch = fetch): Promise<Role[]> {
   const r = await fetchFn("/api/s/players/roles", { headers: { Accept: "application/json" } });
-  if (!r.ok) throw explain(r.status, await r.text());
+  if (!r.ok) throw refused(r.status, await r.text());
   return ((await r.json()) as { roles: Role[] }).roles;
 }
 
@@ -165,7 +165,7 @@ export function RolesPage() {
     void client.invalidateQueries({ queryKey: ["me"] });
   };
 
-  if (roles.isError) return <RefusalNotice refusal={roles.error as never} />;
+  if (roles.isError) return <RefusalNotice refusal={roles.error} />;
   if (!roles.data) return <p role="status">{t("roles.loading")}</p>;
   const bags = bagsOf(roles.data);
   const editing = roles.data.find((r) => r.name === open);

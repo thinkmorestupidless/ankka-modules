@@ -1,7 +1,7 @@
 // responsible-gambling's answers as the protection screens read them (services/responsible-gambling
 // api/Answers.scala, `Render.full`), and the reads, through the page's server as the operator.
 import { responsibleGambling as rg } from "../../../shared/owners/index.ts";
-import { explain } from "../../../shared/refusals.ts";
+import { refused } from "../../../shared/refusals.ts";
 
 export interface Limit {
   limitType: string;
@@ -62,7 +62,7 @@ export const MinimumExclusionDays = 183;
 
 async function read<T>(r: Promise<Response>): Promise<T> {
   const answer = await r;
-  if (!answer.ok) throw explain(answer.status, await answer.text());
+  if (!answer.ok) throw refused(answer.status, await answer.text());
   return (await answer.json()) as T;
 }
 

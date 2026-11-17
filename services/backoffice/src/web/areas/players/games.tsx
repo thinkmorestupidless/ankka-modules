@@ -50,7 +50,7 @@ export function PlayerGamesPlayed({ player }: { player: string }) {
         <p className="bo-muted">{from || to ? t("players.played.period", { from: from || "…", to: to || "…" }) : t("players.played.allTime")}</p>
       </div>
       <ZoneNote zone={tz} />
-      {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
+      {q.isError ? <RefusalNotice refusal={q.error} /> : null}
       {q.data ? (
         <>
           {q.data.truncated ? <p role="status">{t("players.played.truncated")}</p> : null}

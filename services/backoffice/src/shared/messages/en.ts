@@ -190,6 +190,8 @@ export const en = {
   "refusal.no_such_route": "The backoffice does not ask for this.",
   "refusal.source_unavailable": "{source} is not answering.",
   "refusal.aService": "A service",
+  "refusal.unreadable": "The service answered, but its answer could not be read.",
+  "refusal.unreadable.next": "Look at the record again; if this persists, tell the platform team.",
   "refusal.source_unavailable.next": "Try again in a moment; what is shown may be out of date.",
   "refusal.brand_not_in_roles": "Your roles do not name this brand.",
   "refusal.brand_not_in_roles.next": "Ask the brand's admin for a role in it.",

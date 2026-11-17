@@ -131,7 +131,7 @@ function Routing({ level, entityId, name }: { level: Level; entityId: string; na
     retry: false,
   });
 
-  if (q.isError) return <RefusalNotice refusal={q.error as never} />;
+  if (q.isError) return <RefusalNotice refusal={q.error} />;
   if (!q.data) return <p role="status">{t("list.loading")}</p>;
   const s = q.data;
   const draft = edited ?? s.draft ?? null;

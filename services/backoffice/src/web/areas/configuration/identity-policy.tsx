@@ -211,7 +211,7 @@ export function IdentityPolicyPage() {
   return (
     <section>
       <h1>{t("config.identity.title")}</h1>
-      {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
+      {q.isError ? <RefusalNotice refusal={q.error} /> : null}
       {q.data ? <Editor key={JSON.stringify(q.data)} policy={q.data} done={done} /> : q.isError ? null : <p role="status">{t("list.loading")}</p>}
     </section>
   );

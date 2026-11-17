@@ -211,7 +211,7 @@ export function PlayerRewards({ player }: { player: string }) {
         {freshness ? <FreshnessNote freshness={freshness} zone={tz} /> : null}
       </div>
       {readOnly ? null : <GrantReward key={currency} player={player} currency={currency} />}
-      {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
+      {q.isError ? <RefusalNotice refusal={q.error} /> : null}
       {unmatched > 0 ? (
         <p className="bo-muted" role="status">
           {t("rewards.player.unmatched", { count: unmatched })}

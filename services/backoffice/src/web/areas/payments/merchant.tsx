@@ -100,7 +100,7 @@ function Merchant({ subBrand }: { subBrand: string }) {
     <div>
       <section aria-labelledby="pay-merchant">
         <h2 id="pay-merchant">{t("payments.merchant.details")}</h2>
-        {sb.isError ? <RefusalNotice refusal={sb.error as never} /> : null}
+        {sb.isError ? <RefusalNotice refusal={sb.error} /> : null}
         {sb.data ? (
           <dl className="bo-pay-dl">
             <dt>{t("payments.hierarchy.name")}</dt>
@@ -126,7 +126,7 @@ function Merchant({ subBrand }: { subBrand: string }) {
             {t("payments.merchant.madeKey", { name: made.name })} <code>{made.rawKey}</code>
           </p>
         ) : null}
-        {keys.isError ? <RefusalNotice refusal={keys.error as never} /> : null}
+        {keys.isError ? <RefusalNotice refusal={keys.error} /> : null}
         {keys.data ? <Rows caption="payments.merchant.keys" cols={keyCols} rows={keys.data.keys} rowKey={(k) => k.keyId} empty="payments.merchant.noKeys" /> : null}
         {readOnly ? null : (
           <Action
@@ -149,7 +149,7 @@ function Merchant({ subBrand }: { subBrand: string }) {
 
       <section aria-labelledby="pay-rate">
         <h2 id="pay-rate">{t("payments.merchant.rate")}</h2>
-        {rate.isError ? <RefusalNotice refusal={rate.error as never} /> : null}
+        {rate.isError ? <RefusalNotice refusal={rate.error} /> : null}
         {rate.data ? (
           <ConfigForm
             key={keyOf(rate.data)}
@@ -178,7 +178,7 @@ function Merchant({ subBrand }: { subBrand: string }) {
             {t("payments.merchant.find")}
           </button>
         </form>
-        {requests.isError ? <RefusalNotice refusal={requests.error as never} /> : null}
+        {requests.isError ? <RefusalNotice refusal={requests.error} /> : null}
         {requests.data ? <Rows caption="payments.merchant.requests" cols={requestCols} rows={requests.data.requests} rowKey={(r) => r.recordId} empty="payments.merchant.noRequests" /> : null}
       </section>
     </div>

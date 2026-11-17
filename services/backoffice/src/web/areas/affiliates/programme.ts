@@ -3,17 +3,17 @@
 // ManagerAnswers), and one read that turns a refusal into the page's. Money is in minor units with its
 // currency, a figure per brand and currency, never summed across currencies.
 import { parseMoney } from "../../../shared/money.ts";
-import { explain, type Refusal } from "../../../shared/refusals.ts";
+import { refused } from "../../../shared/refusals.ts";
 
 /** An owner's answer as JSON, or its refusal as the page shows it. */
 export async function json<T>(answer: Promise<Response>): Promise<T> {
   const r = await answer;
-  if (!r.ok) throw explain(r.status, await r.text());
+  if (!r.ok) throw refused(r.status, await r.text());
   return (await r.json()) as T;
 }
 
 /** The refusal a failed read carries, for `RefusalNotice`. */
-export const refusalOf = (e: unknown): Refusal => e as Refusal;
+export { refusalOf } from "../../../shared/refusals.ts";
 
 /** This month as the programme names a period, `yyyy-MM`, in the brand's zone (`useZone()`). */
 export function thisMonth(zone: string, now: Date = new Date()): string {

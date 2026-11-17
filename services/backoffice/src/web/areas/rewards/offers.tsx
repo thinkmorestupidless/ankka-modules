@@ -15,7 +15,7 @@ import { t, type MessageKey } from "../../../shared/messages/index.ts";
 import { instantOfLocal, localOfInstant } from "../../../shared/dates.ts";
 import { formatMoney, parseMoney } from "../../../shared/money.ts";
 import { gameProvider, rewards } from "../../../shared/owners/index.ts";
-import { explain } from "../../../shared/refusals.ts";
+import { refused } from "../../../shared/refusals.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
 import { ZoneNote, useZone } from "../../components/date.tsx";
@@ -240,7 +240,7 @@ function GamePicker({ form, set }: { form: Form; set(f: Partial<Form>): void }) 
     queryKey: ["game-provider", "catalogue"],
     queryFn: async () => {
       const r = await gameProvider.getGameCatalog();
-      if (!r.ok) throw explain(r.status, await r.text());
+      if (!r.ok) throw refused(r.status, await r.text());
       return ((await r.json()) as { games: Game[] }).games;
     },
     retry: false,
@@ -282,7 +282,7 @@ function SpinValues({ gameId, currency }: { gameId: string; currency: string }) 
     queryKey: ["rewards", "spin-values", gameId, code],
     queryFn: async () => {
       const r = await rewards.getOffersFreeRoundsSpinValues({ query: { gameId, currency: code } });
-      if (!r.ok) throw explain(r.status, await r.text());
+      if (!r.ok) throw refused(r.status, await r.text());
       return (await r.json()) as { values: number[]; source: string };
     },
     enabled: gameId !== "" && /^[A-Z]{3}$/.test(code),
@@ -478,7 +478,7 @@ export function OffersPage() {
   return (
     <section className="bo-rewards bo-offers">
       <h1>{t("area.offers")}</h1>
-      {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
+      {q.isError ? <RefusalNotice refusal={q.error} /> : null}
       {readOnly ? null : (
         <div className="bo-offers-bar">
           <button type="button" className="bo-button" data-variant="primary" onClick={() => setEditing({})}>

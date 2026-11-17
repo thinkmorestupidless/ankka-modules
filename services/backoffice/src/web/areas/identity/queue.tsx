@@ -82,7 +82,7 @@ export function IdentityQueuePage() {
         </select>
       </div>
       <ZoneNote zone={tz} />
-      {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
+      {q.isError ? <RefusalNotice refusal={q.error} /> : null}
       {paged?.capped ? <p className="bo-muted">{t("identity.queue.capped", { count: q.data!.rows.length })}</p> : null}
       <List
         caption="identity.queue.caption"

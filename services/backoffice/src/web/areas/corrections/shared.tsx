@@ -9,7 +9,7 @@ import { useId, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { t, type MessageKey } from "../../../shared/messages/index.ts";
-import { explain, type Refusal } from "../../../shared/refusals.ts";
+import { refused } from "../../../shared/refusals.ts";
 import { gameProvider } from "../../../shared/owners/index.ts";
 import { Glyph, type GlyphName } from "../../components/glyph.tsx";
 import { moneyText } from "../../components/money.tsx";
@@ -64,15 +64,11 @@ export function useKeyed<B>(prefix: string) {
 export async function readJson<T>(answer: Promise<Response>): Promise<T> {
   const r = await answer;
   const text = await r.text();
-  if (!r.ok) throw explain(r.status, text) satisfies Refusal;
+  if (!r.ok) throw refused(r.status, text);
   return JSON.parse(text) as T;
 }
 
-/** A refusal thrown by a read, or the server not reached. */
-export function refusalOf(e: unknown): Refusal {
-  if (e && typeof e === "object" && "message" in e && typeof (e as Refusal).message === "object") return e as Refusal;
-  return { status: 0, code: "unreachable", message: { key: "action.unreachable" }, next: { key: "action.unreachable.next" } };
-}
+export { refusalOf } from "../../../shared/refusals.ts";
 
 export function CategorySelect({ value, onChange, disabled }: { value: Category; onChange(c: Category): void; disabled?: boolean }) {
   const id = useId();

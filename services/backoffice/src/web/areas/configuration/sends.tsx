@@ -70,7 +70,7 @@ export function SendsPage() {
         <input id={searchId} className="bo-input" defaultValue={search} onKeyDown={(e) => e.key === "Enter" && list.setFilter("search", e.currentTarget.value.trim())} onBlur={(e) => list.setFilter("search", e.currentTarget.value.trim())} />
       </div>
       <ZoneNote zone={tz} />
-      {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
+      {q.isError ? <RefusalNotice refusal={q.error} /> : null}
       <List
         caption="config.sends.caption"
         columns={columns}

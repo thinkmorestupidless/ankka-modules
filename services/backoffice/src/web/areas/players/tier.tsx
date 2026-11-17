@@ -116,7 +116,7 @@ export function PlayerTier({ player }: { player: string }) {
   return (
     <section aria-labelledby="player-tier">
       <h2 id="player-tier">{t("players.tier.title")}</h2>
-      {profile.isError ? <RefusalNotice refusal={profile.error as never} /> : null}
+      {profile.isError ? <RefusalNotice refusal={profile.error} /> : null}
       {profile.data ? (
         <ConfigForm
           key={keyOf(profile.data)}
@@ -136,7 +136,7 @@ export function PlayerTier({ player }: { player: string }) {
           onDone={saved}
         />
       ) : null}
-      {tags.isError ? <RefusalNotice refusal={tags.error as never} /> : null}
+      {tags.isError ? <RefusalNotice refusal={tags.error} /> : null}
       {tags.data ? <TagsEditor key={keyOf(tags.data)} player={player} held={tags.data} /> : null}
     </section>
   );

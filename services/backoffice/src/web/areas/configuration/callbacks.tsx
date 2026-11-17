@@ -87,7 +87,7 @@ export function CallbacksPage() {
   return (
     <ConfigPage heading="config.callbacks.title" note="config.callbacks.note">
       <ZoneNote zone={tz} />
-      {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
+      {q.isError ? <RefusalNotice refusal={q.error} /> : null}
       <List
         caption="config.callbacks.caption"
         columns={columns}

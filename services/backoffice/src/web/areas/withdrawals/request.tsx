@@ -305,7 +305,7 @@ export function WithdrawalRequestPage() {
   return (
     <section className="bo-withdrawal">
       <h1>{t("withdrawals.request.title", { id })}</h1>
-      {q.isError && !r ? <RefusalNotice refusal={q.error as never} /> : null}
+      {q.isError && !r ? <RefusalNotice refusal={q.error} /> : null}
       {!r ? (
         q.isError ? null : <p>{t("list.loading")}</p>
       ) : (

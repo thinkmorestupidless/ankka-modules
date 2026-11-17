@@ -257,7 +257,7 @@ function actorOf(d: KycDecision): string {
 function Decisions({ player }: { player: string }) {
   const tz = useZone();
   const q = useQuery({ queryKey: ["kyc", "decisions", player], queryFn: () => readDecisions(player) });
-  if (q.isError) return <RefusalNotice refusal={q.error as never} />;
+  if (q.isError) return <RefusalNotice refusal={q.error} />;
   if (!q.data) return <p role="status">{t("list.loading")}</p>;
   if (q.data.length === 0) return <p className="bo-muted">{t("identity.decisions.none")}</p>;
   return (
@@ -298,7 +298,7 @@ export function PlayerIdentity({ player }: { player: string }) {
     void client.invalidateQueries({ queryKey: ["kyc"] });
   };
 
-  if (q.isError) return <RefusalNotice refusal={q.error as never} />;
+  if (q.isError) return <RefusalNotice refusal={q.error} />;
   if (!q.data) return <p role="status">{t("list.loading")}</p>;
   const id = q.data;
   const deposits = Object.entries(id.depositsByCurrency ?? {});

@@ -5,7 +5,8 @@ import { Action, RefusalNotice } from "../../src/web/components/action/index.ts"
 import { Actions, offeredIn, reasonGiven, withReason, type ActionDescription } from "../../src/web/actions/index.ts";
 import { table } from "../../src/server/routes.ts";
 import { has, render as text, t } from "../../src/shared/messages/index.ts";
-import { explain } from "../../src/shared/refusals.ts";
+import { explain, refused } from "../../src/shared/refusals.ts";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OperatorBags } from "./bags.ts";
 
 afterEach(cleanup);
@@ -154,5 +155,35 @@ describe("a refusal", () => {
     await openDialog("Approve");
     await act(async () => fireEvent.click(confirmButton()));
     expect(screen.getByRole("alert").textContent).toBe(t("action.unreachable") + t("action.unreachable.next"));
+  });
+});
+
+describe("a read that failed, shown", () => {
+  test("before an answer (a fetch's TypeError) is said to be unreachable, never thrown on", () => {
+    render(<RefusalNotice refusal={new TypeError("fetch failed")} />);
+    expect(screen.getByRole("alert").textContent).toBe(t("action.unreachable") + t("action.unreachable.next"));
+  });
+
+  test("with an answer that is not JSON (a SyntaxError) is said to be unreadable", () => {
+    render(<RefusalNotice refusal={new SyntaxError("Unexpected token <")} />);
+    expect(screen.getByRole("alert").textContent).toBe(t("refusal.unreadable") + t("refusal.unreadable.next"));
+  });
+
+  test("a refusal thrown as an Error is shown by the refusal it carries", () => {
+    const e = refused(409, '{"error":"turnover_outstanding","message":"the bonus still needs 3,000 of turnover"}');
+    expect(e).toBeInstanceOf(Error);
+    render(<RefusalNotice refusal={e} />);
+    expect(screen.getByRole("alert").textContent).toBe("turnover_outstanding: the bonus still needs 3,000 of turnover");
+  });
+
+  test("forbidden names the role that would give the permission, from the brand's roles the page has read", () => {
+    const client = new QueryClient();
+    client.setQueryData(["permissions"], OperatorBags);
+    render(
+      <QueryClientProvider client={client}>
+        <RefusalNotice refusal={refused(403, '{"error":"forbidden","message":"forbidden: the standing.change permission is needed"}')} />
+      </QueryClientProvider>,
+    );
+    expect(screen.getByRole("alert").textContent).toBe("You need the standing.change permission for this.A role that gives it: brand_compliance, brand_admin.");
   });
 });

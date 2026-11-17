@@ -2,7 +2,7 @@
 // spec 030 Y2 to Y4), the neighbours a request's page reads beside it, and what the page makes of them:
 // the state an action is offered in, the amounts that differ, who moved each state. Every read goes
 // through the page's server as the signed-in operator; a refusal is thrown as `explain` gives it.
-import { explain } from "../../../shared/refusals.ts";
+import { refused } from "../../../shared/refusals.ts";
 import { walletMinorText } from "../../../shared/money.ts";
 import { kyc, payouts, wallet } from "../../../shared/owners/index.ts";
 
@@ -77,7 +77,7 @@ export interface Request {
 
 async function read<T>(r: Promise<Response>): Promise<T> {
   const answer = await r;
-  if (!answer.ok) throw explain(answer.status, await answer.text());
+  if (!answer.ok) throw refused(answer.status, await answer.text());
   return (await answer.json()) as T;
 }
 

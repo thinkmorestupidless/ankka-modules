@@ -9,7 +9,7 @@ import { useId, useState } from "react";
 import { t } from "../../../shared/messages/index.ts";
 import { players } from "../../../shared/owners/index.ts";
 import { flagOf, profileKey, profileQuery } from "../players/read.ts";
-import { explain } from "../../../shared/refusals.ts";
+import { refused } from "../../../shared/refusals.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
 import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
@@ -37,7 +37,7 @@ const PageSize = 50;
 
 async function readCases(status: string): Promise<FraudCase[]> {
   const r = await players.getFraudCases({ query: { status } });
-  if (!r.ok) throw explain(r.status, await r.text());
+  if (!r.ok) throw refused(r.status, await r.text());
   return ((await r.json()) as { cases: FraudCase[] }).cases;
 }
 
@@ -153,7 +153,7 @@ export function FraudCasesPage() {
         </select>
       </div>
       <ZoneNote zone={tz} />
-      {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
+      {q.isError ? <RefusalNotice refusal={q.error} /> : null}
       <List
         caption="fraud.caption"
         columns={columns(tz)}
