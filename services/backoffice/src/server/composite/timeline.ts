@@ -390,25 +390,43 @@ export async function timeline(deps: TimelineDeps, player: string, q: TimelineQu
   return { lines: emitted, next: cut === undefined ? null : iso(cut), gaps, from: iso(from), to: iso(to) };
 }
 
-/** Operators' names from merchant's operators (research R12), kept five minutes; the signed-in operator from their own sign-in. */
+/** How long one operator's answer from merchant is kept, and for how many operators at most. */
+const NamesKeptMs = 5 * 60_000;
+const NamesKeptFor = 1_000;
+
+/**
+ * Operators' names from merchant's operators (research R12); the signed-in operator from their own
+ * sign-in. Each operator is given only what merchant answered them: merchant lists operators to
+ * payments operators only, so one operator's answer is never served to another. An answer is kept
+ * five minutes per operator; a refusal is kept too (they are shown ids), a failure is not.
+ */
 export function operatorNames(deps: AskDeps, now: () => number) {
-  let kept: { at: number; names: Map<string, string> } | undefined;
+  const kept = new Map<string, { at: number; names: Map<string, string> }>();
+  const read = async (accessToken: string, holds: (p: string) => boolean): Promise<Map<string, string> | undefined> => {
+    const r = await ask(deps, "merchant", "/operators", {}, accessToken, holds);
+    const names = new Map<string, string>();
+    if (!r.ok) return r.reason === "unavailable" || r.reason === "late" || r.reason === "unreadable" ? undefined : names;
+    for (const o of arr(obj(r.body).operators).map(obj)) {
+      const id = str(o.operatorId);
+      const name = [str(o.firstName), str(o.lastName)].filter(Boolean).join(" ") || str(o.username) || str(o.email);
+      if (id && name) names.set(id, name);
+    }
+    return names;
+  };
   return async (ids: readonly string[], accessToken: string, me: { sub?: string; name?: string }, holds: (p: string) => boolean): Promise<Map<string, string>> => {
-    if (kept === undefined || now() - kept.at > 5 * 60_000) {
-      const r = await ask(deps, "merchant", "/operators", {}, accessToken, holds);
-      const names = new Map<string, string>();
-      if (r.ok)
-        for (const o of arr(obj(r.body).operators).map(obj)) {
-          const id = str(o.operatorId);
-          const name = [str(o.firstName), str(o.lastName)].filter(Boolean).join(" ") || str(o.username) || str(o.email);
-          if (id && name) names.set(id, name);
-        }
-      // a refusal (merchant lists operators to payments operators only) is kept too: the ids are shown
-      kept = { at: now(), names };
+    let names: Map<string, string> | undefined;
+    const held = me.sub === undefined ? undefined : kept.get(me.sub);
+    if (held !== undefined && now() - held.at <= NamesKeptMs) names = held.names;
+    else {
+      names = await read(accessToken, holds);
+      if (names !== undefined && me.sub !== undefined) {
+        if (kept.size >= NamesKeptFor) for (const [s, k] of kept) if (now() - k.at > NamesKeptMs || kept.size >= NamesKeptFor) kept.delete(s);
+        kept.set(me.sub, { at: now(), names });
+      }
     }
     const out = new Map<string, string>();
     for (const id of ids) {
-      const n = kept.names.get(id) ?? (me.sub === id ? me.name : undefined);
+      const n = names?.get(id) ?? (me.sub === id ? me.name : undefined);
       if (n) out.set(id, n);
     }
     return out;

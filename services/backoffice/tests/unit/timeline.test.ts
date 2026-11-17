@@ -2,7 +2,7 @@
 // holds more than it gave holds the merge back to its oldest line, and `next` starts the next page
 // there; a source that fails or is late is a gap with its period, the others shown; actors named.
 import { describe, expect, test } from "vitest";
-import { actorOf, timeline } from "../../src/server/composite/timeline.ts";
+import { actorOf, operatorNames, timeline } from "../../src/server/composite/timeline.ts";
 import { minorOf, standing } from "../../src/server/composite/standing.ts";
 import { table } from "../../src/server/routes.ts";
 
@@ -117,6 +117,45 @@ describe("the timeline", () => {
     [{ kind: "provider" }, { kind: "provider" }],
     [{ kind: "operator", id: "op-1" }, { kind: "operator", id: "op-1" }],
   ])("the actor %j is %j", (given, expected) => expect(actorOf(given)).toEqual(expected));
+});
+
+describe("operators' names", () => {
+  const Operators = "/merchant.payments/v1/operators";
+  /** merchant as it lists operators: to a payments operator's token only. */
+  function merchant() {
+    let down = false;
+    const { calls, fetchFn } = owners({
+      [Operators]: () => (down ? Response.json({ error: "boom" }, { status: 503 }) : Response.json({ error: "forbidden" }, { status: 403 })),
+    });
+    const admitting = (async (url: string, init: RequestInit = {}) => {
+      const auth = new Headers(init.headers).get("authorization");
+      if (!down && auth === "Bearer payments-token" && new URL(url).pathname === Operators) {
+        calls.push(url);
+        return Response.json({ operators: [{ operatorId: "op-2", firstName: "Olga", lastName: "Ops" }] });
+      }
+      return fetchFn(url, init);
+    }) as typeof fetch;
+    return { calls, fetchFn: admitting, down: (d: boolean) => void (down = d) };
+  }
+
+  test("are each operator's own answer from merchant: a refused one never blanks, nor is shown, another's", async () => {
+    const m = merchant();
+    const names = operatorNames(deps(m.fetchFn), () => Now);
+    expect(await names(["op-2"], "brand-token", { sub: "op-1" }, all)).toEqual(new Map());
+    expect(await names(["op-2"], "payments-token", { sub: "op-9" }, all)).toEqual(new Map([["op-2", "Olga Ops"]]));
+    expect(await names(["op-2"], "brand-token", { sub: "op-1" }, all)).toEqual(new Map());
+    // each kept for its operator: no further ask within five minutes
+    expect(m.calls).toHaveLength(2);
+  });
+
+  test("a failure is not kept: the next timeline asks merchant again", async () => {
+    const m = merchant();
+    const names = operatorNames(deps(m.fetchFn), () => Now);
+    m.down(true);
+    expect(await names(["op-2"], "payments-token", { sub: "op-9", name: "Nina" }, all)).toEqual(new Map());
+    m.down(false);
+    expect(await names(["op-2", "op-9"], "payments-token", { sub: "op-9", name: "Nina" }, all)).toEqual(new Map([["op-2", "Olga Ops"], ["op-9", "Nina"]]));
+  });
 });
 
 describe("the standing", () => {
