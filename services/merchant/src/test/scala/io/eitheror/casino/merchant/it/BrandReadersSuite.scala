@@ -83,8 +83,9 @@ class BrandReadersSuite extends SharedKitSuite:
     assertEquals(byRef(ra.transactionId), Set(pa))
     assertEquals(byRef(ra.pspTransactionId), Set(pa))
     assertEquals(byRef(ra.paymentId.take(8)), Set.empty[String], "a reference is matched exactly, not as a search")
+    // pb is found once the lookup holds it, so its absence for A's reader below is the scope, not a lag
+    kit.eventually("a platform payments operator finds pb")(Option(byRef(rb.paymentId, kit.asOperator())).filter(_ == Set(pb)))
     assertEquals(byRef(rb.paymentId), Set.empty[String], "another brand's payment is not found")
-    assertEquals(byRef(rb.paymentId, kit.asOperator()), Set(pb), "a platform payments operator finds it")
   }
 
   test("payments operators keep exactly the access they had, a brand role beside theirs included") {
