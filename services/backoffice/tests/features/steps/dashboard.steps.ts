@@ -55,11 +55,12 @@ Then("the operator sees one set of figures in {string} and one in {string}", asy
     await expect(set.getByText(formatMoney({ minor: Ggr[other]!.minor, currency: other }), { exact: true })).toHaveCount(0);
   }
   await expect(world.page.getByRole("region", { name: /^Figures in / })).toHaveCount(2);
-  // each currency's figures were read in that currency alone
-  for (const c of [a, b]) {
-    const asked = await world.doubles.calls("reporting", { method: "GET", path: `/v1/casino/brands/${world.brand.slug}/reporting/dashboard/kpis` });
-    expect(asked.some((x) => new URLSearchParams(x.query).get("currency") === c), `kpis asked in ${c}`).toBe(true);
-  }
+  // each currency's figures were read in that currency alone: the brand's default (a) by the first read,
+  // which names none and is answered in it, and each other by naming it
+  const asked = await world.doubles.calls("reporting", { method: "GET", path: `/v1/casino/brands/${world.brand.slug}/reporting/dashboard/kpis` });
+  const named = asked.map((x) => new URLSearchParams(x.query).get("currency"));
+  expect(named.some((c) => c === a || c === null), `kpis asked in ${a}`).toBe(true);
+  expect(named.includes(b), `kpis asked in ${b}`).toBe(true);
 });
 
 Then("no figure sums the two", async ({ world }) => {
