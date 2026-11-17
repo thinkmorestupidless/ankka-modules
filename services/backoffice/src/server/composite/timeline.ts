@@ -50,11 +50,18 @@ export interface Page {
 export const Kinds = ["payments", "withdrawals", "rounds", "rewards", "adjustments", "account", "identity", "protection", "notes", "messages"] as const;
 export type Kind = (typeof Kinds)[number];
 
-/** What a source answered for the period: its lines, and whether it holds more than it gave. */
+/**
+ * What a source answered for the period: its lines, whether it holds more than it gave, and the oldest
+ * instant it gave, in the period or not. A source that cannot be asked for a period answers its newest
+ * lines; when it holds more and its oldest is still after the period, the period is beyond its page.
+ */
 interface Read {
   lines: Line[];
   more: boolean;
+  oldest?: number;
 }
+
+const oldestOf = (lines: readonly Line[]) => (lines.length === 0 ? undefined : Math.min(...lines.map((l) => Date.parse(l.at))));
 
 interface Period {
   from: number;
@@ -172,8 +179,8 @@ const messages: Source = {
         const crm = str(m.originName) === "CRM";
         return [{ id: `messages/${id}`, at: iso(at), kind: "messages", source: "messages", actor: crm ? { kind: "system" } : { kind: "operator" }, links: [], summary: { key: "timeline.messages.sent", values: { subject: str(m.subject) ?? "", state: str(m.state) ?? "" } } }];
       });
-      // newest first from players; more than a page held back by the oldest given
-      return { lines: lines.filter(within(p)), more: (num(b.total) ?? items.length) > items.length };
+      // newest first from players, for all time (it takes no period); more than a page held back by the oldest given
+      return { lines: lines.filter(within(p)), more: (num(b.total) ?? items.length) > items.length, oldest: oldestOf(lines) };
     });
   },
 };
@@ -208,7 +215,7 @@ const adjustments: Source = {
           summary: { key: "timeline.adjustments.made", values: { category: str(t.category) ?? "", reason: str(t.reason) ?? "", wallet: str(t.walletType) ?? "" } },
         }];
       });
-      return { lines: lines.filter(within(p)), more: (num(b.total) ?? rows.length) > rows.length };
+      return { lines: lines.filter(within(p)), more: (num(b.total) ?? rows.length) > rows.length, oldest: oldestOf(lines) };
     });
   },
 };
@@ -244,7 +251,8 @@ const withdrawals: Source = {
           summary: { key: "timeline.withdrawals.requested", values: { status: (str(w.status) ?? "").toLowerCase(), payoutStatus: (str(w.payoutStatus) ?? "").toLowerCase() } },
         }];
       });
-      return { lines: lines.filter(within(p)), more: (num(b.total) ?? rows.length) > rows.length };
+      // newest first from payouts, for all time (it takes no period)
+      return { lines: lines.filter(within(p)), more: (num(b.total) ?? rows.length) > rows.length, oldest: oldestOf(lines) };
     });
   },
 };
@@ -319,7 +327,7 @@ export const Sources: readonly Source[] = [
 export interface TimelineQuery {
   from?: number;
   to?: number;
-  /** Lines before this instant: the `next` of the page before. */
+  /** Lines at or before this instant: the `next` of the page before. */
   after?: number;
   kinds?: readonly Kind[];
 }
@@ -342,9 +350,13 @@ export function kindsOf(raw: string | undefined): Kind[] | undefined {
 }
 
 export async function timeline(deps: TimelineDeps, player: string, q: TimelineQuery, accessToken: string, holds: (p: string) => boolean): Promise<Page> {
-  const to = Math.min(q.to ?? deps.now(), q.after ?? Number.POSITIVE_INFINITY);
+  // a page after another takes the lines at its `next` too: the source that held the merge back may
+  // have more at that very instant than it gave
+  const to = Math.min(q.to ?? deps.now(), q.after === undefined ? Number.POSITIVE_INFINITY : q.after + 1);
   const from = q.from ?? to - DefaultDays * Day;
   const period: Period = { from, to };
+  /** The period as the operator is told it: its end the instant it takes lines up to. */
+  const shown = { from: iso(from), to: iso(q.after !== undefined && to === q.after + 1 ? q.after : to) };
   const wanted = new Set(q.kinds ?? Kinds);
   let currency: Promise<string | undefined> | undefined;
   const context: Context = {
@@ -366,18 +378,26 @@ export async function timeline(deps: TimelineDeps, player: string, q: TimelineQu
     if (!r.ok || !("read" in r) || r.read === undefined) {
       // a source the operator's roles do not open is not a gap in what they may read
       if (!r.ok && r.reason === "forbidden") continue;
-      gaps.push({ source: s.name, from: iso(from), to: iso(to), reason: r.ok ? "unreadable" : r.reason });
+      gaps.push({ source: s.name, ...shown, reason: r.ok ? "unreadable" : r.reason });
       continue;
     }
     const lines = r.read.lines.filter(within(period));
     if (r.read.more && lines.length > 0) {
-      const oldest = Math.min(...lines.map((l) => Date.parse(l.at)));
+      const oldest = oldestOf(lines)!;
       cut = cut === undefined ? oldest : Math.max(cut, oldest);
+    } else if (r.read.more && (r.read.oldest === undefined || r.read.oldest >= to)) {
+      // it holds more, and all it gave is after the period: what it holds for the period is not known
+      gaps.push({ source: s.name, ...shown, reason: "beyond_page" });
     }
     all = all.concat(lines);
   }
+  // Only lines after the cut are emitted here, and the next page takes the cut's instant itself: a line
+  // at that instant the holding source did not give is not lost. When every line is at the cut, they are
+  // emitted and the next page starts before it.
+  const after = (l: Line) => cut === undefined || Date.parse(l.at) > cut;
+  const atCutOnly = cut !== undefined && !all.some(after);
   const emitted = all
-    .filter((l) => cut === undefined || Date.parse(l.at) >= cut)
+    .filter((l) => (atCutOnly ? Date.parse(l.at) >= cut! : after(l)))
     .sort((a, b) => Date.parse(b.at) - Date.parse(a.at) || a.id.localeCompare(b.id));
 
   if (deps.names) {
@@ -387,7 +407,8 @@ export async function timeline(deps: TimelineDeps, player: string, q: TimelineQu
       for (const l of emitted) if (l.actor.id && names.has(l.actor.id)) l.actor.name = names.get(l.actor.id);
     }
   }
-  return { lines: emitted, next: cut === undefined ? null : iso(cut), gaps, from: iso(from), to: iso(to) };
+  const next = cut === undefined ? null : iso(atCutOnly ? cut - 1 : cut);
+  return { lines: emitted, next, gaps, ...shown };
 }
 
 /** How long one operator's answer from merchant is kept, and for how many operators at most. */
