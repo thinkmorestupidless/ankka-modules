@@ -214,7 +214,8 @@ class NetworkSteps extends ProgrammeFeatures("network.feature"):
       .filter(_.size >= n))
     // A joiner's application by the link is its own row (change 17); the actions on it are the parent's.
     def acted(a: String, n: Int) = audited(a, n).filterNot(_.actor == "invite-link")
-    assertEquals(acted(sub, 2).map(r => (r.action, r.actor)), Vector(("SUB_AFFILIATE_APPROVE", parent)))
+    // a count of rows can be met before the audit settles (seen on CI): wait for the rows themselves
+    kit.eventually(s"$sub's audit settled")(Option(acted(sub, 2).map(r => (r.action, r.actor))).filter(_ == Vector(("SUB_AFFILIATE_APPROVE", parent))))
     assertEquals(acted(subs(1), 4).map(_.actor).distinct, Vector(parent))
   }
 
