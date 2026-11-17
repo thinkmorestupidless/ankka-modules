@@ -94,3 +94,14 @@ class OperatorsSuite extends SharedKitSuite:
     assertEquals(kit.request("DELETE", s"/v1/operators/$id", None, kit.asOperator()).status, 204)
     assertEquals(kit.keycloak.user(id), None)
   }
+
+  test("spec 030 H6: an operator id not of the realm's shape is refused at the route and the realm is not asked") {
+    kit.keycloak.clearReceived()
+    for id <- Vector("a%20b", "..%2Fadmin", "a.b") do
+      val r = kit.request("PUT", s"/v1/operators/$id/brand-roles/goldvibe", Some("""{"roles":["brand_support"]}"""),
+        kit.asService("goldvibe", "players"))
+      // a slash, even encoded, may already be no route of this endpoint; every other id is refused by name
+      if id.contains("%2F") then assert(r.status == 400 || r.status == 404, s"$id: ${r.status} ${r.text}")
+      else assertEquals((r.status, r.str("error")), (400, "INVALID_OPERATOR_ID"), s"$id: ${r.text}")
+    assertEquals(kit.keycloak.received.filterNot(_.path.endsWith("/token")), Vector.empty)
+  }
