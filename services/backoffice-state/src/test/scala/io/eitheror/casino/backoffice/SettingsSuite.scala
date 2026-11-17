@@ -5,7 +5,8 @@ class SettingsSuite extends munit.FunSuite:
   private val env = Map(
     "CASINO_BRAND"       -> "goldvibe",
     "ANKKA_AUTH_STAFF_ISSUER"   -> "https://auth.example/realms/eitheror/",
-    "BACKOFFICE_HOST" -> "https://backoffice-goldvibe.example"
+    "BACKOFFICE_HOST" -> "https://backoffice-goldvibe.example",
+    "BACKOFFICE_CLIENT_SECRET" -> "s3cret"
   )
 
   test("the brand's client is backoffice-<slug> unless named"):
@@ -31,4 +32,13 @@ class SettingsSuite extends munit.FunSuite:
     assertEquals(s.logoutUrl.toString, "http://casino-keycloak.casino-identity.svc/realms/eitheror/protocol/openid-connect/logout")
     assertEquals(s.authorizeUrl.toString, "https://auth.example/realms/eitheror/protocol/openid-connect/auth")
     assert(Settings.fromEnvironment(env.updated("KEYCLOAK_URL", "ftp://x")).left.exists(_.startsWith("KEYCLOAK_URL")))
+  }
+
+  test("an empty or missing client secret is refused at start, naming the variable, outside the explicit local mode") {
+    Seq(env - "BACKOFFICE_CLIENT_SECRET", env.updated("BACKOFFICE_CLIENT_SECRET", "  ")).foreach { e =>
+      val refused = Settings.fromEnvironment(e)
+      assert(refused.left.exists(_.startsWith("BACKOFFICE_CLIENT_SECRET")), refused.toString)
+    }
+    val local = Settings.fromEnvironment(env - "BACKOFFICE_CLIENT_SECRET" + ("BACKOFFICE_LOCAL" -> "true"))
+    assertEquals(local.map(_.clientSecret), Right(""))
   }
