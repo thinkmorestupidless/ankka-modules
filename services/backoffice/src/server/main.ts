@@ -62,6 +62,9 @@ export type Env = { Variables: { session: string; token: Token; logPath: string;
 
 const Reads = new Set(["GET", "HEAD"]);
 
+/** The /api routes open to a signed-in operator of another brand: who they are, and the event stream. */
+const BrandFree = new Set(["/api/me", "/api/events"]);
+
 /** players' default reporting zone (`BrandConfig.reportingZone`). */
 const DefaultZone = "UTC";
 
@@ -116,6 +119,9 @@ export function createApp(deps: Deps): Hono<Env> {
     }
     c.set("session", session);
     c.set("token", token);
+    // An operator whose roles do not name this brand is told so by /api/me and kept informed by
+    // /api/events (so the page learns when the brand is given); every other route refuses them.
+    if (!BrandFree.has(c.req.path) && !inBrand(token.roles, deps.brand)) return c.json({ error: "brand_not_in_roles", brand: deps.brand }, 403);
     return next();
   });
 
@@ -167,7 +173,6 @@ export function createApp(deps: Deps): Hono<Env> {
   app.get("/api/kyc/:player/documents/:document/view", async (c) => {
     c.set("logPath", "/api/kyc/{p}/documents/{d}/view");
     const token = c.get("token");
-    if (!inBrand(token.roles, deps.brand)) return c.json({ error: "brand_not_in_roles", brand: deps.brand }, 403);
     // the ids as the page sent them, undecoded, so `match` refuses an encoded separator
     const [, , player = "", , document = ""] = new URL(c.req.url).pathname.split("/").slice(1);
     return viewDocument(deps, player, document, token.accessToken);
@@ -195,13 +200,11 @@ export function createApp(deps: Deps): Hono<Env> {
   app.get("/api/players/:player/standing", async (c) => {
     c.set("logPath", "/api/players/{p}/standing");
     const token = c.get("token");
-    if (!inBrand(token.roles, deps.brand)) return c.json({ error: "brand_not_in_roles", brand: deps.brand }, 403);
     return c.json(await standing({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 3_000) }, decodeURIComponent(playerOf(c)), token.accessToken, await heldBy(token.roles)));
   });
   app.get("/api/players/:player/timeline", async (c) => {
     c.set("logPath", "/api/players/{p}/timeline");
     const token = c.get("token");
-    if (!inBrand(token.roles, deps.brand)) return c.json({ error: "brand_not_in_roles", brand: deps.brand }, 403);
     const instant = (name: string) => {
       const v = c.req.query(name);
       if (v === undefined || v === "") return { ok: true as const, value: undefined };
@@ -230,7 +233,6 @@ export function createApp(deps: Deps): Hono<Env> {
   app.post("/api/players/:player/timeline/export", async (c) => {
     c.set("logPath", "/api/players/{p}/timeline/export");
     const token = c.get("token");
-    if (!inBrand(token.roles, deps.brand)) return c.json({ error: "brand_not_in_roles", brand: deps.brand }, 403);
     const player = playerOf(c);
     const m = match(deps.table, "POST", "players", `/players/${player}/activity-export`);
     if (m === undefined) return c.json({ error: "no_such_route" }, 404);
@@ -258,14 +260,12 @@ export function createApp(deps: Deps): Hono<Env> {
   app.get("/api/worklist", async (c) => {
     c.set("logPath", "/api/worklist");
     const token = c.get("token");
-    if (!inBrand(token.roles, deps.brand)) return c.json({ error: "brand_not_in_roles", brand: deps.brand }, 403);
     const kinds = wanted(c.req.query("kinds"), await admittedKinds(token.roles));
     return c.json({ pageSize: WorklistPageSize, kinds: await worklist(worklistDeps(), kinds, token.accessToken) });
   });
   app.get("/api/worklist/:kind", async (c) => {
     c.set("logPath", "/api/worklist/{kind}");
     const token = c.get("token");
-    if (!inBrand(token.roles, deps.brand)) return c.json({ error: "brand_not_in_roles", brand: deps.brand }, 403);
     const page = Number(c.req.query("page") ?? "1");
     if (!Number.isInteger(page) || page < 1 || page > 10_000) return c.json({ error: "invalid_page", message: "page is a whole number from 1" }, 400);
     const known = knownKind(c.req.param("kind"));
@@ -287,7 +287,6 @@ export function createApp(deps: Deps): Hono<Env> {
   app.get("/api/withdrawals", async (c) => {
     c.set("logPath", "/api/withdrawals");
     const token = c.get("token");
-    if (!inBrand(token.roles, deps.brand)) return c.json({ error: "brand_not_in_roles", brand: deps.brand }, 403);
     if ((c.req.query("q") ?? "").length > 256) return c.json({ error: "invalid_search", message: "a search is at most 256 characters" }, 400);
     return withdrawals({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 5_000) }, new URL(c.req.url).searchParams, token.accessToken);
   });
@@ -331,7 +330,6 @@ export function createApp(deps: Deps): Hono<Env> {
   app.post("/api/adjustment-batches", async (c) => {
     c.set("logPath", "/api/adjustment-batches");
     const token = c.get("token");
-    if (!inBrand(token.roles, deps.brand)) return c.json({ error: "brand_not_in_roles", brand: deps.brand }, 403);
     const held = new Set(permissionsOf(token.roles, (await reads.bags.get()) ?? {}));
     if (!held.has("adjustment.make")) return c.json({ error: "forbidden", message: "forbidden: the adjustment.make permission is needed" }, 403);
     let body: unknown;

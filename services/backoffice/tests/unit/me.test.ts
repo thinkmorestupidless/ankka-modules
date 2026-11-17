@@ -79,6 +79,20 @@ describe("/api/me", () => {
     expect(((await r.json()) as { error: string }).error).toBe("brand_not_in_roles");
   });
 
+  test.each([
+    ["GET", "/api/permissions"],
+    ["GET", "/api/search?q=ana"],
+    ["GET", "/api/freshness?services=players"],
+    ["GET", "/api/jobs"],
+    ["GET", "/api/s/players/players/p-1/profile"],
+  ])("an operator of another brand is refused %s %s before anything is read", async (method, path) => {
+    const h = as(["brand_othervibe", "brand_admin"]);
+    const r = await h.ask(method, path, { session: "s-me" });
+    expect(r.status).toBe(403);
+    expect(await r.json()).toEqual({ error: "brand_not_in_roles", brand: Brand });
+    expect(h.calls).toHaveLength(0);
+  });
+
   test("the brand's roles never read is 503 from players", async () => {
     const h = as([`brand_${Brand}`, "brand_support"]);
     h.bagsAre(() => {
