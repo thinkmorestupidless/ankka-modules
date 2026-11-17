@@ -18,21 +18,72 @@ function offsetAt(zone: string, instant: number): number {
   return asUtc - Math.floor(instant / 1000) * 1000;
 }
 
-/** The first instant of a calendar day in `zone`, in epoch milliseconds. */
+/** The wall clock in `zone` at `instant`, as `YYYY-MM-DDTHH:mm:ss`. */
+function wallAt(zone: string, instant: number): string {
+  return new Date(Math.floor(instant / 1000) * 1000 + offsetAt(zone, instant)).toISOString().slice(0, 19);
+}
+
+/**
+ * The first instant at or after which the wall clock in `zone` reads `wall` or later (`YYYY-MM-DDTHH:mm:ss`).
+ * Each of the offsets either side is tried; a wall time that occurs twice is its first occurrence, and one
+ * that the clocks skip is the instant they skip to.
+ */
+function firstAtOrAfter(wall: string, zone: string): number {
+  const asUtc = Date.parse(`${wall}Z`);
+  const day = 86_400_000;
+  const tried = [offsetAt(zone, asUtc - day), offsetAt(zone, asUtc), offsetAt(zone, asUtc + day)].map((o) => asUtc - o);
+  const reached = tried.filter((t) => wallAt(zone, t) >= wall).sort((a, b) => a - b);
+  let hi = reached[0] ?? asUtc;
+  if (wallAt(zone, hi) === wall) return hi;
+  // In a gap the earliest candidate can sit past the change; search back to the change itself.
+  let lo = hi - 3 * 3_600_000;
+  if (wallAt(zone, lo) >= wall) return hi;
+  while (hi - lo > 1) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (wallAt(zone, mid) >= wall) hi = mid;
+    else lo = mid;
+  }
+  return hi;
+}
+
+/** The first instant of a calendar day in `zone`, in epoch milliseconds; where the clocks skip midnight, the instant they skip to. */
 export function startOfDay(day: string, zone: string): number {
-  const d = calendarDate(day);
-  if (!d) throw new RangeError(`${day} is not a date`);
-  const guess = Date.UTC(d.year, d.month - 1, d.day);
-  let t = guess - offsetAt(zone, guess);
-  t = guess - offsetAt(zone, t); // again, for a change of offset between the guess and the answer
-  return t;
+  if (!calendarDate(day)) throw new RangeError(`${day} is not a date`);
+  return firstAtOrAfter(`${day}T00:00:00`, zone);
+}
+
+/** Today's calendar date in `zone`, `YYYY-MM-DD`. */
+export function todayIn(zone: string, now: number = Date.now()): string {
+  return wallAt(zone, now).slice(0, 10);
+}
+
+/** The calendar day `n` days from `day`. */
+export function addDays(day: string, n: number): string {
+  const d = calendarDate(day)!;
+  return new Date(Date.UTC(d.year, d.month - 1, d.day + n)).toISOString().slice(0, 10);
+}
+
+/**
+ * A `datetime-local` text (`YYYY-MM-DDTHH:mm`, seconds optional) read as a wall time in the brand's zone,
+ * not the browser's, as an ISO instant; nothing for text that is not one.
+ */
+export function instantOfLocal(text: string, zone: string): string | undefined {
+  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(text.trim());
+  if (!m || !calendarDate(m[1]!) || Number(m[2]) > 23 || Number(m[3]) > 59 || Number(m[4] ?? 0) > 59) return undefined;
+  return new Date(firstAtOrAfter(`${m[1]}T${m[2]}:${m[3]}:${m[4] ?? "00"}`, zone)).toISOString();
+}
+
+/** An instant as the brand's zone's wall time for a `datetime-local` field, `YYYY-MM-DDTHH:mm`; "" for none. */
+export function localOfInstant(instant: string | null | undefined, zone: string): string {
+  if (!instant) return "";
+  const ms = Date.parse(instant);
+  return Number.isNaN(ms) ? "" : wallAt(zone, ms).slice(0, 16);
 }
 
 /** The last instant of a calendar day in `zone`: the end of a date filter includes its whole day. */
 export function endOfDay(day: string, zone: string): number {
-  const d = calendarDate(day)!;
-  const next = new Date(Date.UTC(d.year, d.month - 1, d.day + 1)).toISOString().slice(0, 10);
-  return startOfDay(next, zone) - 1;
+  if (!calendarDate(day)) throw new RangeError(`${day} is not a date`);
+  return startOfDay(addDays(day, 1), zone) - 1;
 }
 
 /** A filter's two ends, as the owners take them. */
