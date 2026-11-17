@@ -47,32 +47,28 @@ class TestPaymentSuite extends munit.FunSuite with LogCapturing:
     val sent = mutable.Buffer.empty[Outbound]
     def call(p: Provider): Outbound => Either[CallFailure, Answered] = o => { sent += o; answer(o) }
 
-  private val unityPage = Json.render(Json.obj("resultCode" -> 0, "resultData" -> Json.obj("paymentForm" -> Json.obj("action" -> "https://unity.test/checkout/abc"))))
-
   private def body(provider: Provider, fields: (String, Any)*): String =
     Json.render(Json.obj((Vector[(String, Any)]("subBrandId" -> "sb-1", "psp" -> provider.wire, "credentialName" -> "main") ++ fields)*))
 
-  test("Unity Finance: one charge on its test card of one whole unit, the provider's page answered as accepted") {
-    val psp = Provider_(_ => Right(Answered(200, Map.empty, unityPage)))
+  test("Unity Finance is 501 test_mode_unavailable: no request can keep a CARD_TEST charge off a live checkout (review Q5)") {
+    // The credential is a production one: Unity Finance has one address for test and live, and test mode
+    // is a setting of the checkout in its portal. Nothing is read from merchant and nothing is sent.
+    val psp = Provider_(_ => fail("Unity Finance is never called for a test payment"))
     val m   = merchant()
     val a   = TestPayment(m, settings, psp.call)(body(Provider.UnityFinance))
-    assertEquals(a.status, 200, a.body.toString)
-    assertEquals((a.body.textOr("outcome", ""), a.body.textOr("testMode", ""), a.body.textOr("method", "")), ("accepted", "test_card", "CARD_TEST"))
-    assertEquals((a.body.long("amount"), a.body.textOr("currency", "")), (Some(100L), "USD"))
-    assertEquals(a.body.textOr("redirectUrl", ""), "https://unity.test/checkout/abc")
-    assertEquals(m.reads.toVector, Vector(("sb-1", Provider.UnityFinance, "main")))
-    assertEquals(psp.sent.size, 1)
-    val form = psp.sent.head.body.getOrElse("")
-    assert(form.contains("ik_payment_method=card") && form.contains("ik_am=1.00") && form.contains("ik_co_id=co-test"), form)
-    assert(form.contains(s"ik_pm_no=${a.body.textOr("reference", "?")}"), "the provider is given the test's own reference")
+    assertEquals((a.status, a.body.textOr("error", ""), a.body.textOr("provider", "")), (501, "test_mode_unavailable", "UNITYFINANCE"))
+    assert(a.body.textOr("message", "").contains("live money"), a.body.toString)
+    assertEquals(TestMode.of(Provider.UnityFinance), None)
+    assert(m.reads.isEmpty && psp.sent.isEmpty)
   }
 
   test("the currency asked is used, at one whole unit of it") {
-    val psp = Provider_(_ => Right(Answered(200, Map.empty, unityPage)))
-    val a   = TestPayment(merchant(), settings, psp.call)(body(Provider.UnityFinance, "currency" -> "jpy"))
-    assertEquals((a.body.long("amount"), a.body.textOr("currency", "")), (Some(1L), "JPY"))
-    val kwd = TestPayment(merchant(), settings, psp.call)(body(Provider.UnityFinance, "currency" -> "KWD"))
-    assertEquals(kwd.body.long("amount"), Some(1000L))
+    val page = Json.render(Json.obj("result" -> Json.obj("id" -> "g2-1", "redirectUrl" -> "https://g2pay-sandbox.test/p/1")))
+    val psp  = Provider_(_ => Right(Answered(200, Map.empty, page)))
+    val a    = TestPayment(merchant(), settings, psp.call)(body(Provider.Digitarium, "currency" -> "eur"))
+    assertEquals((a.body.long("amount"), a.body.textOr("currency", "")), (Some(100L), "EUR"))
+    assertEquals(TestMode.amount(Provider.Digitarium, io.eitheror.casino.contract.money.Currency.unsafe("JPY")), 1L)
+    assertEquals(TestMode.amount(Provider.Digitarium, io.eitheror.casino.contract.money.Currency.unsafe("KWD")), 1000L)
   }
 
   test("Gigadat: the sandbox flag is sent whatever the credential's environment says, in CAD") {
@@ -95,10 +91,6 @@ class TestPaymentSuite extends munit.FunSuite with LogCapturing:
   }
 
   test("a provider's refusal and a provider that fails are answered as the outcome, with its words") {
-    val declined = Provider_(_ => Right(Answered(200, Map.empty, Json.render(Json.obj("resultCode" -> 5, "resultMsg" -> "card declined")))))
-    val d        = TestPayment(merchant(), settings, declined.call)(body(Provider.UnityFinance))
-    assertEquals((d.status, d.body.textOr("outcome", "")), (200, "unavailable"))
-    assert(d.body.textOr("reason", "").contains("card declined"), d.body.toString)
     val digit401 = Provider_(_ => Right(Answered(401, Map.empty, "")))
     val k        = TestPayment(merchant(), settings, digit401.call)(body(Provider.Digitarium))
     assertEquals((k.body.textOr("outcome", ""), k.body.textOr("reason", "")), ("unavailable", "digitarium: invalid API key (HTTP 401)"))
@@ -111,7 +103,7 @@ class TestPaymentSuite extends munit.FunSuite with LogCapturing:
   test("a provider with no test mode is 501 test_mode_unavailable, and neither merchant nor the provider is asked") {
     val psp = Provider_(_ => fail("no provider is called"))
     val m   = merchant()
-    Seq(Provider.DreamzPay, Provider.T365, Provider.Cozeni, Provider.EuPaymentz, Provider.BounceMoney, Provider.Morphosis).foreach { p =>
+    Seq(Provider.UnityFinance, Provider.DreamzPay, Provider.T365, Provider.Cozeni, Provider.EuPaymentz, Provider.BounceMoney, Provider.Morphosis).foreach { p =>
       val a = TestPayment(m, settings, psp.call)(body(p))
       assertEquals((a.status, a.body.textOr("error", ""), a.body.textOr("provider", "")), (501, "test_mode_unavailable", p.wire))
     }
@@ -121,21 +113,22 @@ class TestPaymentSuite extends munit.FunSuite with LogCapturing:
   test("the refusals before any call: unknown credential, one lacking keys, merchant down, no base URL, a bad body") {
     val psp = Provider_(_ => fail("no provider is called"))
     def run(m: MerchantClient, b: String, s: Settings = settings) = TestPayment(m, s, psp.call)(b)
-    val unknown = run(merchant(), body(Provider.UnityFinance, "credentialName" -> "other"))
+    val unknown = run(merchant(), body(Provider.Digitarium, "credentialName" -> "other"))
     assertEquals((unknown.status, unknown.body.textOr("error", "")), (404, "no_credentials"))
-    val lacking = run(Credentials(Map(("sb-1", Provider.UnityFinance, "main") -> Map("signKey" -> "s"))), body(Provider.UnityFinance))
+    val lacking = run(Credentials(Map(("sb-1", Provider.Digitarium, "main") -> Map("signingKey" -> "s"))), body(Provider.Digitarium))
     assertEquals((lacking.status, lacking.body.textOr("error", "")), (404, "no_credentials"))
-    assert(lacking.body.textOr("message", "").contains("checkoutId.CARD_TEST"), lacking.body.toString)
+    assert(lacking.body.textOr("message", "").contains("apiKey"), lacking.body.toString)
     assert(!lacking.body.toString.contains("\"s\""), "no value is named")
-    assertEquals(run(merchant(down = true), body(Provider.UnityFinance)).status, 502)
+    assertEquals(run(merchant(down = true), body(Provider.Digitarium)).status, 502)
     val unset = run(merchant(), body(Provider.Digitarium), Settings("https://gateway.example", urls - "DIGITARIUM_SANDBOX_URL"))
     assertEquals((unset.status, unset.body.textOr("error", "")), (502, "provider_not_configured"))
-    Seq("{}", "not json", body(Provider.UnityFinance, "currency" -> "not a currency"), Json.render(Json.obj("psp" -> "UNITYFINANCE", "subBrandId" -> "sb-1")))
+    Seq("{}", "not json", body(Provider.Digitarium, "currency" -> "not a currency"), Json.render(Json.obj("psp" -> "DIGITARIUM", "subBrandId" -> "sb-1")))
       .foreach(b => assertEquals(run(merchant(), b).status, 400, b))
   }
 
   test("no secret is in the answer") {
-    val psp = Provider_(_ => Right(Answered(200, Map.empty, unityPage)))
-    val a   = Json.render(TestPayment(merchant(), settings, psp.call)(body(Provider.UnityFinance)).body)
-    Seq("unity-sign", "co-test").foreach(s => assert(!a.contains(s), a))
+    val page = Json.render(Json.obj("result" -> Json.obj("id" -> "g2-1", "redirectUrl" -> "https://g2pay-sandbox.test/p/1")))
+    val psp  = Provider_(_ => Right(Answered(200, Map.empty, page)))
+    val a    = Json.render(TestPayment(merchant(), settings, psp.call)(body(Provider.Digitarium)).body)
+    Seq("dg-key").foreach(s => assert(!a.contains(s), a))
   }

@@ -800,9 +800,15 @@ amendment (K5 in contracts/amendments.md). The document route passes kyc's bytes
 - The original's "Send Test Payment" dialog called a route no server had. It is built here from the
   amendment: merchant's `…/psp-credentials/{provider}/test-payment?name=` asks psp-gateway's
   `POST /v1/psp/test-payment`, which admits only merchant.
-- Only Unity Finance (its test card), Gigadat and Digitarium (their sandboxes) have a test mode; the
-  other six answer 501 `test_mode_unavailable`. For Gigadat and Digitarium the credential's
-  environment is forced to `sandbox`, so a test never charges a production account.
+- Only Gigadat and Digitarium (their sandboxes) have a test mode; the other seven answer 501
+  `test_mode_unavailable`. For Gigadat and Digitarium the credential's environment is forced to
+  `sandbox`, so a test never charges a production account.
+- Corrected 2026-11-17 (review Q5): Unity Finance was listed here by its test card, but `CARD_TEST`
+  is only the generic `card` payway on the checkout `checkoutId.CARD_TEST` names. Unity Finance has
+  one address for test and live; test mode is a setting of each checkout in its portal (the
+  original's spec 109 research, *Endpoints*), which no request can force. On a live checkout the
+  test's page takes a real card, and the charge is one nothing records. So Unity Finance answers 501
+  too, saying why.
 - The amount is one whole unit of the currency, or the catalogue's minimum where higher; USD by
   default (CAD for Gigadat). The outcome is the provider's answer to the initiation (`accepted`,
   `refused`, `unavailable`), all as 200. A credential can be tested whatever its status.
