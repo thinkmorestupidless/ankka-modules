@@ -7,7 +7,8 @@ import { useId, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
 import { t } from "../../../shared/messages/index.ts";
-import { players, wallet } from "../../../shared/owners/index.ts";
+import { wallet } from "../../../shared/owners/index.ts";
+import { profileCurrency, profileQuery } from "./read.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
 import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
@@ -174,11 +175,8 @@ function TurnoverOverride({ player, currency }: { player: string; currency: stri
 }
 
 export function PlayerWallets({ player }: { player: string }) {
-  const profile = useQuery({
-    queryKey: ["players", "profile", player],
-    queryFn: () => readJson<{ currency?: string | null; player?: { currency?: string | null } }>(players.getPlayersProfile({ playerId: player })),
-  });
-  const currency = profile.data ? (profile.data.player?.currency ?? profile.data.currency ?? undefined) : undefined;
+  const profile = useQuery(profileQuery(player));
+  const currency = profile.data ? profileCurrency(profile.data) : undefined;
   return (
     <section aria-labelledby="wallets-title">
       <h2 id="wallets-title">{t("players.tab.wallets")}</h2>

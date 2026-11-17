@@ -48,7 +48,7 @@ async function aPlayer(w: World, balance: string, opts: { round?: string } = {})
   await w.doubles.fixtures("players", {
     "GET /v1/casino/backoffice/{brand}/players/{playerId}/profile": {
       by: "playerId",
-      answers: { [player]: { body: { playerId: player, status: "active", email: "rui@example.test", emailVerified: true, currency: start.currency, registeredAt: "2026-10-01T10:00:00Z", vipTier: null, profileComplete: true, missingProfileFields: [], firstName: "Rui", lastName: "Costa", dateOfBirth: "1988-02-03", country: "PT" } } },
+      answers: { [player]: { body: { player: { playerId: player, status: "active", email: "rui@example.test", emailVerified: true, currency: start.currency, registeredAt: "2026-10-01T10:00:00Z", vipTier: null, profileComplete: true, missingProfileFields: [], firstName: "Rui", lastName: "Costa", dateOfBirth: "1988-02-03", country: "PT" }, wallet: null, activeSessions: [], pinnedNotes: [] } } },
     },
   });
   await w.doubles.wallets({ wallets: [{ player, currency: start.currency, real: Number(start.minor) }] });

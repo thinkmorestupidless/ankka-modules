@@ -75,7 +75,7 @@ describe("the doubles", () => {
     const cookie = await signIn();
     const profile = await app.request(`${Address}/api/s/players/players/p-kenji/profile`, { headers: { Cookie: cookie } });
     expect(profile.status).toBe(200);
-    expect(((await profile.json()) as { currency: string }).currency).toBe("JPY");
+    expect(((await profile.json()) as { player: { currency: string } }).player.currency).toBe("JPY");
     await client.fixtures("merchant.payments", { "GET /v1/payments/cashier": { body: { items: [], total: 0 } } });
     const cashier = await app.request(`${Address}/api/s/merchant/cashier`, { headers: { Cookie: cookie } });
     expect(cashier.status).toBe(200);

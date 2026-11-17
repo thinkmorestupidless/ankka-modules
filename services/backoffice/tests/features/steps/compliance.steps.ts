@@ -213,7 +213,7 @@ Then("neither player is flagged as a suspected duplicate", async ({ world }) => 
   const detail = main(world).locator("[data-fraud-case]");
   for (const p of s.flagged!) await expect(detail.locator(`[data-player="${p}"]`)).toContainText(t("fraud.notFlagged"));
   for (const p of s.flagged!) {
-    const profile = (await (await world.page.request.get(`${world.url}/api/s/players/players/${p}/profile`)).json()) as { suspectedDuplicate?: boolean };
-    expect(profile.suspectedDuplicate, p).toBeUndefined();
+    const profile = (await (await world.page.request.get(`${world.url}/api/s/players/players/${p}/profile`)).json()) as { player: { suspectedDuplicate?: boolean } };
+    expect(profile.player.suspectedDuplicate, p).toBeUndefined();
   }
 });

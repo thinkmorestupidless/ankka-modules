@@ -74,7 +74,8 @@ const Reached: Record<string, Reach> = {
   },
   "Profile read and edit": {
     routes: ["GET players /players/{playerId}/profile", "PATCH players /players/{playerId}/profile"],
-    pages: ["areas/players/profile.tsx"],
+    // the profile is read through players/read.ts's profileQuery, which every screen shares
+    pages: ["areas/players/profile.tsx", "areas/players/read.ts"],
   },
   "Correct date of birth with a reason": { routes: ["PATCH players /players/{playerId}/date-of-birth"], pages: ["areas/players/profile.tsx"] },
   "Notes: add, pin, unpin": {
