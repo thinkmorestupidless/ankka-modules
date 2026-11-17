@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { Brand, harness, SecretToken, whole, write } from "./support.ts";
 import { table } from "../../src/server/routes.ts";
+import { BodyMax } from "../../src/server/main.ts";
 
 describe("calling the owner", () => {
   test("a brand's own service is called at the calling address, with the brand put in and the query kept", async () => {
@@ -42,6 +43,29 @@ describe("calling the owner", () => {
     expect(h.calls[0]!.method).toBe("PATCH");
     expect(h.calls[0]!.body).toBe('{"reason":"kit"}');
     expect(h.calls[0]!.headers.get("content-type")).toBe("application/json");
+  });
+});
+
+describe("a request's body", () => {
+  const path = "/api/s/players/players/p-1/suspend";
+
+  test("of more than 1 MiB is refused 413 and asks no one, by its length or as it streams", async () => {
+    const h = harness();
+    const big = "x".repeat(BodyMax + 1);
+    const streamed = await h.ask("PATCH", path, { session: "s-1", headers: write, body: big });
+    expect(streamed.status).toBe(413);
+    expect(await streamed.json()).toMatchObject({ error: "body_too_large" });
+    const stated = await h.ask("PATCH", path, { session: "s-1", headers: { ...write, "Content-Length": String(BodyMax + 1) }, body: big });
+    expect(stated.status).toBe(413);
+    expect(h.calls).toHaveLength(0);
+  });
+
+  test("of 1 MiB is passed on whole", async () => {
+    const h = harness();
+    const body = "x".repeat(BodyMax);
+    const r = await h.ask("PATCH", path, { session: "s-1", headers: write, body });
+    expect(r.status).toBe(200);
+    expect(h.calls[0]!.body).toBe(body);
   });
 });
 

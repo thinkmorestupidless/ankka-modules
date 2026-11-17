@@ -7,6 +7,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Hono, type Context } from "hono";
 import { getRequestListener } from "@hono/node-server";
+import { bodyLimit } from "hono/body-limit";
 import { dropSession, sessionOf, stateClient, TokenCache, type StateClient, type Token } from "./session.ts";
 import { match, table as routeTable, type Row } from "./routes.ts";
 import { pass, unavailable } from "./proxy.ts";
@@ -62,6 +63,9 @@ export type Env = { Variables: { session: string; token: Token; logPath: string;
 
 const Reads = new Set(["GET", "HEAD"]);
 
+/** The largest request body an /api route takes: 1 MiB. */
+export const BodyMax = 1024 * 1024;
+
 /** The /api routes open to a signed-in operator of another brand: who they are, and the event stream. */
 const BrandFree = new Set(["/api/me", "/api/events"]);
 
@@ -96,6 +100,10 @@ export function createApp(deps: Deps): Hono<Env> {
 
   app.get("/healthz", (c) => c.text("ok"));
   authRoutes(app, { realm: deps.realm, address: deps.address, state: deps.state, tokens, now: deps.now });
+
+  // No /api body is larger than this: the page sends JSON only (kyc's uploads and the programme's
+  // creatives go to their stores by link, not through here), a batch of 500 rows included.
+  app.use("/api/*", bodyLimit({ maxSize: BodyMax, onError: (c) => c.json({ error: "body_too_large", message: `a request body is at most ${BodyMax} bytes` }, 413) }));
 
   // Every /api route needs a session the state service still holds.
   app.use("/api/*", async (c, next) => {
