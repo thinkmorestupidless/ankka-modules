@@ -147,33 +147,30 @@ object RolesRoutes:
     }
 
   /**
-   * [[seed]] off the thread that starts the service, tried again until it holds: a start on a busy node
-   * can take longer than a call's 10 seconds, and the service must not end for it (each call leaves a role
-   * that exists as it stands, so a second try changes nothing the first made).
+   * [[seed]], tried again until it holds: a start on a busy node can take longer than a call's 10
+   * seconds, and the service must not end for it. It stays on the starting thread, so the default roles
+   * exist once the service has started; each call leaves a role that exists as it stands, so a second
+   * try changes nothing the first made.
    */
-  def seedInBackground(components: com.thinkmorestupidless.ankka.sdk.ComponentClient, at: Instant): Thread =
+  def seedUntilItHolds(components: com.thinkmorestupidless.ankka.sdk.ComponentClient, at: Instant): Unit =
     untilItHolds(() => seed(components, at))
 
   /** The wait before the next try after the `n`th failure: 2 s, doubling, never more than a minute. */
   val SeedPause: Int => Long = n => math.min(60000L, 2000L << math.min(n, 5))
 
-  /** `attempt` on a daemon thread, tried again after `pause(n)` ms each time it throws, until it returns. */
-  def untilItHolds(attempt: () => Unit, pause: Int => Long = SeedPause): Thread =
+  /** `attempt`, tried again after `pause(n)` ms each time it throws, until it returns; the number of tries. */
+  def untilItHolds(attempt: () => Unit, pause: Int => Long = SeedPause, sleep: Long => Unit = Thread.sleep): Int =
     val log = org.slf4j.LoggerFactory.getLogger("players.roles")
-    val thread = Thread(() => {
-      var tries = 0
-      var done = false
-      while !done && !Thread.currentThread().isInterrupted do
-        try
-          attempt()
-          done = true
-        catch
-          case scala.util.control.NonFatal(e) =>
-            val wait = pause(tries)
-            log.warn(s"the default roles are not seeded yet (${e.getMessage}); trying again in ${wait / 1000} s")
-            tries += 1
-            try Thread.sleep(wait) catch case _: InterruptedException => Thread.currentThread().interrupt()
-    }, "players-roles-seed")
-    thread.setDaemon(true)
-    thread.start()
-    thread
+    var tries = 0
+    var done = false
+    while !done do
+      tries += 1
+      try
+        attempt()
+        done = true
+      catch
+        case scala.util.control.NonFatal(e) =>
+          val wait = pause(tries - 1)
+          log.warn(s"the default roles are not seeded yet (${e.getMessage}); trying again in ${wait / 1000} s")
+          sleep(wait)
+    tries
