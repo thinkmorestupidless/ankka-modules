@@ -189,7 +189,8 @@ export function PlayerRewards({ player }: { player: string }) {
   const opened = useRouterState({ select: (s) => (s.location.search as Record<string, unknown>).reward });
   const q = useQuery({ queryKey: ["rewards", "player", player], queryFn: () => readPlayerRewards(player), enabled: player !== "" });
   // the player's currency, in which free rounds' amounts are typed and a bonus is first offered
-  const currency = useQuery({ ...profileQuery(player), select: profileCurrency, enabled: player !== "" && !readOnly }).data ?? "";
+  const currencyRead = useQuery({ ...profileQuery(player), select: profileCurrency, enabled: player !== "" && !readOnly });
+  const currency = currencyRead.data ?? "";
   const items = q.data?.items ?? [];
   // the wallet's open records, in each currency a still-open reward is in
   const currencies = [...new Set(items.filter(isOpen).map((r) => r.currency))];
@@ -210,7 +211,8 @@ export function PlayerRewards({ player }: { player: string }) {
         <ZoneNote zone={tz} />
         {freshness ? <FreshnessNote freshness={freshness} zone={tz} /> : null}
       </div>
-      {readOnly ? null : <GrantReward key={currency} player={player} currency={currency} />}
+      {/* Shown once the currency read has settled, so the form is never remounted under what was typed. */}
+      {readOnly || currencyRead.isPending ? null : <GrantReward player={player} currency={currency} />}
       {q.isError ? <RefusalNotice refusal={q.error} /> : null}
       {unmatched > 0 ? (
         <p className="bo-muted" role="status">
