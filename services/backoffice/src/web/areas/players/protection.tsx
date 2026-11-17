@@ -7,6 +7,7 @@
 // change applies now or is staged is its answer, shown as it gives it.
 import { useId, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { instantOfLocal } from "../../../shared/dates.ts";
 import { t } from "../../../shared/messages/index.ts";
 import { parseMoney } from "../../../shared/money.ts";
 import { responsibleGambling as rg } from "../../../shared/owners/index.ts";
@@ -22,7 +23,7 @@ import { isMoney, keyOf, LimitTypes, MinimumExclusionDays, readProtection, readS
 
 
 /** A limit's value as a person reads it: an amount in its currency, or minutes. */
-function Value({ limitType, value, currency }: { limitType: string; value: string | number; currency: string | null }) {
+export function LimitValue({ limitType, value, currency }: { limitType: string; value: string | number; currency: string | null }) {
   if (isMoney(limitType) && currency) return <Money value={{ minor: String(value), currency }} />;
   return <span>{t("protection.minutes", { count: Number(value) })}</span>;
 }
@@ -52,7 +53,7 @@ function NewValue({ limitType, currency, now, text, onText }: { limitType: strin
         {now !== undefined ? (
           <>
             {" · "}
-            {t("protection.limit.now")} <Value limitType={limitType} value={now} currency={currency} />
+            {t("protection.limit.now")} <LimitValue limitType={limitType} value={now} currency={currency} />
           </>
         ) : null}
       </p>
@@ -74,7 +75,7 @@ function Pending({ change, tz }: { change: PendingChange; tz: string }) {
         <span>{t("protection.pending.removal")}</span>
       ) : (
         <>
-          <span>{t("protection.pending.to")}</span> <Value limitType={change.limitType} value={change.pendingValue} currency={change.currency} />
+          <span>{t("protection.pending.to")}</span> <LimitValue limitType={change.limitType} value={change.pendingValue} currency={change.currency} />
         </>
       )}{" "}
       <span>{t("protection.pending.from")}</span> <DateTime instant={change.appliesAt} zone={tz} />
@@ -233,12 +234,6 @@ function Limits({ player, p, done }: { player: string; p: Protection; done(): vo
   );
 }
 
-/** A local date and time typed in the browser, as the instant responsible-gambling takes. */
-const instantOf = (local: string) => {
-  const ms = Date.parse(local);
-  return Number.isNaN(ms) ? undefined : new Date(ms).toISOString();
-};
-
 function Breaks({ player, p, maxDays, done }: { player: string; p: Protection; maxDays?: number; done(): void }) {
   const me = useOperator();
   const bags = useBags();
@@ -246,7 +241,8 @@ function Breaks({ player, p, maxDays, done }: { player: string; p: Protection; m
   const untilId = useId();
   const [until, setUntil] = useState("");
   const tz = useZone();
-  const at = instantOf(until);
+  // The time typed is the brand's zone's (FR-015), as the zone note under the field says.
+  const at = instantOfLocal(until, tz);
   const state = p.isCoolingOff ? "on_break" : "none";
   const input = (
     <div className="bo-field">
@@ -255,6 +251,7 @@ function Breaks({ player, p, maxDays, done }: { player: string; p: Protection; m
       <span id={`${untilId}-hint`} className="bo-field-hint">
         {maxDays !== undefined ? t("protection.break.hint", { days: maxDays }) : t("protection.break.hintUnknown")}
       </span>
+      <ZoneNote zone={tz} />
     </div>
   );
   const put = () => rg.putCoolingOff({ player }, { body: { until: at } });
