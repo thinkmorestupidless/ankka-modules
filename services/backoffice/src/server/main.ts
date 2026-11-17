@@ -71,12 +71,6 @@ const DefaultZone = "UTC";
 /** The preferences the page writes; `jobs` are the server's own (data-model.md). */
 const PageWritable = new Set(["theme", "worklistKinds", "onlineNotices"]);
 
-/** The address the proxy says this request was sent to, as an `Origin` would name it. */
-function selfOrigin(c: Context): string | undefined {
-  const host = c.req.header("x-forwarded-host") ?? c.req.header("host");
-  return host ? `${c.req.header("x-forwarded-proto") ?? "http"}://${host}` : undefined;
-}
-
 export function createApp(deps: Deps): Hono<Env> {
   const app = new Hono<Env>();
   const tokens = new TokenCache(deps.state, deps.now);
@@ -90,11 +84,12 @@ export function createApp(deps: Deps): Hono<Env> {
     deps.log(JSON.stringify({ method: c.req.method, route: named, status: c.res.status, ms: deps.now() - started, ...(c.get("why") ? { why: c.get("why") } : {}) }));
   });
 
-  // A write comes only from this site's page.
+  // A write comes only from this site's page: its Origin is the configured address's, not one read
+  // from the request's forwarded headers (an installation with no base domain sends none).
+  const origin = new URL(deps.address).origin;
   app.use("*", async (c, next) => {
     if (Reads.has(c.req.method)) return next();
-    const origin = selfOrigin(c);
-    if (c.req.header("x-backoffice") !== "1" || origin === undefined || c.req.header("origin") !== origin)
+    if (c.req.header("x-backoffice") !== "1" || c.req.header("origin") !== origin)
       return c.json({ error: "bad_origin" }, 403);
     return next();
   });
