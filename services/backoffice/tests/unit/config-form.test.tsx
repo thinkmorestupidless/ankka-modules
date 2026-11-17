@@ -84,6 +84,15 @@ describe("the configuration form", () => {
     expect(parse(fields[0]!, "1.5")).toBeUndefined();
     expect(same(["EUR", "BRL"], ["BRL", "EUR"])).toBe(true);
   });
+
+  it("holds a number and its text alike, and refuses a figure past what a number holds exactly", () => {
+    expect(same(5, "5")).toBe(true);
+    expect(same("5", 6)).toBe(false);
+    expect(same(null, undefined)).toBe(true);
+    expect(parse(fields[0]!, "9007199254740993")).toBeUndefined();
+    expect(parse(fields[1]!, "90071992547409.93")).toBeUndefined();
+    expect(parse(fields[1]!, "90071992547409.91")).toBe(9007199254740991);
+  });
 });
 
 describe("a secret in a configuration form", () => {
