@@ -50,13 +50,11 @@ final class RolesRoutes(ctx: Ctx):
                 done(components.forEventSourcedEntity(Role.id(name)).call(Role.set).invoke(SetRole(name, description, permissions, author(p), now())))
 
   def reset(p: Principal, name: String): Reply =
-    OperatorPermissions.DefaultRoles.get(name) match
-      case None if RoleRules.nameRefusal(name).isDefined =>
-        val (code, message) = RoleRules.nameRefusal(name).get
-        refusal(400, code, message)
-      case None => refusal(409, RoleRules.NotDefault, s"$name is not a default role: it has no default permissions to reset to")
-      case Some(bag) if RoleRules.leavesNoChanger(Roles.bags(views), name, Some(bag)) => lastChanger(name)
-      case Some(_) => done(components.forEventSourcedEntity(Role.id(name)).call(Role.reset).invoke(RoleAct(author(p), now())))
+    (OperatorPermissions.DefaultRoles.get(name), RoleRules.nameRefusal(name)) match
+      case (None, Some((code, message))) => refusal(400, code, message)
+      case (None, None) => refusal(409, RoleRules.NotDefault, s"$name is not a default role: it has no default permissions to reset to")
+      case (Some(bag), _) if RoleRules.leavesNoChanger(Roles.bags(views), name, Some(bag)) => lastChanger(name)
+      case (Some(_), _) => done(components.forEventSourcedEntity(Role.id(name)).call(Role.reset).invoke(RoleAct(author(p), now())))
 
   def delete(p: Principal, name: String): Reply =
     RoleRules.nameRefusal(name) match
