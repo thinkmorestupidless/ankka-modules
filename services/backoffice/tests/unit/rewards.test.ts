@@ -96,19 +96,28 @@ describe("an offer", () => {
   };
 
   test("its form read back is its body, amounts in minor units and the match in basis points", () => {
-    const read = bodyOf(formOf(offer), offer.redemptionCodes);
+    const read = bodyOf(formOf(offer, "UTC"), "UTC", offer.redemptionCodes);
     expect("body" in read && read.body).toMatchObject({ bonusPercentage: 10000, maxBonusValue: 10000, minDepositAmount: 2000, currency: "EUR", depositNumberTarget: "ANY", redemptionCodes: [{ code: "WELCOME", isAffiliate: true }] });
   });
 
   test("an edit sends only what changed, a field cleared as null", () => {
-    const before = bodyOf(formOf(offer), offer.redemptionCodes);
-    const after = bodyOf({ ...formOf(offer), maxBonusValue: "150.00", minDepositAmount: "" }, offer.redemptionCodes);
+    const before = bodyOf(formOf(offer, "UTC"), "UTC", offer.redemptionCodes);
+    const after = bodyOf({ ...formOf(offer, "UTC"), maxBonusValue: "150.00", minDepositAmount: "" }, "UTC", offer.redemptionCodes);
     if (!("body" in before) || !("body" in after)) throw new Error("unread");
     expect(changesOf(before.body, after.body)).toEqual({ maxBonusValue: 15000, minDepositAmount: null });
   });
 
   test("a field that cannot be read is named", () => {
-    expect(bodyOf({ ...formOf(offer), wageringMultiplier: "x" })).toEqual({ invalid: "offers.field.wageringMultiplier" });
+    expect(bodyOf({ ...formOf(offer, "UTC"), wageringMultiplier: "x" }, "UTC")).toEqual({ invalid: "offers.field.wageringMultiplier" });
+    expect(bodyOf({ ...formOf(offer, "UTC"), validFrom: "2026-02-30T10:00" }, "UTC")).toEqual({ invalid: "offers.field.validFrom" });
+  });
+
+  test("its times are the brand's zone's wall time, whatever the browser's", () => {
+    const timed = { ...offer, validFrom: "2026-12-01T03:00:00Z", validUntil: null };
+    const form = formOf(timed, "America/Sao_Paulo");
+    expect(form.validFrom).toBe("2026-12-01T00:00");
+    const read = bodyOf({ ...form, validUntil: "2026-12-31T23:59" }, "America/Sao_Paulo");
+    expect("body" in read && read.body).toMatchObject({ validFrom: "2026-12-01T03:00:00.000Z", validUntil: "2027-01-01T02:59:00.000Z" });
   });
 
   test("the offers that exclude or conflict with one are its dependants, in the brand's order", () => {

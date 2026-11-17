@@ -12,6 +12,7 @@ import { useId, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import "./rewards.css";
 import { t, type MessageKey } from "../../../shared/messages/index.ts";
+import { instantOfLocal, localOfInstant } from "../../../shared/dates.ts";
 import { formatMoney, parseMoney } from "../../../shared/money.ts";
 import { gameProvider, rewards } from "../../../shared/owners/index.ts";
 import { explain } from "../../../shared/refusals.ts";
@@ -77,17 +78,8 @@ function figures(minor: number | null | undefined, currency: string): string {
   }
 }
 
-/** An instant as the operator's own local time for `datetime-local`, and back. */
-function local(iso: string | null | undefined): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
-}
-const instant = (text: string) => (text ? new Date(text).toISOString() : null);
-
-export function formOf(o?: Offer): Form {
+/** The form of an offer, its times as the brand's zone's wall time (FR-015), as the ZoneNote above them says. */
+export function formOf(o: Offer | undefined, zone: string): Form {
   const cur = o?.currency ?? "";
   const n = (v: number | null | undefined) => (v === null || v === undefined ? "" : String(v));
   return {
@@ -106,8 +98,8 @@ export function formOf(o?: Offer): Form {
     maxConcurrentGrants: n(o?.maxConcurrentGrants),
     depositNumberTarget: o?.depositNumberTarget === undefined || o.depositNumberTarget === null || o.depositNumberTarget === "ANY" ? "" : String(o.depositNumberTarget),
     noDepositRequired: o?.noDepositRequired ?? false,
-    validFrom: local(o?.validFrom),
-    validUntil: local(o?.validUntil),
+    validFrom: localOfInstant(o?.validFrom, zone),
+    validUntil: localOfInstant(o?.validUntil, zone),
     excludedOfferIds: o?.excludedOfferIds ?? [],
     conflictsWith: o?.conflictsWith ?? [],
     codes: (o?.redemptionCodes ?? []).map((c) => c.code).join(", "),
@@ -125,7 +117,7 @@ export function formOf(o?: Offer): Form {
 type Body = Record<string, unknown>;
 
 /** The form as rewards reads an offer's body, or the first field that cannot be read. */
-export function bodyOf(f: Form, codes: Offer["redemptionCodes"] = []): { body: Body } | { invalid: MessageKey } {
+export function bodyOf(f: Form, zone: string, codes: Offer["redemptionCodes"] = []): { body: Body } | { invalid: MessageKey } {
   const cur = f.currency.trim().toUpperCase();
   if (cur !== "" && !/^[A-Z]{3}$/.test(cur)) return { invalid: "offers.field.currency" };
   const minor = (text: string, currency: string): number | null | undefined => {
@@ -157,8 +149,14 @@ export function bodyOf(f: Form, codes: Offer["redemptionCodes"] = []): { body: B
   const target = whole(f.depositNumberTarget);
   if (target === undefined) return { invalid: "offers.field.depositNumberTarget" };
   body.depositNumberTarget = target ?? "ANY";
-  body.validFrom = instant(f.validFrom);
-  body.validUntil = instant(f.validUntil);
+  for (const k of ["validFrom", "validUntil"] as const) {
+    if (f[k].trim() === "") body[k] = null;
+    else {
+      const at = instantOfLocal(f[k], zone);
+      if (at === undefined) return { invalid: `offers.field.${k}` };
+      body[k] = at;
+    }
+  }
   body.excludedOfferIds = [...f.excludedOfferIds].sort();
   body.conflictsWith = [...f.conflictsWith].sort();
   const affiliate = new Map((codes ?? []).map((c) => [c.code, c.isAffiliate ?? false]));
@@ -324,11 +322,11 @@ function OfferForm({ editing, offers, onClose }: { editing: Offer | undefined; o
   const me = useOperator();
   const bags = useBags();
   const client = useQueryClient();
-  const [form, setForm] = useState<Form>(() => formOf(editing));
+  const [form, setForm] = useState<Form>(() => formOf(editing, zone));
   const set = (f: Partial<Form>) => setForm((prev) => ({ ...prev, ...f }));
   const others = offers.filter((o) => o.id !== editing?.id);
-  const read = bodyOf(form, editing?.redemptionCodes);
-  const before = editing ? bodyOf(formOf(editing), editing.redemptionCodes) : undefined;
+  const read = bodyOf(form, zone, editing?.redemptionCodes);
+  const before = editing ? bodyOf(formOf(editing, zone), zone, editing.redemptionCodes) : undefined;
   const changes = "body" in read && before && "body" in before ? changesOf(before.body, read.body) : undefined;
   const ready = "body" in read && read.body.name !== "" && (editing === undefined || Object.keys(changes ?? {}).length > 0);
   const run = () =>

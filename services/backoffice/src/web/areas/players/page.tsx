@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams, useRouterState } from "@tanstack/react-router";
 import "./players.css";
+import { formatInstant } from "../../../shared/dates.ts";
 import { t, type MessageKey } from "../../../shared/messages/index.ts";
 import { players } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
@@ -20,6 +21,7 @@ import { useBags } from "../bags.ts";
 import { refusalOf } from "../corrections/shared.tsx";
 import { word } from "../word.ts";
 import { readStanding, type Part, type Standing } from "./read.ts";
+import { LimitValue } from "./protection.tsx";
 import { PlayerTimeline } from "./timeline.tsx";
 import { PlayerProfile } from "./profile.tsx";
 import { PlayerNotes } from "./notes.tsx";
@@ -140,13 +142,13 @@ function StandingView({ player, s }: { player: string; s: Standing }) {
                 {d.limits.map((l) => (
                   <li key={`${l.limitType}/${l.currency ?? ""}`} data-limit={l.limitType}>
                     {word("protection.limit", l.limitType ?? "")}{" "}
-                    {typeof l.value === "number" && l.currency ? <Money value={{ minor: l.value, currency: l.currency }} /> : <span className="figures">{String(l.value ?? "")}</span>}
+                    {l.value !== undefined ? <LimitValue limitType={l.limitType ?? ""} value={l.value} currency={l.currency} /> : null}
                   </li>
                 ))}
               </ul>
             )}
-            {d.isCoolingOff ? <p>{d.coolingOffUntil ? t("players.protection.breakUntil", { until: new Date(d.coolingOffUntil).toISOString().slice(0, 10) }) : t("players.protection.break")}</p> : null}
-            {d.exclusion ? <p>{d.exclusion.permanent ? t("players.protection.excludedForever") : t("players.protection.excluded", { until: (d.exclusion.until ?? "").slice(0, 10) })}</p> : null}
+            {d.isCoolingOff ? <p>{d.coolingOffUntil ? t("players.protection.breakUntil", { until: formatInstant(d.coolingOffUntil, tz) }) : t("players.protection.break")}</p> : null}
+            {d.exclusion ? <p>{d.exclusion.permanent ? t("players.protection.excludedForever") : t("players.protection.excluded", { until: d.exclusion.until ? formatInstant(d.exclusion.until, tz) : "—" })}</p> : null}
             {d.openCases > 0 ? <p>{t("players.protection.cases", { count: d.openCases })}</p> : null}
             <Link className="bo-link" to={`/players/${encodeURIComponent(player)}/protection`}>
               {t("players.protection.open")}

@@ -7,6 +7,7 @@ import { useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import "../dashboard/dashboard.css";
 import "./reports.css";
+import { addDays, todayIn } from "../../../shared/dates.ts";
 import { t, type MessageKey } from "../../../shared/messages/index.ts";
 import { holds, runs, type Me } from "../../../shared/access.ts";
 import { RefusalNotice } from "../../components/action/index.ts";
@@ -445,11 +446,11 @@ function Providers({ search, set }: ReportProps) {
   );
 }
 
-/** Yesterday in this browser's calendar: the latest day that can have closed. */
-const yesterday = () => new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+/** Yesterday in the brand's zone: the latest day that can have closed there. */
+const yesterday = (zone: string, now: number = Date.now()) => addDays(todayIn(zone, now), -1);
 
 function DayEndReport({ search, set, zone }: ReportProps) {
-  const day = search.day ?? yesterday();
+  const day = search.day ?? yesterday(zone);
   const q = useReporting<DayEnd>(`/day-end/${encodeURIComponent(day)}`);
   return (
     <>
