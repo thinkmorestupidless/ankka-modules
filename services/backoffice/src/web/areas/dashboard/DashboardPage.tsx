@@ -65,8 +65,13 @@ function Panel({ id, title, views, status, children, wide }: { id: string; title
 }
 
 /** A panel's own read: its refusal shown in place, the others still shown. */
-function Read<T>({ q, children }: { q: { data?: T; error: Refused | null; isPending: boolean }; children: (data: T) => ReactNode }) {
+/**
+ * A panel's read: its refusal, a loading line, or its figures. `after` is the read it waits on (today's
+ * figures, which name the currency): when that one failed, the panel says so instead of loading for ever.
+ */
+function Read<T>({ q, after, children }: { q: { data?: T; error: Refused | null; isPending: boolean }; after?: { error: Refused | null }; children: (data: T) => ReactNode }) {
   if (q.error) return <RefusalNotice refusal={q.error.refusal} />;
+  if (q.data === undefined && after?.error) return <p className="bo-muted" data-waits>{t("dashboard.waitsOnFigures")}</p>;
   if (q.isPending || q.data === undefined) return <p className="bo-muted">{t("list.loading")}</p>;
   return <>{children(q.data)}</>;
 }
@@ -98,9 +103,10 @@ function Figure({ label, children, change }: { label: string; children: ReactNod
   );
 }
 
-/** One currency's figures for today, read in that currency alone. */
-function CurrencyFigures({ currency, status }: { currency: string; status: ReportingStatus | undefined }) {
-  const q = useReporting<Kpis>("/dashboard/kpis", { currency });
+/** One currency's figures for today, read in that currency alone; `read`, the default currency's, already read without one. */
+function CurrencyFigures({ currency, status, read }: { currency: string; status: ReportingStatus | undefined; read?: ReturnType<typeof useReporting<Kpis>> }) {
+  const own = useReporting<Kpis>("/dashboard/kpis", { currency }, read === undefined);
+  const q = read ?? own;
   return (
     <Panel id={`figures-${currency}`} title={t("dashboard.figuresIn", { currency })} views={Views.figures} status={status}>
       <Read q={q}>
@@ -221,7 +227,7 @@ export function DashboardView({ range, currency, onRange, onCurrency, zone }: Da
           </Panel>
           <div className="bo-dashboard-currencies">
             {currencies.map((c) => (
-              <CurrencyFigures key={c} currency={c} status={status} />
+              <CurrencyFigures key={c} currency={c} status={status} read={c === first.data!.currency ? first : undefined} />
             ))}
           </div>
         </>
@@ -229,7 +235,7 @@ export function DashboardView({ range, currency, onRange, onCurrency, zone }: Da
 
       <div className="bo-dashboard-grid">
         <Panel id="trend" title={t("dashboard.trendIn", { currency: trend.data?.currency ?? chosen ?? "" })} views={Views.trend} status={status} wide>
-          <Read q={trend}>
+          <Read q={trend} after={first}>
             {(d) => (
               <LineChart
                 title={t("dashboard.trendTitle", { currency: d.currency, range: t(RangeLabel[range]) })}
@@ -250,7 +256,7 @@ export function DashboardView({ range, currency, onRange, onCurrency, zone }: Da
         </Panel>
 
         <Panel id="games" title={t("dashboard.topGames", { range: t(RangeLabel[range]) })} views={Views.rankings} status={status}>
-          <Read q={rankings}>
+          <Read q={rankings} after={first}>
             {(r) => (
               <table className="bo-chart-table">
                 <thead>
@@ -275,7 +281,7 @@ export function DashboardView({ range, currency, onRange, onCurrency, zone }: Da
         </Panel>
 
         <Panel id="players" title={t("dashboard.topPlayers", { range: t(RangeLabel[range]), currency: rankings.data?.players[0]?.currency ?? chosen ?? "" })} views={Views.rankings} status={status}>
-          <Read q={rankings}>
+          <Read q={rankings} after={first}>
             {(r) => (
               <table className="bo-chart-table">
                 <thead>
@@ -305,7 +311,7 @@ export function DashboardView({ range, currency, onRange, onCurrency, zone }: Da
 
         {runsCasino(me) ? (
           <Panel id="rewards" title={t("dashboard.rewards", { currency: bonus.data?.currency ?? chosen ?? "" })} views={Views.rewards} status={status}>
-            <Read q={bonus}>
+            <Read q={bonus} after={first}>
               {(b) => (
                 <dl className="bo-figures">
                   <Figure label={t("dashboard.activeRewards")} change={null}><span className="figures">{b.activeBonusCount}</span></Figure>
@@ -319,7 +325,7 @@ export function DashboardView({ range, currency, onRange, onCurrency, zone }: Da
         ) : null}
 
         <Panel id="payments" title={t("dashboard.payments", { currency: health.data?.currency ?? chosen ?? "" })} views={Views.payments} status={status}>
-          <Read q={health}>
+          <Read q={health} after={first}>
             {(h) => (
               <>
                 <dl className="bo-figures">
