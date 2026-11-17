@@ -127,6 +127,7 @@ object PlayersService:
     .withExtension(timers)
     .withExtension(HttpServer.of(PlayersService.endpoints(() => Oidc.authenticate())*))
     .start(name = "players") // the name the local console and `ankka mcp` list it under
-  PlayersService.started(timers, service.viewClient, service.componentClient)
+  // before `started`, whose seeding of the default roles may wait: a stop asked meanwhile still ends the service
   sys.addShutdownHook(service.terminate())
+  PlayersService.started(timers, service.viewClient, service.componentClient)
   scala.concurrent.Await.result(service.whenTerminated, scala.concurrent.duration.Duration.Inf): Unit
