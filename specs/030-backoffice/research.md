@@ -904,7 +904,8 @@ seeded brand fills in the rest.
     `medium` it ran out under the seed's registrations: at a quarter or half heap the JVM, at 60%
     the container (3aec766a, 338e90c3). No leak was looked for.
   - Players seeded its default roles on the starting thread and ended when a call missed its
-    10 seconds on a busy node; the seed now runs off that thread until it holds (b1e2a207).
+    10 seconds on a busy node; the seed is now tried again on that thread until it holds (d5bfc461;
+    b1e2a207 had moved it off the thread, which lost the roles' existing once the service started).
   - To fit the node, exchange, backoffice-probe, game-provider, attribution, public-api and
     markets are paused on kind-ankka's goldvibe; a suite that needs one of them is resumed for.
   - Gap, accepted (Trevor): on kind-ankka the seed is 3,000 players, 1,500 withdrawal requests and
