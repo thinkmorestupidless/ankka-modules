@@ -86,7 +86,8 @@ class OperatorsFeatures extends EngagementFeatures("operators.feature"):
       assert(r.has(field), s"$field in $r")
     assertEquals(rows.map(_.path("event").asText).toSet, Set("deposit_confirmed", "first_deposit_confirmed"))
     assert(rows.forall(r => r.path("class").asText.nonEmpty && r.path("channel").asText.nonEmpty), rows.toString)
-    val times = rows.map(r => Instant.parse(r.path("time").asText))
+    // ordered as the view stores time, to the microsecond: sends within one microsecond tie, in either order
+    val times = rows.map(r => Instant.parse(r.path("time").asText).truncatedTo(java.time.temporal.ChronoUnit.MICROS))
     assertEquals(times, times.sortWith(_.isAfter(_)))
   }
 
