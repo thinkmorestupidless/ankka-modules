@@ -212,6 +212,20 @@ object Realm:
       changed += "secret"
     (patch, changed.toVector)
 
+  /**
+   * The backoffice retries a refresh whose answer was lost with the same refresh token (backoffice-state's
+   * `SessionRefresh`), which a realm rotating refresh tokens refuses, signing the operator out. The
+   * operators' realm the tool imports leaves rotation off (`brands/_realm/eitheror-operators.json`); one
+   * that has it on is refused here, naming the setting, rather than signing operators out at random.
+   */
+  private def refuseRotation(admin: RealmAdmin): Unit =
+    admin.realmSettings(OperatorsRealm).flatMap(t => Try(jsonMapper.readTree(t)).toOption).filter(_.path("revokeRefreshToken").asBoolean(false))
+      .foreach { _ =>
+        throw ControlPlaneError(409, s"realm $OperatorsRealm rotates refresh tokens (revokeRefreshToken is on): the backoffice " +
+          "retries a refresh whose answer was lost with the same token, so an operator would be signed out. Turn it off in the realm's " +
+          "Tokens settings, then apply again.")
+      }
+
   /** The operators' realm an installation must hold before a brand's role is added to it. */
   def operators(root: Path): String =
     Files.readString(root.resolve("brands").resolve("_realm").resolve("eitheror-operators.json"))
@@ -254,6 +268,7 @@ object Realm:
         made += s"role $name added to realm $OperatorsRealm"
     }
     backoffice.foreach { (address, secret) =>
+      refuseRotation(admin)
       val id      = backofficeClientId(slug)
       val desired = jsonMapper.readTree(backofficeClient(slug, address, secret))
       admin.client(OperatorsRealm, id) match

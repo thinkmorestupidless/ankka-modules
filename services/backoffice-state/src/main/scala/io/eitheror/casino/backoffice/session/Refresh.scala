@@ -31,6 +31,12 @@ object RefreshFlow:
  * refresh at a time). The step asks the realm, then records the answer with the session, which takes it
  * only for the generation it is at; a refusal ends the session `revoked`. A realm that does not answer
  * is tried three times, then the flow ends `failed` and the session is left open.
+ *
+ * A retry, or a `failed` flow started again, asks with the same refresh token. That is safe only while
+ * the `eitheror` realm does not rotate refresh tokens: under rotation, an answer lost on the way back
+ * spends the token, the retry is refused, and the operator is signed out. The realm the modules tool
+ * imports leaves rotation off, and the tool refuses to add a brand's backoffice client to a realm that
+ * has it on (`Realm.ensure`, review of 2026-11-17).
  */
 final class SessionRefresh(context: WorkflowContext) extends Workflow[RefreshFlow]:
 

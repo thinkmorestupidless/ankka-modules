@@ -62,3 +62,19 @@ class RealmBackofficeClientSuite extends munit.FunSuite:
     val (_, none) = Realm.clientPatch(existing, mapper.readTree(Realm.backofficeClient("goldvibe", "https://bo.example/", None)))
     assertEquals(none, Vector.empty)
   }
+
+  test("an operators' realm that rotates refresh tokens is refused, naming the setting, and nothing is made (review Refresh.scala:42)") {
+    val admin = realms()
+    admin.realms(Realm.OperatorsRealm) = """{"realm":"eitheror","revokeRefreshToken":true,"refreshTokenMaxReuse":0}"""
+    val e = intercept[ControlPlaneError](Realm.ensure(admin, "goldvibe", "{}", None, Some("https://bo.example" -> Some("s"))))
+    assert(e.getMessage.contains("revokeRefreshToken"), e.getMessage)
+    assert(!admin.clients.contains(Realm.OperatorsRealm -> "backoffice-goldvibe"))
+    // a brand without the backoffice is not held to it
+    assertEquals(Realm.ensure(admin, "goldvibe", "{}", None, None), Vector.empty)
+  }
+
+  test("the operators' realm the tool imports leaves refresh-token rotation off") {
+    val root = java.nio.file.Paths.get(sys.props.getOrElse("casino.root", "."))
+    val tree = mapper.readTree(Realm.operators(root))
+    assertEquals(tree.path("revokeRefreshToken").asBoolean(false), false)
+  }
