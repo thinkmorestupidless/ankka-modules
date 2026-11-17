@@ -101,6 +101,35 @@ describe("the token cache", () => {
     expect(state.tokenCalls).toBe(2);
   });
 
+  test("reads it again 10 seconds after it was read, so a sign-out at another instance is in force within that", async () => {
+    const state = new FakeState();
+    state.sessions.set("s", token(300_000));
+    const cache = new TokenCache(state, () => now);
+    await cache.token("s");
+    now += 9_000;
+    await cache.token("s");
+    expect(state.tokenCalls).toBe(1);
+    now += 1_000;
+    state.sessions.delete("s");
+    expect(await cache.token("s")).toBeUndefined();
+    expect(state.tokenCalls).toBe(2);
+  });
+
+  test("parallel requests for a token to read again ask the state service once, and the roles' change is said once", async () => {
+    const state = new FakeState();
+    let answer: (t: Token) => void = () => undefined;
+    state.token = async () => {
+      state.tokenCalls++;
+      return new Promise<Token>((resolve) => (answer = resolve));
+    };
+    const cache = new TokenCache(state, () => now);
+    const asked = [cache.token("s"), cache.token("s"), cache.token("s")];
+    answer({ ...token(300_000), rolesChanged: true });
+    const got = await Promise.all(asked);
+    expect(state.tokenCalls).toBe(1);
+    expect(got.map((t) => t?.rolesChanged)).toEqual([true, false, false]);
+  });
+
   test("keeps nothing for a session that ended, and forgets one on sign-out", async () => {
     const state = new FakeState();
     const cache = new TokenCache(state, () => now);
