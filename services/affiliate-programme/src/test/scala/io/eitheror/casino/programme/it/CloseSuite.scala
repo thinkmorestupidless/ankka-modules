@@ -117,7 +117,7 @@ class CloseSuite extends munit.FunSuite with LogCapturing:
     assertEquals(close("2025-05").status, 200)
     val paid = payout(aff, "2025-05")(_.get("status").asText == "paid")
     assertEquals(paid.get("totalPayable").asLong, 5_000L)
-    close("2025-06"): Unit
+    closed("2025-06"): Unit // a close already running when asked joins it, and may not hold the late fact
     assertEquals(payout(aff, "2025-06")().get("totalPayable").asLong, 1_000L)
   }
 
