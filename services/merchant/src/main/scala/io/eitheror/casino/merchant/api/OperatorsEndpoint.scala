@@ -105,16 +105,16 @@ final class OperatorsEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/operators"):
 
     /**
      * The operators in the caller's scope, newest first, paged (spec 030 H5): `page` from 1, `pageSize`
-     * 1 to 200 (25 by default), and `total` however few a page lists.
+     * 1 to 200 (25 by default), and `total` however few a page lists. The view orders and pages; only the
+     * page's operators are read from their entities, for what the view does not hold (the email, the names).
      */
     get("/") { () =>
       val caller = op
-      val rows   = ctx.views.forView(OperatorsView).all(10_000).filter(r => OperatorsView.inScope(caller.scope, r))
-      val states = rows.map(r => operator(r.operatorId).call(OperatorEntity.get).invoke())
-        .sortBy(s => (s.createdAt.map(-_.toEpochMilli).getOrElse(0L), s.id))
-      val page = request.query.raw("page").flatMap(_.toIntOption).map(math.max(1, _)).getOrElse(1)
-      val size = request.query.raw("pageSize").flatMap(_.toIntOption).filter(n => n >= 1 && n <= 200).getOrElse(25)
-      ok(Json.obj("operators" -> Json.arr(states.slice((page - 1) * size, page * size).map(summary)*), "total" -> states.size,
+      val page   = request.query.raw("page").flatMap(_.toIntOption).map(n => math.min(1_000_000, math.max(1, n))).getOrElse(1)
+      val size   = request.query.raw("pageSize").flatMap(_.toIntOption).filter(n => n >= 1 && n <= 200).getOrElse(25)
+      val rows   = OperatorsView.page(ctx.views, caller.scope, (page - 1) * size, size)
+      val states = rows.map(r => operator(r.operatorId).call(OperatorEntity.get).invoke()).filter(_.exists)
+      ok(Json.obj("operators" -> Json.arr(states.map(summary)*), "total" -> OperatorsView.total(ctx.views, caller.scope),
         "page" -> page, "pageSize" -> size))
     }
 

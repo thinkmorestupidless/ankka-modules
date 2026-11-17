@@ -52,6 +52,13 @@ class OperatorsSuite extends SharedKitSuite:
     assertEquals(listed(page("?page=3&pageSize=2")), Vector.empty)
     assertEquals(page("?pageSize=500").json.long("pageSize"), Some(25L), "a size over 200 is the default")
     assertEquals(page("?page=0").json.long("page"), Some(1L))
+    // the view pages by scope: a company operator reaches them through their ancestors, another holding's none
+    val company = kit.asOperator(level = "company", scopeId = r.companyId, roles = "resource_admin", subject = "lister")
+    val viaAncestors = kit.request("GET", "/v1/operators?pageSize=2", None, company)
+    assertEquals((viaAncestors.json.long("total"), listed(viaAncestors)), (Some(3L), ids.reverse.take(2).toVector))
+    val elsewhere = kit.asOperator(level = "holding", scopeId = kit.subBrand().holdingId, roles = "resource_owner", subject = "lister")
+    val none = kit.request("GET", "/v1/operators", None, elsewhere)
+    assertEquals((none.json.long("total"), listed(none)), (Some(0L), Vector.empty))
   }
 
   test("accepting the invitation sets the password once; a second accept with the same token is refused") {
