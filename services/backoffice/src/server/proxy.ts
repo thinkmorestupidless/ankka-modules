@@ -12,7 +12,7 @@ export interface ProxyDeps {
   timeoutMs: number;
 }
 
-/** The headers of an owner's answer the page may need; nothing else is passed back. */
+/** The headers of an owner's answer the page may need; nothing else is passed back (see `answeredHeaders`). */
 const Answered = ["content-type", "content-disposition", "content-length", "retry-after", "location"];
 /** The headers of the page's request an owner may need. */
 const Asked = ["content-type", "accept", "accept-language", "traceparent", "tracestate"];
@@ -75,10 +75,21 @@ export async function pass(deps: ProxyDeps, m: Matched, req: Request, accessToke
     await answer.body?.cancel();
     return { response: unavailable(m.row.service), why: `proxy ${answer.status}` };
   }
-  const out = new Headers();
+  return { response: new Response(answer.body, { status: answer.status, headers: answeredHeaders(answer.headers) }) };
+}
+
+/**
+ * The owner's headers the page is given. fetch hands over the body decoded, so an owner's
+ * `Content-Length` is kept only for a body it sent unencoded: the length of a compressed body is not
+ * the length of what is passed on. Every answer is `nosniff`: an owner's bytes are never run as
+ * another type.
+ */
+export function answeredHeaders(given: Headers): Headers {
+  const out = new Headers({ "X-Content-Type-Options": "nosniff" });
+  const encoded = (given.get("content-encoding") ?? "identity").trim().toLowerCase() !== "identity";
   for (const h of Answered) {
-    const v = answer.headers.get(h);
-    if (v !== null) out.set(h, v);
+    const v = given.get(h);
+    if (v !== null && !(encoded && h === "content-length")) out.set(h, v);
   }
-  return { response: new Response(answer.body, { status: answer.status, headers: out }) };
+  return out;
 }
