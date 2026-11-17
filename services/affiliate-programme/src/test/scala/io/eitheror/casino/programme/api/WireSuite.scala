@@ -21,6 +21,9 @@ class WireSuite extends munit.FunSuite:
     assertEquals(paging("page" -> "3", "pageSize" -> "200"), Right((3, 200)))
     assertEquals(paging("pageSize" -> "201"), Left("pageSize"))
     assertEquals(paging("pageSize" -> "0"), Left("pageSize"))
+    // review S4: a page whose offset would overflow is refused, not served as the first
+    assertEquals(paging("page" -> "10737419", "pageSize" -> "200"), Left("page"))
+    assertEquals(paging("page" -> Backoffice.LastPage.toString, "pageSize" -> "200"), Right((Backoffice.LastPage, 200)))
     assertEquals(paging("page" -> "0"), Left("page"))
     assertEquals(paging("page" -> "two"), Left("page"))
   }

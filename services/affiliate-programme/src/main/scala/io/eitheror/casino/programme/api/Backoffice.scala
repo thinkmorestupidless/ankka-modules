@@ -210,7 +210,7 @@ final class Backoffice(api: Api):
     val month  = Periods.Range.parse(Periods.periodOf(api.now(), b.zone)).get
     val tags   = q("tags").fold(Set.empty[String])(_.split(',').map(_.trim).filter(_.nonEmpty).toSet)
     val needle = q("search").map(_.trim.toLowerCase).filter(_.nonEmpty)
-    val offset = (pageNo - 1) * size
+    val offset = math.min((pageNo - 1).toLong * size, Int.MaxValue.toLong).toInt
     val sortBy = q("sortBy").getOrElse("createdAt")
     val desc   = q("sortDir").forall(_.equalsIgnoreCase("desc"))
     val candidates = api.views.forView(Memberships).ask(Memberships.byBrand, "brand" -> brand)
@@ -307,6 +307,9 @@ object Backoffice:
     for
       page <- number("page", 1)
       size <- number("pageSize", PageSize)
-      _    <- Either.cond(page >= 1, (), "page")
+      _    <- Either.cond(page >= 1 && page <= LastPage, (), "page")
       _    <- Either.cond(size >= 1 && size <= MaxPage, (), "pageSize")
     yield (page, size)
+
+  /** The last page a request may name, so `(page - 1) * pageSize` stays an `Int` (review S4). */
+  val LastPage: Int = Int.MaxValue / MaxPage
