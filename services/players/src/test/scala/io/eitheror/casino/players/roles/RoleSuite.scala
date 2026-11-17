@@ -79,6 +79,16 @@ class RoleSuite extends munit.FunSuite with LogCapturing:
     assertEquals(RoleRules.escalation(Set("roles.give", "player.read"), Set("player.read")), None)
   }
 
+  test("giving: what a giving takes away weighs as much as what it adds; a role since deleted carries nothing") {
+    val bags  = Map("brand_admin" -> Set("roles.change", "roles.give", "player.read"), "brand_support" -> Set("player.read"))
+    val giver = Set("roles.give", "player.read")
+    assertEquals(RoleRules.givingLacks(giver, bags, before = Set("brand_admin"), asked = Set.empty), Some("roles.change"))
+    assertEquals(RoleRules.givingLacks(giver, bags, before = Set("brand_admin"), asked = Set("brand_support")), Some("roles.change"))
+    assertEquals(RoleRules.givingLacks(giver, bags, before = Set("brand_support"), asked = Set.empty), None)
+    assertEquals(RoleRules.givingLacks(giver, bags, before = Set("vip_gone"), asked = Set("brand_support")), None)
+    assertEquals(RoleRules.givingLacks(giver, bags, before = Set.empty, asked = Set("brand_admin")), Some("roles.change"))
+  }
+
   test("every change to a role is an audit record naming the operator, the role and the permissions before and after") {
     val e = RoleEvent.PermissionsChanged("", Set("player.read", "adjustment.make"), Set("player.read"), "op-1", at)
     val r = Facts.roleAudit("goldvibe", "brand_finance", 3, e).get.fact

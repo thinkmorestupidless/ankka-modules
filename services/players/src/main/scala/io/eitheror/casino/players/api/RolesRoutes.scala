@@ -71,8 +71,9 @@ final class RolesRoutes(ctx: Ctx):
 
   /**
    * `{"roles": […]}`: every role the brand gives `operator`, replacing what it gave before. Refused, naming
-   * the permission, when the giver's own permissions lack one the roles carry; then merchant is asked to set
-   * them in the realm (amendment H6), and only once it has, the giving is recorded.
+   * the permission, when the giver's own permissions lack one carried by a role it gives or takes away (what
+   * the brand gave last, less what is asked); then merchant is asked to set them in the realm (amendment H6),
+   * and only once it has, the giving is recorded.
    */
   def give(p: Principal, operator: String, text: String): Reply =
     val roles = Json.parse(text).filter(_.isObject).map(_.strings("roles").toSet)
@@ -85,11 +86,12 @@ final class RolesRoutes(ctx: Ctx):
             refusal(400, RoleRules.ReservedRole, s"$r is not a role the brand gives", "role" -> r)
           case Some(r) => refusal(404, RoleRules.NoSuchRole, s"the brand has no role $r", "role" -> r)
           case None =>
-            val holds = OperatorPermissions.permissionsOf(p.roles, bags)
-            val carried = asked.flatMap(bags)
-            RoleRules.escalation(holds, carried) match
+            val holds  = OperatorPermissions.permissionsOf(p.roles, bags)
+            val before = components.forEventSourcedEntity(RoleAssignment.id(operator)).call(RoleAssignment.get).invoke().roles
+            RoleRules.givingLacks(holds, bags, before, asked) match
               case Some(missing) =>
-                refusal(403, RoleRules.GiverLacks, s"the $missing permission is needed to give a role that carries it", "permission" -> missing)
+                refusal(403, RoleRules.GiverLacks, s"the $missing permission is needed to give or take away a role that carries it",
+                  "permission" -> missing)
               case None => setAtMerchant(p, operator, asked)
 
   private def setAtMerchant(p: Principal, operator: String, roles: Set[String]): Reply =
