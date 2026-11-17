@@ -101,7 +101,10 @@ async function take(w: World, a: ActionDescription) {
   await main(w).getByRole("button", { name: t(a.label) }).first().click();
   const dialog = w.page.getByRole("dialog");
   await expect(dialog).toContainText(t(a.effect));
-  await dialog.getByRole("button", { name: t("action.confirm") }).click();
+  const confirm = dialog.getByRole("button", { name: t("action.confirm") });
+  // a dialog keeps its buttons on the screen, however wide its subject (CI's fonts once pushed them off)
+  await expect(confirm).toBeInViewport({ ratio: 1 });
+  await confirm.click();
   await expect(dialog).toBeHidden();
 }
 
