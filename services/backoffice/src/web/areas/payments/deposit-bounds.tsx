@@ -77,7 +77,8 @@ function BoundsForm({ subBrand }: { subBrand: string }) {
       <p className="bo-muted">{t("payments.bounds.note")}</p>
       {rows.length === 0 ? <p className="bo-muted">{t("payments.bounds.none")}</p> : null}
       <ConfigForm
-        key={keyOf([held, rows.length])}
+        // drawn again from merchant's answer once saved; a row added keeps what was typed in the others
+        key={keyOf([held])}
         fields={boundFields(rows)}
         values={values}
         action={Actions["payments.bounds"]}
