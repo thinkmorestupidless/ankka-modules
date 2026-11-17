@@ -272,7 +272,7 @@ class StateIt extends munit.FunSuite:
     assertEquals((again.path("sessionsEnded").asInt, again.path("preferencesDeleted").asBoolean), (0, false))
   }
 
-  test("no token, name or email is in any log line, and the name and email are sealed in the database") {
+  test("no token, name or email is in any log line, and the tokens, name and email are sealed in the database") {
     val session = signIn().path("session").asText
     val access  = token(session).json.path("accessToken").asText
     val held    = realm.last.toVector.flatMap(t => Vector(t.accessToken.reveal, t.refreshToken.reveal)) :+ access
@@ -280,4 +280,5 @@ class StateIt extends munit.FunSuite:
     held.foreach(t => assert(!text.contains(t), "a token was logged"))
     assert(!text.contains("ada@example.com"))
     kit.assertNoPersonalValue("ada@example.com", "Ada Operator")
+    kit.assertNoPersonalValue(held*)
   }

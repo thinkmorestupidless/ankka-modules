@@ -20,15 +20,17 @@ object EndReason:
 
 /**
  * An operator's sign-in (data-model.md `Session`). The subject, name and email are personal fields of the
- * data subject `operator/<subject>`; the tokens are the realm's, cleared by `Ended`. `refreshes` counts the
+ * data subject `operator/<subject>`, and so are the tokens: the realm's access token carries the
+ * operator's name and email among its claims, so it is sealed under the same key and an erasure leaves
+ * it unreadable too. `Ended` clears them. `refreshes` counts the
  * refreshes recorded: the generation a refresh is claimed for, so two callers near expiry make one.
  */
 final case class SessionState(
     subject: Option[Personal[String]] = None,
     name: Option[Personal[String]] = None,
     email: Option[Personal[String]] = None,
-    accessToken: Option[Secret] = None,
-    refreshToken: Option[Secret] = None,
+    accessToken: Option[Personal[String]] = None,
+    refreshToken: Option[Personal[String]] = None,
     accessExpiresAt: Option[Instant] = None,
     refreshExpiresAt: Option[Instant] = None,
     roles: Set[String] = Set.empty,
@@ -43,13 +45,32 @@ final case class SessionState(
   /** The realm's subject, from the data subject (in the clear, and kept by an erasure). */
   def subjectId: String = subject.fold("")(p => Session.subjectOf(p.subject))
 
+  /** The access token, while it reads as present. */
+  def access: Option[Secret] = accessToken.flatMap(Session.secretOf)
+
+  /** The refresh token, while it reads as present. */
+  def refresh: Option[Secret] = refreshToken.flatMap(Session.secretOf)
+
   /** Open and not past the refresh token's expiry at `now`. */
   def liveAt(now: Instant): Boolean = open && refreshExpiresAt.exists(now.isBefore)
 
 sealed trait SessionEvent
 object SessionEvent:
+  /**
+   * Opened, the tokens sealed under the operator's data subject (spec 030 review). [[Opened]] and
+   * [[Refreshed]] wrote them in the clear; they are kept so a journal that holds them still recovers,
+   * and are no longer written.
+   */
+  final case class Signed(subject: Personal[String], name: Personal[String], email: Personal[String],
+      accessToken: Personal[String], refreshToken: Personal[String], accessExpiresAt: Instant, refreshExpiresAt: Instant,
+      roles: Set[String], at: Instant) extends SessionEvent
+  /** Refreshed, the tokens sealed under the operator's data subject. */
+  final case class Renewed(accessToken: Personal[String], refreshToken: Personal[String], accessExpiresAt: Instant,
+      refreshExpiresAt: Instant, roles: Set[String], at: Instant) extends SessionEvent
+  /** Written before the tokens were sealed; read, never written. */
   final case class Opened(subject: Personal[String], name: Personal[String], email: Personal[String], accessToken: Secret,
       refreshToken: Secret, accessExpiresAt: Instant, refreshExpiresAt: Instant, roles: Set[String], at: Instant) extends SessionEvent
+  /** Written before the tokens were sealed; read, never written. */
   final case class Refreshed(accessToken: Secret, refreshToken: Secret, accessExpiresAt: Instant, refreshExpiresAt: Instant,
       roles: Set[String], at: Instant) extends SessionEvent
   final case class Ended(reason: String, at: Instant) extends SessionEvent
@@ -103,12 +124,20 @@ final class Session(@scala.annotation.unused context: EventSourcedEntityContext)
   def emptyState: SessionState = SessionState()
 
   def applyEvent(event: SessionEvent): SessionState = event match
-    case e: Opened =>
+    case e: Signed =>
       SessionState(Some(e.subject), Some(e.name), Some(e.email), Some(e.accessToken), Some(e.refreshToken), Some(e.accessExpiresAt),
         Some(e.refreshExpiresAt), e.roles, Some(e.at))
-    case e: Refreshed =>
+    case e: Renewed =>
       currentState.copy(accessToken = Some(e.accessToken), refreshToken = Some(e.refreshToken), accessExpiresAt = Some(e.accessExpiresAt),
         refreshExpiresAt = Some(e.refreshExpiresAt), roles = e.roles, refreshes = currentState.refreshes + 1)
+    case e: Opened =>
+      val d = e.subject.subject
+      SessionState(Some(e.subject), Some(e.name), Some(e.email), Some(Personal(d, e.accessToken.reveal)), Some(Personal(d, e.refreshToken.reveal)),
+        Some(e.accessExpiresAt), Some(e.refreshExpiresAt), e.roles, Some(e.at))
+    case e: Refreshed =>
+      val d = currentState.subject.fold(Session.dataSubject(""))(_.subject)
+      currentState.copy(accessToken = Some(Personal(d, e.accessToken.reveal)), refreshToken = Some(Personal(d, e.refreshToken.reveal)),
+        accessExpiresAt = Some(e.accessExpiresAt), refreshExpiresAt = Some(e.refreshExpiresAt), roles = e.roles, refreshes = currentState.refreshes + 1)
     case e: Ended =>
       currentState.copy(accessToken = None, refreshToken = None, endedAt = Some(e.at), endReason = Some(e.reason))
 
@@ -117,8 +146,9 @@ final class Session(@scala.annotation.unused context: EventSourcedEntityContext)
     else
       val t       = c.tokens
       val subject = Session.dataSubject(t.subject)
-      effects.persist(Opened(Personal(subject, t.subject), Personal(subject, t.name), Personal(subject, t.email), t.accessToken,
-        t.refreshToken, t.accessExpiresAt, t.refreshExpiresAt, t.roles, c.at)).thenReply(Session.summary)
+      effects.persist(Signed(Personal(subject, t.subject), Personal(subject, t.name), Personal(subject, t.email),
+        Personal(subject, t.accessToken.reveal), Personal(subject, t.refreshToken.reveal), t.accessExpiresAt, t.refreshExpiresAt,
+        t.roles, c.at)).thenReply(Session.summary)
 
   def token(a: TokenAsk): ReadOnlyEffect[TokenAnswer] = effects.reply(Session.answer(currentState, a.now, Session.Margin))
 
@@ -127,21 +157,22 @@ final class Session(@scala.annotation.unused context: EventSourcedEntityContext)
 
   /** The refresh token, for the flow refreshing `generation`; none once the session has moved on or ended. */
   def refreshTokenFor(generation: Int): ReadOnlyEffect[Option[Secret]] =
-    effects.reply(if currentState.open && currentState.refreshes == generation then currentState.refreshToken else None)
+    effects.reply(if currentState.open && currentState.refreshes == generation then currentState.refresh else None)
 
   def refreshed(r: Refresh): Effect[RefreshOutcome] =
     val s = currentState
-    if !s.open || s.refreshes != r.generation then effects.reply(RefreshOutcome(applied = false))
+    if !s.open || s.refreshes != r.generation || s.subject.isEmpty then effects.reply(RefreshOutcome(applied = false))
     else
       val t = r.tokens
-      effects.persist(Refreshed(t.accessToken, t.refreshToken, t.accessExpiresAt, t.refreshExpiresAt, t.roles, r.at))
+      val d = s.subject.get.subject
+      effects.persist(Renewed(Personal(d, t.accessToken.reveal), Personal(d, t.refreshToken.reveal), t.accessExpiresAt, t.refreshExpiresAt, t.roles, r.at))
         .thenReply(_ => RefreshOutcome(applied = true, rolesChanged = t.roles != s.roles))
 
   def end(c: End): Effect[EndOutcome] =
     val s = currentState
     if !EndReason.all(c.reason) then effects.error(s"no such reason: ${c.reason}", ErrorCode.BadRequest)
     else if !s.open then effects.reply(EndOutcome(ended = false))
-    else effects.persist(Ended(c.reason, c.at)).expireAfter(Session.KeptAfterEnd).thenReply(_ => EndOutcome(ended = true, s.refreshToken))
+    else effects.persist(Ended(c.reason, c.at)).expireAfter(Session.KeptAfterEnd).thenReply(_ => EndOutcome(ended = true, s.refresh))
 
   /** The expiry timer's check: ends the session at the refresh token's expiry, or answers when that now is. */
   def expire(a: ExpireAsk): Effect[ExpiryOutcome] =
@@ -172,6 +203,11 @@ object Session
   def dataSubject(subject: String): DataSubject = DataSubject(s"$SubjectPrefix$subject")
   def subjectOf(d: DataSubject): String          = d.value.stripPrefix(SubjectPrefix)
 
+  /** A sealed token as the realm's credential; none once its data subject is erased. */
+  def secretOf(p: Personal[String]): Option[Secret] = p match
+    case Personal.Present(_, value) => Some(Secret(value))
+    case _                          => None
+
   private val random = SecureRandom()
 
   /** A new session id: 256 random bits, in hex. */
@@ -190,8 +226,8 @@ object Session
     else
       val until = s.accessExpiresAt.getOrElse(Instant.EPOCH)
       val left  = java.time.Duration.between(now, until)
-      if s.accessToken.isDefined && !left.isNegative && left.toMillis >= margin.toMillis && now.isBefore(until) then
-        TokenAnswer(TokenAnswer.Current, s.accessToken, s.accessExpiresAt, s.roles, s.refreshes)
+      if s.access.isDefined && !left.isNegative && left.toMillis >= margin.toMillis && now.isBefore(until) then
+        TokenAnswer(TokenAnswer.Current, s.access, s.accessExpiresAt, s.roles, s.refreshes)
       else TokenAnswer(TokenAnswer.Stale, generation = s.refreshes)
 
   given Serializer[Open]            = StateCodecs.serializer[Open]("open")
