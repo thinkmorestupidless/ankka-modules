@@ -16,6 +16,9 @@ export interface WithdrawalsDeps extends ProxyDeps {
 /** The most player ids one search is resolved to. */
 export const MaxPlayers = 100;
 
+/** An owner's success whose body is not the JSON it promised. */
+const unreadable = (source: string) => Response.json({ error: "unreadable", source }, { status: 502 });
+
 const Uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const ask = (deps: WithdrawalsDeps, service: string, path: string, query: URLSearchParams, accessToken: string) => {
@@ -33,8 +36,9 @@ async function resolve(deps: WithdrawalsDeps, q: string, accessToken: string): P
     return unavailable("players");
   }
   if (!response.ok) return response;
-  const body = (await response.json()) as { items?: { playerId?: unknown }[]; total?: unknown };
-  const ids = [...new Set((body.items ?? []).map((i) => i.playerId).filter((p): p is string => typeof p === "string" && p !== ""))];
+  const body = (await response.json().catch(() => undefined)) as { items?: { playerId?: unknown }[]; total?: unknown } | undefined;
+  if (body === undefined || body === null || typeof body !== "object") return unreadable("players");
+  const ids = [...new Set((Array.isArray(body.items) ? body.items : []).map((i) => i.playerId).filter((p): p is string => typeof p === "string" && p !== ""))];
   return { ids, more: typeof body.total === "number" && body.total > ids.length };
 }
 
@@ -56,7 +60,8 @@ export async function withdrawals(deps: WithdrawalsDeps, query: URLSearchParams,
   }
   const { response } = await ask(deps, "payouts", "/withdrawal-requests", forwarded, accessToken);
   if (!response.ok || resolved === undefined) return response;
-  const body = (await response.json()) as Record<string, unknown>;
+  const body = (await response.json().catch(() => undefined)) as Record<string, unknown> | undefined;
+  if (body === undefined || body === null || typeof body !== "object" || Array.isArray(body)) return unreadable("payouts");
   const players = { matched: resolved.ids.length, more: resolved.more };
   if (resolved.ids.length === 0) {
     const whole = (name: string, otherwise: number) => {

@@ -202,14 +202,21 @@ export function createApp(deps: Deps): Hono<Env> {
   };
   const names = operatorNames({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 3_000) }, deps.now);
   const playerOf = (c: Context) => new URL(c.req.url).pathname.split("/")[3] ?? "";
+  /** The player's id as the page named it, decoded; undefined for a malformed escape. */
+  const decodedPlayer = (c: Context) => decoded(playerOf(c));
+  const badPlayer = (c: Context) => c.json({ error: "invalid_player", message: "the player's id is not a well-formed path segment" }, 400);
   app.get("/api/players/:player/standing", async (c) => {
     c.set("logPath", "/api/players/{p}/standing");
     const token = c.get("token");
-    return c.json(await standing({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 3_000) }, decodeURIComponent(playerOf(c)), token.accessToken, await heldBy(token.roles)));
+    const player = decodedPlayer(c);
+    if (player === undefined) return badPlayer(c);
+    return c.json(await standing({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 3_000) }, player, token.accessToken, await heldBy(token.roles)));
   });
   app.get("/api/players/:player/timeline", async (c) => {
     c.set("logPath", "/api/players/{p}/timeline");
     const token = c.get("token");
+    const player = decodedPlayer(c);
+    if (player === undefined) return badPlayer(c);
     const instant = (name: string) => {
       const v = c.req.query(name);
       if (v === undefined || v === "") return { ok: true as const, value: undefined };
@@ -227,7 +234,7 @@ export function createApp(deps: Deps): Hono<Env> {
     return c.json(
       await timeline(
         { ...deps, timeoutMs: Math.min(deps.timeoutMs, 3_000), names: (ids) => names(ids, token.accessToken, me, holds) },
-        decodeURIComponent(playerOf(c)),
+        player,
         { from: from.value, to: to.value, after: after.value, kinds },
         token.accessToken,
         holds,
@@ -252,8 +259,8 @@ export function createApp(deps: Deps): Hono<Env> {
     const request = new Request(`http://backoffice/players/${player}/activity-export`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(asked) });
     const { response } = await pass({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 10_000) }, m, request, token.accessToken);
     if (!response.ok) return response;
-    const answer = (await response.json()) as { exportId?: string };
-    return answer.exportId ? c.json({ reference: answer.exportId }, 202) : c.json({ error: "unreadable" }, 502);
+    const answer = (await response.json().catch(() => ({}))) as { exportId?: unknown };
+    return typeof answer.exportId === "string" && answer.exportId !== "" ? c.json({ reference: answer.exportId }, 202) : c.json({ error: "unreadable" }, 502);
   });
 
   // The operator's worklist (contracts/sources.md): the kinds their roles admit, each asked of its owner as them, 3 s each.
@@ -407,7 +414,9 @@ async function isFile(file: string): Promise<boolean> {
 
 /** A built file, immutable under assets/; any other path that is not a file is the page, uncached (FR-042). */
 export async function serveBuilt(dist: string, pathname: string): Promise<Response> {
-  const file = path.join(dist, decodeURIComponent(pathname));
+  const name = decoded(pathname);
+  if (name === undefined) return new Response(null, { status: 404 });
+  const file = path.join(dist, name);
   if (!file.startsWith(dist + path.sep) && file !== dist) return new Response(null, { status: 404 });
   if (await isFile(file)) {
     const immutable = file.startsWith(path.join(dist, "assets") + path.sep);
@@ -422,6 +431,15 @@ export async function serveBuilt(dist: string, pathname: string): Promise<Respon
   return new Response(await readFile(path.join(dist, "index.html")), {
     headers: { "Content-Type": types[".html"]!, "Cache-Control": "no-cache" },
   });
+}
+
+/** A path's text decoded, or undefined when it holds a malformed escape (`%zz`). */
+function decoded(text: string): string | undefined {
+  try {
+    return decodeURIComponent(text);
+  } catch {
+    return undefined;
+  }
 }
 
 /** `payments=payments,programme=programme` to a map. */
