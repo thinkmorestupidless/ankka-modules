@@ -360,13 +360,15 @@ final class BackofficeEndpoint(ctx: Context) extends HttpEndpoint("/v1/casino/ba
         case Right(paging) =>
           // Oldest first (a review queue, spec 030 FR-009). An entry is one of a round row's nested entries, which
           // a view query cannot page, so the page is cut in memory from the open entries of at most 10,000 rounds.
-          val open = Unacknowledgements.open(ctx)
+          val rows = Unacknowledgements.rows(ctx)
+          val open = Unacknowledgements.entries(rows)
           val entries = paging.fold(open)(_.of(open)).map { (row, e) =>
             Json.obj("transactionId" -> e.transactionId, "callback" -> e.callback, "kind" -> e.kind, "amount" -> e.amount, "currency" -> row.currency,
               "provider" -> row.provider, "roundId" -> row.roundId, "playerId" -> row.playerId, "error" -> e.error, "recordedAt" -> e.recordedAt.toString)
           }
+          // `limited`: the rounds read reached the cap, so `total` counts the open entries of those rounds only
           ok(Json.obj("entries" -> Json.arr(entries*), "total" -> open.size.toLong, "page" -> paging.map(_.page),
-            "pageSize" -> paging.map(_.pageSize)))
+            "pageSize" -> paging.map(_.pageSize), "limited" -> (rows.size >= Unacknowledgements.MaxRounds)))
     }
 
     post("/{brand}/game-provider/unacknowledged/{transactionId}/replay") { (segment: String, transactionId: String) =>
@@ -477,11 +479,16 @@ object RoundReads:
 
 /** The open unacknowledged callbacks, from the view (FR-020). */
 object Unacknowledgements:
-  def rows(ctx: Context): Vector[UnacknowledgedRow] =
-    ctx.views.forView(Unacknowledged).where(jsonNumber("openCount") ++ sql" > ${0}", 10_000)
+  /** The most rounds one read takes; an answer that reached it says `limited`. */
+  val MaxRounds = 10_000
 
-  def open(ctx: Context): Vector[(UnacknowledgedRow, UnacknowledgedEntry)] =
-    rows(ctx).flatMap(r => r.entries.filter(_.open).map(r -> _)).sortBy(_._2.recordedAt)
+  def rows(ctx: Context): Vector[UnacknowledgedRow] =
+    ctx.views.forView(Unacknowledged).where(jsonNumber("openCount") ++ sql" > ${0}", MaxRounds)
+
+  def entries(rows: Vector[UnacknowledgedRow]): Vector[(UnacknowledgedRow, UnacknowledgedEntry)] =
+    rows.flatMap(r => r.entries.filter(_.open).map(r -> _)).sortBy(_._2.recordedAt)
+
+  def open(ctx: Context): Vector[(UnacknowledgedRow, UnacknowledgedEntry)] = entries(rows(ctx))
 
   def find(ctx: Context, transactionId: String): Option[(UnacknowledgedRow, UnacknowledgedEntry)] =
     open(ctx).find(_._2.transactionId == transactionId)

@@ -20,7 +20,7 @@ Roles: **S** `brand_support`, **F** `brand_finance`, **C** `brand_compliance`, *
 
 | Permission | S | F | C | A | Required by |
 |---|---|---|---|---|---|
-| `player.read` (profile, standing, sessions, rounds, activity, notes, messages) | ✓ | ✓ | ✓ | ✓ | players, game-provider `rounds` |
+| `player.read` (profile, standing, sessions, rounds, activity, notes, messages) | ✓ | ✓ | ✓ | ✓ | players, game-provider `rounds`, engagement `backoffice`, support-agent `config` |
 | `wallet.read` (balances, restricted funds, lifetime totals, transactions) | ✓ | ✓ | ✓ | ✓ | wallet |
 | `withdrawal.read` (queue, request, a player's history) | ✓ | ✓ | ✓ | ✓ | payouts |
 | `reward.read` (list, a reward, a player's rewards) | ✓ | ✓ | ✓ | ✓ | rewards |
@@ -48,7 +48,7 @@ Roles: **S** `brand_support`, **F** `brand_finance`, **C** `brand_compliance`, *
 | `report.dayEnd` | | ✓ | | ✓ | reporting |
 | `report.compliance` | | | ✓ | ✓ | reporting |
 | `offer.manage` | | | | ✓ | rewards |
-| `config.brand` (sites, countries, currencies, withdrawal, wagering, reward settings, reporting settings, identity policy, protection settings) | | | | ✓ | players, payouts, wallet, reporting, kyc, responsible-gambling |
+| `config.brand` (sites, countries, currencies, withdrawal, wagering, reward settings, reporting settings, identity policy, protection settings) | | | | ✓ | players, payouts, wallet, reporting, kyc, responsible-gambling, public-api `status` |
 | `config.games` (providers, catalogue, overrides) | | | | ✓ | game-provider |
 | `config.crm` | | | | ✓ | engagement |
 | `config.agent` | | | | ✓ | support-agent |
@@ -68,6 +68,12 @@ Roles: **S** `brand_support`, **F** `brand_finance`, **C** `brand_compliance`, *
 - **The affiliate programme** (`Access.manager`): `affiliate_manager`, `brand_admin`,
   `platform_admin`; managers by `brand_admin`.
 - **Audit** (`audit_compliance*`, `reidentify_*`) and **access keys** (`api_keys`).
+- **The predictions module's `markets` role** (spec 023 FR-004): it still opens `markets`' and
+  `exchange`'s operator routes by name (`operatorHolding`), and carries nothing in a brand's bags.
+  Before this spec reporting's market report admitted it beside the report roles; under E3 the
+  report needs `report.read`, as no `operatorMay` route names a role. A brand whose trading desk
+  reads the market report gives it a role carrying `report.read` (review Q6, 2026-11-17; reporting's
+  `PredictionsSuite` holds the `markets` role alone refused).
 
 ## What changes in each service
 

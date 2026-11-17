@@ -128,7 +128,11 @@ final case class RequestState(
     initiatedAt: Option[Instant] = None,
     settledAt: Option[Instant] = None,
     erased: Boolean = false,
-    /** The player's real balance and restricted funds when the request was made (spec 030 Y3); none on an older request. */
+    /**
+     * When the request was made (spec 030 Y3): the player's available real balance, the real balance less
+     * what was reserved, as the wallet's preview read it (`WithdrawalWorkflow.openStep`), and the restricted
+     * funds; none on an older request.
+     */
     balancesAtRequest: Option[Long] = None,
     restrictedAtRequest: Option[Long] = None,
     transitions: Vector[Transition] = Vector.empty
