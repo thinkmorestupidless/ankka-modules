@@ -38,6 +38,8 @@ export interface ConfigField {
   /** The value the brand's licence profile sets, where the owner gives one. */
   profile?: ConfigValue;
   hint?: MessageKey;
+  /** A key or a credential: typed unseen, and never echoed (shown as set or none, confirmed as changed). */
+  secret?: boolean;
 }
 
 export interface ConfigFormProps {
@@ -100,6 +102,7 @@ export function parse(f: ConfigField, d: Draft): ConfigValue | undefined {
 
 /** A value as a person reads it. */
 export function shown(f: ConfigField, v: ConfigValue | undefined): string {
+  if (f.secret) return v === null || v === undefined || v === "" ? t("config.form.none") : t("config.form.secretSet");
   if (v === null || v === undefined || (Array.isArray(v) && v.length === 0) || v === "") return t("config.form.none");
   if (typeof v === "boolean") return v ? t("config.form.yes") : t("config.form.no");
   if (Array.isArray(v)) return v.join(", ");
@@ -178,6 +181,8 @@ export function ConfigForm({ fields, values, action, save, onDone, primary = tru
             <input
               id={id}
               className="bo-input"
+              type={f.secret ? "password" : undefined}
+              autoComplete={f.secret ? "new-password" : undefined}
               value={String(d)}
               inputMode={f.kind === "whole" ? "numeric" : f.kind === "money" ? "decimal" : undefined}
               disabled={!editable}
@@ -213,7 +218,7 @@ export function ConfigForm({ fields, values, action, save, onDone, primary = tru
             me={me}
             bags={bags}
             ready={unreadable.length === 0 && changed.length > 0}
-            subject={<p>{changed.length === 0 ? t("config.nothingChanged") : t("config.changes", { fields: changed.map((f) => `${t(f.label, f.labelValues)}: ${shown(f, parsed[f.name])}`).join("; ") })}</p>}
+            subject={<p>{changed.length === 0 ? t("config.nothingChanged") : t("config.changes", { fields: changed.map((f) => `${t(f.label, f.labelValues)}: ${f.secret ? t("config.form.secretChanged") : shown(f, parsed[f.name])}`).join("; ") })}</p>}
             run={() => save(change, next)}
             onDone={() => onDone?.()}
             primary={primary}

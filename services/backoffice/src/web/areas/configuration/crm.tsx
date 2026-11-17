@@ -36,9 +36,9 @@ const Connection: ConfigField[] = [
   { name: "siteId", label: "config.crm.siteId", kind: "text", default: "", hint: "config.crm.siteId.hint" },
   { name: "region", label: "config.crm.region", kind: "choice", choices: ["us", "eu"], choicePrefix: "config.crm.region", default: "us", hint: "config.crm.region.hint" },
   { name: "fromEmail", label: "config.crm.fromEmail", kind: "text", default: "", hint: "config.crm.fromEmail.hint" },
-  { name: "trackApiKey", label: "config.crm.trackApiKey", kind: "text", default: "", hint: "config.crm.key.hint" },
-  { name: "appApiKey", label: "config.crm.appApiKey", kind: "text", default: "", hint: "config.crm.key.hint" },
-  { name: "webhookSigningKey", label: "config.crm.webhookSigningKey", kind: "text", default: "", hint: "config.crm.key.hint" },
+  { name: "trackApiKey", label: "config.crm.trackApiKey", kind: "text", secret: true, default: "", hint: "config.crm.key.hint" },
+  { name: "appApiKey", label: "config.crm.appApiKey", kind: "text", secret: true, default: "", hint: "config.crm.key.hint" },
+  { name: "webhookSigningKey", label: "config.crm.webhookSigningKey", kind: "text", secret: true, default: "", hint: "config.crm.key.hint" },
 ];
 
 /** The fields of the connection and one per trigger, in engagement's order, each labelled with its trigger. */

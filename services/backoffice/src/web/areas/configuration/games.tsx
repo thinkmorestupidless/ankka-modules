@@ -66,7 +66,7 @@ export interface CatalogueConfig {
 const ProviderFields: ConfigField[] = [
   { name: "apiUrl", label: "config.games.apiUrl", kind: "text", hint: "config.games.apiUrl.hint" },
   { name: "site", label: "config.games.site", kind: "text", hint: "config.games.site.hint" },
-  { name: "operatorPrivateKey", label: "config.games.operatorPrivateKey", kind: "text", hint: "config.games.operatorPrivateKey.hint" },
+  { name: "operatorPrivateKey", label: "config.games.operatorPrivateKey", kind: "text", secret: true, hint: "config.games.operatorPrivateKey.hint" },
   { name: "providerPublicKey", label: "config.games.providerPublicKey", kind: "text", optional: true, hint: "config.games.providerKey.hint" },
   { name: "providerKeyDocumentUrl", label: "config.games.providerKeyDocumentUrl", kind: "text", optional: true, hint: "config.games.providerKeyDocumentUrl.hint" },
   { name: "jurisdiction", label: "config.games.jurisdiction", kind: "text", hint: "config.games.jurisdiction.hint" },
