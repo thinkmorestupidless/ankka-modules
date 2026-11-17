@@ -159,13 +159,13 @@ describe("the page's listener", () => {
     expect(notices.playerHref("p ana")).toBe("/players/p%20ana");
   });
 
-  test("re-reads the operator on permissions_changed", async () => {
+  test("re-reads the operator and the brand's roles on permissions_changed", async () => {
     const { listen } = await import("../../src/web/frame/events.ts");
     const src = new FakeSource();
     const invalidated: unknown[] = [];
     listen(() => src, { invalidateQueries: async (q?: unknown) => void invalidated.push(q) } as never, () => undefined);
     src.emit("permissions_changed");
-    expect(invalidated).toEqual([{ queryKey: ["me"] }]);
+    expect(invalidated).toEqual([{ queryKey: ["me"] }, { queryKey: ["permissions"] }]);
   });
 
   test("goes to the sign-in on signed_out, and stops listening", async () => {

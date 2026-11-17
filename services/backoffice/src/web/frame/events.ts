@@ -1,4 +1,4 @@
-// The page's side of `/api/events`: `permissions_changed` re-reads `/api/me`, so what is offered follows
+// The page's side of `/api/events`: `permissions_changed` re-reads `/api/me` and `/api/permissions`, so what is offered follows
 // the operator's roles without signing in again (FR-008b); `signed_out` goes to the sign-in, coming
 // back to the same place; `job_done` re-reads the jobs and leaves a notice wherever the operator is
 // (FR-029); `player_online` leaves the notice that opens the player and re-reads who is online, and
@@ -21,7 +21,11 @@ export function listen(
   go: (href: string) => void = (h) => window.location.assign(h),
 ): () => void {
   const source = open();
-  source.addEventListener("permissions_changed", () => void client.invalidateQueries({ queryKey: ["me"] }));
+  // the operator's permissions and the brand's roles both, so a disabled action's "needs role" follows too
+  source.addEventListener("permissions_changed", () => {
+    void client.invalidateQueries({ queryKey: ["me"] });
+    void client.invalidateQueries({ queryKey: ["permissions"] });
+  });
   source.addEventListener("job_done", (e) => {
     void client.invalidateQueries({ queryKey: ["jobs"] });
     const n = noticeOf(e?.data);

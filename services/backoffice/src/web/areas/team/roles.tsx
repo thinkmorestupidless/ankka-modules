@@ -142,7 +142,7 @@ export function RoleEditor({ role, bags, onDone, onClose }: { role?: Role; bags:
               />
             </>
           ) : (
-            <Action action={Actions["role.create"]} me={me} bags={bags} subject={<Change role={target} before={[]} after={after} />} run={put} onDone={onDone} />
+            <Action action={Actions["role.create"]} me={me} bags={bags} ready={target !== ""} subject={<Change role={target} before={[]} after={after} />} run={put} onDone={onDone} />
           )}
           <button type="button" className="bo-button" onClick={onClose}>
             {t("roles.close")}
@@ -163,6 +163,7 @@ export function RolesPage() {
     setOpen(undefined);
     void client.invalidateQueries({ queryKey: ["roles"] });
     void client.invalidateQueries({ queryKey: ["me"] });
+    void client.invalidateQueries({ queryKey: ["permissions"] });
   };
 
   if (roles.isError) return <RefusalNotice refusal={roles.error} />;
