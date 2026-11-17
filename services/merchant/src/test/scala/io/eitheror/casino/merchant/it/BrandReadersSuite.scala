@@ -96,7 +96,8 @@ class BrandReadersSuite extends SharedKitSuite:
     Seq(pa, pb).foreach(row)
     // At sub-brand level for A's sub-brand, and holding brand_<b>: the payments level decides, not the brand.
     val op = kit.asOperator(level = "sub_brand", scopeId = mine.subBrandId, roles = s"resource_viewer,brand_$b")
-    assertEquals(ids(kit.request("GET", "/v1/payments/cashier", None, op)), Set(pa))
+    // the cashier list reads the operator's scope from a view of its own, which may not yet hold `mine`
+    kit.eventually("A's payment listed")(Option(ids(kit.request("GET", "/v1/payments/cashier", None, op))).filter(_ == Set(pa)))
     assertEquals(kit.request("GET", s"/v1/payments/$pa", None, op).status, 200)
     refusedOutOfScope(kit.request("GET", s"/v1/payments/$pb", None, op))
     refusedOutOfScope(kit.request("GET", s"/v1/payments/cashier/summary?merchantId=${theirs.subBrandId}", None, op))
