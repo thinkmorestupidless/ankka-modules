@@ -3,8 +3,8 @@
 // or is late is unavailable with its reason, never empty, and the others are shown; each count is the
 // source's own total.
 import { describe, expect, test } from "vitest";
-import { readKind, wanted, worklist } from "../../src/server/composite/worklist.ts";
-import { table, type Row } from "../../src/server/routes.ts";
+import { readKind, Sources, wanted, worklist } from "../../src/server/composite/worklist.ts";
+import { match, table, type Row } from "../../src/server/routes.ts";
 import { Kinds, kindsFor } from "../../src/shared/worklist.ts";
 import { permissionsOf } from "../../src/server/roles.ts";
 import { OperatorBags } from "./bags.ts";
@@ -41,6 +41,9 @@ const admitted = (role: string, modules: string[] | null = ["core", "casino", "e
   kindsFor({ brand: { modules }, permissions: permissionsOf([`brand_${Brand}`, role], OperatorBags) });
 const kind = (id: string) => Kinds.find((k) => k.id === id)!;
 const never: Answer = () => new Promise<Response>(() => {});
+/** What psp-gateway answers a brand operator who holds no payments role. */
+const notPayments = { "/psp-gateway.payments/": () => Response.json({ error: "not_payments_operator" }, { status: 403 }) };
+const psp = (c: { url: string }) => c.url.startsWith("/psp-gateway.payments/");
 
 const payouts = "/payouts/v1/casino/brands/goldvibe/withdrawal-requests";
 const kycQueue = "/kyc/v1/casino/backoffice/goldvibe/kyc/queue";
@@ -69,9 +72,10 @@ describe("the kinds asked", () => {
   });
 
   test("only the admitted kinds' sources are called", async () => {
-    const { calls, fetchFn } = owners({ [payouts]: () => Response.json({ requests: [], total: 0 }) });
-    await worklist(deps(fetchFn), admitted("brand_finance"), "tok");
-    expect(calls.map((c) => c.url.split("?")[0])).toEqual([payouts, payouts]);
+    const { calls, fetchFn } = owners({ [payouts]: () => Response.json({ requests: [], total: 0 }), ...notPayments });
+    const kinds = await worklist(deps(fetchFn), admitted("brand_finance"), "tok");
+    expect(calls.filter((c) => !psp(c)).map((c) => c.url.split("?")[0])).toEqual([payouts, payouts]);
+    expect(kinds.map((k) => k.kind)).toEqual(["withdrawals_pending", "payouts_needing_review"]);
     expect(calls.every((c) => c.auth === "Bearer tok")).toBe(true);
   });
 });
@@ -143,12 +147,9 @@ describe("a kind's source", () => {
 
   test("undelivered outcomes are left out when the payments project cannot be asked, or refuses the operator", async () => {
     const { fetchFn } = owners({});
-    expect(await readKind(deps(fetchFn), kind("undelivered_outcomes"), 1, "tok")).toBeUndefined();
-    const rows: Row[] = [
-      ...table,
-      { method: "GET", service: "psp-gateway", path: "/outcomes/undelivered", upstream: "/v1/psp/outcomes/undelivered", where: "payments", permission: "wallet.read" },
-      { method: "GET", service: "psp-gateway", path: "/outcomes/refused", upstream: "/v1/psp/outcomes/refused", where: "payments", permission: "wallet.read" },
-    ];
+    const noPayments = table.filter((r) => r.service !== "psp-gateway");
+    expect(await readKind(deps(fetchFn, noPayments), kind("undelivered_outcomes"), 1, "tok")).toBeUndefined();
+    const rows: readonly Row[] = table;
     const refused = owners({ "/psp-gateway.payments/": () => Response.json({ error: "not_payments_operator" }, { status: 403 }) });
     expect(await readKind(deps(refused.fetchFn, rows), kind("undelivered_outcomes"), 1, "tok")).toBeUndefined();
     const answered = owners({
@@ -159,19 +160,27 @@ describe("a kind's source", () => {
   });
 });
 
+describe("the worklist's sources", () => {
+  test("every source a kind asks is a row of the route table, but attribution's, whose queue it has no route for yet", () => {
+    const unmatched = Sources.filter((s) => s.kind !== "undelivered_facts").flatMap((s) => s.asks.filter((a) => match(table, "GET", a.service, a.path) === undefined).map((a) => `${s.kind} ${a.service} ${a.path}`));
+    expect(unmatched).toEqual([]);
+  });
+});
+
 describe("the worklist", () => {
   test("the sources are asked in parallel; a late one is unavailable within its bound and the others are shown", async () => {
     const { calls, fetchFn } = owners({
       [kycQueue]: never,
       [fraud]: () => Response.json({ cases: [{ caseId: "c-1", playerIds: ["p-a"], signals: [], detectedAt: "2026-11-11T00:00:00Z" }] }),
       "/responsible-gambling/": () => Response.json({ cases: [], total: 0 }),
+      ...notPayments,
     });
     const started = Date.now();
     const kinds = await worklist(deps(fetchFn, table, 150), admitted("brand_compliance"), "tok");
     const took = Date.now() - started;
     expect(took).toBeLessThan(600);
     // two kyc kinds, rg, players: all asked before any bound ran out
-    expect(calls).toHaveLength(4);
+    expect(calls.filter((c) => !psp(c))).toHaveLength(4);
     expect(kinds.map((k) => [k.kind, k.state, k.state === "unavailable" ? k.reason : k.total])).toEqual([
       ["documents_awaiting", "unavailable", "timeout"],
       ["players_flagged", "unavailable", "timeout"],
@@ -185,13 +194,16 @@ describe("GET /api/worklist", () => {
   test("answers the kinds a finance operator's roles admit, asked as them, and nothing for the others", async () => {
     const h = harness({ table });
     h.state.sessions.set("s-fin", { accessToken: "fin-token", expiresAt: Date.now() + 60_000, roles: [`brand_${Brand}`, "brand_finance"] });
-    h.answer((call) => (call.url.includes("/withdrawal-requests") ? Response.json({ requests: [request("w-1", "2026-11-13T10:00:00Z")], total: 1 }) : Response.json({}, { status: 404 })));
+    h.answer((call) =>
+      call.url.includes("/withdrawal-requests") ? Response.json({ requests: [request("w-1", "2026-11-13T10:00:00Z")], total: 1 })
+      : call.url.includes("/psp/outcomes/") ? Response.json({ error: "not_payments_operator" }, { status: 403 })
+      : Response.json({}, { status: 404 }));
     const r = await h.ask("GET", "/api/worklist", { session: "s-fin" });
     expect(r.status).toBe(200);
     const body = (await r.json()) as { kinds: { kind: string; state: string }[] };
     expect(body.kinds.map((k) => [k.kind, k.state])).toEqual([["withdrawals_pending", "ok"], ["payouts_needing_review", "ok"]]);
     expect(h.calls.every((c) => c.headers.get("authorization") === "Bearer fin-token")).toBe(true);
-    expect(h.calls.every((c) => c.url.includes("/payouts/"))).toBe(true);
+    expect(h.calls.every((c) => c.url.includes("/payouts/") || c.url.includes("/psp/outcomes/"))).toBe(true);
   });
 
   test("one kind's page; a kind the roles do not admit is no such kind", async () => {

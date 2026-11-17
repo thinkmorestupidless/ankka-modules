@@ -200,8 +200,8 @@ export const Sources: readonly Source[] = [
     // psp-gateway answers the oldest `limit`, unpaged: the first page only
     kind: "undelivered_outcomes",
     asks: [
-      { service: "psp-gateway", path: "/outcomes/undelivered", query: () => ({ limit: String(PageSize) }) },
-      { service: "psp-gateway", path: "/outcomes/refused", query: () => ({ limit: String(PageSize) }) },
+      { service: "psp-gateway", path: "/psp/outcomes/undelivered", query: () => ({ limit: String(PageSize) }) },
+      { service: "psp-gateway", path: "/psp/outcomes/refused", query: () => ({ limit: String(PageSize) }) },
     ],
     rows: listOf("outcomes"),
     total: totalOr,
