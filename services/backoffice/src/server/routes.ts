@@ -17,6 +17,8 @@ export interface Row {
   upstream: string;
   where: Where;
   permission: string;
+  /** Asked only by a composite route of the server's own, never passed through under `/api/s`. */
+  composite?: true;
 }
 
 export interface Matched {
@@ -71,6 +73,9 @@ export const PaymentsRoles: readonly string[] = [
 
 const r = (method: Method, service: string, path: string, upstream: string, permission: string, where: Where = "brand"): Row =>
   ({ method, service, path, upstream, where, permission });
+
+/** A row only the server's composite routes ask: `/api/s` answers it 404. */
+const own = (row: Row): Row => ({ ...row, composite: true });
 
 // Each owner's operator routes, as its code admits them (`Routes.operatorMay`). A literal path comes
 // before a parameter in the same place, as `match` takes the first row that fits.
@@ -177,7 +182,9 @@ export const table: readonly Row[] = [
   r("GET", "kyc", "/{playerId}/decisions", `${P}/kyc/{playerId}/decisions`, "identity.read"),
   r("POST", "kyc", "/{playerId}/uploads", `${P}/kyc/{playerId}/uploads`, "identity.review"),
   r("POST", "kyc", "/{playerId}/documents", `${P}/kyc/{playerId}/documents`, "identity.review"),
-  r("GET", "kyc", "/{playerId}/views/{documentId}", `${P}/kyc/{playerId}/views/{documentId}`, "identity.review"),
+  // a document's bytes: only through `/api/kyc/{p}/documents/{d}/view`, which adds the headers that keep them
+  // from being run or kept (FR-031); never passed through
+  own(r("GET", "kyc", "/{playerId}/views/{documentId}", `${P}/kyc/{playerId}/views/{documentId}`, "identity.review")),
   r("POST", "kyc", "/{playerId}/reviews/{documentId}", `${P}/kyc/{playerId}/reviews/{documentId}`, "identity.review"),
   r("PUT", "kyc", "/{playerId}/mode", `${P}/kyc/{playerId}/mode`, "identity.review"),
   r("PUT", "kyc", "/{playerId}/status", `${P}/kyc/{playerId}/status`, "identity.review"),

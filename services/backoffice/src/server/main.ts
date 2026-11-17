@@ -370,7 +370,7 @@ export function createApp(deps: Deps): Hono<Env> {
     const pathname = new URL(c.req.url).pathname;
     const prefix = `/api/s/${service}`;
     const m = /^[a-z0-9-]+$/.test(service) ? match(deps.table, c.req.method, service, pathname.slice(prefix.length)) : undefined;
-    if (m === undefined) return c.json({ error: "no_such_route" }, 404);
+    if (m === undefined || m.row.composite) return c.json({ error: "no_such_route" }, 404);
     c.set("logPath", `${prefix}${m.row.path}`);
     const { response, why } = await pass(deps, m, c.req.raw, c.get("token").accessToken);
     if (why) c.set("why", why);

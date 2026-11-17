@@ -131,4 +131,12 @@ describe("no address is ever fetched beyond kyc's view route", () => {
     }
     expect(h.calls).toHaveLength(0);
   });
+
+  test("kyc's view route is not passed through under /api/s, where its bytes would lack the view's headers", async () => {
+    const h = app();
+    const r = await h.ask("GET", `/api/s/kyc/${Player}/views/${Doc}`, { session: "s-1" });
+    expect(r.status).toBe(404);
+    expect(await r.json()).toEqual({ error: "no_such_route" });
+    expect(h.calls).toHaveLength(0);
+  });
 });
