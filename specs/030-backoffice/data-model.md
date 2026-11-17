@@ -18,7 +18,11 @@ roles are not the backoffice's: `players` keeps them (below).
 | `endedAt` | `Option[Instant]` | |
 
 Events: `Signed`, `Renewed`, `Ended(reason: signed_out | expired | revoked | erased)`; `Opened` and
-`Refreshed`, which held the tokens in the clear, are read and never written.
+`Refreshed`, which held the tokens in the clear, are read and never written. They exist only in journals
+made by this branch's local runs: backoffice-state has never been deployed, so no installation holds
+them, and none holds a snapshot of the state before its tokens became `Personal` (a snapshot of that
+form would not decode). Once it is deployed, a change to `SessionState` needs a new state serializer
+name or snapshots that decode both forms.
 
 Rules:
 
