@@ -2501,6 +2501,7 @@ export const en = {
   "payments.merchant.requests": "Requests",
   "payments.merchant.requestsNote": "The merchant edge's requests of the last day, or one request by its id.",
   "payments.merchant.findRequest": "Request id",
+  "payments.merchant.find": "Find the request",
   "payments.merchant.noRequests": "No request.",
   "payments.merchant.received": "Received",
   "payments.merchant.route": "Route",
