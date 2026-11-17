@@ -101,7 +101,7 @@ function SampleRows({ samples, set }: { samples: Sample[]; set(s: Sample[]): voi
   );
 }
 
-const whole = (s: string) => /^\d+$/.test(s.trim());
+const whole = (s: string) => /^\d+$/.test(s.trim()) && Number.isSafeInteger(Number(s.trim()));
 const sampleText = (s: Sample) =>
   [s.currency || t("payments.routing.sample.anyCurrency"), s.country || t("payments.routing.sample.anyCountry"), t("payments.routing.sample.minor", { minor: s.amountCents })].join(" · ");
 
@@ -234,11 +234,16 @@ function Routing({ level, entityId, name }: { level: Level; entityId: string; na
                 return merchant.postPaymentsRoutingRulesDeploy({ query });
               }}
               onDone={(answer) => {
-                void answer.json().then((a: { version: number; deployedAt: string }) => {
-                  client.setQueryData<RoutingState>(key, (prev) => (prev ? deployed({ ...prev, draft }, a) : prev));
-                  setEdited(undefined);
-                  setRolledBack(undefined);
-                });
+                // shown at once from the answer, then read again from merchant, which holds what was deployed
+                void answer
+                  .json()
+                  .then((a: { version: number; deployedAt: string }) => client.setQueryData<RoutingState>(key, (prev) => (prev ? deployed({ ...prev, draft }, a) : prev)))
+                  .catch(() => undefined)
+                  .finally(() => {
+                    setEdited(undefined);
+                    setRolledBack(undefined);
+                    void client.invalidateQueries({ queryKey: key });
+                  });
               }}
             />
           </div>

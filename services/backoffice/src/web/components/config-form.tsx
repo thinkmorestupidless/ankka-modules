@@ -61,7 +61,8 @@ export function same(a: ConfigValue | undefined, b: ConfigValue | undefined): bo
     const y = Array.isArray(b) ? [...(b as string[])].sort().join("\n") : b;
     return x === y;
   }
-  return (a ?? null) === (b ?? null);
+  const text = (v: ConfigValue | undefined) => (typeof v === "number" ? String(v) : (v ?? null));
+  return text(a) === text(b);
 }
 
 type Draft = string | boolean;
@@ -87,12 +88,13 @@ export function parse(f: ConfigField, d: Draft): ConfigValue | undefined {
   if (f.kind === "list") return text === "" ? [] : text.split(/[\s,]+/).filter((s) => s !== "");
   if (text === "") return f.optional ? null : f.kind === "text" || f.kind === "longtext" || f.kind === "choice" ? "" : undefined;
   if (f.kind === "longtext") return String(d);
-  if (f.kind === "whole") return /^\d+$/.test(text) ? Number(text) : undefined;
+  if (f.kind === "whole") return /^\d+$/.test(text) && Number.isSafeInteger(Number(text)) ? Number(text) : undefined;
   if (f.kind === "money") {
     if (!f.currency) return undefined;
     try {
       const m = parseMoney(text, f.currency);
-      return m === undefined || m < 0n ? undefined : Number(m);
+      // a number sent is exact only to 2^53: beyond it the amount is refused, not rounded
+      return m === undefined || m < 0n || m > BigInt(Number.MAX_SAFE_INTEGER) ? undefined : Number(m);
     } catch {
       return undefined;
     }
