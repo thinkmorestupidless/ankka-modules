@@ -9,11 +9,12 @@ import "../dashboard/dashboard.css";
 import "./reports.css";
 import { addDays, todayIn } from "../../../shared/dates.ts";
 import { t, type MessageKey } from "../../../shared/messages/index.ts";
-import { holds, runs, type Me } from "../../../shared/access.ts";
+import { holds, rolesGiving, runs, type Me } from "../../../shared/access.ts";
 import { RefusalNotice } from "../../components/action/index.ts";
 import { DateTime, useZone } from "../../components/date.tsx";
 import { RecordLink } from "../../components/links.tsx";
 import { useOperator } from "../../frame/context.ts";
+import { useBags } from "../bags.ts";
 import { Export } from "../jobs/Export.tsx";
 import type { JobKind } from "../jobs/jobs.ts";
 import { Amount, formatDay, useReportingStatus, ViewsFreshness } from "./figures.tsx";
@@ -568,8 +569,11 @@ const Bodies: Record<ReportId, (p: ReportProps) => ReactNode> = {
 export function ReportView({ report, search, set, zone }: ReportProps & { report: string }) {
   const me = useOperator();
   const status = useReportingStatus().data;
+  const bags = useBags();
   const def = Reports.find((r) => r.id === report);
   if (def === undefined) return <p role="alert">{t("frame.notFound")}</p>;
+  // as an action names them (FR-005): the roles that would give the report's permission, once the brand's roles are read
+  const giving = bags ? rolesGiving(def.permission, bags) : [];
   return (
     <section className="bo-report" data-report={def.id}>
       <header className="bo-dashboard-head">
@@ -577,7 +581,11 @@ export function ReportView({ report, search, set, zone }: ReportProps & { report
         <ViewsFreshness status={status} views={def.views} />
       </header>
       <p className="bo-muted">{t(def.about)}</p>
-      {!holds(me, def.permission) ? <p className="bo-muted">{t("action.needsPermission", { permission: def.permission })}</p> : null}
+      {!holds(me, def.permission) ? (
+        <p className="bo-muted" data-needs>
+          {giving.length > 0 ? t("action.needsRole", { roles: giving.join(", ") }) : t("action.needsPermission", { permission: def.permission })}
+        </p>
+      ) : null}
       {/* Each report keeps its own drafts: a new search or report starts them again. */}
       <div key={JSON.stringify(search)} className="bo-report-body">
         {Bodies[def.id]({ search, set, zone })}
