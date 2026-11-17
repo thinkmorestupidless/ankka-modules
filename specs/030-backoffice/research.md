@@ -921,3 +921,6 @@ seeded brand fills in the rest.
     FR-035): every seeded player was one email variant from one address, a duplicate ring, and
     rewards refused their bonuses. The emails are now in letters (f1c64326), and the seed was run
     again from nothing; the first run's 2,406 players stay on goldvibe, flagged.
+  - Decision (Trevor): payouts and rewards run as `medium`, as ankka's scaling guide asks of a
+    service with a topic view or a producer; at the default `small` both were OOMKilled under the
+    seed (18 and 22 restarts in 14 hours). kind-ankka's Docker was raised to fit them.

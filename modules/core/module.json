@@ -328,6 +328,9 @@
         "image": "europe-west1-docker.pkg.dev/eitheror/casino/payouts:0.0.0",
         "expose": true,
         "runtime": "0.16.3",
+        "resources": {
+          "instanceType": "medium"
+        },
         "env": [
           {
             "name": "CASINO_PROJECT",
