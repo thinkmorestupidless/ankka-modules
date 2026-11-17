@@ -16,8 +16,8 @@ import scala.util.Try
 /**
  * A credential of the realm's: an access or a refresh token. It prints as `Secret(redacted)`, so no log
  * line, exception message, trace attribute or `toString` of anything holding one carries it; its value is
- * read only by `reveal`, and written to the journal as a plain string (research R2: credentials, not
- * player data).
+ * read only by `reveal`. The session's events record it as a `Personal` of the operator, never as this
+ * type (research R2); this codec is for the in-process answers only.
  */
 final case class Secret(reveal: String):
   override def toString: String = "Secret(redacted)"
@@ -26,7 +26,7 @@ object Secret:
   given JsonValueCodec[Secret] with
     def decodeValue(in: JsonReader, default: Secret): Secret = Secret(in.readString(""))
     def encodeValue(x: Secret, out: JsonWriter): Unit        = out.writeVal(x.reveal)
-    def nullValue: Secret                                    = null
+    def nullValue: Secret                                    = Secret("")
 
 /**
  * What the realm answered a code exchange or a refresh with: the two tokens, when each expires, and the
@@ -78,14 +78,14 @@ final class KeycloakRealmClient(settings: Settings, http: HttpClient = KeycloakR
   def refresh(refreshToken: Secret, now: Instant): Either[RealmRefusal, RealmTokens] =
     grant(now, "grant_type" -> "refresh_token", "refresh_token" -> refreshToken.reveal)
 
+  /** Both are attempted, so a failed revocation still ends the realm's session; the first failure is answered. */
   def revoke(refreshToken: Secret): Either[RealmRefusal, Unit] =
-    for
-      _ <- post(settings.revokeUrl, "token" -> refreshToken.reveal, "token_type_hint" -> "refresh_token").flatMap(done("revoke"))
-      _ <- post(logoutUrl, "refresh_token" -> refreshToken.reveal).flatMap {
-        case (s, b) if s == 400 && errorOf(b) == "invalid_grant" => Right(()) // the realm's session is gone already
-        case other                                              => done("logout")(other)
-      }
-    yield ()
+    val revoked = post(settings.revokeUrl, "token" -> refreshToken.reveal, "token_type_hint" -> "refresh_token").flatMap(done("revoke"))
+    val loggedOut = post(logoutUrl, "refresh_token" -> refreshToken.reveal).flatMap {
+      case (s, b) if s == 400 && errorOf(b) == "invalid_grant" => Right(()) // the realm's session is gone already
+      case other                                              => done("logout")(other)
+    }
+    revoked.flatMap(_ => loggedOut)
 
   private def grant(now: Instant, fields: (String, String)*): Either[RealmRefusal, RealmTokens] =
     post(settings.tokenUrl, fields*).flatMap {
