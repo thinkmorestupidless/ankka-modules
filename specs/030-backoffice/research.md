@@ -953,3 +953,21 @@ seeded brand fills in the rest.
   recipes) and type-check, but have not run against a running brand; they stay unticked, and the
   pull request says so. T136's local half (features, unit and service suites, modules validate)
   ran on this branch.
+
+### The review before the pull request, 2026-11-17
+
+- **Bet and session date filters are whole days in UTC.** players' `GET players/{p}/bets` and its
+  sessions read `fromDate` and `toDate` as `LocalDate` (`OperatorSessionRoutes`), so a brand's
+  day is not theirs to filter by; the page says so beside the fields (`bets.daysNote`) rather than
+  translate the brand's day into an instant range players does not take. A filter by instant is a
+  players amendment if operators need it.
+- **Per-brand roles are spec 032.** The review found that a role given by one brand holds in every
+  brand the operator belongs to (role names are the realm's). The person chose per-brand realm
+  roles; that changes the contract, every service's role reading, H6, players and the migration's
+  mapping, so it is its own spec, cut from this branch, and this pull request stays a draft until it
+  is merged in.
+- **Left open, named in the pull request:** free rounds granted by hand carry no key rewards reads,
+  so a retry after a lost answer awards twice (a rewards amendment, FR-007); the timeline export is
+  not yet a job (FR-029, a server job kind); wallet's service-to-service transactions route, older
+  than this branch, still carries an adjustment's reason; and three small changes to
+  `areas/affiliates/account.tsx`, which was open in the person's editor.
