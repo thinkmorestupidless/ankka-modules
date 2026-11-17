@@ -9,6 +9,7 @@ import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
 import { ConfigForm } from "../../components/config-form.tsx";
 import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
+import { Money } from "../../components/money.tsx";
 import { Status } from "../../components/status.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
@@ -52,7 +53,8 @@ function Merchant({ subBrand }: { subBrand: string }) {
   const keys = usePayments<{ keys: Key[] }>(["keys", subBrand], () => merchant.getMerchantsKeys({ id: subBrand }));
   const rate = usePayments<{ perMinute: number; default: number }>(["rate", subBrand], () => ingest.getIngestSubBrandsRate({ subBrand }));
   const [requestId, setRequestId] = useState("");
-  const asked = requestId.trim();
+  // The id is asked for when the operator submits it, not on every keystroke.
+  const [asked, setAsked] = useState("");
   const requests = usePayments<{ requests: EdgeRequest[] }>(["requests", subBrand, asked], () =>
     ingest.getIngestSubBrandsRequests({ subBrand }, { query: asked ? { requestId: asked } : {} }),
   );
@@ -88,7 +90,8 @@ function Merchant({ subBrand }: { subBrand: string }) {
     { header: "payments.merchant.received", cell: (r) => (r.receivedAt ? <DateTime instant={r.receivedAt} zone={tz} /> : null) },
     { header: "payments.merchant.route", cell: (r) => r.route ?? "" },
     { header: "payments.merchant.requestId", cell: (r) => r.requestId ?? "" },
-    { header: "payments.merchant.amount", numeric: true, cell: (r) => (r.amount !== null && r.amount !== undefined ? `${r.amount} ${r.currency ?? ""}` : "") },
+    // ingest keeps the amount in minor units (RequestRecord.amount), so it is shown by the one rule (FR-013).
+    { header: "payments.merchant.amount", numeric: true, cell: (r) => (r.amount === null || r.amount === undefined ? "" : r.currency ? <Money value={{ minor: String(r.amount), currency: r.currency }} /> : <span className="figures">{String(r.amount)}</span>) },
     { header: "payments.merchant.outcome", cell: (r) => [r.outcome, r.refusal].filter(Boolean).join(": ") },
     { header: "payments.merchant.payment", cell: (r) => r.paymentId ?? "" },
   ];
@@ -163,7 +166,18 @@ function Merchant({ subBrand }: { subBrand: string }) {
         <h2 id="pay-requests">{t("payments.merchant.requests")}</h2>
         <p className="bo-muted">{t("payments.merchant.requestsNote")}</p>
         <ZoneNote zone={tz} />
-        <Field labelKey="payments.merchant.findRequest" value={requestId} set={setRequestId} />
+        <form
+          className="bo-actions"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setAsked(requestId.trim());
+          }}
+        >
+          <Field labelKey="payments.merchant.findRequest" value={requestId} set={setRequestId} />
+          <button type="submit" className="bo-button">
+            {t("payments.merchant.find")}
+          </button>
+        </form>
         {requests.isError ? <RefusalNotice refusal={requests.error as never} /> : null}
         {requests.data ? <Rows caption="payments.merchant.requests" cols={requestCols} rows={requests.data.requests} rowKey={(r) => r.recordId} empty="payments.merchant.noRequests" /> : null}
       </section>
