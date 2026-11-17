@@ -54,5 +54,7 @@ class RoleGivingSuite extends munit.FunSuite with LogCapturing:
       val taken = give(other, Seq.empty, taker)
       assertEquals(taken.status, 200, taken.text)
     finally
-      assertEquals(kit.request("DELETE", kit.operatorPath("/roles/taker"), None, asAdmin).status, 200): Unit
+      assertEquals(kit.request("DELETE", kit.operatorPath("/roles/taker"), None, asAdmin).status, 200)
+      // gone from the view before the next suite lists the roles, so none finds it listed and already deleted
+      kit.eventually("the taker role gone", 20.seconds)(Option.when(!listed("taker"))(()))
   }
