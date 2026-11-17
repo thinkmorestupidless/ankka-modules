@@ -244,11 +244,18 @@ final class OperatorStatusRoutes(ctx: Ctx):
     val f    = q.filter(now())
     val rows = PlayersView.page(views, f, (n - 1) * size, size)
     val o    = Json.obj("items" -> Json.arr(rows.map(row)*), "total" -> PlayersView.total(views, f), "page" -> n, "pageSize" -> size)
-    if q.facets.exists(_.trim.equalsIgnoreCase("true")) then Json.set(o, "facets", facets(f))
+    if q.facets.exists(_.trim.equalsIgnoreCase("true")) then
+      facets(f) match
+        case Some(counted) => Json.set(o, "facets", counted)
+        case None          => o.put("facetsUnavailable", true): Unit
     ok(o)
 
-  /** Each filter's values with the players matching each, every other filter applied and its own left out. */
-  private def facets(f: PlayersView.Filter): ObjectNode =
+  /**
+   * Each filter's values with the players matching each, every other filter applied and its own left out;
+   * none when the counts are not all in within [[FacetsBound]], so the list is answered without them. The
+   * view client counts by condition only (no `GROUP BY`), so each value is one count, run at once.
+   */
+  private def facets(f: PlayersView.Filter): Option[ObjectNode] =
     import scala.concurrent.{ExecutionContext, Future}
     given ExecutionContext = ExecutionContext.parasitic
     def counts(pairs: Vector[(String, PlayersView.Filter)]): Future[ObjectNode] =
@@ -268,8 +275,7 @@ final class OperatorStatusRoutes(ctx: Ctx):
       "identity" -> counts(PlayersView.Identity.all.map(v => v -> f.copy(identity = Some(v)))),
       "birthdayWithinDays" -> counts(windows.map(d => d.toString -> f.copy(birthdayWithin = Some(d))))
     )
-    val answered = scala.concurrent.Await.result(Future.sequence(all.map((k, fo) => fo.map(k -> _))), FacetsBound)
-    Json.obj(answered*)
+    OperatorStatusRoutes.within(Future.sequence(all.map((k, fo) => fo.map(k -> _))), FacetsBound).map(Json.obj(_*))
 
   private def row(r: PlayerRow): ObjectNode =
     Json.obj("playerId" -> r.playerId, "twinId" -> s"casino-${ctx.slug}/${r.playerId}", "username" -> r.displayName.reveal,
@@ -531,6 +537,15 @@ object OperatorStatusRoutes:
   val ListLimit: Int               = 10000
   val AgentBound: FiniteDuration   = 5.seconds
   val FacetsBound: FiniteDuration  = 10.seconds
+
+  /** `f`'s answer if it is in within `bound`; none if it is late or failed, which is logged. */
+  def within[A](f: scala.concurrent.Future[A], bound: FiniteDuration): Option[A] =
+    Try(scala.concurrent.Await.result(f, bound)).toEither match
+      case Right(a) => Some(a)
+      case Left(e) =>
+        org.slf4j.LoggerFactory.getLogger("io.eitheror.casino.players.api.OperatorStatusRoutes")
+          .warn(s"the player list's counts were not all in within $bound: ${e.getClass.getSimpleName}")
+        None
 
   /**
    * A period's bound in epoch milliseconds: an ISO instant as given, or a date's start (`from`) or the next day's
