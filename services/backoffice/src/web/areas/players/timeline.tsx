@@ -8,12 +8,14 @@ import { useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { has, t, type MessageKey } from "../../../shared/messages/index.ts";
-import { RefusalNotice } from "../../components/action/index.ts";
+import { Actions } from "../../actions/index.ts";
+import { Action, RefusalNotice } from "../../components/action/index.ts";
 import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
 import { RecordLink, type RecordRef } from "../../components/links.tsx";
 import { Money } from "../../components/money.tsx";
-import { explain, type Refusal } from "../../../shared/refusals.ts";
 import { refusalOf } from "../corrections/shared.tsx";
+import { useOperator } from "../../frame/context.ts";
+import { useBags } from "../bags.ts";
 import { word } from "../word.ts";
 import { actorName, readTimeline, TimelineKinds, type Line, type TimelinePage } from "./read.ts";
 
@@ -95,8 +97,9 @@ export function PlayerTimeline({ player }: { player: string }) {
   const [now] = useState(() => Date.now());
   const from = new Date(now - parseInt(period, 10) * Day).toISOString();
   const to = new Date(now).toISOString();
+  const me = useOperator();
+  const bags = useBags();
   const [exported, setExported] = useState<string | undefined>(undefined);
-  const [exportRefusal, setExportRefusal] = useState<Refusal | undefined>(undefined);
 
   const q = useInfiniteQuery({
     queryKey: ["players", "timeline", player, period, kinds.join(",")],
@@ -107,7 +110,8 @@ export function PlayerTimeline({ player }: { player: string }) {
   });
   const pages = q.data?.pages ?? [];
   const lines = pages.flatMap((p) => p.lines);
-  const gaps = [...new Map(pages.flatMap((p) => p.gaps).map((g) => [g.source, g])).values()];
+  // A source missing in two periods is named for each (FR-022).
+  const gaps = [...new Map(pages.flatMap((p) => p.gaps).map((g) => [`${g.source}/${g.from}/${g.to}`, g])).values()];
   const complete = pages.length > 0 && !q.hasNextPage && gaps.length === 0;
 
   const set = (next: { period?: string; kinds?: string[] }) =>
@@ -121,16 +125,19 @@ export function PlayerTimeline({ player }: { player: string }) {
       replace: true,
     } as never);
 
-  const exportIt = async () => {
-    setExportRefusal(undefined);
-    const r = await fetch(`/api/players/${encodeURIComponent(player)}/timeline/export`, {
+  // Offered through Action, so an operator without export.player sees the role that gives it, never a
+  // button that is then refused (FR-005).
+  const exportIt = () =>
+    fetch(`/api/players/${encodeURIComponent(player)}/timeline/export`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Backoffice": "1" },
       body: JSON.stringify({ from, to }),
-    }).catch(() => undefined);
-    if (r?.ok) setExported(((await r.json()) as { reference: string }).reference);
-    else setExportRefusal(r ? explain(r.status, await r.text()) : refusalOf(undefined));
-  };
+    });
+  const exportDone = (answer: Response) =>
+    void answer
+      .json()
+      .then((b: { reference?: string }) => setExported(b.reference))
+      .catch(() => setExported(undefined));
 
   return (
     <section className="bo-timeline" aria-labelledby="timeline-title">
@@ -148,17 +155,20 @@ export function PlayerTimeline({ player }: { player: string }) {
           <legend>{t("timeline.kinds")}</legend>
           {TimelineKinds.map((k) => (
             <label key={k} className="bo-timeline-kind">
-              <input type="checkbox" checked={kinds.includes(k)} onChange={(e) => set({ kinds: e.target.checked ? [...kinds, k] : kinds.filter((x) => x !== k) })} />
+              <input
+                type="checkbox"
+                checked={kinds.includes(k)}
+                // The last kind ticked stays ticked: no kinds would read back as every kind.
+                disabled={kinds.length === 1 && kinds.includes(k)}
+                onChange={(e) => set({ kinds: e.target.checked ? [...kinds, k] : kinds.filter((x) => x !== k) })}
+              />
               {word("timeline.kind", k)}
             </label>
           ))}
         </fieldset>
-        <button type="button" className="bo-button" onClick={() => void exportIt()}>
-          {t("timeline.export")}
-        </button>
+        <Action action={Actions["timeline.export"]} me={me} bags={bags} run={exportIt} onDone={exportDone} />
       </div>
       {exported ? <p role="status">{t("timeline.exported", { reference: exported })}</p> : null}
-      {exportRefusal ? <RefusalNotice refusal={exportRefusal} /> : null}
       <ZoneNote zone={tz} />
       {q.isError ? <RefusalNotice refusal={refusalOf(q.error)} /> : null}
       <Gaps gaps={gaps} tz={tz} />

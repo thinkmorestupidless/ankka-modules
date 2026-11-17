@@ -73,6 +73,13 @@ export const Actions = {
   "wallet.clearTurnoverOverride": { label: "action.wallet.clearTurnoverOverride.label", effect: "action.wallet.clearTurnoverOverride.effect", permission: "turnover.override", reason: "none" },
 
   // players: a player's standing (OperatorStatusRoutes.scala)
+  // players' activity export of the timeline's period (routes.ts: activity-export, export.player)
+  "timeline.export": {
+    label: "timeline.export",
+    effect: "action.timeline.export.effect",
+    permission: "export.player",
+    reason: "none",
+  },
   "player.suspend": {
     label: "action.player.suspend.label",
     effect: "action.player.suspend.effect",
