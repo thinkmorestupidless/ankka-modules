@@ -930,6 +930,13 @@ jobs:
         run: npm run features
       - name: axe on every screen, dark and light (SC-008)
         run: npm run a11y
+      - name: The traces of a failed scenario or screen
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backoffice-test-results
+          path: services/backoffice/test-results/
+          retention-days: 7
 
   # backoffice-state (spec 030): its own sbt build against the contract published from this commit.
   backoffice-state:
