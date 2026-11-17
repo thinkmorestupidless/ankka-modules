@@ -62,7 +62,9 @@ class DevicesFeatures extends PlayersFeatures("devices.feature"):
   Then("the new one carries when it was first seen, its platform, its browser and its country") { () =>
     val d = devices.head
     assertEquals((d.textOr("platform", ""), d.textOr("browser", ""), d.textOr("deviceType", ""), d.textOr("country", "")), ("iOS", "Safari", "Mobile", "PT"))
-    assertEquals(Instant.parse(d.textOr("firstSeenAt", "")).getEpochSecond, loggedInAt.getEpochSecond)
+    // recorded by the service as the log-in is handled: at or just after the moment the test asked
+    val seen = Instant.parse(d.textOr("firstSeenAt", "")).getEpochSecond
+    assert(seen >= loggedInAt.getEpochSecond && seen <= loggedInAt.getEpochSecond + 5, s"first seen at $seen, logged in at ${loggedInAt.getEpochSecond}")
     assertEquals(d.textOr("lastSeenAt", ""), d.textOr("firstSeenAt", ""))
   }
 
@@ -72,7 +74,8 @@ class DevicesFeatures extends PlayersFeatures("devices.feature"):
 
   Then("when it was last seen is the time of this log-in") { () =>
     val d = devices.head
-    assertEquals(Instant.parse(d.textOr("lastSeenAt", "")).getEpochSecond, loggedInAt.getEpochSecond)
+    val last = Instant.parse(d.textOr("lastSeenAt", "")).getEpochSecond
+    assert(last >= loggedInAt.getEpochSecond && last <= loggedInAt.getEpochSecond + 5, s"last seen at $last, logged in at ${loggedInAt.getEpochSecond}")
     assert(Instant.parse(d.textOr("firstSeenAt", "")).isBefore(Instant.parse(d.textOr("lastSeenAt", ""))), d.toString)
     assertEquals((d.textOr("platform", ""), d.textOr("browser", ""), d.textOr("country", "")), ("Windows", "Chrome", "BR"))
   }
