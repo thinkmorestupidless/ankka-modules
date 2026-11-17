@@ -52,6 +52,8 @@ describe("an amount typed", () => {
     ["0.005", "KWD", 5n],
     ["12.5", "KWD", 12500n],
     ["-3.10", "EUR", -310n],
+    // "," groups thousands, whatever the currency's decimals: 1,500 KWD is fifteen hundred, not 1.5
+    ["1,500", "KWD", 1500000n],
   ])("%s in %s is %s minor", (text, currency, minor) => expect(parseMoney(text, currency)).toBe(minor));
 
   test.each([

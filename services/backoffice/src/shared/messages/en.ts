@@ -1029,7 +1029,7 @@ export const en = {
   "corrections.target.real": "Real balance",
   "corrections.target.restricted": "Restricted funds record",
   "corrections.amount": "Amount",
-  "corrections.amount.invalid": "An amount in {currency} above zero, with at most its own number of decimals.",
+  "corrections.amount.invalid": "An amount in {currency} above zero, with at most its own number of decimals after a point; a comma groups thousands, so 1,500 is fifteen hundred.",
   "corrections.category": "Reason",
   "corrections.category.compensation": "Compensation",
   "corrections.category.goodwill": "Goodwill",
