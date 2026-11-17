@@ -82,8 +82,14 @@ abstract class PayoutsFeatures(file: String) extends GherkinSuite(s"../../featur
   protected def terminals(ts: Terminal*): Unit =
     kit.gateway.terminals(currency, ts.map(t => FakeGateway.terminal(t.id, t.gateway, t.name, t.scheme, t.active,
       t.requiresPayoutDestination, t.coins, t.hasStatus, t.reviewWindow.map(_.toString), t.supportsWithdrawal))*)
-    kit.components.forKeyValueEntity(EntityId(kit.slug)).call(TerminalCatalogue.refresh)
-      .invoke(Refresh(currency, ts.toVector, kit.now())): Unit
+    // The catalogue timer (every 200 ms here) may have read the fake before it was set and write that after
+    // this refresh: refresh until the list is still held a poll later, so a scenario starts from it.
+    val catalogue = kit.components.forKeyValueEntity(EntityId(kit.slug))
+    kit.eventually(s"the ${currency} terminals held") {
+      catalogue.call(TerminalCatalogue.refresh).invoke(Refresh(currency, ts.toVector, kit.now())): Unit
+      Thread.sleep(300)
+      Option.when(catalogue.call(TerminalCatalogue.get).invoke().of(currency).contains(ts.toVector))(())
+    }
 
   // ── the player's routes ──────────────────────────────────────────────────────────────────────
 
