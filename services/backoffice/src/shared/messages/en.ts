@@ -2016,6 +2016,7 @@ export const en = {
   "players.reason.no_source": "the backoffice does not read it",
   "players.reason.no_currency": "the player has no currency",
   "players.reason.player_not_found": "no such player in this brand",
+  "players.reason.beyond_page": "it has older lines than one read gives; narrow the period to see them",
   "players.field.name": "Name",
   "players.field.email": "Email",
   "players.field.dateOfBirth": "Date of birth",
