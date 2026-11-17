@@ -56,6 +56,25 @@ describe("the owner's answer", () => {
     expect(await r.text()).toBe(refusal);
   });
 
+  test("keeps the owner's length of a body sent as it is, and drops it for an encoded one, which fetch decodes", async () => {
+    const h = harness();
+    h.answer(() => new Response("{}", { headers: { "Content-Type": "application/json", "Content-Length": "2" } }));
+    const plain = await h.ask("GET", "/api/s/players/players/p-1/profile", { session: "s-1" });
+    expect(plain.headers.get("content-length")).toBe("2");
+    h.answer(() => new Response('{"a":1}', { headers: { "Content-Type": "application/json", "Content-Encoding": "gzip", "Content-Length": "3" } }));
+    const encoded = await h.ask("GET", "/api/s/players/players/p-1/profile", { session: "s-1" });
+    expect(encoded.headers.get("content-length")).toBeNull();
+    expect(encoded.headers.get("content-encoding")).toBeNull();
+    expect(await encoded.text()).toBe('{"a":1}');
+  });
+
+  test("is nosniff, whatever the owner said", async () => {
+    const h = harness();
+    h.answer(() => new Response("<b>x</b>", { headers: { "Content-Type": "text/html" } }));
+    const r = await h.ask("GET", "/api/s/players/players/p-1/profile", { session: "s-1" });
+    expect(r.headers.get("x-content-type-options")).toBe("nosniff");
+  });
+
   test("keeps its Content-Disposition", async () => {
     const h = harness();
     h.answer(() => new Response("a,b\n1,2\n", { headers: { "Content-Type": "text/csv", "Content-Disposition": 'attachment; filename="day-end.csv"' } }));
