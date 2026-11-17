@@ -8,6 +8,7 @@ import io.eitheror.casino.backoffice.session.{End, EndReason, RealmClient, Sessi
 import org.slf4j.LoggerFactory
 
 import java.time.Instant
+import scala.concurrent.duration.*
 
 /** What an operator's erasure did here: the sessions it ended and whether it deleted preferences. */
 final case class Erased(subject: String, sessionsEnded: Int, preferencesDeleted: Boolean):
@@ -23,14 +24,47 @@ final case class Erased(subject: String, sessionsEnded: Int, preferencesDeleted:
 object Erasure:
   private val log = LoggerFactory.getLogger("backoffice-state.erasure")
 
-  def erase(components: ComponentClient, views: ViewClient, realm: RealmClient, subject: String, now: Instant): Erased =
-    val ended = SessionsBySubject.open(views, subject).count { row =>
-      val o = components.forEventSourcedEntity(EntityId(row.session)).call(Session.end).invoke(End(EndReason.Erased, now))
+  /**
+   * How long the erasure waits for `SessionsBySubject` to show a session signed in just before it, and
+   * how many times it looks again. The view follows the sessions' events eventually, so one look can miss
+   * a session opened a moment before; each look after the first waits [[Settle]] and ends what is new.
+   */
+  val Settle: FiniteDuration = 2.seconds
+  val Looks: Int             = 3
+
+  def erase(components: ComponentClient, views: ViewClient, realm: RealmClient, subject: String, now: Instant,
+      settle: FiniteDuration = Settle): Erased =
+    val ended = endAll(() => SessionsBySubject.open(views, subject).map(_.session), settle) { session =>
+      val o = components.forEventSourcedEntity(EntityId(session)).call(Session.end).invoke(End(EndReason.Erased, now))
       o.refreshToken.foreach(t => realm.revoke(t).left.foreach(why => log.warn("erasure: a session's revocation at the realm failed: {}", why)))
       o.ended
     }
     val deleted = components.forKeyValueEntity(EntityId(subject)).call(Preferences.erase).invoke()
     Erased(subject, ended, deleted)
+
+  /**
+   * Ends every session `open` names, then looks again after `settle`, up to [[Looks]] looks, until a look
+   * names none it has not ended; answers how many `end` ended. A session the view shows only after the
+   * last look stays open until its access token expires, and its refresh is refused once the realm has
+   * no such operator; once the installation destroys the subject's key its tokens read as erased when
+   * the entity is next loaded (data-model.md, *Erasure*).
+   */
+  def endAll(open: () => Vector[String], settle: FiniteDuration, sleep: FiniteDuration => Unit = d => Thread.sleep(d.toMillis))(
+      end: String => Boolean): Int =
+    @annotation.tailrec
+    def look(n: Int, seen: Set[String], ended: Int): Int =
+      val fresh = open().filterNot(seen)
+      val now   = ended + fresh.count(end)
+      if fresh.isEmpty || n >= Looks then now
+      else
+        sleep(settle)
+        look(n + 1, seen ++ fresh, now)
+    val first = open()
+    val count = first.count(end)
+    if Looks <= 1 then count
+    else
+      sleep(settle)
+      look(2, first.toSet, count)
 
   /** The subject an erasure of `dataSubject` names here, when it is an operator's. */
   def operatorOf(dataSubject: String): Option[String] =
