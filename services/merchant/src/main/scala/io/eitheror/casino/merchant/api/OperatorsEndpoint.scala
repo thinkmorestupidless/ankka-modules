@@ -183,6 +183,8 @@ final class OperatorsEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/operators"):
         caller match
           case com.thinkmorestupidless.ankka.http.Caller.Service(project, _) if project != brand =>
             refuse(403, "FORBIDDEN", s"$project sets the roles of its own brand only")
+          case _ if !KeycloakAdmin.validUserId(id) =>
+            refuse(400, "INVALID_OPERATOR_ID", "an operator is named by the realm's id: letters, digits, - and _, at most 64")
           case _ =>
             body(text).fold(identity, b => setBrandRoles(id, brand, b.strings("roles").toSet))
       }
