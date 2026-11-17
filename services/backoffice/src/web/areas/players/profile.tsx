@@ -5,11 +5,13 @@
 // erased player has no personal data to show or edit.
 import { useId, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { todayIn } from "../../../shared/dates.ts";
 import { t, type MessageKey } from "../../../shared/messages/index.ts";
 import { players } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
 import { BirthDateInput } from "../../components/date-input.tsx";
+import { useZone } from "../../components/date.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 import { readJson, refusalOf } from "../corrections/shared.tsx";
@@ -70,21 +72,26 @@ function Fields({ player, p, done }: { player: string; p: Player; done(): void }
 function DateOfBirth({ player, p, done }: { player: string; p: Player; done(): void }) {
   const me = useOperator();
   const bags = useBags();
+  const readOnly = useReadOnlyMode();
+  const zone = useZone();
   const [day, setDay] = useState<string | undefined>(undefined);
   return (
     <div className="bo-profile-dob">
       <p>
         {t("profile.dateOfBirth")}: <span className="figures">{p.dateOfBirth || "—"}</span>
       </p>
-      <Action
-        action={Actions["player.correctDateOfBirth"]}
-        me={me}
-        bags={bags}
-        ready={day !== undefined}
-        subject={<BirthDateInput label={NewDateOfBirth} today={new Date().toISOString().slice(0, 10)} initial={p.dateOfBirth || undefined} onChange={setDay} required />}
-        run={(reason) => players.patchPlayersDateOfBirth({ playerId: player }, { body: { dateOfBirth: day, reason } })}
-        onDone={done}
-      />
+      {/* below the editing width nothing is offered, the correction included (FR-041) */}
+      {readOnly ? null : (
+        <Action
+          action={Actions["player.correctDateOfBirth"]}
+          me={me}
+          bags={bags}
+          ready={day !== undefined}
+          subject={<BirthDateInput label={NewDateOfBirth} today={todayIn(zone)} initial={p.dateOfBirth || undefined} onChange={setDay} required />}
+          run={(reason) => players.patchPlayersDateOfBirth({ playerId: player }, { body: { dateOfBirth: day, reason } })}
+          onDone={done}
+        />
+      )}
     </div>
   );
 }
