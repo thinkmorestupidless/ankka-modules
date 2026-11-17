@@ -335,9 +335,15 @@ endpoint code of all 17 services with an operator route; its results are in
 ## R15. Adjustment batch
 
 - **Decision**: the page sends the rows; the server makes one wallet adjustment per row with the
-  key `batch/<batch id>/<row number>`, eight at a time, streaming each row's outcome. The batch id
-  is the SHA-256 of the reason, the cause and the rows, so the same list repeated is the same batch
-  and the wallet answers each row's first outcome (constitution II). At most 500 rows.
+  key `batch/<batch id>/<row id>`, eight at a time, streaming each row's outcome. The batch id is
+  the SHA-256 of the reason, the category and the cause; a row's id is the SHA-256 of what it
+  adjusts (player, currency, balance, direction, amount) and which of the list's identical rows it
+  is. So the same list repeated, or a list cut short and sent again with one row corrected, added,
+  removed or moved, is answered each unchanged row's first outcome by the wallet and makes only
+  the rows not made (constitution II). At most 500 rows.
+- **2026-11-17, review**: the batch id was the SHA-256 of the whole list and the key its row number,
+  so an edited list remade every row already made. A row the same reason and cause already made is
+  now "already made" in any list, within the wallet's recent keys.
 - **Why**: FR-028 and the spec's assumption (no state beyond the session).
 
 ## R16. Jobs and notices

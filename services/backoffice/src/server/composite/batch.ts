@@ -1,10 +1,12 @@
 // `POST /api/adjustment-batches` (contracts/routes.md; research R15, FR-028): one reason and cause
-// applied as one wallet adjustment per row, each under its own key, `batch/<batch id>/<row number>`.
-// The batch id is the SHA-256 of the reason, the category, the cause and the rows, so the same list
-// sent again is the same batch, and the wallet answers each row its first outcome: nothing is made
-// twice. The backoffice keeps no state beyond the request (spec, Assumptions); the rows are asked
-// eight at a time, and each row's outcome is streamed as a line of JSON as it is known, then a last
-// line with the counts.
+// applied as one wallet adjustment per row, each under its own key, `batch/<batch id>/<row id>`. The
+// batch id is the SHA-256 of the reason, the category and the cause; a row's id is the SHA-256 of what
+// it adjusts (player, currency, balance, direction, amount) and which of the list's identical rows it
+// is. So a row sent again is the same row whatever else changed in the list: a list cut short, one
+// row corrected and sent again, makes again only the row that was not made, and the wallet answers
+// each other its first outcome. The backoffice keeps no state beyond the request (spec, Assumptions);
+// the rows are asked eight at a time, and each row's outcome is streamed as a line of JSON as it is
+// known, then a last line with the counts.
 //
 // Made or already made: the wallet answers a repeated key with its first outcome and `repeated: true`
 // (spec 030 W2), `repeated: false` when it made the adjustment now. A row is asked once, its
@@ -97,18 +99,29 @@ export function readBatch(body: unknown): { batch: Batch } | { error: string; ro
   return { batch: { reason, category, ...(cause ? { cause } : {}), rows } };
 }
 
-/** The batch's id: the same reason, category, cause and rows are the same batch. */
-export function batchId(b: Batch): string {
-  const canonical = JSON.stringify([
-    b.reason,
-    b.category,
-    b.cause ? [b.cause.kind, b.cause.ref] : null,
-    b.rows.map((r) => [r.player, r.currency, r.walletType, r.direction, r.amountMinor]),
-  ]);
-  return createHash("sha256").update(canonical).digest("hex");
+const sha256 = (v: unknown) => createHash("sha256").update(JSON.stringify(v)).digest("hex");
+
+/** The batch's id: the same reason, category and cause are the same batch, whichever rows it holds. */
+export function batchId(b: Pick<Batch, "reason" | "category" | "cause">): string {
+  return sha256([b.reason, b.category, b.cause ? [b.cause.kind, b.cause.ref] : null]);
 }
 
-export const keyOf = (id: string, n: number) => `batch/${id}/${n}`;
+/**
+ * Each row's id, in the list's order: what it adjusts, and which of the identical rows it is (the first,
+ * the second, …), so a player credited twice the same is two rows, and moving a row keeps its id.
+ */
+export function rowIds(rows: readonly BatchRow[]): string[] {
+  const seen = new Map<string, number>();
+  return rows.map((r) => {
+    const what = JSON.stringify([r.player, r.currency, r.walletType, r.direction, r.amountMinor]);
+    const nth = (seen.get(what) ?? 0) + 1;
+    seen.set(what, nth);
+    return sha256([what, nth]);
+  });
+}
+
+/** A row's key at the wallet: 135 characters, within its 255. */
+export const keyOf = (id: string, row: string) => `batch/${id}/${row}`;
 
 export interface BatchDeps extends ProxyDeps {
   table: readonly Row[];
@@ -142,7 +155,7 @@ async function call(deps: BatchDeps, token: string, method: "GET" | "POST", path
 const str = (v: unknown) => (typeof v === "string" ? v : typeof v === "number" ? String(v) : undefined);
 
 /** One row: its adjustment under its key. */
-async function one(deps: BatchDeps, token: string, id: string, n: number, r: BatchRow, b: Batch): Promise<RowOutcome> {
+async function one(deps: BatchDeps, token: string, key: string, n: number, r: BatchRow, b: Batch): Promise<RowOutcome> {
   const base = { row: n, player: r.player, currency: r.currency };
   const wallet = `/wallets/${enc(r.player)}/${enc(r.currency)}`;
   const unavailable = (): RowOutcome => ({ ...base, outcome: "refused", reason: "source_unavailable", source: "wallet", status: 503 });
@@ -156,7 +169,7 @@ async function one(deps: BatchDeps, token: string, id: string, n: number, r: Bat
 
   const signed = r.direction === "debit" ? -r.amountMinor : r.amountMinor;
   const made = await call(deps, token, "POST", `${wallet}/adjustments`, {
-    key: keyOf(id, n),
+    key,
     walletType: r.walletType,
     amountMinor: signed,
     reason: b.reason,
@@ -171,12 +184,13 @@ async function one(deps: BatchDeps, token: string, id: string, n: number, r: Bat
 /** Every row, eight at a time, each outcome given to `emit` as it is known; the counts at the end. */
 export async function runBatch(deps: BatchDeps, b: Batch, token: string, emit: (o: RowOutcome) => void): Promise<Done> {
   const id = batchId(b);
+  const keys = rowIds(b.rows).map((row) => keyOf(id, row));
   const done: Done = { done: true, batch: id, made: 0, refused: 0, alreadyMade: 0 };
   let next = 0;
   const worker = async () => {
     while (next < b.rows.length) {
       const i = next++;
-      const o = await one(deps, token, id, i + 1, b.rows[i]!, b);
+      const o = await one(deps, token, keys[i]!, i + 1, b.rows[i]!, b);
       if (o.outcome === "made") done.made++;
       else if (o.outcome === "refused") done.refused++;
       else done.alreadyMade++;
