@@ -109,3 +109,24 @@ describe("a secret in a configuration form", () => {
     expect(save.mock.calls[0]![0]).toEqual({ operatorPrivateKey: "-----BEGIN PRIVATE KEY----- s3cr3t" });
   });
 });
+
+describe("a configuration form given another field", () => {
+  it("keeps what was typed in the others, and the new one starts empty (deposit bounds' added row)", () => {
+    const one: ConfigField[] = [{ name: "card/EUR/min", label: "config.form.none", kind: "money", currency: "EUR", optional: true, default: null }];
+    const two: ConfigField[] = [...one, { name: "card/BRL/min", label: "config.form.yes", kind: "money", currency: "BRL", optional: true, default: null }];
+    const view = (fields: ConfigField[]) => (
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MeContext.Provider value={admin}>
+          <ConfigForm fields={fields} values={{}} action={Actions["config.protectionSettings"]} save={async () => Response.json({})} />
+        </MeContext.Provider>
+      </QueryClientProvider>
+    );
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ roles: {} })));
+    const { rerender } = render(view(one));
+    fireEvent.change(screen.getByLabelText(`${t("config.form.none")} (EUR)`), { target: { value: "10.00" } });
+    rerender(view(two));
+    expect(screen.getByLabelText(`${t("config.form.none")} (EUR)`)).toHaveProperty("value", "10.00");
+    expect(screen.getByLabelText(`${t("config.form.yes")} (BRL)`)).toHaveProperty("value", "");
+    expect(screen.queryByText(/do not read yet/)).toBeNull();
+  });
+});
