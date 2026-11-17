@@ -69,7 +69,8 @@ class PayoutFailureSuite extends munit.FunSuite with LogCapturing:
       assertEquals(scene.approve(id).status, 200, what)
       kit.eventually(s"$what: asked twice", 20.seconds)(Option.when(kit.gateway.statusReads(id).size >= 2)(()))
       assertEquals((scene.state(id).status, scene.state(id).payoutStatus), (Status.Approved, PayoutStatus.Initiated), what)
-      assertEquals(kit.wallet.calls("/confirm").size + kit.wallet.calls("/release").size, 0, what)
+      // only this request's steps: a step of an earlier test's request can still reach the shared wallet
+      assertEquals((kit.wallet.calls("/confirm") ++ kit.wallet.calls("/release")).count(_.body.contains(id)), 0, what)
       notManual(id)
       kit.gateway.statusFor(id, FakeGateway.answer(id, "failed", Some(s"ref-$id"), Some("declined")))
       kit.eventually(s"$what: failed", 20.seconds)(Some(scene.state(id)).filter(_.status == Status.Failed))

@@ -78,7 +78,8 @@ class BrandReadersSuite extends SharedKitSuite:
     def byRef(ref: String, as: Seq[(String, String)] = op) =
       ids(kit.request("GET", s"/v1/payments/cashier?reference=${java.net.URLEncoder.encode(ref, "UTF-8")}", None, as))
 
-    assertEquals(byRef(ra.paymentId), Set(pa))
+    // the reader's sub-brands come from a view of its own, which may not yet hold `mine`
+    kit.eventually("pa found by its id")(Option(byRef(ra.paymentId)).filter(_ == Set(pa)))
     assertEquals(byRef(ra.transactionId), Set(pa))
     assertEquals(byRef(ra.pspTransactionId), Set(pa))
     assertEquals(byRef(ra.paymentId.take(8)), Set.empty[String], "a reference is matched exactly, not as a search")
