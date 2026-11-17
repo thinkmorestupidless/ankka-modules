@@ -184,3 +184,15 @@ describe("a birth date typed", () => {
     expect(screen.getByLabelText("Player")).toBeTruthy();
   });
 });
+
+describe("an owner's odd values", () => {
+  test("an instant that does not parse is shown as given, not thrown on", () => {
+    const { container } = render(<DateTime instant="not-a-time" zone="UTC" />);
+    expect(container.textContent).toBe("not-a-time");
+  });
+
+  test("a status named like an Object property is neutral, not Object.prototype's", () => {
+    const { container } = render(<Status value="constructor" />);
+    expect(container.querySelector("[data-tone]")?.getAttribute("data-tone")).toBe("neutral");
+  });
+});

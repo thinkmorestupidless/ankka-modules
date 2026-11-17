@@ -51,7 +51,9 @@ const toneOf: Record<string, Tone> = {
 };
 
 export function toneFor(value: string): Tone {
-  return toneOf[value.toLowerCase()] ?? "neutral";
+  const v = value.toLowerCase();
+  // own keys only: "constructor" is a status an owner may answer, not Object.prototype's
+  return Object.hasOwn(toneOf, v) ? toneOf[v]! : "neutral";
 }
 
 /** The word for a status: the catalogue's, or the owner's own value as given. */

@@ -93,6 +93,8 @@ export function dayRange(from: string, to: string, zone: string): { from: string
 
 /** An instant as a person reads it, in the brand's zone, the zone named. */
 export function formatInstant(instant: string | number, zone: string, locale = "en-GB"): string {
+  // one that does not parse (an owner's answer) is shown as given, never thrown on
+  if (Number.isNaN(new Date(instant).getTime())) return String(instant);
   return new Intl.DateTimeFormat(locale, {
     timeZone: zone,
     year: "numeric",
