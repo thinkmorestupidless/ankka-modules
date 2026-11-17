@@ -40,8 +40,12 @@ Every line: `at`, `kind`, `source`, `actor {kind: player | operator | system | p
 values, not prose: FR-040a).
 
 The merge emits lines down to the latest of the sources' unread cursors, so a page is never missing
-a line that a slower source would have put in it. A source that fails is listed in
-`gaps [{source, from, to, reason}]` and the page says the rest is incomplete.
+a line that a slower source would have put in it. Lines at the cut's own instant wait for the next
+page, which takes lines at or before its `after` (the page before's `next`), so a line at that
+instant the holding source did not give is not lost. A source that fails is listed in
+`gaps [{source, from, to, reason}]` and the page says the rest is incomplete. So is one that takes
+no period (messages, withdrawals) when it holds more and every line it gave is after the period:
+reason `beyond_page`.
 
 ## Search (FR-019; research R11)
 

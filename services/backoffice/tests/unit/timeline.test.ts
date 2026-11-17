@@ -73,17 +73,55 @@ describe("the timeline", () => {
     const { calls, fetchFn } = owners({
       ...empty,
       [`/players${P}/players/p-1/activity`]: () =>
-        Response.json({ events: [{ eventId: "e-1", category: "Games", eventType: "round_settled", timestamp: "2026-11-15T12:00:00Z", actor: "player", amountMinorUnits: -100, currency: "EUR" }], hasMore: true, next: "c-2" }),
+        Response.json({
+          events: [
+            { eventId: "e-1", category: "Games", eventType: "round_settled", timestamp: "2026-11-15T12:00:00Z", actor: "player", amountMinorUnits: -100, currency: "EUR" },
+            { eventId: "e-0", category: "Games", eventType: "round_settled", timestamp: "2026-11-15T11:00:00Z", actor: "player", amountMinorUnits: -100, currency: "EUR" },
+          ],
+          hasMore: true,
+          next: "c-2",
+        }),
       [`/players${P}/players/p-1/notes`]: () => Response.json({ notes: [{ noteId: "n-1", text: "x", author: "op-1", pinned: false, createdAt: "2026-11-10T09:00:00Z" }] }),
     });
     const page = await timeline(deps(fetchFn), "p-1", { kinds: ["rounds", "notes"] }, "tok", all);
+    // the line at the cut waits for the next page, which takes that instant too
     expect(page.lines.map((l) => l.id)).toEqual(["rounds/e-1"]);
-    expect(page.next).toBe("2026-11-15T12:00:00.000Z");
+    expect(page.next).toBe("2026-11-15T11:00:00.000Z");
     expect(calls.some((u) => u.includes("category=games"))).toBe(true);
 
     const second = await timeline(deps(owners({ ...empty, [`/players${P}/players/p-1/notes`]: () => Response.json({ notes: [{ noteId: "n-1", text: "x", author: "op-1", pinned: false, createdAt: "2026-11-10T09:00:00Z" }] }) }).fetchFn), "p-1", { kinds: ["rounds", "notes"], after: Date.parse(page.next!) }, "tok", all);
     expect(second.lines.map((l) => l.id)).toEqual(["notes/n-1"]);
     expect(second.to).toBe(page.next);
+  });
+
+  test("a line at the cut's very instant, of the holding source or another, is on the next page, not lost", async () => {
+    const T = "2026-11-15T11:00:00Z";
+    const rounds = (events: object[], hasMore: boolean) => () => Response.json({ events, hasMore });
+    const round = (id: string, at: string) => ({ eventId: id, category: "Games", eventType: "round_settled", timestamp: at, actor: "player" });
+    const note = { noteId: "n-1", text: "x", author: "op-1", pinned: false, createdAt: T };
+    const first = await timeline(
+      deps(owners({ ...empty, [`/players${P}/players/p-1/activity`]: rounds([round("e-2", "2026-11-15T12:00:00Z"), round("e-1", T)], true), [`/players${P}/players/p-1/notes`]: () => Response.json({ notes: [note] }) }).fetchFn),
+      "p-1", { kinds: ["rounds", "notes"] }, "tok", all,
+    );
+    expect(first.lines.map((l) => l.id)).toEqual(["rounds/e-2"]);
+    expect(first.next).toBe("2026-11-15T11:00:00.000Z");
+    // players holds another round at that instant, which it gives the next page
+    const second = owners({ ...empty, [`/players${P}/players/p-1/activity`]: rounds([round("e-1", T), round("e-0", T)], false), [`/players${P}/players/p-1/notes`]: () => Response.json({ notes: [note] }) });
+    const page = await timeline(deps(second.fetchFn), "p-1", { kinds: ["rounds", "notes"], after: Date.parse(first.next!) }, "tok", all);
+    expect(page.lines.map((l) => l.id).sort()).toEqual(["notes/n-1", "rounds/e-0", "rounds/e-1"]);
+    expect(page.to).toBe(first.next);
+    expect(second.calls.find((u) => u.includes("/activity"))).toContain(`to=${encodeURIComponent("2026-11-15T11:00:00.001Z")}`);
+  });
+
+  test("a source that takes no period and whose newest page is all after it is a gap, not a complete period", async () => {
+    const messages = Array.from({ length: 100 }, (_, i) => ({ notificationId: `m-${i}`, createdAt: new Date(Now - i * 60_000).toISOString(), subject: "s", state: "sent" }));
+    const { fetchFn } = owners({ ...empty, [`/players${P}/players/p-1/messages`]: () => Response.json({ items: messages, total: 400 }) });
+    // a period ending a week ago: every message given is newer
+    const to = Now - 7 * 86_400_000;
+    const page = await timeline(deps(fetchFn), "p-1", { kinds: ["messages"], from: to - 86_400_000, to }, "tok", all);
+    expect(page.lines).toEqual([]);
+    expect(page.next).toBeNull();
+    expect(page.gaps).toEqual([{ source: "messages", from: new Date(to - 86_400_000).toISOString(), to: new Date(to).toISOString(), reason: "beyond_page" }]);
   });
 
   test("a failed source and a late one are gaps with their period; the rest is shown", async () => {
