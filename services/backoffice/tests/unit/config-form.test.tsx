@@ -85,3 +85,27 @@ describe("the configuration form", () => {
     expect(same(["EUR", "BRL"], ["BRL", "EUR"])).toBe(true);
   });
 });
+
+describe("a secret in a configuration form", () => {
+  it("is typed unseen, and its confirmation says it changed, never what it is", async () => {
+    const save = vi.fn(async (_change: Record<string, unknown>) => Response.json({}));
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ roles: { brand_admin: ["config.brand"] } })));
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MeContext.Provider value={admin}>
+          <ConfigForm fields={[{ name: "operatorPrivateKey", label: "config.games.operatorPrivateKey", kind: "text", secret: true }]} values={{ operatorPrivateKey: "old-key" }} action={Actions["config.protectionSettings"]} save={save} />
+        </MeContext.Provider>
+      </QueryClientProvider>,
+    );
+    const input = screen.getByLabelText(t("config.games.operatorPrivateKey"));
+    expect(input.getAttribute("type")).toBe("password");
+    fireEvent.change(input, { target: { value: "-----BEGIN PRIVATE KEY----- s3cr3t" } });
+    fireEvent.click(screen.getByRole("button", { name: t("action.config.protectionSettings.label") }));
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog.textContent).toContain(t("config.form.secretChanged"));
+    expect(dialog.textContent).not.toContain("s3cr3t");
+    fireEvent.click(within(dialog).getByRole("button", { name: t("action.confirm") }));
+    await waitFor(() => expect(save).toHaveBeenCalled());
+    expect(save.mock.calls[0]![0]).toEqual({ operatorPrivateKey: "-----BEGIN PRIVATE KEY----- s3cr3t" });
+  });
+});

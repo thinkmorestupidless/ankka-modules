@@ -1347,6 +1347,8 @@ export const en = {
   // end of US6
   // US9: components/config-form.tsx (FR-034)
   "config.form.none": "none",
+  "config.form.secretSet": "set",
+  "config.form.secretChanged": "changed (not shown)",
   "config.form.yes": "yes",
   "config.form.no": "no",
   "config.form.differsFromDefault": "Differs from the brand's default ({value})",
