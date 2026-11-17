@@ -72,7 +72,8 @@ export const WideEnough = "(min-width: 1280px)";
 
 /** Below 1280 px the backoffice is for looking a player up: no editing is offered. */
 export function useReadOnly(): boolean {
-  const query = typeof window !== "undefined" && window.matchMedia ? window.matchMedia(WideEnough) : undefined;
+  // one MediaQueryList for the component's life, so the listener is added once, not on every render
+  const [query] = useState(() => (typeof window !== "undefined" && window.matchMedia ? window.matchMedia(WideEnough) : undefined));
   const [narrow, setNarrow] = useState(() => (query ? !query.matches : false));
   useEffect(() => {
     if (!query) return;
