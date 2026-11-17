@@ -11,8 +11,9 @@ const A = "1de8118c-ca16-49f7-99b5-ae7322e0ed1f";
 const B = "7f0c2a55-3d1e-4b8a-9c41-0a6f5e2d9b13";
 const C = "c3b1f4e2-8a7d-4e19-b0c5-2f9d6a1e7c48";
 
+const Key = "0b7c2f8e-4d1a-4c3e-9f2a-6e5d4c3b2a10";
 const body = (rows: unknown[], over: Record<string, unknown> = {}) =>
-  JSON.stringify({ reason: "outage on 15 November", category: "compensation", cause: { kind: "incident", ref: "INC-1115" }, rows, ...over });
+  JSON.stringify({ key: Key, reason: "outage on 15 November", category: "compensation", cause: { kind: "incident", ref: "INC-1115" }, rows, ...over });
 const row = (player: string, amountMinor: number | string = 500, over: Record<string, unknown> = {}) => ({ player, currency: "EUR", walletType: "real", direction: "credit", amountMinor, ...over });
 
 /** The wallet as the batch asks it: balances in its major text, each key's first outcome kept, a repeat marked `repeated`. */
@@ -59,7 +60,7 @@ const adjustCalls = (h: ReturnType<typeof harness>) => h.calls.filter((c) => c.m
 describe("the batch's id and keys", () => {
   const b = (readBatch(JSON.parse(body([row(A), row(B)]))) as { batch: Batch }).batch;
 
-  test("the same reason, category and cause are the same batch; a change to one is another", () => {
+  test("the same key, reason, category and cause are the same batch; a change to one is another", () => {
     expect(batchId(b)).toBe(batchId(structuredClone(b)));
     expect(batchId(b)).toMatch(/^[0-9a-f]{64}$/);
     expect(batchId({ ...b, reason: "another" })).not.toBe(batchId(b));
@@ -67,6 +68,12 @@ describe("the batch's id and keys", () => {
     expect(batchId({ ...b, cause: undefined })).not.toBe(batchId(b));
     const fewer: Batch = { ...b, rows: [b.rows[1]!] };
     expect(batchId(fewer)).toBe(batchId(b));
+    expect(batchId({ ...b, key: "5f0e1d2c-3b4a-4968-8776-655443322110" })).not.toBe(batchId(b));
+  });
+
+  test("a batch without its key, or with one not a UUID, is refused", () => {
+    expect(readBatch(JSON.parse(body([row(A)], { key: undefined })))).toMatchObject({ error: expect.stringContaining("key") });
+    expect(readBatch(JSON.parse(body([row(A)], { key: "batch-1" })))).toMatchObject({ error: expect.stringContaining("key") });
   });
 
   test("a row's id is what it adjusts and which of its identical rows it is, wherever it stands", () => {

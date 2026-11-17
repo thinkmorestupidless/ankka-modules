@@ -103,7 +103,7 @@ describe("SC-007: every amount equals its record's minor units", () => {
       direction: "credit",
       amountMinor: 1,
     }));
-    const batch = { reason: `FR-028 check of seed ${seed.run}`, category: "compensation", rows };
+    const batch = { key: crypto.randomUUID(), reason: `FR-028 check of seed ${seed.run}`, category: "compensation", rows };
     const send = async () => {
       const a = await admin.call<string>("POST", "/api/adjustment-batches", batch);
       expect(a.status).toBe(200);
