@@ -14,13 +14,21 @@ import scala.util.Try
 /** What the tool asks of the casino's Keycloak: a brand's realm, and its role in `eitheror`. */
 trait RealmAdmin:
   def realmExists(realm: String): Boolean
+  /** The realm's representation as the admin API answers it; `None` when there is no such realm. */
+  def realmSettings(realm: String): Option[String]
   def importRealm(json: String): Unit
   def roleExists(realm: String, role: String): Boolean
   def createRole(realm: String, role: String, description: String): Unit
-  def clientExists(realm: String, clientId: String): Boolean
+  /** The client's representation as the admin API answers it, its secret included; `None` when the realm has no such client. */
+  def client(realm: String, clientId: String): Option[String]
+  def clientExists(realm: String, clientId: String): Boolean = client(realm, clientId).isDefined
   def createClient(realm: String, json: String): Unit
-  /** Sets an existing client's secret; true when it changed, false when it already held it or there is no such client. */
-  def setClientSecret(realm: String, clientId: String, secret: String): Boolean
+  /**
+   * Changes the fields `patch` names on an existing client and leaves every other field as it is:
+   * Keycloak's `PUT /clients/{id}` keeps a field the representation omits, and merges `attributes`
+   * (probed on Keycloak 24.0.5, the installation's, 2026-11-17).
+   */
+  def updateClient(realm: String, clientId: String, patch: String): Unit
   def calls: Vector[String]
 
 object Realm:
@@ -61,7 +69,9 @@ object Realm:
    */
   def withPlayers(realmJson: String, playersUrl: Option[String], secrets: Map[String, String]): String =
     val mapper = ObjectMapper()
-    val realm  = mapper.readTree(realmJson).asInstanceOf[ObjectNode]
+    val realm  = mapper.readTree(realmJson) match
+      case o: ObjectNode => o
+      case other         => throw IllegalArgumentException(s"the brand's realm is not a JSON object: ${other.getNodeType}")
     realm.put("revokeRefreshToken", true).put("refreshTokenMaxReuse", 0)
     val attributes = Option(realm.get("attributes")).collect { case o: ObjectNode => o }
       .getOrElse(realm.putObject("attributes"))
@@ -171,6 +181,37 @@ object Realm:
     Seq("roles", "profile", "eitheror-casino-audience").foreach(scopes.add)
     mapper.writeValueAsString(c)
 
+  private val jsonMapper = ObjectMapper()
+
+  /** The client fields that follow the brand's address, and the attribute among them. */
+  private val AddressFields    = Vector("rootUrl", "baseUrl", "redirectUris", "webOrigins")
+  private val LogoutAttribute  = "post.logout.redirect.uris"
+
+  /**
+   * What of `desired` an existing client lacks: the address-derived fields, the post-logout address and,
+   * when `desired` has one, the secret. The patch names only those, with the client id; the changed
+   * fields are named, never a value.
+   */
+  def clientPatch(existing: com.fasterxml.jackson.databind.JsonNode, desired: com.fasterxml.jackson.databind.JsonNode): (ObjectNode, Vector[String]) =
+    val patch   = jsonMapper.createObjectNode().put("clientId", desired.path("clientId").asText())
+    val changed = mutable.ArrayBuffer.empty[String]
+    def same(a: com.fasterxml.jackson.databind.JsonNode, b: com.fasterxml.jackson.databind.JsonNode): Boolean =
+      if a.isArray && b.isArray then a.elements().asScala.map(_.asText).toSet == b.elements().asScala.map(_.asText).toSet
+      else a.asText() == b.asText() && a.isMissingNode == b.isMissingNode
+    AddressFields.foreach { f =>
+      if !same(existing.path(f), desired.path(f)) then
+        patch.set(f, desired.get(f)): Unit
+        changed += f
+    }
+    val logout = desired.path("attributes").path(LogoutAttribute)
+    if existing.path("attributes").path(LogoutAttribute).asText() != logout.asText() then
+      patch.putObject("attributes").put(LogoutAttribute, logout.asText()): Unit
+      changed += LogoutAttribute
+    if desired.has("secret") && existing.path("secret").asText() != desired.path("secret").asText() then
+      patch.put("secret", desired.path("secret").asText()): Unit
+      changed += "secret"
+    (patch, changed.toVector)
+
   /** The operators' realm an installation must hold before a brand's role is added to it. */
   def operators(root: Path): String =
     Files.readString(root.resolve("brands").resolve("_realm").resolve("eitheror-operators.json"))
@@ -213,16 +254,20 @@ object Realm:
         made += s"role $name added to realm $OperatorsRealm"
     }
     backoffice.foreach { (address, secret) =>
-      val id = backofficeClientId(slug)
-      if !admin.clientExists(OperatorsRealm, id) then
-        admin.createClient(OperatorsRealm, backofficeClient(slug, address, secret))
-        made += s"client $id added to realm $OperatorsRealm" + (if secret.isEmpty then " (its secret minted: set backoffice-client-secret to it)" else "")
-      else
-        // the secret is the brand's (`<slug>-backoffice` CLIENT_SECRET, also its `backoffice-client-secret`):
-        // a client made without it, whose secret Keycloak minted, is given it, so the two always agree
-        secret.foreach { s =>
-          if admin.setClientSecret(OperatorsRealm, id, s) then made += s"client $id in realm $OperatorsRealm given the brand's secret"
-        }
+      val id      = backofficeClientId(slug)
+      val desired = jsonMapper.readTree(backofficeClient(slug, address, secret))
+      admin.client(OperatorsRealm, id) match
+        case None =>
+          admin.createClient(OperatorsRealm, jsonMapper.writeValueAsString(desired))
+          made += s"client $id added to realm $OperatorsRealm" + (if secret.isEmpty then " (its secret minted: set backoffice-client-secret to it)" else "")
+        case Some(existing) =>
+          // the address-derived fields follow the brand's address, and the secret is the brand's (`<slug>-backoffice`
+          // CLIENT_SECRET, also its `backoffice-client-secret`): a client made without it, whose secret Keycloak
+          // minted, is given it, so the two always agree
+          val (patch, changed) = clientPatch(jsonMapper.readTree(existing), desired)
+          if changed.nonEmpty then
+            admin.updateClient(OperatorsRealm, id, jsonMapper.writeValueAsString(patch))
+            made += s"client $id in realm $OperatorsRealm updated: ${changed.mkString(", ")}"
     }
     made.toVector
 
@@ -240,7 +285,7 @@ final class KeycloakAdmin(base: String, username: String, password: String, ca: 
   private lazy val token: String =
     val form = s"grant_type=password&client_id=admin-cli&username=${enc(username)}&password=${enc(password)}"
     val request = HttpRequest.newBuilder(URI.create(s"${base.stripSuffix("/")}/realms/master/protocol/openid-connect/token"))
-      .header("Content-Type", "application/x-www-form-urlencoded")
+      .header("Content-Type", "application/x-www-form-urlencoded").timeout(Duration.ofSeconds(30))
       .POST(HttpRequest.BodyPublishers.ofString(form)).build()
     val response = client.send(request, HttpResponse.BodyHandlers.ofString())
     if response.statusCode != 200 then throw ControlPlaneError(response.statusCode, s"Keycloak refused the administrator: ${response.body}")
@@ -248,43 +293,41 @@ final class KeycloakAdmin(base: String, username: String, password: String, ca: 
 
   private def enc(s: String) = java.net.URLEncoder.encode(s, java.nio.charset.StandardCharsets.UTF_8)
 
-  private def send(method: String, path: String, body: Option[String]): Int =
+  /** Every admin call's bound, beside the connection's. */
+  private val RequestTimeout = Duration.ofSeconds(30)
+
+  private def exchange(method: String, path: String, body: Option[String]): HttpResponse[String] =
     log += s"$method $path"
     val builder = HttpRequest.newBuilder(URI.create(s"${base.stripSuffix("/")}/admin$path"))
-      .header("Authorization", s"Bearer $token")
+      .header("Authorization", s"Bearer $token").timeout(RequestTimeout)
     body match
       case Some(b) => builder.header("Content-Type", "application/json").method(method, HttpRequest.BodyPublishers.ofString(b))
       case None    => builder.method(method, HttpRequest.BodyPublishers.noBody())
-    client.send(builder.build(), HttpResponse.BodyHandlers.discarding()).statusCode
+    client.send(builder.build(), HttpResponse.BodyHandlers.ofString())
+
+  private def send(method: String, path: String, body: Option[String]): Int = exchange(method, path, body).statusCode
 
   private def created(status: Int, what: String): Unit =
     if status != 201 && status != 204 then throw ControlPlaneError(status, s"Keycloak did not create $what ($status)")
 
   def realmExists(realm: String) = send("GET", s"/realms/$realm", None) == 200
+  def realmSettings(realm: String): Option[String] =
+    val r = exchange("GET", s"/realms/$realm", None)
+    Option.when(r.statusCode == 200)(r.body)
   def importRealm(json: String)  = created(send("POST", "/realms", Some(json)), "the realm")
   def roleExists(realm: String, role: String) = send("GET", s"/realms/$realm/roles/$role", None) == 200
   def createRole(realm: String, role: String, description: String) =
     created(send("POST", s"/realms/$realm/roles", Some(mapper.writeValueAsString(java.util.Map.of("name", role, "description", description)))), s"role $role")
-  def clientExists(realm: String, clientId: String): Boolean =
-    log += s"GET /realms/$realm/clients?clientId=$clientId"
-    val request = HttpRequest.newBuilder(URI.create(s"${base.stripSuffix("/")}/admin/realms/$realm/clients?clientId=${enc(clientId)}"))
-      .header("Authorization", s"Bearer $token").GET().build()
-    val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-    response.statusCode == 200 && mapper.readTree(response.body).elements().asScala.exists(_.path("clientId").asText() == clientId)
+  def client(realm: String, clientId: String): Option[String] =
+    val r = exchange("GET", s"/realms/$realm/clients?clientId=${enc(clientId)}", None)
+    if r.statusCode != 200 then None
+    else mapper.readTree(r.body).elements().asScala.find(_.path("clientId").asText() == clientId).map(mapper.writeValueAsString)
   def createClient(realm: String, json: String) = created(send("POST", s"/realms/$realm/clients", Some(json)), "the client")
-  def setClientSecret(realm: String, clientId: String, secret: String): Boolean =
-    log += s"GET /realms/$realm/clients?clientId=$clientId"
-    val request = HttpRequest.newBuilder(URI.create(s"${base.stripSuffix("/")}/admin/realms/$realm/clients?clientId=${enc(clientId)}"))
-      .header("Authorization", s"Bearer $token").GET().build()
-    val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-    val found =
-      if response.statusCode != 200 then None
-      else mapper.readTree(response.body).elements().asScala.find(_.path("clientId").asText() == clientId)
-    found.filter(_.path("secret").asText() != secret).map(_.path("id").asText()).exists { internal =>
-      val status = send("PUT", s"/realms/$realm/clients/$internal", Some(mapper.writeValueAsString(java.util.Map.of("clientId", clientId, "secret", secret))))
-      if status != 204 && status != 200 then throw ControlPlaneError(status, s"Keycloak did not take the secret of client $clientId ($status)")
-      true
-    }
+  def updateClient(realm: String, clientId: String, patch: String): Unit =
+    val internal = client(realm, clientId).map(c => mapper.readTree(c).path("id").asText()).filter(_.nonEmpty)
+      .getOrElse(throw ControlPlaneError(404, s"Keycloak has no client $clientId in realm $realm to update"))
+    val status = send("PUT", s"/realms/$realm/clients/${enc(internal)}", Some(patch))
+    if status != 204 && status != 200 then throw ControlPlaneError(status, s"Keycloak did not update client $clientId ($status)")
 
 object KeycloakAdmin:
   /**
@@ -319,15 +362,19 @@ final class InMemoryRealms extends RealmAdmin:
     log += s"POST /realms/$realm/roles"
     roles.getOrElseUpdate(realm, mutable.Set.empty) += role
   val clients = mutable.Map.empty[(String, String), String]
-  def clientExists(realm: String, clientId: String) = { log += s"GET /realms/$realm/clients?clientId=$clientId"; clients.contains(realm -> clientId) }
+  def realmSettings(realm: String) = { log += s"GET /realms/$realm"; realms.get(realm) }
+  def client(realm: String, clientId: String) = { log += s"GET /realms/$realm/clients?clientId=$clientId"; clients.get(realm -> clientId) }
   def createClient(realm: String, json: String) =
     log += s"POST /realms/$realm/clients"
     clients((realm, mapper.readTree(json).get("clientId").asText())) = json
-  def setClientSecret(realm: String, clientId: String, secret: String) =
-    log += s"PUT /realms/$realm/clients/$clientId secret"
-    clients.get(realm -> clientId).filter(j => mapper.readTree(j).path("secret").asText() != secret).exists { json =>
-      val node = mapper.readTree(json).asInstanceOf[com.fasterxml.jackson.databind.node.ObjectNode]
-      node.put("secret", secret)
-      clients((realm, clientId)) = mapper.writeValueAsString(node)
-      true
+  /** As Keycloak's PUT: the fields `patch` names replace the client's, `attributes` merged. */
+  def updateClient(realm: String, clientId: String, patch: String) =
+    log += s"PUT /realms/$realm/clients/$clientId"
+    val existing = clients.get(realm -> clientId).map(mapper.readTree).collect { case o: ObjectNode => o }
+      .getOrElse(throw ControlPlaneError(404, s"no client $clientId in realm $realm"))
+    mapper.readTree(patch).properties().asScala.foreach { e =>
+      (e.getKey, existing.get(e.getKey), e.getValue) match
+        case ("attributes", current: ObjectNode, named: ObjectNode) => current.setAll[ObjectNode](named: ObjectNode): Unit
+        case (key, _, value)                                        => existing.set(key, value): Unit
     }
+    clients((realm, clientId)) = mapper.writeValueAsString(existing)
