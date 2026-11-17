@@ -161,11 +161,12 @@ function Providers() {
       <h3>{t("config.games.addProvider")}</h3>
       <div className="bo-field">
         <label htmlFor={addId}>{t("config.games.providerName")}</label>
-        <input id={addId} className="bo-input" value={adding} onChange={(e) => setAdding(e.target.value.trim())} />
+        <input id={addId} className="bo-input" value={adding} onChange={(e) => setAdding(e.target.value)} />
         <span className="bo-field-hint">{t("config.games.providerName.hint")}</span>
       </div>
-      {adding !== "" ? (
-        <ProviderConfig key={adding} p={{ provider: adding, apiUrl: "", site: "", jurisdiction: "", lobbyUrl: "", depositUrl: "" }} done={saved} />
+      {/* one form for the new provider, its name read as typed (trimmed), so typing the name keeps what else was typed */}
+      {adding.trim() !== "" ? (
+        <ProviderConfig key="new" p={{ provider: adding.trim(), apiUrl: "", site: "", jurisdiction: "", lobbyUrl: "", depositUrl: "" }} done={saved} />
       ) : null}
     </>
   );

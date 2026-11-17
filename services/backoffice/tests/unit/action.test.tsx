@@ -94,6 +94,19 @@ describe("an action offered", () => {
   });
 });
 
+describe("an action's dialog closed", () => {
+  test("says so whether cancelled or confirmed, so a screen can drop what its subject took", async () => {
+    const onClose = vi.fn();
+    render(<Action action={Actions["withdrawal.approve"]} me={finance} bags={OperatorBags} state="pending_review" run={ok} onClose={onClose} />);
+    await openDialog("Approve");
+    await act(async () => fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+    await openDialog("Approve");
+    await act(async () => fireEvent.click(confirmButton()));
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("an action the operator may not take", () => {
   test("is shown disabled, with the roles that give it (rolesGiving)", () => {
     render(<Action action={Actions["withdrawal.approve"]} me={support} bags={OperatorBags} state="pending_review" run={ok} />);

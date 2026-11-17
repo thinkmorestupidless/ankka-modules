@@ -98,10 +98,9 @@ function CredentialActions({ subBrand, c, onTested }: { subBrand: string; c: Cre
           </>
         }
         run={() => merchant.putSubBrandsPspCredentialsByProvider(p, { ...named, body: { credentials: parsed } })}
-        onDone={() => {
-          setSecrets("");
-          done();
-        }}
+        onDone={done}
+        // the credentials typed are dropped when the dialog closes, confirmed or cancelled
+        onClose={() => setSecrets("")}
       />
       <Action action={Actions["payments.credential.activate"]} me={me} bags={bags} state={c.status} subject={subject} run={() => merchant.postSubBrandsPspCredentialsActivate(p, named)} onDone={done} />
       <Action action={Actions["payments.credential.disable"]} me={me} bags={bags} state={c.status} subject={subject} run={() => merchant.postSubBrandsPspCredentialsDisable(p, named)} onDone={done} />
@@ -143,9 +142,10 @@ function CreateCredential({ subBrand }: { subBrand: string }) {
       }
       onDone={() => {
         setName("");
-        setSecrets("");
         done();
       }}
+      // the credentials typed are dropped when the dialog closes, confirmed or cancelled
+      onClose={() => setSecrets("")}
     />
   );
 }
