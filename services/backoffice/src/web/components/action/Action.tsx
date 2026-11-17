@@ -28,11 +28,13 @@ export interface ActionProps {
   ready?: boolean;
   /** The screen's one primary action, drawn in --primary (contracts/design.md); the rest are not. */
   primary?: boolean;
+  /** The dialog closed, confirmed or not: what the subject took (a secret typed) is dropped here. */
+  onClose?(): void;
 }
 
 type Shown = { message: Message; next?: Message };
 
-export function Action({ action, me, bags, state, subject, run, onDone, ready, primary }: ActionProps) {
+export function Action({ action, me, bags, state, subject, run, onDone, ready, primary, onClose }: ActionProps) {
   const needsId = useId();
   if (!offeredIn(action, state)) return null;
 
@@ -51,7 +53,7 @@ export function Action({ action, me, bags, state, subject, run, onDone, ready, p
       </span>
     );
   }
-  return <ActionDialog action={action} bags={bags} subject={subject} run={run} onDone={onDone} ready={ready} primary={primary} />;
+  return <ActionDialog action={action} bags={bags} subject={subject} run={run} onDone={onDone} ready={ready} primary={primary} onClose={onClose} />;
 }
 
 export interface ActionDialogProps {
@@ -62,10 +64,11 @@ export interface ActionDialogProps {
   onDone?(answer: Response): void;
   ready?: boolean;
   primary?: boolean;
+  onClose?(): void;
 }
 
 /** The button that opens the confirmation, and the confirmation. */
-export function ActionDialog({ action, bags, subject, run, onDone, ready = true, primary }: ActionDialogProps) {
+export function ActionDialog({ action, bags, subject, run, onDone, ready = true, primary, onClose }: ActionDialogProps) {
   const reasonId = useId();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
@@ -77,6 +80,7 @@ export function ActionDialog({ action, bags, subject, run, onDone, ready = true,
     if (!next) {
       setReason("");
       setRefusal(undefined);
+      onClose?.();
     }
   };
 
