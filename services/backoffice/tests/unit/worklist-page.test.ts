@@ -1,7 +1,7 @@
 // T064: what the worklist page makes of the server's answer: every kind's items merged oldest first, the
 // place an operator is put at once an item is gone, and who acted on a request no longer waiting.
 import { describe, expect, test } from "vitest";
-import { actedOn, investigationOf, merged, placeAfter, stillOpen, type Item, type Request } from "../../src/web/areas/worklist/read.ts";
+import { actedOn, everyKindPaging, investigationOf, merged, placeAfter, stillOpen, type Item, type Request } from "../../src/web/areas/worklist/read.ts";
 
 const item = (kind: string, id: string, since: string, player?: string): Item => ({ kind, id, since, subject: { player }, detail: {} });
 
@@ -26,6 +26,18 @@ describe("the worklist's rows", () => {
     expect(investigationOf(item("withdrawals_pending", "w-1", "2026-11-10T00:00:00Z", "p-a"))).toBe("/withdrawals/w-1");
     expect(investigationOf(item("documents_awaiting", "p-a", "2026-11-10T00:00:00Z", "p-a"))).toBe("/players/p-a/identity");
     expect(investigationOf(item("fraud_cases", "c-1", "2026-11-10T00:00:00Z", "p-a"))).toBe("/fraud?case=c-1");
+  });
+});
+
+describe("every kind together", () => {
+  test("pages to the end of the merged first pages, and names each kind that holds more", () => {
+    const kinds = [
+      { kind: "withdrawal_review", state: "ok" as const, total: 130, page: 1, items: Array.from({ length: 50 }, (_, i) => item("withdrawal_review", `w${i}`, "2026-11-01T00:00:00Z")) },
+      { kind: "rg_case", state: "ok" as const, total: 3, page: 1, items: Array.from({ length: 3 }, (_, i) => item("rg_case", `c${i}`, "2026-11-01T00:00:00Z")) },
+      { kind: "fraud_case", state: "unavailable" as const, reason: "timeout" },
+    ];
+    expect(everyKindPaging(kinds, 1, 50)).toEqual({ lastPage: false, more: [{ kind: "withdrawal_review", count: 80 }] });
+    expect(everyKindPaging(kinds, 2, 50).lastPage).toBe(true);
   });
 });
 

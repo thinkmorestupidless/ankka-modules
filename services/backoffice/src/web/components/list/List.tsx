@@ -31,6 +31,12 @@ export interface ListProps<Row> {
   total?: number;
   /** Whether no page follows this one (`completeOf`, or the owner's `hasMore` negated). */
   complete: boolean;
+  /**
+   * Whether this is the last page this view can reach though the list is not complete (the rest is
+   * under another filter, or beyond the owner's cap): Next is not offered, and `complete` still says
+   * there is more.
+   */
+  lastPage?: boolean;
   fetching?: boolean;
   freshness?: Freshness;
   zone: string;
@@ -76,15 +82,17 @@ export function List<Row>(props: ListProps<Row>) {
   const { state } = list;
   const { shown, changed } = useKeptRows(props.rows, placeOf(state), rowKey, props.rowVersion ?? ((r) => JSON.stringify(r)));
 
-  // The scroll offset: restored once rows are there to scroll, kept as the operator scrolls.
+  // The scroll offset: restored once rows are there to scroll, and again whenever the place changes (a
+  // page turned sets it to 0), kept as the operator scrolls.
   const scroller = useRef<HTMLDivElement>(null);
-  const restored = useRef(false);
+  const restored = useRef<string | undefined>(undefined);
+  const place = placeOf(state);
   const hasRows = (shown?.length ?? 0) > 0;
   useEffect(() => {
-    if (restored.current || !hasRows || !scroller.current) return;
+    if (restored.current === place || !hasRows || !scroller.current) return;
     scroller.current.scrollTop = state.scroll;
-    restored.current = true;
-  }, [hasRows, state.scroll]);
+    restored.current = place;
+  }, [hasRows, place, state.scroll]);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
   const onScroll = () => {
@@ -200,7 +208,7 @@ export function List<Row>(props: ListProps<Row>) {
         <button type="button" className="bo-button" disabled={state.page <= 1} onClick={() => list.setPage(state.page - 1)}>
           {t("list.previous")}
         </button>
-        <button type="button" className="bo-button" disabled={props.complete} onClick={() => list.setPage(state.page + 1)}>
+        <button type="button" className="bo-button" disabled={props.complete || props.lastPage === true} onClick={() => list.setPage(state.page + 1)}>
           {t("list.next")}
         </button>
       </nav>
