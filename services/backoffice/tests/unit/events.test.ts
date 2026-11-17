@@ -86,6 +86,20 @@ describe("/api/events", () => {
     expect(await until(r, "signed_out")).toContain("event: signed_out");
   });
 
+  test("ends when the instance is stopping, without waiting for its next comparison", async () => {
+    const stopping = new AbortController();
+    const h = harness({ eventsEveryMs: 60_000, shutdown: stopping.signal });
+    h.state.sessions.set("s-ev", { accessToken: "a.e30.s", expiresAt: Date.now() + 120_000, roles: [`brand_${Brand}`, "brand_support"] });
+    const r = await h.ask("GET", "/api/events", { session: "s-ev" });
+    const reader = r.body!.getReader();
+    expect(new TextDecoder().decode((await reader.read()).value)).toMatch(/^: open/);
+    const started = Date.now();
+    stopping.abort();
+    let done = false;
+    while (!done) done = (await reader.read()).done;
+    expect(Date.now() - started).toBeLessThan(1_000);
+  });
+
   test("names its route in the log, never the session", async () => {
     const h = live();
     await until(await h.ask("GET", "/api/events", { session: "s-ev" }), "nothing", 50);
