@@ -906,4 +906,9 @@ seeded brand fills in the rest.
   - Players seeded its default roles on the starting thread and ended when a call missed its
     10 seconds on a busy node; the seed now runs off that thread until it holds (b1e2a207).
   - To fit the node, exchange, backoffice-probe, game-provider, attribution, public-api and
-    markets are paused on kind-ankka's goldvibe; none is read by the backoffice suites.
+    markets are paused on kind-ankka's goldvibe; a suite that needs one of them is resumed for.
+  - Gap, accepted (Trevor): on kind-ankka the seed is 3,000 players, 1,500 withdrawal requests and
+    300 rewards, not SC-005's 10,000, 5,000 and 1,000. Docker's 16 GiB node ran out of memory under
+    it (the casino Keycloak, with no request, was killed first), and players waited a median 1.7 s
+    for a database connection, so registrations came at about 0.3 a second. T133's timings are
+    measured on that seed; the 10,000 run waits for a larger installation.
