@@ -21,10 +21,10 @@ import { accountName, actorName, json, thisMonth, type Payout } from "./programm
 /** The programme's export for a period, read through the backoffice's own route (a GET, as the signed-in operator). */
 const exportHref = (period: string) => `/api/s/affiliate-programme/payouts/export?${new URLSearchParams({ period })}`;
 
-function Row({ p, names, done }: { p: Payout; names: ReadonlyMap<string, string>; done(): void }) {
+function Row({ p, names, done, viewOnly }: { p: Payout; names: ReadonlyMap<string, string>; done(): void; viewOnly: boolean }) {
   const me = useOperator();
   const bags = useBags();
-  const readOnly = useReadOnlyMode();
+  const readOnly = useReadOnlyMode() || viewOnly;
   const tz = useZone();
   const who = names.get(p.affiliateId) ?? p.affiliateId;
   const money = (minor: number) => <Money value={{ minor, currency: p.currency }} />;
@@ -75,7 +75,8 @@ function Row({ p, names, done }: { p: Payout; names: ReadonlyMap<string, string>
   );
 }
 
-export function PayoutsTable({ payouts, names, done }: { payouts: readonly Payout[]; names: ReadonlyMap<string, string>; done(): void }) {
+/** `readOnly`: the payouts as shown, with no action on them (the affiliate's own view, as a manager reads it). */
+export function PayoutsTable({ payouts, names, done, readOnly = false }: { payouts: readonly Payout[]; names: ReadonlyMap<string, string>; done(): void; readOnly?: boolean }) {
   if (payouts.length === 0) return <p className="bo-muted">{t("affiliates.payout.none")}</p>;
   return (
     <div className="bo-aff-scroll">
@@ -109,7 +110,7 @@ export function PayoutsTable({ payouts, names, done }: { payouts: readonly Payou
         </thead>
         <tbody>
           {payouts.map((p) => (
-            <Row key={p.payoutId} p={p} names={names} done={done} />
+            <Row key={p.payoutId} p={p} names={names} done={done} viewOnly={readOnly} />
           ))}
         </tbody>
       </table>
