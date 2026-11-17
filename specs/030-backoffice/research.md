@@ -459,7 +459,13 @@ the view (`ViewMark`), at most once a second per instance. `asOf` reads it: when
 last change, to within the two projections' lag and that second; null until the source has a
 change. `rebuilding` is false everywhere: a view rebuilt by raising its version replays where the
 service cannot see and the follower is not rebuilt with it, so nothing honest can be inferred
-(reporting infers it from its day consumers, which no other service has). The route is
+(reporting infers it from its day consumers, which no other service has). `asOf` is the follower's
+clock when it handled a change, not the change's own time (review Q3, 2026-11-17): it reads "the view
+last applied a change at", not "the data is current to". So while a view replays a backlog `asOf`
+reads now and nothing marks it provisional, and a quiet brand's caught-up view reads as old. ankka
+0.16.3 gives a consumer neither the change's time (`ChangeContext` holds the subject, sequence number
+and origin) nor a view's offset, so FR-011's "catching up" cannot be told here; it is a gap to raise
+with ankka, not something the page can infer. The route is
 `GET /v1/casino/brands/<slug>/<service>/status` on each service's service endpoint, admitting an
 operator holding the permission that opens the service's lists, or a service of the project. The
 paths are `players/status`, `wallet/status`, `payouts/status`, `kyc/status`, `rg/status` and
