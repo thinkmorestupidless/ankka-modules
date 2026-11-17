@@ -39,3 +39,11 @@ object RoleRules:
   /** The first permission `giverHolds` lacks of those the given roles carry, if any (FR-008c). */
   def escalation(giverHolds: Set[String], carried: Set[String]): Option[String] =
     carried.toVector.sorted.find(p => !giverHolds(p))
+
+  /**
+   * The first permission `giverHolds` lacks of those carried by the roles a giving asks for or takes away
+   * (FR-008c: give and take away): a giving replaces `before`, the roles the brand gave the operator last,
+   * with `asked`, so what it removes weighs as much as what it adds. A role no longer in `bags` carries nothing.
+   */
+  def givingLacks(giverHolds: Set[String], bags: Map[String, Set[String]], before: Set[String], asked: Set[String]): Option[String] =
+    escalation(giverHolds, (asked ++ (before -- asked)).flatMap(r => bags.getOrElse(r, Set.empty)))
