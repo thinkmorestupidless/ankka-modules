@@ -22,7 +22,7 @@ export interface Device {
 export function PlayerDevices({ player }: { player: string }) {
   const tz = useZone();
   const q = useQuery({ queryKey: ["players", "devices", player], queryFn: () => read<{ devices: Device[] }>(players.getPlayersDevices({ playerId: player })) });
-  if (q.isError) return <RefusalNotice refusal={q.error as never} />;
+  if (q.isError) return <RefusalNotice refusal={q.error} />;
   if (!q.data) return <p role="status">{t("list.loading")}</p>;
   const devices = q.data.devices;
   return (

@@ -64,7 +64,7 @@ function OutcomeList({ which, heading }: { which: "undelivered" | "refused"; hea
   return (
     <section aria-labelledby={`pay-${which}`}>
       <h2 id={`pay-${which}`}>{t(heading)}</h2>
-      {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
+      {q.isError ? <RefusalNotice refusal={q.error} /> : null}
       {q.data ? (
         <>
           {q.data.total > q.data.outcomes.length ? <p className="bo-muted">{t("payments.outcomes.more", { count: q.data.outcomes.length, total: q.data.total })}</p> : null}

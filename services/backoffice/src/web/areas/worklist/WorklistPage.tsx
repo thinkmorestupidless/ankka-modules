@@ -10,7 +10,7 @@ import { useRouter, useRouterState } from "@tanstack/react-router";
 import { useContext, useEffect, useRef, useState, type MouseEvent } from "react";
 import { t, type MessageKey } from "../../../shared/messages/index.ts";
 import { payouts } from "../../../shared/owners/index.ts";
-import { explain } from "../../../shared/refusals.ts";
+import { refused } from "../../../shared/refusals.ts";
 import { Kinds } from "../../../shared/worklist.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
@@ -92,7 +92,7 @@ function Investigate({ href }: { href: string }) {
 
 async function readRequest(requestId: string): Promise<Request> {
   const r = await payouts.getWithdrawalRequestsByRequestId({ requestId });
-  if (!r.ok) throw explain(r.status, await r.text());
+  if (!r.ok) throw refused(r.status, await r.text());
   return (await r.json()) as Request;
 }
 
@@ -116,7 +116,7 @@ function WithdrawalItem({ item, onActed }: { item: Item; onActed(): void }) {
     void client.invalidateQueries({ queryKey });
     onActed();
   };
-  if (q.isError) return <RefusalNotice refusal={q.error as never} />;
+  if (q.isError) return <RefusalNotice refusal={q.error} />;
   if (!r) return <p>{t("list.loading")}</p>;
   const open = stillOpen(r, item.kind);
   const acted = open ? undefined : actedOn(r);
@@ -278,7 +278,7 @@ export function WorklistPage() {
       {answered && answered.length === 0 ? null : (
         <>
           <ZoneNote zone={tz} />
-          {all.isError ? <RefusalNotice refusal={all.error as never} /> : null}
+          {all.isError ? <RefusalNotice refusal={all.error} /> : null}
           <div className="bo-worklist-body">
             <List
               caption="worklist.caption"

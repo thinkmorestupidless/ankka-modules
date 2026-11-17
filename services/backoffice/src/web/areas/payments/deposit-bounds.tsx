@@ -65,7 +65,7 @@ function BoundsForm({ subBrand }: { subBrand: string }) {
   const [added, setAdded] = useState<Pick<Bound, "method" | "currency">[]>([]);
   const [method, setMethod] = useState("");
   const [currency, setCurrency] = useState("");
-  if (q.isError) return <RefusalNotice refusal={q.error as never} />;
+  if (q.isError) return <RefusalNotice refusal={q.error} />;
   if (!q.data) return <p role="status">{t("list.loading")}</p>;
   const held = q.data.bounds;
   const rows = [...held, ...added.filter((a) => !held.some((b) => b.method === a.method && b.currency === a.currency))];

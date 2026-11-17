@@ -329,19 +329,19 @@ export function HierarchySection() {
       <p className="bo-muted">{t("payments.hierarchy.note")}</p>
       <section aria-labelledby="pay-holdings">
         <h2 id="pay-holdings">{t("payments.hierarchy.holdings")}</h2>
-        {holdings.isError ? <RefusalNotice refusal={holdings.error as never} /> : null}
+        {holdings.isError ? <RefusalNotice refusal={holdings.error} /> : null}
         {holdings.data ? <Rows caption="payments.hierarchy.holdings" cols={holdingCols} rows={holdings.data.holdings} rowKey={(h) => h.holdingId} empty="payments.hierarchy.none" /> : null}
         {act ? <Create kind="holding" run={(name) => merchant.postHoldings({ body: { name } })} /> : null}
       </section>
       <section aria-labelledby="pay-companies">
         <h2 id="pay-companies">{t("payments.hierarchy.companies")}</h2>
-        {companies.isError ? <RefusalNotice refusal={companies.error as never} /> : null}
+        {companies.isError ? <RefusalNotice refusal={companies.error} /> : null}
         {companies.data ? <Rows caption="payments.hierarchy.companies" cols={companyCols} rows={companies.data.companies} rowKey={(c) => c.companyId} empty="payments.hierarchy.none" /> : null}
         {act ? <Create kind="company" extra="company" run={(name, x) => merchant.postCompanies({ body: { name, holdingId: x.parent } })} /> : null}
       </section>
       <section aria-labelledby="pay-sub-brands">
         <h2 id="pay-sub-brands">{t("payments.hierarchy.subBrands")}</h2>
-        {subBrands.isError ? <RefusalNotice refusal={subBrands.error as never} /> : null}
+        {subBrands.isError ? <RefusalNotice refusal={subBrands.error} /> : null}
         {subBrands.data ? <Rows caption="payments.hierarchy.subBrands" cols={subBrandCols} rows={subBrands.data.subBrands} rowKey={subBrandIdOf} empty="payments.hierarchy.none" /> : null}
         {act ? (
           <Create

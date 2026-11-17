@@ -86,3 +86,43 @@ export function explain(status: number, body: string, bags?: RoleBags): Refusal 
   if (has(key)) return { status, code, message: { key }, next: allowed ?? next(`${key}.next`) };
   return { status, code, message: { key: "refusal.unknown", values: { code, given } }, next: allowed };
 }
+
+/**
+ * A refusal thrown by a read: an Error, so a query's error is always one, carrying the refusal the page
+ * shows. reporting's `Refused` and the jobs' reads carry theirs the same way, under `refusal`.
+ */
+export class RefusedError extends Error {
+  readonly refusal: Refusal;
+  constructor(refusal: Refusal) {
+    super(`refused: ${refusal.status} ${refusal.code}`);
+    this.name = "RefusedError";
+    this.refusal = refusal;
+  }
+}
+
+/** An owner's refusal, explained, as the error a read throws. */
+export const refused = (status: number, body: string, bags?: RoleBags): RefusedError => new RefusedError(explain(status, body, bags));
+
+const isRefusal = (v: unknown): v is Refusal =>
+  v !== null && typeof v === "object" && typeof (v as Refusal).message === "object" && (v as Refusal).message !== null && typeof (v as Refusal).message.key === "string";
+
+/**
+ * Whatever a read or an action failed with, as a refusal the page can show: one it carries (`refusal`),
+ * one it is, the server not reached (a fetch's TypeError, or anything else thrown before an answer), or an
+ * answer that could not be read (a SyntaxError from a body that is not JSON). Never throws.
+ */
+export function refusalOf(e: unknown): Refusal {
+  if (isRefusal(e)) return e;
+  if (e !== null && typeof e === "object" && isRefusal((e as { refusal?: unknown }).refusal)) return (e as { refusal: Refusal }).refusal;
+  if (e instanceof SyntaxError) return { status: 0, code: "unreadable", message: { key: "refusal.unreadable" }, next: { key: "refusal.unreadable.next" } };
+  return { status: 0, code: "unreachable", message: { key: "action.unreachable" }, next: { key: "action.unreachable.next" } };
+}
+
+/** A forbidden refusal explained without the brand's roles, given the roles that would permit it once they are read (FR-005, FR-006). */
+export function withRoles(r: Refusal, bags: RoleBags | null | undefined): Refusal {
+  if (r.code !== "forbidden" || r.next !== undefined || !bags) return r;
+  const permission = r.message.values?.permission;
+  if (typeof permission !== "string") return r;
+  const roles = rolesGiving(permission, bags);
+  return { ...r, next: roles.length ? { key: "refusal.forbidden.next", values: { roles: roles.join(", ") } } : { key: "refusal.forbidden.none" } };
+}

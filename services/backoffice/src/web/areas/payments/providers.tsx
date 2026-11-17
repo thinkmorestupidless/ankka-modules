@@ -176,7 +176,7 @@ function ProviderList({ subBrand }: { subBrand: string }) {
           {t("payments.test.of", { gateway: tested.c.provider, name: tested.c.name })} {testWords(tested.a)}
         </p>
       ) : null}
-      {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
+      {q.isError ? <RefusalNotice refusal={q.error} /> : null}
       {q.data ? <Rows caption="payments.providers.caption" cols={cols} rows={q.data.credentials} rowKey={(c) => c.configId} empty="payments.providers.none" /> : null}
       {readOnly ? null : <CreateCredential subBrand={subBrand} />}
     </div>

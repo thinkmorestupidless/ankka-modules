@@ -359,7 +359,7 @@ export function PlayerProtection({ player }: { player: string }) {
   const settings = useQuery({ queryKey: ["rg", "settings"], queryFn: () => readSettings(), staleTime: 60_000 });
   const done = () => void client.invalidateQueries({ queryKey: ["rg", "player", player] });
 
-  if (q.isError) return <RefusalNotice refusal={q.error as never} />;
+  if (q.isError) return <RefusalNotice refusal={q.error} />;
   if (!q.data) return <p role="status">{t("list.loading")}</p>;
   const p = q.data;
   return (

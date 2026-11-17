@@ -1,7 +1,7 @@
 // The worklist as the page's server answers it (`/api/worklist`, src/server/composite/worklist.ts), and
 // what the page makes of it: the items of every kind read, merged oldest first; where an item is
 // investigated; a withdrawal request as payouts answers it, and whether someone has acted on it.
-import { explain } from "../../../shared/refusals.ts";
+import { refused } from "../../../shared/refusals.ts";
 import { hrefOf } from "../../components/links.tsx";
 
 export interface Item {
@@ -24,7 +24,7 @@ export interface Worklist {
 
 async function read<T>(r: Promise<Response>): Promise<T> {
   const answer = await r;
-  if (!answer.ok) throw explain(answer.status, await answer.text());
+  if (!answer.ok) throw refused(answer.status, await answer.text());
   return (await answer.json()) as T;
 }
 

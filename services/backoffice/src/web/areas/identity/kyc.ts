@@ -1,7 +1,7 @@
 // kyc's answers as the identity screens read them (services/kyc api/Render.scala), and the reads, each
 // through the page's server as the signed-in operator. A refusal is thrown as `explain` gives it.
 import { kyc } from "../../../shared/owners/index.ts";
-import { explain, type Refusal } from "../../../shared/refusals.ts";
+import { refused } from "../../../shared/refusals.ts";
 
 export type Status = "unverified" | "pending" | "verified" | "rejected";
 
@@ -93,7 +93,7 @@ export const Profiles = ["ANJOUAN", "CURACAO", "MGA", "UKGC"] as const;
 
 async function read<T>(r: Promise<Response>): Promise<T> {
   const answer = await r;
-  if (!answer.ok) throw explain(answer.status, await answer.text()) satisfies Refusal;
+  if (!answer.ok) throw refused(answer.status, await answer.text());
   return (await answer.json()) as T;
 }
 

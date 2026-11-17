@@ -255,7 +255,7 @@ export function OperatorsPage({ onRoles }: { onRoles?(operator: string): void })
           <Invite done={done} />
         </div>
       )}
-      {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
+      {q.isError ? <RefusalNotice refusal={q.error} /> : null}
       <List
         caption="team.operators.caption"
         columns={columns}

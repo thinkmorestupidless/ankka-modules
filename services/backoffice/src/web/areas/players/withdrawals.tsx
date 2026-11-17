@@ -49,7 +49,7 @@ export function PlayerWithdrawals({ player }: { player: string }) {
       <h1>{t("withdrawals.player.title", { player })}</h1>
       <p className="bo-muted">{t("withdrawals.player.every")}</p>
       <ZoneNote zone={tz} />
-      {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
+      {q.isError ? <RefusalNotice refusal={q.error} /> : null}
       <List
         caption="withdrawals.player.caption"
         columns={columns(tz)}

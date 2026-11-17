@@ -84,7 +84,7 @@ function Detail({ paymentId, close }: { paymentId: string; close(): void }) {
       <button type="button" className="bo-button" onClick={close}>
         {t("payments.deposits.close")}
       </button>
-      {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
+      {q.isError ? <RefusalNotice refusal={q.error} /> : null}
       {q.data ? (
         <dl className="bo-pay-dl">
           <dt>{t("payments.deposits.amount")}</dt>
@@ -109,7 +109,7 @@ function Detail({ paymentId, close }: { paymentId: string; close(): void }) {
 
 function Analytics({ merchantId }: { merchantId: string }) {
   const q = usePayments<Summary>(["summary", merchantId], () => merchant.getCashierSummary({ query: merchantId ? { merchantId } : {} }));
-  if (q.isError) return <RefusalNotice refusal={q.error as never} />;
+  if (q.isError) return <RefusalNotice refusal={q.error} />;
   if (!q.data) return <p role="status">{t("list.loading")}</p>;
   const s = q.data;
   return (
@@ -196,7 +196,7 @@ function UncreditedList({ merchantId }: { merchantId: string }) {
     <section aria-labelledby="pay-uncredited">
       <h2 id="pay-uncredited">{t("payments.deposits.uncredited")}</h2>
       <p className="bo-muted">{t("payments.deposits.uncreditedNote")}</p>
-      {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
+      {q.isError ? <RefusalNotice refusal={q.error} /> : null}
       {q.data ? <Rows caption="payments.deposits.uncredited" cols={cols} rows={rows} rowKey={(p) => p.paymentId} empty="payments.deposits.noneUncredited" /> : null}
     </section>
   );
@@ -265,7 +265,7 @@ export function DepositsSection() {
           {t("payments.deposits.find")}
         </button>
       </form>
-      {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
+      {q.isError ? <RefusalNotice refusal={q.error} /> : null}
       <List
         caption="payments.deposits.caption"
         columns={columns}

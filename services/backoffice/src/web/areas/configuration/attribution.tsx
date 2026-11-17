@@ -345,7 +345,7 @@ function UndeliveredFacts({ networks }: { networks: Network[] }) {
               ))}
             </select>
           </div>
-          {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
+          {q.isError ? <RefusalNotice refusal={q.error} /> : null}
           <List
             caption="config.attribution.undelivered"
             columns={columns}

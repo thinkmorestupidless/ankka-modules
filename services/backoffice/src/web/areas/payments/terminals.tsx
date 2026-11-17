@@ -41,7 +41,7 @@ interface Catalog {
 function Properties({ gateway, scheme, values, set }: { gateway: string; scheme: string; values: Record<string, string>; set(v: Record<string, string>): void }) {
   const catalog = usePayments<Catalog>(["catalog", gateway], () => merchant.getCatalogGatewayByGateway({ gateway }));
   const props = catalog.data?.schemes.find((s) => s.pspId === scheme)?.requiredProperties ?? [];
-  if (catalog.isError) return <RefusalNotice refusal={catalog.error as never} />;
+  if (catalog.isError) return <RefusalNotice refusal={catalog.error} />;
   return (
     <>
       {props.map((p) => (
@@ -207,7 +207,7 @@ function TerminalList({ subBrand }: { subBrand: string }) {
   return (
     <div>
       <p className="bo-muted">{t("payments.terminals.note")}</p>
-      {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
+      {q.isError ? <RefusalNotice refusal={q.error} /> : null}
       {q.data ? <Rows caption="payments.terminals.caption" cols={cols} rows={q.data.integrations} rowKey={(x) => x.integrationId} empty="payments.terminals.none" /> : null}
       {readOnly ? null : <CreateTerminal subBrand={subBrand} />}
       <Routable subBrand={subBrand} />
@@ -243,7 +243,7 @@ function Routable({ subBrand }: { subBrand: string }) {
     <section aria-labelledby="pay-routable">
       <h2 id="pay-routable">{t("payments.terminals.routable")}</h2>
       <p className="bo-muted">{t("payments.terminals.routableNote")}</p>
-      {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
+      {q.isError ? <RefusalNotice refusal={q.error} /> : null}
       {q.data ? <Rows caption="payments.terminals.routable" cols={cols} rows={q.data.terminals} rowKey={(x) => x.terminalEntityId} empty="payments.terminals.none" /> : null}
     </section>
   );

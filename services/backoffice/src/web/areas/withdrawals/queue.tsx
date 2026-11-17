@@ -163,7 +163,7 @@ export function WithdrawalsQueuePage() {
       {q.data?.players?.more ? <p className="bo-muted" role="status">{t("withdrawals.queue.searchMore", { count: q.data.players.matched })}</p> : null}
       {q.data?.players?.matched === 0 ? <p className="bo-muted" role="status">{t("withdrawals.queue.searchNone")}</p> : null}
       <ZoneNote zone={tz} />
-      {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
+      {q.isError ? <RefusalNotice refusal={q.error} /> : null}
       <List
         caption="withdrawals.queue.caption"
         columns={columns(tz)}

@@ -2,7 +2,7 @@
 // wallet's open restricted funds records beside a player's (WalletEntity.restrictedFundsStatus), and what
 // the page makes of them: a record's state, its wagering progress and its open rounds. Every read goes
 // through the page's server as the signed-in operator; a refusal is thrown as `explain` gives it.
-import { explain } from "../../../shared/refusals.ts";
+import { refused } from "../../../shared/refusals.ts";
 import { rewards, wallet } from "../../../shared/owners/index.ts";
 
 /** Free rounds' part of a reward (RewardLists.freeSpins); amounts are minor units. */
@@ -95,7 +95,7 @@ export interface Offer {
 async function json<T>(answer: Promise<Response>): Promise<T> {
   const r = await answer;
   const text = await r.text();
-  if (!r.ok) throw explain(r.status, text);
+  if (!r.ok) throw refused(r.status, text);
   return JSON.parse(text) as T;
 }
 

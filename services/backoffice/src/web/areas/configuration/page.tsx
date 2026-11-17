@@ -4,13 +4,13 @@
 import type { ReactNode } from "react";
 import { useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query";
 import { t, type MessageKey } from "../../../shared/messages/index.ts";
-import { explain } from "../../../shared/refusals.ts";
+import { refused } from "../../../shared/refusals.ts";
 import { RefusalNotice } from "../../components/action/index.ts";
 
 /** The owner's JSON answer, or its refusal explained (thrown, so the query is in error). */
 export async function read<T>(r: Promise<Response>): Promise<T> {
   const answer = await r;
-  if (!answer.ok) throw explain(answer.status, await answer.text());
+  if (!answer.ok) throw refused(answer.status, await answer.text());
   return (await answer.json()) as T;
 }
 
@@ -26,7 +26,7 @@ export function useSaved(): () => void {
 
 /** A read's place on the page: its refusal, a loading line, or what `children` draws from its data. */
 export function Loaded<T>({ q, children }: { q: UseQueryResult<T>; children(data: T): ReactNode }) {
-  if (q.isError) return <RefusalNotice refusal={q.error as never} />;
+  if (q.isError) return <RefusalNotice refusal={q.error} />;
   if (q.data === undefined) return <p role="status">{t("list.loading")}</p>;
   return <>{children(q.data)}</>;
 }

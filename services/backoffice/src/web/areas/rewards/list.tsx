@@ -122,7 +122,7 @@ export function RewardsPage() {
         </div>
       </div>
       <ZoneNote zone={tz} />
-      {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
+      {q.isError ? <RefusalNotice refusal={q.error} /> : null}
       <List
         caption="rewards.list.caption"
         columns={columns(tz)}
