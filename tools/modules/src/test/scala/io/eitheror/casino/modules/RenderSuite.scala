@@ -42,7 +42,8 @@ class RenderSuite extends munit.FunSuite:
   private val NewOwnKeys  = Map(
     "kyc"           -> Set("KYC_MAX_UPLOAD_BYTES"),
     // spec 023 R13: the erasure targets the brand's modules add.
-    "players"       -> (Set("KEYCLOAK_URL", "INGEST_URL", "ERASURE_TARGETS") ++ PlayersSecrets),
+    // spec 030: half the instance for the heap, which ankka's default quarter left too small.
+    "players"       -> (Set("KEYCLOAK_URL", "INGEST_URL", "ERASURE_TARGETS", "JAVA_TOOL_OPTIONS") ++ PlayersSecrets),
     // spec 026 R11: the provider names the brand runs.
     "game-provider" -> Set("ST8_OPERATOR_ID", "ST8_API_KEY", "GAME_PROVIDER_MODE", "CASINO_PROVIDERS"),
     // spec 011 R13: the programme's code document.
@@ -65,9 +66,11 @@ class RenderSuite extends munit.FunSuite:
 
   /**
    * Sizes spec 001 did not set: players and attribution outgrow `small`'s 512Mi on kind (spec 008 T077,
-   * spec 012 T073; both OOM-killed).
+   * spec 012 T073; both OOM-killed); under spec 030's seed players outgrew `medium` too, and payouts and
+   * rewards `small` (spec 030 research, found during implementation).
    */
-  private val NewSizes = Map("players" -> "medium", "attribution" -> "medium", "kyc" -> "medium")
+  private val NewSizes = Map("players" -> "large", "attribution" -> "medium", "kyc" -> "medium",
+    "payouts" -> "medium", "rewards" -> "medium")
 
   private def plan(named: Vector[String], v: Values = values) =
     BrandRender.plan(v, keys, modules, named, at, Some(Fixtures.devKind), routes = ModuleManifest.ContractView.contractRoutes(Fixtures.root))
