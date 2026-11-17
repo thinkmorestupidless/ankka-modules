@@ -16,6 +16,7 @@ import { parseMoney } from "../../../shared/money.ts";
 import { rewards } from "../../../shared/owners/index.ts";
 import { Actions } from "../../actions/index.ts";
 import { Action } from "../../components/action/index.ts";
+import { Money } from "../../components/money.tsx";
 import { useOperator } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
 import { readOffers } from "./read.ts";
@@ -53,7 +54,10 @@ interface Form {
   currency: string;
   amount: string;
   wager: string;
+  /** The most a bonus may convert, an amount in the bonus's currency. */
   maxConvertible: string;
+  /** The most free rounds' winnings may convert: a field of its own, so text typed for a bonus never changes meaning. */
+  roundsMaxConvertible: string;
   gameId: string;
   provider: string;
   spinCount: string;
@@ -70,6 +74,7 @@ const empty = (currency: string): Form => ({
   amount: "",
   wager: "",
   maxConvertible: "",
+  roundsMaxConvertible: "",
   gameId: "",
   provider: "",
   spinCount: "",
@@ -78,8 +83,12 @@ const empty = (currency: string): Form => ({
   expiryDays: "",
 });
 
-/** The award's body as rewards reads it (OperatorAwards.award), or undefined while the form is incomplete. */
-export function bodyOf(f: Form, offerCurrency: string | null | undefined): Record<string, unknown> | undefined {
+/**
+ * The award's body as rewards reads it (OperatorAwards.award), or undefined while the form is incomplete.
+ * Free rounds carry no currency: rewards reads their amounts as minor units of the player's currency, so
+ * they are typed as amounts in it when the player's currency is known, else as whole minor units.
+ */
+export function bodyOf(f: Form, offerCurrency: string | null | undefined, playerCurrency?: string): Record<string, unknown> | undefined {
   const cur = f.currency.trim().toUpperCase();
   switch (f.how) {
     case "offer": {
@@ -102,13 +111,14 @@ export function bodyOf(f: Form, offerCurrency: string | null | undefined): Recor
       return body;
     }
     case "freeRounds": {
+      const roundsMinor = (text: string) => (playerCurrency ? minorOf(text, playerCurrency) : wholeOf(text, 1));
       const spinCount = wholeOf(f.spinCount, 1);
-      const spinValue = wholeOf(f.spinValue, 1);
+      const spinValue = roundsMinor(f.spinValue);
       if (f.gameId.trim() === "" || spinCount === undefined || spinValue === undefined) return undefined;
       const body: Record<string, unknown> = { type: "FREE_SPINS", gameId: f.gameId.trim(), spinCount, spinValue, winningsDestination: f.destination };
       if (f.provider.trim() !== "") body.provider = f.provider.trim();
       if (f.destination === "bonus_balance") {
-        const max = wholeOf(f.maxConvertible, 1);
+        const max = roundsMinor(f.roundsMaxConvertible);
         const wager = f.wager.trim() === "" ? 0 : wholeOf(f.wager);
         if (max === undefined || wager === undefined) return undefined;
         body.maxConvertibleAmount = max;
@@ -140,8 +150,28 @@ function Field({ named, value, onChange, inputMode, hint }: { named: MessageKey;
   );
 }
 
+/** The amounts the award would give, as money, so the operator reads them back before confirming (FR-013, FR-025). */
+function AmountsOf({ body, currency }: { body: Record<string, unknown> | undefined; currency: string | undefined }) {
+  if (!body || !currency) return null;
+  const shown = (["depositAmount", "bonusAmount", "spinValue", "maxConvertibleAmount"] as const).filter((k) => typeof body[k] === "number");
+  if (shown.length === 0) return null;
+  return (
+    <dl className="bo-grant-amounts" data-preview>
+      {shown.map((k) => (
+        <div key={k}>
+          <dt>{t(`rewards.grant.amounts.${k}`)}</dt>
+          <dd>
+            <Money value={{ minor: body[k] as number, currency }} />
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 /** The award's form: what to award and its values. */
-function GrantForm({ form, set, canList }: { form: Form; set(f: Partial<Form>): void; canList: boolean }) {
+function GrantForm({ form, set, canList, playerCurrency }: { form: Form; set(f: Partial<Form>): void; canList: boolean; playerCurrency?: string }) {
+  const roundsAmount = playerCurrency ? ({ inputMode: "decimal", hint: undefined } as const) : ({ inputMode: "numeric", hint: "rewards.grant.minorUnits" } as const);
   const ids = { how: useId(), offer: useId(), destination: useId() };
   const offers = useQuery({ queryKey: ["rewards", "offers"], queryFn: readOffers, enabled: canList });
   const chosen = offers.data?.find((o) => o.id === form.offerId);
@@ -189,7 +219,7 @@ function GrantForm({ form, set, canList }: { form: Form; set(f: Partial<Form>): 
           <Field named="rewards.grant.game" value={form.gameId} onChange={(v) => set({ gameId: v })} />
           <Field named="rewards.grant.provider" value={form.provider} onChange={(v) => set({ provider: v })} />
           <Field named="rewards.grant.spinCount" value={form.spinCount} inputMode="numeric" onChange={(v) => set({ spinCount: v })} />
-          <Field named="rewards.grant.spinValue" value={form.spinValue} inputMode="numeric" onChange={(v) => set({ spinValue: v })} hint="rewards.grant.minorUnits" />
+          <Field named="rewards.grant.spinValue" value={form.spinValue} inputMode={roundsAmount.inputMode} onChange={(v) => set({ spinValue: v })} hint={roundsAmount.hint} />
           <fieldset>
             <legend id={ids.destination}>{t("rewards.grant.destination")}</legend>
             {Destinations.map((d) => (
@@ -201,7 +231,7 @@ function GrantForm({ form, set, canList }: { form: Form; set(f: Partial<Form>): 
           </fieldset>
           {form.destination === "bonus_balance" ? (
             <>
-              <Field named="rewards.grant.maxConvertible" value={form.maxConvertible} inputMode="numeric" onChange={(v) => set({ maxConvertible: v })} hint="rewards.grant.minorUnits" />
+              <Field named="rewards.grant.maxConvertible" value={form.roundsMaxConvertible} inputMode={roundsAmount.inputMode} onChange={(v) => set({ roundsMaxConvertible: v })} hint={roundsAmount.hint} />
               <Field named="rewards.grant.wager" value={form.wager} inputMode="numeric" onChange={(v) => set({ wager: v })} />
             </>
           ) : null}
@@ -222,7 +252,9 @@ export function GrantReward({ player, currency = "" }: { player: string; currenc
   const [granted, setGranted] = useState(false);
   const offers = useQuery({ queryKey: ["rewards", "offers"], queryFn: readOffers, enabled: canList });
   const offerCurrency = offers.data?.find((o) => o.id === form.offerId)?.currency;
-  const body = bodyOf(form, offerCurrency);
+  const playerCurrency = currency.trim().toUpperCase() || undefined;
+  const body = bodyOf(form, offerCurrency, playerCurrency);
+  const bodyCurrency = form.how === "offer" ? (offerCurrency ?? undefined) : form.how === "bonus" ? form.currency.trim().toUpperCase() : playerCurrency;
   const set = (f: Partial<Form>) => {
     setGranted(false);
     setForm((prev) => ({ ...prev, ...f }));
@@ -235,7 +267,12 @@ export function GrantReward({ player, currency = "" }: { player: string; currenc
   };
   return (
     <div className="bo-grant">
-      <Action action={Actions["reward.grant"]} me={me} bags={bags} subject={<GrantForm form={form} set={set} canList={canList} />} ready={body !== undefined} run={run} onDone={done} />
+      <Action action={Actions["reward.grant"]} me={me} bags={bags} subject={
+          <>
+            <GrantForm form={form} set={set} canList={canList} playerCurrency={playerCurrency} />
+            <AmountsOf body={body} currency={bodyCurrency} />
+          </>
+        } ready={body !== undefined} run={run} onDone={done} />
       {granted ? (
         <p role="status" data-granted>
           {t("rewards.grant.granted")}

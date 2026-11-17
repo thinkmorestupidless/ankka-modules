@@ -24,6 +24,7 @@ import { useBags } from "../bags.ts";
 import { GrantReward } from "../rewards/grant.tsx";
 import { isOpen, progressOf, readOpenRecords, readPlayerRewards, stateOf, type OpenRecord, type Reward } from "../rewards/read.ts";
 import { word } from "../word.ts";
+import { profileCurrency, profileQuery } from "./read.ts";
 
 const Offered = ["reward.forfeit", "reward.reclaim"] as const satisfies readonly ActionId[];
 
@@ -187,6 +188,8 @@ export function PlayerRewards({ player }: { player: string }) {
   const freshness = useFreshness(["rewards"]);
   const opened = useRouterState({ select: (s) => (s.location.search as Record<string, unknown>).reward });
   const q = useQuery({ queryKey: ["rewards", "player", player], queryFn: () => readPlayerRewards(player), enabled: player !== "" });
+  // the player's currency, in which free rounds' amounts are typed and a bonus is first offered
+  const currency = useQuery({ ...profileQuery(player), select: profileCurrency, enabled: player !== "" && !readOnly }).data ?? "";
   const items = q.data?.items ?? [];
   // the wallet's open records, in each currency a still-open reward is in
   const currencies = [...new Set(items.filter(isOpen).map((r) => r.currency))];
@@ -207,7 +210,7 @@ export function PlayerRewards({ player }: { player: string }) {
         <ZoneNote zone={tz} />
         {freshness ? <FreshnessNote freshness={freshness} zone={tz} /> : null}
       </div>
-      {readOnly ? null : <GrantReward player={player} />}
+      {readOnly ? null : <GrantReward key={currency} player={player} currency={currency} />}
       {q.isError ? <RefusalNotice refusal={q.error as never} /> : null}
       {unmatched > 0 ? (
         <p className="bo-muted" role="status">
