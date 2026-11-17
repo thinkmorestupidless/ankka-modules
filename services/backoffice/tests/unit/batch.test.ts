@@ -1,8 +1,9 @@
-// T085: an adjustment batch. One wallet adjustment per row under `batch/<id>/<n>`, the id the same for
-// the same reason, cause and rows; eight at a time, at most 500 rows; each row's outcome streamed. A
-// repeat makes none twice (the wallet answers a key its first outcome); a player twice is two rows.
+// T085: an adjustment batch. One wallet adjustment per row under `batch/<id>/<row>`, the id the same for
+// the same reason and cause, the row's the same for what it adjusts; eight at a time, at most 500 rows;
+// each row's outcome streamed. A repeat makes none twice (the wallet answers a key its first outcome),
+// an edited list included; a player twice is two rows.
 import { describe, expect, test } from "vitest";
-import { batchId, keyOf, readBatch, type Batch } from "../../src/server/composite/batch.ts";
+import { batchId, keyOf, readBatch, rowIds, type Batch } from "../../src/server/composite/batch.ts";
 import { table } from "../../src/server/routes.ts";
 import { harness, write, type Call } from "./support.ts";
 
@@ -58,15 +59,29 @@ const adjustCalls = (h: ReturnType<typeof harness>) => h.calls.filter((c) => c.m
 describe("the batch's id and keys", () => {
   const b = (readBatch(JSON.parse(body([row(A), row(B)]))) as { batch: Batch }).batch;
 
-  test("the same reason, cause and rows are the same batch; any change is another", () => {
+  test("the same reason, category and cause are the same batch; a change to one is another", () => {
     expect(batchId(b)).toBe(batchId(structuredClone(b)));
     expect(batchId(b)).toMatch(/^[0-9a-f]{64}$/);
     expect(batchId({ ...b, reason: "another" })).not.toBe(batchId(b));
+    expect(batchId({ ...b, category: "goodwill" })).not.toBe(batchId(b));
     expect(batchId({ ...b, cause: undefined })).not.toBe(batchId(b));
-    expect(batchId({ ...b, rows: [b.rows[1]!, b.rows[0]!] })).not.toBe(batchId(b));
+    expect(batchId({ ...b, rows: [b.rows[1]!] })).toBe(batchId(b));
   });
 
-  test("a row's key is the batch and its number", () => expect(keyOf("abc", 3)).toBe("batch/abc/3"));
+  test("a row's id is what it adjusts and which of its identical rows it is, wherever it stands", () => {
+    const [a, c] = rowIds(b.rows);
+    expect(rowIds([b.rows[1]!, b.rows[0]!])).toEqual([c, a]);
+    expect(rowIds([b.rows[0]!, { ...b.rows[1]!, amountMinor: 501 }])[0]).toBe(a);
+    expect(rowIds([b.rows[0]!, { ...b.rows[1]!, amountMinor: 501 }])[1]).not.toBe(c);
+    const twice = rowIds([b.rows[0]!, b.rows[0]!]);
+    expect(twice[0]).toBe(a);
+    expect(twice[1]).not.toBe(a);
+  });
+
+  test("a row's key is the batch and the row, within the wallet's 255 characters", () => {
+    expect(keyOf("abc", "def")).toBe("batch/abc/def");
+    expect(keyOf(batchId(b), rowIds(b.rows)[0]!).length).toBeLessThanOrEqual(255);
+  });
 
   test.each([
     [{ reason: " " }, "reason"],
@@ -106,6 +121,10 @@ describe("POST /api/adjustment-batches", () => {
     expect(r.status).toBe(200);
     expect(r.type).toContain("application/x-ndjson");
     const id = r.done.batch as string;
+    const [rowA, rowB] = rowIds([
+      { player: A, currency: "EUR", walletType: "real", direction: "credit", amountMinor: 500 },
+      { player: B, currency: "EUR", walletType: "real", direction: "debit", amountMinor: 300 },
+    ]);
     expect(r.rows).toEqual(
       expect.arrayContaining([
         { row: 1, player: A, currency: "EUR", outcome: "made", before: "2000", after: "2500" },
@@ -114,11 +133,11 @@ describe("POST /api/adjustment-batches", () => {
     );
     expect(r.done).toEqual({ done: true, batch: id, made: 1, refused: 1, alreadyMade: 0 });
     const sent = adjustCalls(h).map((c) => JSON.parse(c.body) as Record<string, unknown>);
-    expect(sent.map((s) => s.key).sort()).toEqual([`batch/${id}/1`, `batch/${id}/2`]);
-    expect(sent.find((s) => s.key === `batch/${id}/1`)).toEqual({
-      key: `batch/${id}/1`, walletType: "real", amountMinor: 500, reason: "outage on 15 November", category: "compensation", cause: { kind: "incident", ref: "INC-1115" },
+    expect(sent.map((s) => s.key).sort()).toEqual([keyOf(id, rowA!), keyOf(id, rowB!)].sort());
+    expect(sent.find((s) => s.key === keyOf(id, rowA!))).toEqual({
+      key: keyOf(id, rowA!), walletType: "real", amountMinor: 500, reason: "outage on 15 November", category: "compensation", cause: { kind: "incident", ref: "INC-1115" },
     });
-    expect(sent.find((s) => s.key === `batch/${id}/2`)!.amountMinor).toBe(-300);
+    expect(sent.find((s) => s.key === keyOf(id, rowB!))!.amountMinor).toBe(-300);
     for (const c of h.calls) expect(c.headers.get("authorization")).toBe("Bearer eyJ.secret-access-token.sig");
     expect(adjustCalls(h)[0]!.url).toBe(`http://services.local/wallet/v1/casino/backoffice/goldvibe/wallets/${A}/EUR/adjustments`);
   });
@@ -145,6 +164,20 @@ describe("POST /api/adjustment-batches", () => {
     expect(w.balances.get(A)).toBe(1500);
     expect(w.balances.get(B)).toBe(1500);
     expect(new Set(adjustCalls(h).map((c) => (JSON.parse(c.body) as { key: string }).key)).size).toBe(3);
+  });
+
+  test("a list cut short, one refused row corrected and sent again, makes only that row: the rest are already made", async () => {
+    const h = harness({ table });
+    const w = wallet({ [A]: 1000, [B]: 1000, [C]: 100 });
+    h.answer(w.answer);
+    const first = await run(h, body([row(A), row(B), row(C, 500, { direction: "debit" })]));
+    expect(first.done).toMatchObject({ made: 2, refused: 1 });
+    // the operator corrects C's row and moves it first
+    const again = await run(h, body([row(C, 100, { direction: "debit" }), row(A), row(B)]));
+    expect(again.done).toMatchObject({ batch: first.done.batch, made: 1, refused: 0, alreadyMade: 2 });
+    expect(w.balances.get(A)).toBe(1500);
+    expect(w.balances.get(B)).toBe(1500);
+    expect(w.balances.get(C)).toBe(0);
   });
 
   test("a player twice is two rows under two keys, both made", async () => {
