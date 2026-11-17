@@ -52,7 +52,10 @@ object Documents:
   /** A refusal's words, as `Routes.operatorMay`'s. */
   def needed(permission: String): String = s"the $permission permission is needed"
 
-  private val unread = refuse(503, Refusal("unavailable", message = Some("the brand's roles have not been read yet")))
+  /** Until the brand's roles are first read: `Routes.operatorMay`'s answer, its code and its `Retry-After` (review S6). */
+  private[api] val unread: Answer =
+    val r = refuse(503, Refusal(io.eitheror.casino.contract.access.Routes.Refusal.RolesUnread, message = Some("the brand's roles have not been read yet")))
+    r.copy(headers = r.headers :+ ("Retry-After" -> "5"))
 
   /**
    * An export is not found when its report is: one of the Reports tab while the tab is hidden (FR-024), a prediction

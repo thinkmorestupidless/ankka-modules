@@ -100,7 +100,7 @@ Three kinds recur and are named by letter:
 |---|---|
 | E1 | M in each |
 | E2 | attribution `attribution-webhooks/undelivered`: L |
-| E3 | reporting: no route change; `Access` reads the matrix |
+| E3 | reporting: no route change; `Access` reads the matrix. The documents' routes (`/documents`, `/documents/{reference}`) are the one exception to a permission per route: they admit any operator of the brand (`Routes.operator`) and then decide per record by the permission its report needs (`Documents.permissionOf`), refusing `forbidden` naming it; until the brand's roles are read they answer as `operatorMay` does, `503 roles_unread` with `Retry-After` |
 
 ## merchant (spec 004)
 
