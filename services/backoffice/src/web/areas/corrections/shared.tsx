@@ -25,25 +25,7 @@ export interface Cause {
   ref: string;
 }
 
-/**
- * The wallet's amount text as minor units. The wallet writes every amount as its minor units over 100
- * with two decimals, whatever the currency's own count (`Wire.major`), so "20.00" is 2000 minor units
- * of EUR, and "5.00" is 500 of JPY; read by that rule, never by the currency's.
- */
-export function walletMinor(text: unknown): bigint | undefined {
-  if (typeof text !== "string") return undefined;
-  const m = /^(-?)(\d+)\.(\d{2})$/.exec(text.trim());
-  if (!m) return undefined;
-  const minor = BigInt(m[2]!) * 100n + BigInt(m[3]!);
-  return m[1] ? -minor : minor;
-}
-
-/** Minor units as the wallet's amount text, by the same rule: 500 is "5.00", -1250 is "-12.50". */
-export function walletText(minor: bigint): string {
-  const negative = minor < 0n;
-  const abs = negative ? -minor : minor;
-  return `${negative ? "-" : ""}${abs / 100n}.${(abs % 100n).toString().padStart(2, "0")}`;
-}
+export { walletMinor, walletText } from "../../../shared/money.ts";
 
 /** An owner's answer as JSON; a refusal thrown as `explain` gives it. */
 export async function readJson<T>(answer: Promise<Response>): Promise<T> {

@@ -78,19 +78,28 @@ export function sumMoney(amounts: readonly Money[]): Money | undefined {
   return { minor: amounts.reduce((s, a) => s + asBigInt(a.minor), 0n), currency };
 }
 
-/** The wallet's major-unit text (`"12.50"`) as minor units of the currency; undefined when it is not one. */
-export function minorOfText(text: unknown, currency: string): string | undefined {
-  const s = typeof text === "number" ? String(text) : typeof text === "string" ? text.trim() : "";
-  const m = /^(-?)(\d+)(?:\.(\d+))?$/.exec(s);
+/**
+ * The wallet's amount text as minor units. The wallet writes every amount as its minor units over 100
+ * with two decimals, whatever the currency's own count (`Wire.major`, spec 002 FR-003), so "20.00" is
+ * 2000 minor units of EUR, "5.00" is 500 of JPY and "1.500" is no wallet amount at all: read by that rule,
+ * never by the currency's. Undefined when the text is not one.
+ */
+export function walletMinor(text: unknown): bigint | undefined {
+  if (typeof text !== "string") return undefined;
+  const m = /^(-?)(\d+)\.(\d{2})$/.exec(text.trim());
   if (!m) return undefined;
-  let e: number;
-  try {
-    e = exponentOf(currency);
-  } catch {
-    return undefined;
-  }
-  const frac = (m[3] ?? "").padEnd(e, "0");
-  if (frac.length > e && /[1-9]/.test(frac.slice(e))) return undefined;
-  const digits = `${m[2]}${frac.slice(0, e)}`.replace(/^0+(?=\d)/, "");
-  return digits === "0" ? "0" : `${m[1]}${digits}`;
+  const minor = BigInt(m[2]!) * 100n + BigInt(m[3]!);
+  return m[1] ? -minor : minor;
+}
+
+/** [[walletMinor]] as the decimal string of its minor units, as the server's answers carry them. */
+export function walletMinorText(text: unknown): string | undefined {
+  return walletMinor(text)?.toString();
+}
+
+/** Minor units as the wallet's amount text, by the same rule: 500 is "5.00", -1250 is "-12.50". */
+export function walletText(minor: bigint): string {
+  const negative = minor < 0n;
+  const abs = negative ? -minor : minor;
+  return `${negative ? "-" : ""}${abs / 100n}.${(abs % 100n).toString().padStart(2, "0")}`;
 }

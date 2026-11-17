@@ -3,6 +3,7 @@
 // the state an action is offered in, the amounts that differ, who moved each state. Every read goes
 // through the page's server as the signed-in operator; a refusal is thrown as `explain` gives it.
 import { explain } from "../../../shared/refusals.ts";
+import { walletMinorText } from "../../../shared/money.ts";
 import { kyc, payouts, wallet } from "../../../shared/owners/index.ts";
 
 /** A queue row and a row of a player's history (OperatorEndpoint.row). */
@@ -90,12 +91,7 @@ export const readHistory = (playerId: string, page: number, pageSize: number) =>
   read<Page>(payouts.getPlayersWithdrawalHistory({ playerId }, { query: { page: String(page), pageSize: String(pageSize) } }));
 
 /** The wallet answers its operator reads in major units with two places (spec 002 FR-003): back to minor units. */
-export function minorOf(major: string | undefined | null): string | undefined {
-  if (typeof major !== "string" || !/^-?\d+\.\d{2}$/.test(major)) return undefined;
-  const negative = major.startsWith("-");
-  const digits = major.replace(/^-/, "").replace(".", "").replace(/^0+(?=\d)/, "");
-  return negative && digits !== "0" ? `-${digits}` : digits;
-}
+export const minorOf = (major: string | undefined | null): string | undefined => walletMinorText(major);
 
 export interface Balances {
   real?: string;
