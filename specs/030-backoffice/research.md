@@ -912,3 +912,12 @@ seeded brand fills in the rest.
     it (the casino Keycloak, with no request, was killed first), and players waited a median 1.7 s
     for a database connection, so registrations came at about 0.3 a second. T133's timings are
     measured on that seed; the 10,000 run waits for a larger installation.
+  - Every local image is tagged `0.0.0`, so loading a rebuilt one into kind and applying changes no
+    descriptor, and a running pod keeps the code it started with. wallet, kyc and
+    responsible-gambling had run since before this branch's build (the wallet without W2's
+    `amountMinor`, so the seed's credits were refused) until each was paused and resumed. A kind
+    run must restart every service whose image it loaded; a tag per build would make it plain.
+  - The seed's emails differed only in digits, which players' duplicate check drops (spec 011
+    FR-035): every seeded player was one email variant from one address, a duplicate ring, and
+    rewards refused their bonuses. The emails are now in letters (f1c64326), and the seed was run
+    again from nothing; the first run's 2,406 players stay on goldvibe, flagged.
