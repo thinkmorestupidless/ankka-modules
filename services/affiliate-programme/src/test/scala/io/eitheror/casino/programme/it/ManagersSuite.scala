@@ -61,7 +61,8 @@ class ManagersSuite extends munit.FunSuite with LogCapturing:
       val r = get("/goldvibe/traffic?period=2026-08")
       assertEquals(r.status, 200, r.text)
       r.json.get("affiliates").elements().asScala.find(_.get("affiliateId").asText == s.affiliate)
-        .filter(a => a.get("qftdCount").asLong == 1L)
+        // every count, not only the last one asked for: each is folded from its own facts, in its own time
+        .filter(a => a.get("qftdCount").asLong == 1L && a.get("clickCount").asLong == 2L && a.get("registrationCount").asLong == 2L && a.get("ftdCount").asLong == 2L)
     }
     assertEquals((answer.get("clickCount").asLong, answer.get("registrationCount").asLong, answer.get("ftdCount").asLong), (2L, 2L, 2L))
     val link = answer.get("links").elements().asScala.toVector
