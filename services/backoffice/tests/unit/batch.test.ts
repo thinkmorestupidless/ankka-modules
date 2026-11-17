@@ -65,7 +65,8 @@ describe("the batch's id and keys", () => {
     expect(batchId({ ...b, reason: "another" })).not.toBe(batchId(b));
     expect(batchId({ ...b, category: "goodwill" })).not.toBe(batchId(b));
     expect(batchId({ ...b, cause: undefined })).not.toBe(batchId(b));
-    expect(batchId({ ...b, rows: [b.rows[1]!] })).toBe(batchId(b));
+    const fewer: Batch = { ...b, rows: [b.rows[1]!] };
+    expect(batchId(fewer)).toBe(batchId(b));
   });
 
   test("a row's id is what it adjusts and which of its identical rows it is, wherever it stands", () => {
