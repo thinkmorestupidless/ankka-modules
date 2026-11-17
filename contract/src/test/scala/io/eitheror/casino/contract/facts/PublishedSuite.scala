@@ -24,9 +24,15 @@ class PublishedSuite extends munit.FunSuite:
     assertEquals(cs.size, Published.CurrencyCodes.size)
   }
 
+  test("every code of CurrencyCodes is one Currency.from takes, so none is written with a guessed exponent") {
+    val refused = Published.CurrencyCodes.filter(c => io.eitheror.casino.contract.money.Currency.from(c).isLeft)
+    assertEquals(refused, Vector.empty[String])
+  }
+
   test("the committed files are what the contract writes") {
     val root = java.nio.file.Paths.get(sys.props.getOrElse("casino.root", "."), "contract", "schemas")
     for (name, text) <- Published.files do
       val file = root.resolve(name)
-      if java.nio.file.Files.exists(file) then assertEquals(java.nio.file.Files.readString(file), text, name)
+      assert(java.nio.file.Files.exists(file), s"$file is not there: the contract writes it (just schemas), or casino.root is wrong")
+      assertEquals(java.nio.file.Files.readString(file), text, name)
   }
