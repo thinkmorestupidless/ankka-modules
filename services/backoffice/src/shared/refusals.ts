@@ -78,7 +78,7 @@ export function explain(status: number, body: string, bags?: RoleBags): Refusal 
     };
   }
   if (code === "source_unavailable")
-    return { status, code, message: { key: "refusal.source_unavailable", values: { source: source ?? "A service" } }, next: next("refusal.source_unavailable.next") };
+    return { status, code, message: { key: "refusal.source_unavailable", values: { source: source ?? t("refusal.aService") } }, next: next("refusal.source_unavailable.next") };
   if (code === "invalid_body") return { status, code, message: { key: "refusal.invalid_body", values: { detail: given } } };
 
   const key = `refusal.${code}`;
