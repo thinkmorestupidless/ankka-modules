@@ -115,6 +115,8 @@ private[api] object Major:
   def adjustAmount(r: OperatorAdjustRequest, currency: Currency): Either[(String, Map[String, String]), Long] =
     (Option(r.amount).map(_.trim).filter(_.nonEmpty), r.amountMinor) match
       case (None, None)        => Left(("an adjustment names its amount, as amount or amountMinor", Map.empty))
+      case (None, Some(minor)) if minor.abs > MaxMinor || minor == Long.MinValue =>
+        Left((s"an adjustment is at most $MaxMinor minor units either way", Map("amountMinor" -> minor.toString)))
       case (None, Some(minor)) => Right(minor)
       case (Some(text), minor) =>
         parse(text, currency) match
@@ -134,10 +136,16 @@ private[api] object Major:
       case Some(c) => Right(Some(c.copy(ref = c.ref.trim)))
 
   /**
+   * The largest amount an operator's adjustment or account adjustment names, either way: 10^15 minor
+   * units (review S3). A balance stays far from `Long`'s range, and no text or number wraps.
+   */
+  val MaxMinor: Long = 1_000_000_000_000_000L
+
+  /**
    * An operator's amount in major units by the currency's exponent, as the reads write it (spec 027
    * FR-058): EUR "10.00" → 1000, CLP "5000" → 5000, KWD "1.234" → 1234; a sign is kept (an
-   * adjustment may debit); more decimals than the currency has, or anything else, names the amount
-   * (spec 001 FR-026).
+   * adjustment may debit); more decimals than the currency has, more than [[MaxMinor]] either way,
+   * or anything else, names the amount (spec 001 FR-026).
    */
   def parse(text: String, currency: Currency): Either[String, Long] =
     val exp     = io.eitheror.casino.contract.money.Amounts.exponent(currency)
@@ -146,8 +154,10 @@ private[api] object Major:
       case Pattern(sign, whole, fraction) if Option(fraction).forall(f => f.length <= exp) =>
         val minor = Option(fraction).fold(0L)(f => (f + "0" * exp).take(exp).toLong)
         // Exact arithmetic: 15 digits of a currency of 4 decimals pass a Long (review).
-        scala.util.Try(Math.multiplyExact(Math.addExact(Math.multiplyExact(whole.toLong, BigInt(10).pow(exp).toLong), minor), if sign == "-" then -1L else 1L))
-          .toOption.toRight(s"the amount '$text' is not an amount of ${currency.code}")
+        scala.util.Try(Math.addExact(Math.multiplyExact(whole.toLong, BigInt(10).pow(exp).toLong), minor)).toOption match
+          case Some(m) if m <= MaxMinor => Right(if sign == "-" then -m else m)
+          case Some(_)                  => Left(s"the amount '$text' is more than $MaxMinor minor units either way")
+          case None                     => Left(s"the amount '$text' is not an amount of ${currency.code}")
       case _ => Left(s"the amount '$text' is not an amount of ${currency.code}")
 
 /**
