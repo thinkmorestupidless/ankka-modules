@@ -185,7 +185,9 @@ operator's page changes and no player data was readable from the console.
   `public-api`, a product module depending on `casino`, entitled per brand
   (spec 016). `engagement` is `engagement`; `reporting` is `reporting`; each depends
   on `core` alone. `support` is `support-agent`. `predictions` is spec 023's; `pool` is spec
-  024's and shared.
+  024's and shared. *Amended by spec 027* (FR-045): `player-site` is `player-site`, the reference
+  player site, one web-hosted service depending on `core` alone, with the keys
+  `player-site-languages` and `player-site-currency`.
 - **FR-002**: Every module MUST be described by one manifest at `modules/<module>/module.json` in
   ankka-vendor's manifest format: services with descriptors, grants and topics declared by route
   class and topic name, dependencies with version ranges, configuration keys by name and type,
@@ -253,7 +255,7 @@ operator's page changes and no player data was readable from the console.
 ### Key Entities
 
 - **Module**: a named set of services, grants, topics, dependencies, keys and retention, described
-  by one manifest; `core`, `casino`, `engagement`, `reporting`, `support`, `public-api`, `predictions`, `pool`.
+  by one manifest; `core`, `casino`, `engagement`, `reporting`, `support`, `public-api`, `predictions`, `pool`, and `player-site` (amended by spec 027).
 - **Values**: what one brand supplies: realm, real money, secret names, hostnames, configured
   values; `brands/<slug>/values.json`.
 - **Entitlement**: ankka-vendor's record that a brand may run a module on a channel or pin; read,

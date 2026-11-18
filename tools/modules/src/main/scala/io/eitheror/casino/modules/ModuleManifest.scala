@@ -171,7 +171,7 @@ object ModuleManifest:
 
   object ContractView:
     /** The modules data-model.md names, by kind; a manifest's dependency is checked against these. */
-    val ProductModules: Set[String] = Set("casino", "engagement", "reporting", "support", "public-api", "predictions")
+    val ProductModules: Set[String] = Set("casino", "engagement", "reporting", "support", "public-api", "predictions", "player-site")
     val SharedModules: Set[String]  = Set("pool")
 
     /**

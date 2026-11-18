@@ -68,6 +68,8 @@ same for every brand and are literals in the descriptors, not keys.
 | predictions-taker-fee-bps | predictions | string | no | | | `PREDICTIONS_TAKER_FEE_BPS` |
 | predictions-gates | predictions | string | no | | | `PREDICTIONS_GATES` |
 | public-api-host | public-api | url | no | | | `PUBLIC_API_HOST` |
+| player-site-languages | player-site | string | no | | | `PLAYER_SITE_LANGUAGES` |
+| player-site-currency | player-site | string | no | | | `PLAYER_SITE_CURRENCY` |
 
 `reporting-zone`, `casino-modules` and `kyc-max-upload-bytes` have a value when a brand writes none (spec
 012 research R7, R12; spec 009 R18; `Values.defaults`): the largest KYC upload is 5,242,880 bytes, the reporting zone is `UTC`, and the modules are those the brand runs, `core`
@@ -94,6 +96,11 @@ when ankka-reasoning 0.2.0 is cut (R14).
 `public-api-host` (spec 016) is the brand's public API address, without `/v1`, as callers reach it: the
 served contract's `servers[0].url` is it with `/v1` appended. The platform gives a service no hostname
 of its own, so a brand entitled to `public-api` writes it.
+
+`player-site-languages` and `player-site-currency` (spec 027) are the reference site's languages, a
+comma list with the first the one it falls back to (`fr,en` for guyanabet), and the currency it shows a
+visitor before anyone signs in. The site is web-hosted and holds nothing, so the module keeps nothing
+after it is disabled; its `retention` is the schema's shortest.
 
 `rewards-code-document-url` (spec 011 R13) is where `rewards` fetches the programme's bonus code
 document for the brand. It is `none` when a brand writes none, and `rewards` then matches brand codes

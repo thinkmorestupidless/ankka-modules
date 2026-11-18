@@ -14,6 +14,7 @@ manifest format (vendor spec 004 `contracts/manifest.md`; the schema is vendored
 | `support` | product | support-agent | `core` |
 | `predictions` | product | markets, exchange | `core` |
 | `public-api` | product | public-api | `core`, `casino` |
+| `player-site` | product | player-site (web-hosted: the reference site on the player SDK, spec 027) | `core` |
 
 `pool` is written by spec 024.
 
