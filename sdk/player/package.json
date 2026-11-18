@@ -18,9 +18,9 @@
   },
   "scripts": {
     "typecheck": "tsc",
-    "test": "vitest run --dir tests --exclude 'tests/features/**' --exclude 'tests/contract/**'",
-    "features": "vitest run --dir tests/features",
-    "contract": "vitest run --dir tests/contract",
+    "test": "vitest run --exclude 'tests/features/**' --exclude 'tests/contract/**'",
+    "features": "vitest run tests/features",
+    "contract": "vitest run tests/contract",
     "lint": "eslint src tests"
   },
   "dependencies": {
