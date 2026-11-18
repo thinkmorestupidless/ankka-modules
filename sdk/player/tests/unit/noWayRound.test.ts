@@ -1,11 +1,12 @@
 // SC-003: no step of any behaviour opens a cashier session or gives a game's address after the
-// brand refused, and no action a step does not allow sends anything.
+// brand refused, no turn is sent while an approval request awaits, and no action a step does not
+// allow sends anything.
 import { describe, expect, it } from "vitest";
 import { playBehaviour, type PlayBehaviour } from "../../src/casino/play.ts";
 import type { DepositBehaviour } from "../../src/core/deposit.ts";
 import { playerSite, type PlayerSite } from "../../src/site.ts";
 import { handClock, type HandClock } from "../../src/testing/clock.ts";
-import { doubles, doubleTransport, type Doubles, type FakeTerminal } from "../../src/testing/doubles.ts";
+import { channel, doubles, doubleTransport, type Doubles, type FakeTerminal } from "../../src/testing/doubles.ts";
 
 const ana = { email: "ana@example.com", password: "correct horse battery 1!" };
 const terminals: FakeTerminal[] = [
@@ -319,4 +320,85 @@ describe("play: no way round a refusal", () => {
     expect(s.d.askedOf("launch")).toHaveLength(1);
     expect(games.step().shown?.step().kind).toBe("refused");
   });
+});
+
+// ---- the chat ----
+
+const chatStream = (...events: [string, unknown][]) => ({ status: 200, stream: events.map(([event, data]) => ({ event, data: JSON.stringify(data) })) });
+const confirming = chatStream(["confirm_action", { action_name: "set_deposit_limit", summary: "50 € par jour", session_id: "x" }], ["done", {}]);
+type ChatSite = Setup & { chat: NonNullable<PlayerSite["chat"]> };
+const chatRecipes: Record<string, (s: ChatSite) => Promise<void>> = {
+  ready: async () => {},
+  answering: async (s) => {
+    s.d.script("turn", { status: 200, stream: channel() });
+    s.chat.actions.send("?");
+    await s.clock.settle();
+  },
+  awaiting_approval: async (s) => {
+    s.d.script("turn", confirming);
+    s.chat.actions.send("?");
+    await s.clock.settle();
+  },
+  deciding: async (s) => {
+    await chatRecipes.awaiting_approval!(s);
+    s.d.script("decide", { status: 200, stream: channel() });
+    s.chat.actions.approve();
+    await s.clock.settle();
+  },
+  refused: async (s) => {
+    s.d.script("turn", { status: 429, body: { error: "too_many_turns", retryAfter: 20 } });
+    s.chat.actions.send("?");
+    await s.clock.settle();
+  },
+  ended: async (s) => {
+    s.d.script("turn", { status: 409, body: { error: "conversation_ended", message: "Fin." } }, 1);
+    s.chat.actions.send("?");
+    await s.clock.settle();
+  },
+  unavailable: async (s) => {
+    s.d.script("turn", { status: 503, body: { error: "agent_unavailable", message: "Fermé." } });
+    s.chat.actions.send("?");
+    await s.clock.settle();
+  },
+};
+type ChatAct = [name: string, run: (c: ChatSite["chat"]) => unknown];
+const chatActs: ChatAct[] = [
+  ["send", (c) => c.actions.send("encore")],
+  ["approve", (c) => c.actions.approve()],
+  ["cancel", (c) => c.actions.cancel()],
+  ["dismiss", (c) => c.actions.dismiss()],
+];
+
+describe("the chat: an action its step does not allow sends nothing", () => {
+  it("send is allowed at exactly ready and ended, a decision at exactly awaiting_approval", async () => {
+    const allowed: Record<string, readonly string[]> = {};
+    for (const [kind, reach] of Object.entries(chatRecipes)) {
+      const s = await setup();
+      const c: ChatSite = { ...s, chat: s.site.chat! };
+      await reach(c);
+      expect(c.chat.step().kind, `the recipe for ${kind}`).toBe(kind);
+      allowed[kind] = c.chat.step().allowed;
+    }
+    expect(Object.keys(allowed).filter((k) => allowed[k]!.includes("send")).sort()).toEqual(["ended", "ready"]);
+    expect(Object.keys(allowed).filter((k) => allowed[k]!.includes("approve") || allowed[k]!.includes("cancel"))).toEqual(["awaiting_approval"]);
+    expect(allowed.unavailable).toEqual([]);
+    expect(allowed.refused).toEqual(["dismiss"]);
+  });
+
+  for (const [kind, reach] of Object.entries(chatRecipes)) {
+    it(kind, async () => {
+      for (const [name, run] of chatActs) {
+        const s = await setup();
+        const c: ChatSite = { ...s, chat: s.site.chat! };
+        await reach(c);
+        const at = c.chat.step();
+        if ((at.allowed as readonly string[]).includes(name)) continue;
+        const before = s.d.asked.length;
+        expect(run(c.chat), name).toEqual({ ok: false, notAllowedAt: kind });
+        await s.clock.settle();
+        expect(s.d.asked.length, `${name} at ${kind} sent something`).toBe(before);
+        expect(c.chat.step(), `${name} at ${kind} moved the step`).toBe(at);
+      }
+    });
+  }
 });

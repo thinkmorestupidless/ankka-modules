@@ -7,6 +7,8 @@ import { fundsStore, type FundsStore } from "./core/funds.ts";
 import { sessionBehaviour, type SessionBehaviour } from "./core/session.ts";
 import { engagementClient } from "./engagement/client.ts";
 import { inboxBehaviour, type InboxBehaviour } from "./engagement/inbox.ts";
+import { chatBehaviour, type ChatBehaviour, type ChatStore } from "./support/chat.ts";
+import { supportClient } from "./support/client.ts";
 import type { SignedInPlayer, SiteFacts, Transport } from "./transport.ts";
 
 export interface PlayerSiteOptions {
@@ -21,6 +23,8 @@ export interface PlayerSiteOptions {
   readonly presets?: Readonly<Record<string, readonly (string | number)[]>>;
   /** The site's bounds per currency, which trim the presets only. */
   readonly bounds?: Readonly<Record<string, { readonly minimum?: string | number; readonly maximum?: string | number }>>;
+  /** Where the chat keeps its session id for the tab; the tab's `sessionStorage` by default. */
+  readonly chatStore?: ChatStore;
   /**
    * Module clients in place of the hand-written ones, each made from the transport and the signed-in
    * player's id: another implementation of the same interface changes no behaviour (SC-009).
@@ -59,6 +63,8 @@ export interface PlayerSite {
   readonly games: GamesBehaviour | undefined;
   /** The inbox, where the brand runs `engagement`; `undefined` where it does not, or before `ready`. */
   readonly inbox: InboxBehaviour | undefined;
+  /** The chat with the support agent, where the brand runs `support`; `undefined` where it does not, or before `ready`. */
+  readonly chat: ChatBehaviour | undefined;
   /** The deposit open now, until it is closed; told through `subscribe`. */
   readonly currentDeposit: DepositBehaviour | undefined;
   /** Whether the brand runs a module, by `/api/site` alone. */
@@ -109,6 +115,7 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
         games?.closeAll();
       }
       inbox?.signedIn(p !== null);
+      chat?.player(p?.playerId ?? null);
       funds.player(p?.currency ?? null);
       changed();
     },
@@ -177,6 +184,15 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
     inbox.signedIn(player !== null);
     return inbox;
   };
+  let chat: ChatBehaviour | undefined;
+  const chatNow = () => {
+    if (chat || !facts?.modules.includes("support")) return chat;
+    const brand = facts.brand;
+    chat = chatBehaviour({ support: supportClient(transport, () => brand), clock, ...(options.chatStore ? { store: options.chatStore } : {}) });
+    stops.push(chat.stop);
+    chat.player(player?.playerId ?? null);
+    return chat;
+  };
   let shownPage = true;
   const ready = options.known
     ? Promise.resolve()
@@ -190,9 +206,13 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
           session.hydrate(p.player);
         }
         inboxNow();
+        chatNow();
         changed();
       });
-  if (options.known) inboxNow();
+  if (options.known) {
+    inboxNow();
+    chatNow();
+  }
   return {
     ready,
     get facts() {
@@ -217,6 +237,9 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
     },
     get inbox() {
       return inboxNow();
+    },
+    get chat() {
+      return chatNow();
     },
     get games() {
       return gamesNow();
