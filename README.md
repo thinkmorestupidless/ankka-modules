@@ -13,3 +13,10 @@ does, in the words `GLOSSARY.md` defines. `CLAUDE.md` says how to work here.
 Services build on two libraries published from the root build: the contract and the provider core
 (`provider-core/`, shared by the game provider simulator and the house provider). `just service
 <name> <sbt task>` publishes both, then runs the task in that service's build.
+
+The player SDK (`sdk/player/`, spec 027) and the reference player site built on it
+(`services/player-site/`) are TypeScript, in the npm workspace at the root (`npm ci`).
+`just player-sdk-test` runs the SDK's suites, `just player-sdk-features` binds
+`features/player-site/` to its behaviours with no browser, `just player-site-run` runs the site on
+this machine, `just player-site-features` runs `reference-site.feature` against the built site,
+and `just player-site-it` runs the client contract tests against an installation.

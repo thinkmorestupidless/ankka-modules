@@ -501,3 +501,29 @@ exchange-it:
 # exchange's placement latency at 200 orders a second, SC-002's figures (Docker).
 exchange-perf:
     cd services/exchange && EXCHANGE_PERF=1 sbt "testOnly io.eitheror.casino.exchange.perf.*"
+
+# The player SDK's typecheck, lint, unit and site-server suites (spec 027). `npm ci` at the root first.
+player-sdk-test:
+    npm run typecheck -w sdk/player
+    npm run lint -w sdk/player
+    npm test -w sdk/player
+
+# features/player-site/*.feature over the behaviours and the service doubles, with no browser (spec 027).
+player-sdk-features:
+    npm run features -w sdk/player
+
+# The reference player site on this machine (spec 027): the site server beside the platform's local
+# proxy, services found as the local console finds them; plain cookie names and no `Secure`.
+player-site-run:
+    cd services/player-site && PLAYER_SITE_LOCAL=1 ankka local web -- npm run dev
+
+# reference-site.feature over the built site and the doubles, and the second appearance (spec 027).
+player-site-features:
+    npm run build -w services/player-site
+    npm run features -w services/player-site
+
+# One contract test per client function against the brand on the installation ANKKA_URL names, then
+# the end-to-end scenario in a browser (spec 027 FR-036, SC-007). On purpose only.
+player-site-it brand="guyanabet":
+    PLAYER_SITE_BRAND={{brand}} npm run contract -w sdk/player
+    PLAYER_SITE_BRAND={{brand}} npm run e2e -w services/player-site
