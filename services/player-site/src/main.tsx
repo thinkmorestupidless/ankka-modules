@@ -5,13 +5,14 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { usePageEvents } from "./app/hooks.ts";
 import { LanguageProvider } from "./app/language.tsx";
+import { CashierReturn, DepositOverlay } from "./pages/Deposit.tsx";
 import { siteRouter } from "./router.tsx";
 import { siteOptions } from "./site.ts";
 import "./styles.css";
 
 // One site per page: every call the page makes goes through the SDK's page transport to the site server.
 const site = playerSite({ transport: pageTransport(), ...siteOptions });
-const router = siteRouter(site);
+const router = siteRouter(site, { overlays: <DepositOverlay site={site} />, cashierReturn: () => <CashierReturn /> });
 
 function App() {
   usePageEvents(site);
