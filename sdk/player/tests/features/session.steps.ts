@@ -97,8 +97,9 @@ await bind("session.feature", ({ Background, Scenario, ScenarioOutline }) => {
     let before = { asked: 0, answered: 0 };
     Given("the player is signed in at the player site", signIn);
     And("the sign-in has lapsed", async () => {
-      w.site.funds.stop(); // the funds' own reads are not the page's three calls
-      await until(() => w.doubles.askedOf("balance").length > 0);
+      // the funds' own reads on sign-in are not the page's three calls: let them answer, then stop them
+      await until(() => w.answers.some((a) => a.path.startsWith("/api/c/core/balance")) && w.answers.some((a) => a.path.startsWith("/api/c/casino/freeRounds")));
+      w.site.funds.stop();
       w.browser.delete("__Host-eo_session");
     });
     When("the page makes three calls at once", async () => {
@@ -249,7 +250,7 @@ await bind("session.feature", ({ Background, Scenario, ScenarioOutline }) => {
     And("no service is asked", () => {
       expect(w.doubles.askedOf("players")).toEqual([]);
       // nothing but the sign-in and the funds' reads that follow it
-      expect(w.doubles.asked.filter((a) => a.id !== "signIn" && a.id !== "balance")).toEqual([]);
+      expect(w.doubles.asked.filter((a) => !["signIn", "balance", "freeRounds"].includes(a.id))).toEqual([]);
     });
   });
 

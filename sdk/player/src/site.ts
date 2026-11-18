@@ -1,4 +1,5 @@
 import { realClock, type Clock } from "./clock.ts";
+import { casinoClient, type CasinoClient } from "./casino/client.ts";
 import { coreClient, type CoreClient } from "./core/client.ts";
 import { depositBehaviour, type DepositBehaviour } from "./core/deposit.ts";
 import { fundsStore, type FundsStore } from "./core/funds.ts";
@@ -34,6 +35,8 @@ export interface PlayerSite {
   readonly funds: FundsStore;
   /** `core`'s client, the one every core behaviour of this site calls through. */
   readonly core: CoreClient;
+  /** `casino`'s client; there whether or not the brand runs it, used only when it does. */
+  readonly casino: CasinoClient;
   /** The page's visibility, which the funds' and play's clocks follow. */
   visible(isVisible: boolean): void;
   /**
@@ -64,7 +67,18 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
     for (const l of [...listeners]) l();
   };
   const core = coreClient(transport, () => player?.playerId ?? null);
+  const casino = casinoClient(transport, () => player?.playerId ?? null);
   const funds = fundsStore(core, clock);
+  // Free rounds count toward playable funds where the brand runs casino (FR-027).
+  const readFreeRounds = () => {
+    if (!facts?.modules.includes("casino")) return;
+    funds.freeRounds(async () => {
+      if (!player) return null;
+      const r = await casino.freeRounds(player.currency);
+      return r.ok ? r.value : null;
+    });
+  };
+  readFreeRounds();
   stops.push(funds.stop);
   const session = sessionBehaviour({
     transport,
@@ -116,7 +130,10 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
   const ready = options.known
     ? Promise.resolve()
     : Promise.all([transport.session.site(), transport.session.read()]).then(([s, p]) => {
-        if (s.ok) facts = s.site;
+        if (s.ok) {
+          facts = s.site;
+          readFreeRounds();
+        }
         if (p.ok) {
           player = p.player;
           session.hydrate(p.player);
@@ -138,6 +155,7 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
     },
     funds,
     core,
+    casino,
     visible: (isVisible) => funds.visible(isVisible),
     runs: (module) => facts?.modules.includes(module) ?? false,
     subscribe(listener) {

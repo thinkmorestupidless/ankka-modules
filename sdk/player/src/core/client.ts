@@ -70,6 +70,15 @@ const WireTerminal = z.object({ terminalEntityId: z.string(), name: z.string().n
 const Started = z.object({ cashierTicket: z.string().min(1), terminals: z.array(WireTerminal), requestId: z.string() });
 const Submitted = z.object({ paymentId: z.string(), status: z.string() });
 const WirePayment = z.object({ status: z.string(), redirectUrl: opt, paymentAddress: opt, cryptoAmount: opt, cryptoCurrency: opt, validUntil: opt, failureCode: opt });
+const WireSession = z.object({ sessionId: z.string().optional(), status: z.string(), lastBetAt: z.string().nullish() });
+const Ended = z.object({ status: z.string() }).partial().passthrough();
+const Country = z.object({ country: z.string().nullish(), dialCode: z.string().nullish() });
+const Protection = z.object({
+  realityCheckIntervalMinutes: z.number().int().positive().nullish().catch(null),
+  isCoolingOff: z.boolean().catch(false).default(false),
+  coolingOffUntil: z.string().nullish().catch(null),
+});
+const Acknowledged = z.object({ acknowledged: z.boolean() }).partial().passthrough();
 const MajorBalance = z.object({ realBalance: z.string(), bonusBalance: z.string(), available: z.string().nullish(), currency: z.string() });
 
 const terminal = (t: z.infer<typeof WireTerminal>): Terminal => ({
@@ -109,6 +118,15 @@ export interface CoreClient {
   /** Sent with `keepalive`, so it outlives the page; nobody waits on it. */
   abandonCashier(ticket: string): Promise<Result<unknown>>;
   payment(ticket: string, paymentId: string): Promise<Result<Payment>>;
+  /** A game session's status and its last bet (players, FR-057). */
+  gameSession(sessionId: string): Promise<Result<{ status: string; lastBetAt: string | null }>>;
+  /** Ends a game session as the player's leaving: no body, sent so it outlives the page (FR-032). */
+  endGameSession(sessionId: string): Promise<Result<unknown>>;
+  /** The visitor's country and dial code by their address; both null when unknown. */
+  country(): Promise<Result<{ country: string | null; dialCode: string | null }>>;
+  /** What of the player's responsible-gambling status this slice reads. */
+  protection(currency: string): Promise<Result<{ realityCheckIntervalMinutes: number | null; isCoolingOff: boolean; coolingOffUntil: string | null }>>;
+  acknowledgeRealityCheck(sessionId: string): Promise<Result<unknown>>;
 }
 
 /** `player` names the signed-in player, whose id fills `{player}`. */
@@ -148,6 +166,20 @@ export function coreClient(transport: Transport, player: () => string | null = (
       return r;
     },
     abandonCashier: (t) => ask(transport, row(routes, "abandonCashier"), Anything, { headers: ticket(t), keepalive: true }),
+    async gameSession(sessionId) {
+      const r = await ask(transport, row(routes, "gameSession"), WireSession, { path: { sessionId } });
+      return r.ok ? { ok: true, value: { status: r.value.status, lastBetAt: r.value.lastBetAt ?? null } } : r;
+    },
+    endGameSession: (sessionId) => ask(transport, row(routes, "endGameSession"), Ended, { path: { sessionId }, keepalive: true }),
+    async country() {
+      const r = await ask(transport, row(routes, "country"), Country);
+      return r.ok ? { ok: true, value: { country: r.value.country ?? null, dialCode: r.value.dialCode ?? null } } : r;
+    },
+    async protection(currency) {
+      const r = await ask(transport, row(routes, "protection"), Protection, { path: me(), query: { currency } });
+      return r.ok ? { ok: true, value: { realityCheckIntervalMinutes: r.value.realityCheckIntervalMinutes ?? null, isCoolingOff: r.value.isCoolingOff, coolingOffUntil: r.value.coolingOffUntil ?? null } } : r;
+    },
+    acknowledgeRealityCheck: (sessionId) => ask(transport, row(routes, "acknowledgeRealityCheck"), Acknowledged, { path: me(), body: { sessionId } }),
     async payment(t, paymentId) {
       const r = await ask(transport, row(routes, "payment"), WirePayment, { headers: ticket(t), path: { paymentId } });
       return r.ok ? { ok: true, value: payment(r.value) } : r;
