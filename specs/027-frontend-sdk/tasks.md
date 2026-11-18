@@ -101,7 +101,7 @@ unchanged. **Independent test**: `features/player-site/composing.feature`.
 
 ## Phase 9: User Story 8 — the chat with the support agent (P2)
 
-- [ ] T038 [P] [US8] `K/support/routes.ts`, `client.ts` (`turn`, `decide` as posted streams, the refusals before the stream read by `readRefusal` with the agent's `words`); suite `KT/unit/supportClient.test.ts`
+- [X] T038 [P] [US8] `K/support/routes.ts`, `client.ts` (`turn`, `decide` as posted streams, the refusals before the stream read by `readRefusal` with the agent's `words`); suite `KT/unit/supportClient.test.ts`
 - [ ] T039 [US8] `K/support/chat.ts`, added to `playerSite`: the chat behaviour (`data-model.md`: Chat; `contracts/behaviours.md`), the session id in `sessionStorage` through an injected store, removed at sign-out, a turn never sent again by itself; extracted from `O/components/chat/MotokoChat.tsx`; suite `KT/unit/chat.test.ts`, and the chat's steps added to `noWayRound.test.ts`: `send` is allowed at exactly `ready` and `ended`, and a decision at exactly `awaiting_approval`
 - [ ] T040 [US8] Bind `features/player-site/chat.feature` in `KT/features/chat.steps.ts`
 
