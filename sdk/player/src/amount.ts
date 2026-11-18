@@ -72,6 +72,15 @@ export function format(a: Amount, language: string): string {
   return formatter.format(majorText(a) as unknown as number);
 }
 
+/**
+ * The minor units as a JSON number, for a service that takes them so (players' deposit start).
+ * Refused past 2^53, where a number is no longer exact; no deposit comes near it.
+ */
+export function minorOnWire(a: Amount): number {
+  if (a.minor > BigInt(Number.MAX_SAFE_INTEGER) || a.minor < BigInt(Number.MIN_SAFE_INTEGER)) throw new RangeError(`not exact as a number: ${a.minor}`);
+  return Number(a.minor);
+}
+
 export function sameAmount(a: Amount, b: Amount): boolean {
   return a.minor === b.minor && a.currency === b.currency;
 }

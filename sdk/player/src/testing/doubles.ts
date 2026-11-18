@@ -174,7 +174,7 @@ export function fakeBrand(overrides: Partial<FakeBrand> = {}): FakeBrand {
     terminals: [
       { terminalEntityId: "t-card", name: "Carte", scheme: "VISA", gateway: "stub", supportedCurrencies: ["EUR"] },
       { terminalEntityId: "t-skrill", name: "Skrill", scheme: "SKRILL", gateway: "stub" },
-      { terminalEntityId: "t-crypto", name: "Crypto", scheme: "CRYPTO", gateway: "stub" },
+      { terminalEntityId: "t-crypto", name: "Crypto", scheme: "CRYPTO", gateway: "stub", supportedCurrencies: ["BTC", "USDT"] },
       { terminalEntityId: "t-redirect", name: "Virement", scheme: "BANK", gateway: "stub" },
     ],
     cashierSessions: new Map(),
@@ -372,8 +372,9 @@ export function doubles(options: { brand?: Partial<FakeBrand>; clock?: Clock } =
 
 const later = (clock: Clock | undefined, ms: number) => new Promise<void>((resolve) => (clock ? clock.after(ms, resolve) : setTimeout(resolve, ms)));
 
-const values = (route: Route, options: CallOptions, brand: string) => {
+const values = (_route: Route, options: CallOptions, brand: string) => {
   const path: Record<string, string> = { brand, ...(options.path ?? {}) };
+  delete path.ticket;
   return path;
 };
 
@@ -391,6 +392,9 @@ export function doubleTransport(d: Doubles, options: { boundMs?: number } = {}):
   const listeners = new Set<(reason: SignedOutReason) => void>();
   const ask = async (route: Route, o: CallOptions): Promise<Reply> => {
     const path = values(route, o, d.brand.brand);
+    // As the site server: a ticket row's `{ticket}` comes from the header `cashierTicket` alone.
+    const ticket = o.headers?.cashierTicket;
+    if (route.audience === "ticket" && ticket) path.ticket = ticket;
     const query = Object.fromEntries(Object.entries(o.query ?? {}).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]));
     const a: Asked = { id: route.id, service: route.service, method: route.method, path, query, body: o.body, headers: { ...(o.headers ?? {}) } };
     const reply = await d.answer(route.id, a);
