@@ -238,6 +238,14 @@ the brand's onboarding on the installation; the task order.
 - The site server holds the sign-in in a cookie of at most 4 KB; the realm's tokens are about
   1.5 KB today.
 
+## Found during implementation
+
+- **V1, rendering (T004)**: `main`'s modules tool renders a module service's `hosting: web` as
+  it is, with no protocol, on the wire (`RenderSuite`). What it lacked is 030's D4: a service with
+  a `package.json` and no `build.sbt` counted as unbuilt, so an apply needed `--allow-unbuilt`.
+  `Keys.built` now takes either, as on 030's branch. The local apply on `dev-kind` is checked with
+  the other installation steps (T005, T006, T060, T051).
+
 ## Design finished
 
 2026-11-18: the person proceeded with 4 findings above LOW from the third analysis round, each

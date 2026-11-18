@@ -261,3 +261,19 @@ class RenderSuite extends munit.FunSuite:
     assertEquals(PluginVendor.channel(mapper.readTree("""{"channels":{"stable":"1.4.0"}}"""), "stable"), Some("1.4.0"))
     assertEquals(PluginVendor.channel(mapper.readTree("""{"channels":[{"name":"stable","version":"1.4.0"}]}"""), "stable"), Some("1.4.0"))
   }
+
+  test("a web-hosted module service renders hosting web with no protocol, and the descriptor carries it on the wire (spec 027 V1)") {
+    val node = ObjectMapper().readTree(
+      """{"image":"europe-west1-docker.pkg.dev/eitheror/casino/player-site:0.0.0","hosting":"web","expose":true,"env":[{"name":"CASINO_BRAND","key":"casino-brand"}]}""")
+      .asInstanceOf[com.fasterxml.jackson.databind.node.ObjectNode]
+    val service = ModuleManifest.Service("player-site", node, None)
+    val d = BrandRender.descriptor(service, Set.empty, Map("casino-brand" -> "guyanabet"), Some("1.2.3"))
+    assertEquals(d.service.hosting, "web")
+    assertEquals(d.service.protocol, None)
+    assertEquals(d.service.image, "europe-west1-docker.pkg.dev/eitheror/casino/player-site:1.2.3")
+    assertEquals(d.service.env.map(e => e.name -> e.value), Vector("CASINO_BRAND" -> Option("guyanabet")))
+    val wire = com.github.plokhotnyuk.jsoniter_scala.core.writeToString(d)
+    assert(wire.contains("\"hosting\":\"web\""), wire)
+    assertEquals(readFromString[ServiceDescriptor](wire).service.hosting, "web")
+  }
+
