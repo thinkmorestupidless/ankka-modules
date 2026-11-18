@@ -207,14 +207,18 @@ final class SessionsEndpoint(ctx: Context) extends HttpEndpoint("/v1/casino/sess
     }
   }
 
-/** `/v1/casino/catalog/...` (FR-023): the frontend's catalogue reads, unchanged, plus each game's provider. */
+/**
+ * `/v1/casino/catalog/...` (FR-023): the frontend's catalogue reads, unchanged, plus each game's provider.
+ * Public routes (FR-027, amended by spec 027 FR-056): a visitor with no sign-in reads the lobby, as the
+ * original's site did; a `?brand=` or path naming another brand is still `404`.
+ */
 final class CatalogEndpoint(ctx: Context) extends HttpEndpoint("/v1/casino/catalog"):
   val acl: Acl = Acl.DenyAll
 
   private def brandParameter(): Unit =
     query.optional[String]("brand").foreach(b => if b != ctx.brand then throw HttpProblem.notFound(s"${Routes.Refusal.WrongBrand}: this is brand ${ctx.brand}"))
 
-  withAcl(Routes.player(ctx.brand, ctx.settings.authenticate())) {
+  withAcl(Routes.public) {
     get("/games") { () =>
       brandParameter()
       query.optional[String]("ids") match
