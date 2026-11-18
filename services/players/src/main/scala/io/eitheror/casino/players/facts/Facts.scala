@@ -124,6 +124,7 @@ object Facts:
       case e: GameSessionEvent.Opened => Some(f.GameSessionStarted(e.playerId, sessionId, e.gameId, e.playerSessionId, e.at))
       case e: GameSessionEvent.Ended =>
         Option.when(e.playerId.nonEmpty)(f.GameSessionEnded(e.playerId, sessionId, e.gameId, e.durationMinutes.toInt, e.at, Some(e.reason)))
+      case _: GameSessionEvent.BetRecorded => None
     fact.map(Published(_, eventId("game-session", sessionId, sequence)))
 
   // ── platform.audit ────────────────────────────────────────────────────────

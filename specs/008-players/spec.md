@@ -456,6 +456,10 @@ store and `payments` for a personal field; fetch the response.
   end MUST name an approval id, which is claimed once as the end's key: the same session under it
   again ends nothing and answers as the first did; another session under it is `key_reused` (spec 017
   amendment P1).
+  *Amended by spec 027* (FR-057): a game session also holds the time of its last bet: each round
+  `casino.rounds` reports opened or settled under its `sessionId` records the fact's `occurredAt`,
+  keeping the latest (an older time changes nothing, a repeat is no event); the player's read of the
+  session and the list of their sessions answer it as `lastBetAt`, `null` with no bet.
 - **FR-018**: `players` MUST answer `game-provider` the account status at launch (spec 003 FR-007):
   refused for `suspended`, `self_excluded`, `blocked` or `closed`, naming the status; the KYC play
   gate is `kyc`'s query (spec 009 FR-020) and a break, an exclusion or the session minutes are

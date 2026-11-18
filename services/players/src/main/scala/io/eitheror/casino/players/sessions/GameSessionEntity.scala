@@ -21,7 +21,9 @@ final case class GameSessionState(
     endedAt: Option[Instant] = None,
     durationMinutes: Option[Long] = None,
     status: String = "",
-    endReason: Option[String] = None
+    endReason: Option[String] = None,
+    /** The latest round opened or settled under the session (spec 027 FR-057); none before the first bet. */
+    lastBetAt: Option[Instant] = None
 ):
   def exists: Boolean = status.nonEmpty
   def open: Boolean   = status == GameSessionState.Active
@@ -38,10 +40,14 @@ object GameSessionEvent:
   final case class Ended(reason: String, at: Instant, playerId: String = "", gameId: String = "", durationMinutes: Long = 0L,
       actorId: Option[String] = None)
       extends GameSessionEvent
+  /** A round opened or settled under the session at `at`, later than any before it (spec 027 FR-057). */
+  final case class BetRecorded(at: Instant) extends GameSessionEvent
 
 final case class OpenGameSession(playerId: String, playerSessionId: String, gameId: String, currency: String, demo: Boolean, at: Instant)
 /** `actorId`: the operator or approval that forced it, for the audit record (FR-021). */
 final case class EndGameSession(reason: String, at: Instant, actorId: Option[String] = None)
+/** A bet's time, from a round's fact on `casino.rounds`. */
+final case class RecordBet(at: Instant)
 
 /** What an end answered: whether this call ended it, and the state after. */
 final case class GameSessionEnd(ended: Boolean, state: GameSessionState, refusal: Option[String] = None)
@@ -58,6 +64,7 @@ final class GameSessionEntity(@scala.annotation.unused context: EventSourcedEnti
       val s = currentState
       s.copy(status = GameSessionState.Ended, endedAt = Some(e.at), endReason = Some(e.reason),
         durationMinutes = s.startedAt.map(start => math.max(0L, Duration.between(start, e.at).toMinutes)))
+    case e: BetRecorded => currentState.copy(lastBetAt = Some(e.at))
 
   def open(c: OpenGameSession): Effect[GameSessionState] =
     if currentState.exists then effects.reply(currentState)
@@ -72,6 +79,14 @@ final class GameSessionEntity(@scala.annotation.unused context: EventSourcedEnti
       val minutes = s.startedAt.fold(0L)(start => math.max(0L, Duration.between(start, c.at).toMinutes))
       effects.persist(Ended(c.reason, c.at, s.playerId, s.gameId, minutes, c.actorId)).thenReply(n => GameSessionEnd(true, n))
 
+  /**
+   * Keeps the latest bet's time: an unknown session, or a time no later than the one held, is no event
+   * (a fact delivered again, or out of order). An ended session still records a round settled after it.
+   */
+  def recordBet(c: RecordBet): Effect[GameSessionState] =
+    if !currentState.exists || currentState.lastBetAt.exists(!c.at.isAfter(_)) then effects.reply(currentState)
+    else effects.persist(BetRecorded(c.at)).thenReply(identity)
+
   def get: ReadOnlyEffect[GameSessionState] = effects.reply(currentState)
 
 object GameSessionEntity
@@ -85,9 +100,11 @@ object GameSessionEntity
   given Serializer[OpenGameSession]  = PlayersCodecs.serializer[OpenGameSession]("open-game-session")
   given Serializer[EndGameSession]   = PlayersCodecs.serializer[EndGameSession]("end-game-session")
   given Serializer[GameSessionEnd]   = PlayersCodecs.serializer[GameSessionEnd]("game-session-end")
+  given Serializer[RecordBet]        = PlayersCodecs.serializer[RecordBet]("record-bet")
 
   def create(context: EventSourcedEntityContext) = new GameSessionEntity(context)
 
   val open = command("open")(_.open)
   val end  = command("end")(_.end)
+  val recordBet = command("record-bet")(_.recordBet)
   val get  = query("get")(_.get)

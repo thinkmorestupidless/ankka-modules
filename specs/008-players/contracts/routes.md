@@ -68,8 +68,14 @@ logged (001 FR-023).
 | Route | Does | Answers |
 |---|---|---|
 | `GET /players/{playerId}` | `SessionsView` by player (the original's `GET ?playerId=`) | 200; 403 `player_id_mismatch` |
-| `GET /{sessionId}` | the session | 200; 404 `session_not_found` (another player's too) |
+| `GET /{sessionId}` | the session; `lastBetAt` the latest round's time (amended by spec 027) | 200; 404 `session_not_found` (another player's too) |
 | `PATCH /{sessionId}/end` | `GameSessionEntity.End(player)`, `PlayerEntity.GameSessionEnded`; idempotent | 200 `{status: completed, sessionId, durationMinutes}`; 403 `player_id_mismatch` (another player's, as the original); 404 |
+
+*Amended by spec 027* (FR-057, T058): a game session's body (`GET /{sessionId}`, each of `GET
+/players/{playerId}`'s `sessions`, and the service route's history) answers `lastBetAt`, an ISO-8601
+instant: the latest `occurredAt` of a `round_opened` or `round_settled` on `casino.rounds` under the
+session's id (`RoundsActivity` sends `GameSessionEntity`'s `record-bet`; an older time is no event),
+`null` when there was none. Where the original answered `lastBetAt` it was always `null`.
 
 `POST /launch` is spec 003's (`game-provider`) and is not served here.
 

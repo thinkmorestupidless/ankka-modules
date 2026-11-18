@@ -140,6 +140,9 @@ class PublishersSuite extends munit.FunSuite with LogCapturing:
       Vector(GameSessionStarted("p-1", "gs-1", "g-1", "ps-1", at)))
     assertEquals(games.onMessage(GameSessionEvent.Ended("limit", at, "p-1", "g-1", 17), "gs-1", 2).payloads,
       Vector(GameSessionEndedFact("p-1", "gs-1", "g-1", 17, at, Some("limit"))))
+    // a bet's time is the session's own read (spec 027 FR-057): no fact, no audit record
+    assertEquals(games.onMessage(GameSessionEvent.BetRecorded(at), "gs-1", 3).messages, Vector.empty)
+    assertEquals(ConsumerTestKit.of(GameSessionAudit).onMessage(GameSessionEvent.BetRecorded(at), "gs-1", 3).messages, Vector.empty)
   }
 
   test("an audit record per operator action, no personal value, the field named for a date of birth, a note or a message") {

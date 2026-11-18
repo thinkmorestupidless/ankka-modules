@@ -181,10 +181,12 @@ object GameSessionRoutes:
   def wire(sessionId: String, s: GameSessionState): ObjectNode =
     Json.obj("sessionId" -> sessionId, "gameId" -> s.gameId, "status" -> status(s.status, s.endReason),
       "launchedAt" -> s.startedAt.map(_.toString).getOrElse(""), "endedAt" -> s.endedAt.map(_.toString).orNull,
-      "durationMinutes" -> s.durationMinutes.map(Long.box).orNull, "reason" -> s.endReason.orNull, "lastBetAt" -> null)
+      "durationMinutes" -> s.durationMinutes.map(Long.box).orNull, "reason" -> s.endReason.orNull,
+      "lastBetAt" -> s.lastBetAt.map(_.toString).orNull)
 
   def wire(r: SessionRow): ObjectNode =
     Json.obj("sessionId" -> r.sessionId, "gameId" -> r.gameId.getOrElse(""), "status" -> status(r.status, r.reason),
       "launchedAt" -> java.time.Instant.ofEpochMilli(r.startedAt).toString,
       "endedAt" -> r.endedAt.map(java.time.Instant.ofEpochMilli(_).toString).orNull,
-      "durationMinutes" -> r.durationMinutes.map(Long.box).orNull, "reason" -> r.reason.orNull, "lastBetAt" -> null)
+      "durationMinutes" -> r.durationMinutes.map(Long.box).orNull, "reason" -> r.reason.orNull,
+      "lastBetAt" -> r.lastBetAt.map(java.time.Instant.ofEpochMilli(_).toString).orNull)

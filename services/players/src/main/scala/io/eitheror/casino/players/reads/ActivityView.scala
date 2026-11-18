@@ -7,6 +7,7 @@ import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.players.PlayersCodecs
 import io.eitheror.casino.players.player.Done
 import io.eitheror.casino.players.facts.Lenient
+import io.eitheror.casino.players.sessions.{GameSessionEntity, RecordBet}
 
 import java.time.Instant
 
@@ -166,11 +167,17 @@ object MoneyActivity extends Consumer.Companion[MoneyActivity, Option[MoneyTrans
       ComponentId("money-activity"), FromTopic(MoneyTransactions)):
   def create(ctx: ConsumerContext) = new MoneyActivity(ctx.componentClient)
 
-/** `casino.rounds`: the history's line and the player's recently played game. */
+/** `casino.rounds`: the history's line, the player's recently played game and the game session's last bet. */
 final class RoundsActivity(client: ComponentClient) extends Consumer[Option[CasinoRoundsFact], Nothing]:
   def onMessage(fact: Option[CasinoRoundsFact]): Effect =
     ActivityEntry.keep(client, CasinoRounds.name, messageContext, fact, fact.flatMap(ActivityLines.round))
     fact.collect { case r: RoundSettled => r }.foreach(r => RecentlyPlayed.touch(client, r.playerId, r.gameId, r.occurredAt))
+    // the game session's last bet (spec 027 FR-057): every round opened or settled under it
+    fact.collect {
+      case r: RoundOpened  => r.sessionId -> r.occurredAt
+      case r: RoundSettled => r.sessionId -> r.occurredAt
+    }.filter(_._1.nonEmpty).foreach((session, at) =>
+      client.forEventSourcedEntity(EntityId(session)).call(GameSessionEntity.recordBet).invoke(RecordBet(at)): Unit)
     effects.done()
 
 object RoundsActivity extends Consumer.Companion[RoundsActivity, Option[CasinoRoundsFact], Nothing](

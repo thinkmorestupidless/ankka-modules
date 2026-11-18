@@ -54,6 +54,21 @@ class SessionEntitiesSuite extends munit.FunSuite with LogCapturing:
     assertEquals(kit.currentState.endReason, Some("limit"))
   }
 
+  test("RecordBet keeps the latest bet's time: an older or equal one, or an unknown session, is no event; an ended session still records (spec 027 FR-057)") {
+    val kit = EventSourcedTestKit.of(GameSessionEntity, "gs-bet")
+    assert(!kit.call(GameSessionEntity.recordBet)(RecordBet(at)).persisted, "no session, no event")
+    kit.call(GameSessionEntity.open)(OpenGameSession("p-1", "ps-1", "g-1", "EUR", demo = false, at)): Unit
+    assertEquals(kit.currentState.lastBetAt, None)
+    val first = kit.call(GameSessionEntity.recordBet)(RecordBet(at.plusSeconds(30)))
+    assertEquals((first.persisted, first.replyValue.lastBetAt), (true, Some(at.plusSeconds(30))))
+    assert(!kit.call(GameSessionEntity.recordBet)(RecordBet(at.plusSeconds(10))).persisted, "an older time changes nothing")
+    assert(!kit.call(GameSessionEntity.recordBet)(RecordBet(at.plusSeconds(30))).persisted, "the same time again changes nothing")
+    assertEquals(kit.currentState.lastBetAt, Some(at.plusSeconds(30)))
+    kit.call(GameSessionEntity.end)(EndGameSession("player", at.plusSeconds(60))): Unit
+    assert(kit.call(GameSessionEntity.recordBet)(RecordBet(at.plusSeconds(61))).persisted, "a round settled after the end")
+    assertEquals((kit.currentState.lastBetAt, kit.currentState.status), (Some(at.plusSeconds(61)), GameSessionState.Ended))
+  }
+
   test("each end reason of data-model.md is accepted; another is refused") {
     GameEndReason.all.foreach { reason =>
       val kit = EventSourcedTestKit.of(GameSessionEntity, s"gs-$reason")
