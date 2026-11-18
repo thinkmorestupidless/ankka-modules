@@ -68,6 +68,14 @@ var NotDriven = map[string]string{
 	"a registration with an erased player's email address creates a new player with a new id":                                           "the original has no erasure",
 	"a player's export carries everything the brand holds, each service's part named":                                                   "the original has no player export",
 	"a service that does not answer the export is named as missing, not left out":                                                       "the original has no player export",
+	"a started deposit answers the cashier ticket and the terminals of the cashier session it opened":                                   "spec 027 amends the deposit route (contracts/amendments.md); the original answers no cashier ticket, so players' own suites hold it",
+	"a deposit the deposit gate refuses opens no cashier session and answers no cashier ticket":                                         "spec 027 amends the deposit route (contracts/amendments.md); the original answers no cashier ticket, so players' own suites hold it",
+	"a deposit over the deposit limit is refused naming the period, the limit, what was used and what remains":                          "spec 027 adds the refusal's fields (contracts/amendments.md), which the original does not answer; players' own suites hold it",
+	"a deposit by a player on a break is refused naming the end of the break":                                                           "spec 027 adds the refusal's endsAt (contracts/amendments.md), which the original does not answer; players' own suites hold it",
+	"a deposit started again under the same request id answers the first cashier session":                                               "spec 027 adds the request id (contracts/amendments.md); the original opens a second session, so players' own suites hold it",
+	"a deposit started again under the same request id with another amount is refused naming the request id":                            "spec 027 adds the request id (contracts/amendments.md); the original opens a second session, so players' own suites hold it",
+	"a game session read answers the time of its last bet":                                                                              "spec 027 adds lastBetAt (contracts/amendments.md), which the original always answers null; players' own suites hold it",
+	"a game session with no bet answers no time of a last bet":                                                                          "spec 027 adds lastBetAt (contracts/amendments.md); the original answers null for every session, so no recording tells this case apart",
 }
 
 // Scenarios is every recording the driver makes, in the features' order.
