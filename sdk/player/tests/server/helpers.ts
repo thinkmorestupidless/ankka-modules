@@ -64,3 +64,21 @@ export function jar() {
 }
 
 export { readCookies };
+
+import { siteServer } from "../../src/server/app.ts";
+import { allRoutes } from "../../src/server/modules.ts";
+
+/** A whole site server over the HTTP doubles, with a browser that keeps its cookies. */
+export async function wholeSite(options: Parameters<typeof served>[1] & { static?: string } = {}) {
+  const s = await served(allRoutes, options);
+  const app = siteServer({ config: s.config, fetch: s.deps.fetch, log: s.deps.log, ...(options.static ? { static: options.static } : {}) });
+  const browser = jar();
+  const request = async (method: string, path: string, init: { body?: unknown; headers?: Record<string, string>; origin?: string | null } = {}) => {
+    const headers: Record<string, string> = { cookie: browser.header(), ...(init.headers ?? {}) };
+    if (init.origin !== null && method !== "GET") headers.origin = init.origin ?? SITE;
+    if (init.body !== undefined) headers["content-type"] = "application/json";
+    return browser.take(await app.request(path, { method, headers, ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}) }));
+  };
+  const signIn = () => request("POST", "/api/session/sign-in", { body: { email: "ana@example.com", password: "correct horse battery 1!" } });
+  return { ...s, app, browser, request, signIn };
+}

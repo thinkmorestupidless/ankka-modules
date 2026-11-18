@@ -23,6 +23,10 @@ export interface Route {
   readonly serverOnly?: boolean;
   /** The service's own query parameters a page may send. */
   readonly query?: readonly string[];
+  /** The brand goes to the service as `?brand=`, not a path segment (the catalogue). */
+  readonly brandQuery?: boolean;
+  /** The service reads the visitor's network address and user agent (registration, the country). */
+  readonly visitor?: boolean;
 }
 
 export type ModuleName = "core" | "casino" | "engagement" | "support";
