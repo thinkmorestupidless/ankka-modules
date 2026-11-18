@@ -245,6 +245,19 @@ the brand's onboarding on the installation; the task order.
   a `package.json` and no `build.sbt` counted as unbuilt, so an apply needed `--allow-unbuilt`.
   `Keys.built` now takes either, as on 030's branch. The local apply on `dev-kind` is checked with
   the other installation steps (T005, T006, T060, T051).
+- **The coins (T023)**: the original's coin picker lists the crypto terminal's own
+  `supportedCurrencies` (`DepositModal.tsx`, `select_crypto`), not a fixed list. `choosing_coin`'s
+  `coins` are that list, as the original, and `schemes.ts` holds none.
+- **`schemeUtils.ts` (T023)**: its labels and icons are words for a player, which the package holds
+  none of (FR-022). Ported are its rules only: a coin's network (`coinNetwork`) and which
+  terminals share a scheme (`sharingScheme`, the rule of `disambiguatedTerminalLabels`), with the
+  original's cases for them. A site writes the labels in its own words.
+- **Details asked (T023)**: the original asks a card's whole form when one detail is missing and
+  Interac's name and mobile in two forms. The `details` step names only the needs the profile
+  lacks or holds malformed, all at once, with the rest as `known`; the checks on what is given are
+  the original's.
+- **The package's scripts (T019)**: `vitest --dir` resolved the include patterns under the
+  directory and found no file; the scripts filter by path.
 
 ## Design finished
 
