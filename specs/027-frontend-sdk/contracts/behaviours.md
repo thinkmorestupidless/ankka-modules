@@ -19,25 +19,33 @@ Steps and fields are in [data-model.md](../data-model.md). Below, what moves eac
 
 - `signIn` → `signing_in` → `signed_in`, or `refused`.
 - `register` → `registering` → `awaiting_verification`, or `refused`. Never `signed_in`.
+- `verifyEmail` → `verifying` → `signed_out` with `verified: true`, or `refused`.
+- `resendVerification` → the same step with `resent: true`, or `refused` (`rate_limited` with the
+  wait).
+- `requestPasswordReset` → `signed_out` with `resetRequested: true`, whatever the brand answered.
+- `signOut` → `signing_out` → `signed_out`, whatever the brand answered.
+- `back` from `refused` → the step `during` names.
 - `signed_in`: no key press, click or scroll for `idleMinutes` less `idleWarningSeconds` →
   `idle_warning`; `stay` → refresh → `signed_in`; nothing for `idleWarningSeconds` → `signed_out`
   with reason `idle`.
 - any call answered `signed_out` after the one shared refresh was refused → `signed_out` with
   reason `refresh_expired`, after the re-read of R3.
-- `play` reports a recent bet → the idle timer starts again.
+- `play` reports a recent bet → the idle count starts again (a change from the original).
 
 ## Deposit
 
 - `amount` —`confirm`→ `starting` (one `startDeposit` under a new request id; a second `confirm`
-  is not allowed) → `choosing_terminal`; no terminals → `failed(no_terminals)`; a refusal →
-  `refused`.
+  is not allowed) → `choosing_terminal`; no terminals → `failed(no_terminals)`; a refusal → `refused`. A start not answered →
+  `refused(service_unavailable)`, which also allows `retry`: the same amount under the same request
+  id, back to `starting`.
 - `choosing_terminal` —`choose`→ by `schemes.ts`: `choosing_coin`; or `profile` read, then
   `details` when a need is missing or malformed, else `submitting`.
 - `details` —`giveDetails`→ `changeProfile` (its failure ignored, as the original) → `submitting`.
 - `submitting` → one `submitCashier` → read `payment` every 1.5 s:
   `AWAITING_REDIRECT` → `waiting_at_provider`; `AWAITING_CRYPTO` → `waiting_on_crypto`;
-  `AWAITING_PAYMENT` → `waiting`; `COMPLETED` → `succeeded`; `FAILED`, `EXPIRED` → `failed`.
-  A refused submit → `failed` with the cashier's code.
+  `AWAITING_PAYMENT` → `waiting`; `COMPLETED` → `succeeded`; `FAILED`, `EXPIRED` → `failed` with the payment's `failureCode`.
+  A refused submit → `failed` with the cashier's code; `PAYMENT_REJECTED` carries its `message`
+  as `words`.
 - any waiting step: read every 3 s; only an outcome moves it; 20 minutes from the submit →
   `failed(timed_out)`; `close` → `abandonCashier`, not awaited.
 - `succeeded` → the funds are read.
@@ -48,7 +56,7 @@ Steps and fields are in [data-model.md](../data-model.md). Below, what moves eac
 
 | Scheme | Needs |
 |---|---|
-| `CRYPTO` | a coin |
+| `CRYPTO` | a coin, from the original's list in `DepositModal.tsx` |
 | `SKRILL`, `NETELLER`, `PAYSAFECARD`, `RAPID` | first name, last name |
 | `APPLE_PAY`, `GOOGLE_PAY` | name; a telephone number in international form |
 | `INTERAC_ETRANSFER` | name; a 10-digit mobile number; a province |
@@ -63,12 +71,13 @@ Steps and fields are in [data-model.md](../data-model.md). Below, what moves eac
   restricted in the player's country → `endGameSession`, then `refused(blocked_in_territory)`.
   Else `playing`.
 - `playing`: every 5 minutes `gameSession`; `lastBetAt` within 6 minutes → the session refreshes
-  and is not idle. With an interval from `protection`: after that long shown (time hidden does not
-  count; a check due while hidden fires on `show`) → `reality_check`.
+  and is not idle. With an interval from `protection`: once the time shown since the last check
+  reaches it → `reality_check`. Time hidden is not counted and hiding starts nothing again, so no
+  check falls due while hidden (a change from the original).
 - `reality_check` —`keepOn`→ `acknowledgeRealityCheck` → `playing`, the interval starting again;
   —`stop`→ `endGameSession` → `ended`.
-- `close`, the page leaving (`pagehide`), sign-out → `endGameSession` with `PLAYER_EXIT`, sent
-  with `keepalive`.
+- `close`, the page leaving (`pagehide`), sign-out → `endGameSession` (no body: `players` records the
+  player's leaving), sent with `keepalive`.
 
 ## Inbox
 
@@ -86,7 +95,8 @@ Steps and fields are in [data-model.md](../data-model.md). Below, what moves eac
 - before the stream: `agent_unavailable` → `unavailable`; `too_many_turns` → `refused`;
   `conversation_ended` → `ended`; `session_not_yours` → `refused`, and the session id is dropped;
   `Session already active` → `awaiting_approval` from the refusal's `details`.
-- `approve`, `cancel` → `deciding` → `action_result` (approve only), `delta`, `done` → `ready`;
+- `dismiss` from `refused` → `ready`. `unavailable` allows nothing.
+- `approve`, `cancel` (sent as `reject`) → `deciding` → `action_result` (approve only), `delta`, `done` → `ready`;
   `already_decided` → `ready`.
 - the session id is kept in `sessionStorage` under `eo_chat_<playerId>` and removed at sign-out.
 

@@ -16,17 +16,20 @@ clock, a React adapter of one hook, and one rule each for amounts, refusals and 
 deployed as the web-hosted service of a new module `player-site`. `brands/guyanabet/values.json`
 is the brand that runs it, in French and English, with no real money.
 
-`players`' deposit start is amended: it takes a request id and answers the cashier ticket and the
-terminals, so a page can finish a deposit it could only start. The constitution's *Scope* is
-amended to put the player site in scope.
+Three services are amended. `players`: the deposit start takes a request id, answers the cashier
+ticket and the terminals and passes on a refusal's figures, and a game session read answers its
+last bet. `game-provider`: the catalogue's reads are public. The wallet: its player routes write
+major units by the currency's exponent. The contract publishes a currency table. The
+constitution's *Scope* is amended, first, to put the player site in scope.
 
-Decisions and evidence are in [research.md](research.md), R1 to R15, with five things to verify
-at task time (V1 to V5).
+Decisions and evidence are in [research.md](research.md), R1 to R15, with six things to verify
+at task time (V1 to V6).
 
 ## Technical Context
 
 **Language/Version**: TypeScript 5.9 on Node 24 for the package and the site (constitution VI, by
-FR-048's reason). Scala 3 on ankka 0.16.3 for the two amended services, `players` and `game-provider`.
+FR-048's reason). Scala 3 on ankka 0.16.3 for the three amended services, `players`, `game-provider` and the wallet,
+and the contract.
 
 **Primary Dependencies**: the package: Zod (answers parsed at the boundary), Hono (the site
 server), React 19 as a peer of `./react` only. The site: Vite, TanStack Router, Tailwind 4. No
@@ -35,17 +38,17 @@ state-machine library and no translation library (R2, R8).
 **Storage**: none. The site server keeps no state between instances (R3).
 
 **Testing**: vitest; `vitest-cucumber` binding `features/player-site/` to the behaviours with no
-browser; `playwright-bdd` for `reference-site.feature`; munit `GherkinSuite` for `players`;
+browser; `playwright-bdd` for `reference-site.feature`; munit `GherkinSuite` for `players`, `game-provider` and the wallet, with their parity suites;
 `just player-site-it` against `dev-kind` for the client contract (R14).
 
 **Target Platform**: a brand's own project on the installation, from `modules/player-site`,
 exposed at the brand's player site address; players' browsers, phone width upward.
 
-**Project Type**: a library, a web application built on it, one amended Scala service, the
-modules' manifests, a brand's values, CI.
+**Project Type**: a library, a web application built on it, three amended Scala services, the
+contract, the modules tool and manifests, a brand's values, CI.
 
-**Performance Goals**: a pass-through call within 30 ms of its service; first page under 150 KB
-of script compressed; a behaviour's transition synchronous.
+**Performance Goals**: first page under 150 KB of script compressed (T054); a behaviour's
+transition synchronous.
 
 **Constraints**:
 
@@ -66,8 +69,8 @@ of script compressed; a behaviour's transition synchronous.
 | Stories | 8 |
 | Behaviours, steps | 5; 9 + 12 + 9 + 3 + 7 |
 | Module clients, routes | 4; 27 |
-| Feature files, scenarios | 8 under `features/player-site/` (90), `features/players/deposit-start.feature` (4), 1 added to `features/game-provider/catalogue.feature` |
-| Services amended | 2 (`players`, one route; `game-provider`, the catalogue's audience) |
+| Feature files, scenarios | 8 under `features/player-site/` (90), `features/players/deposit-start.feature`, and scenarios added to `features/players/sessions.feature`, `features/wallet/reads.feature`, `features/game-provider/catalogue.feature`; counted in T055 |
+| Services amended | 3 (`players`, two routes; `game-provider`, the catalogue's audience; the wallet, how it writes major units), and the contract |
 | Pages of the reference site | 6 and 2 overlays |
 
 ## Constitution Check
@@ -76,7 +79,7 @@ of script compressed; a behaviour's transition synchronous.
 
 | Principle | Gate | Status |
 |---|---|---|
-| I. The original is the specification | divergences declared | Pass. Each behaviour names the original file it is extracted from (*Established by*), the original's unit tests are ported (R14), and the spec's *Changes from the original* holds every divergence: the deposit's path, minor units in the page, one refusal form, the request id, the cookie's `Lax` (R3). No recording is replayed by the package: recordings hold services' routes, and `players`' parity suite still passes (R11). |
+| I. The original is the specification | divergences declared | Pass. Each behaviour names the original file it is extracted from (*Established by*), the original's unit tests are ported (R14), and the spec's *Changes from the original* holds every divergence: the deposit's path, minor units in the page, one refusal form, the request id, the cookie's `Lax` and the origin check (R3), the idle count, the reality check's count, the wallet's text. No recording is replayed by the package: recordings hold services' routes, and `players`' parity suite still passes (R11). |
 | II. Money is exact | `Long` minor units; idempotent | Pass. `bigint` minor units in the page; the deposit start now carries a request id (FR-014). The package moves no money. |
 | III. A brand is a project | no data across brands | Pass, as amended (R15). The site is a module of the brand's project, serves one brand (FR-008), and reaches the shared payments only at its public routes under the cashier ticket. |
 | IV. Commands over HTTP, facts over topics | no store read across services | Pass. Every read is an owner's route. |
@@ -84,7 +87,7 @@ of script compressed; a behaviour's transition synchronous.
 | VI. Scala by default | reason for anything else | Pass. TypeScript by FR-048's reason; the one stateful change is in `players`, in Scala. |
 | VII. Specs in the domain's words | `just features` passes | Pass: 0 findings in 1,419 scenarios and 26 specs. |
 | Workflow: clarify before plan | | Pass: clarified 2026-11-18, seven answers. |
-| Scope: frontends out of scope | | Amended by this spec (R15), in its own task, stating what changes and why. |
+| Scope: frontends out of scope | | Amended by this spec (R15), in its own task, the first after setup, stating what changes and why. |
 
 No violations; Complexity Tracking is empty.
 
@@ -153,7 +156,11 @@ services/player-site/
 └── tests/features/  tests/second-appearance/
 modules/player-site/module.json
 brands/guyanabet/values.json
-services/players/…/api/DepositRoutes.scala, clients/Ingest.scala   # amended
+services/players/…/api/DepositRoutes.scala, GameSessionRoutes.scala, clients/{Ingest,Kyc,Rg}.scala  # amended
+services/wallet/…/wire/Wire.scala                                    # amended
+contract/ (the currency table's task, keys.md)   tools/modules/ (keys, web hosting, suites)
+tests/fixtures/manifests/guyanabet.json   Justfile   .github/workflows/{ci,release}.yml
+specs/{002,003,008,021}-*/ (each amended line)   .specify/memory/constitution.md
 services/game-provider/…/api/Endpoints.scala (CatalogEndpoint)      # amended
 features/player-site/*.feature, features/players/deposit-start.feature
 ```
@@ -163,7 +170,8 @@ the Scala services keep their own builds.
 
 ## Phases
 
-1. **Setup and verification**: the workspace, the package's skeleton, V1 to V5.
+1. **Setup and verification**: the workspace, the package's skeleton, the constitution's
+   amendment, V1 to V6.
 2. **Foundations**: the behaviour kernel and clock, amounts, refusals, language, the transport,
    the site server's session and pass-through, the testing doubles.
 3. **Session** (US1), **deposit** (US2, with `players`' amendment), **play** (US3): each its
@@ -172,7 +180,7 @@ the Scala services keep their own builds.
 5. **Amounts, refusals, language** (US5) as features; **inbox** (US6); **chat** (US8).
 6. **The reference site, the module and the brand** (US7); the client contract tests on
    `dev-kind`.
-7. **Polish**: the constitution's amendment, CI, the release job's image, READMEs, the brain.
+7. **Polish**: CI, the release job's image, READMEs, the brain.
 
 ## Complexity Tracking
 

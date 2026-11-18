@@ -4,7 +4,7 @@ Feature: Brand guyanabet runs a reference site built on the player SDK
   French first and English second, with no real money.
 
   Scenario: brand guyanabet runs the core, the casino, engagement, support and the player site
-    When the modules tool renders the values file of brand "guyanabet"
+    When the modules tool renders brand "guyanabet" with the modules "casino", "engagement", "support" and "player-site"
     Then brand "guyanabet" runs the services of the modules "core", "casino", "engagement", "support" and "player-site"
     And brand "guyanabet" takes no real money
 

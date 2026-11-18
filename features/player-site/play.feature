@@ -89,7 +89,7 @@ Feature: A player launches a game only when the brand allows it
   Scenario Outline: leaving a game ends its game session
     Given a player playing the game "pools" at the player site
     When they <leave>
-    Then the game session is ended with the reason "PLAYER_EXIT"
+    Then the game session is ended as the player's leaving
 
     Examples:
       | leave            |
@@ -112,7 +112,7 @@ Feature: A player launches a game only when the brand allows it
   Scenario: stopping at a reality check ends the game session
     Given the play behaviour stands at the reality check
     When the player stops
-    Then the game session is ended with the reason "PLAYER_EXIT"
+    Then the game session is ended as the player's leaving
 
   Scenario Outline: no reality check fires when none is set or it could not be read
     Given a player playing the game "pools" at the player site
@@ -125,8 +125,14 @@ Feature: A player launches a game only when the brand allows it
       | not set    |
       | unreadable |
 
-  Scenario: a reality check that falls due while the game is hidden fires when the game is shown again
+  Scenario: time the game is hidden does not count toward a reality check
     Given a player playing the game "pools" at the player site with a reality check of "30" minutes
-    And the game is hidden
-    When "30" minutes pass and the game is shown again
+    And the game was shown for "20" minutes and then hidden for "40" minutes
+    When the game is shown again for "10" minutes
+    Then the play behaviour stands at the reality check with "30" minutes played
+
+  Scenario: hiding and showing a game does not start a reality check's interval again
+    Given a player playing the game "pools" at the player site with a reality check of "30" minutes
+    And the game was shown for "29" minutes
+    When the game is hidden and shown again for "1" minute
     Then the play behaviour stands at the reality check

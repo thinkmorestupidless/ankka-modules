@@ -86,6 +86,21 @@ and the client generated from them are a later spec; the module client's interfa
 - Q: Does `players`' deposit start take a request id? → A: Yes: the behaviour mints one per
   confirmation and `players` passes it to the cashier as the cashier session's request id, so a
   repeated start returns the first session (FR-014, FR-018).
+- Q: Is a player who is betting idle? → A: No. A recent bet restarts the idle count, declared as a
+  change from the original, and `players`' game session read answers the time of the last bet
+  (FR-011, FR-057).
+- Q: Does a refused deposit start carry the figures? → A: Yes: `players` passes on the KYC status,
+  and the limit's period, value, used and remaining amounts, and the break's end (FR-018).
+- Q: How is the wallet's balance text read? → A: The wallet is amended to write a player's amounts
+  in major units by the currency's own decimals, and the SDK reads them by that rule (FR-037,
+  FR-058).
+- Q: How does a reality check's interval count? → A: The time the game has been shown since the
+  last check, paused while hidden and never started again by hiding (FR-033), declared as a change.
+- Q: Are the analysis's eight scenario corrections applied? → A: All: a refused chat step allows
+  only dismissing; an unanswered start may be tried again under its request id; the support
+  agent's being off is learnt from a turn; a game session ends as the player's leaving; the
+  brand's modules are its entitlement's; two more KYC codes; a failed payment carries its failure
+  code and a rejected submit the provider's words; scenarios are run where the task list says.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -120,6 +135,8 @@ sign-in lapse, refresh, sign out; read every response and the page's storage for
 - added `features/player-site/session.feature`: a page loaded by a signed-in player knows the player before it asks anything
 - added `features/player-site/session.feature`: a request for anything the player SDK does not name is refused by the site server
 - added `features/player-site/session.feature`: a site server refuses a request naming another brand
+- added `features/players/sessions.feature`: a game session read answers the time of its last bet
+- added `features/players/sessions.feature`: a game session with no bet answers no time of a last bet
 
 ---
 
@@ -147,6 +164,7 @@ provider stub.
 - added `features/player-site/deposit.feature`: a deposit opens at the amount with the site's preset amounts in the player's currency
 - added `features/player-site/deposit.feature`: confirming an amount has the brand start the deposit and offers the cashier session's terminals
 - added `features/player-site/deposit.feature`: a deposit the brand refuses stands at refused naming the reason and no cashier session is opened
+- added `features/player-site/deposit.feature`: a start that was not answered stands at refused naming the service and may be tried again under the same request id
 - added `features/player-site/deposit.feature`: a deposit the cashier refuses stands at refused with the cashier's code
 - added `features/player-site/deposit.feature`: going back from a refused deposit returns to the amount
 - added `features/player-site/deposit.feature`: a cashier session offering no terminal ends the deposit as failed
@@ -156,7 +174,9 @@ provider stub.
 - added `features/player-site/deposit.feature`: a crypto terminal asks for the coin and then shows where to pay
 - added `features/player-site/deposit.feature`: a payment awaiting the player at the payment provider gives the page the provider's address and waits
 - added `features/player-site/deposit.feature`: a captured payment ends the deposit as succeeded and the balance is read again
-- added `features/player-site/deposit.feature`: a payment that fails or expires ends the deposit as failed with the payment's reason
+- added `features/player-site/deposit.feature`: a payment that fails or expires ends the deposit as failed with the payment's failure code
+- added `features/player-site/deposit.feature`: a submit the payment provider rejects ends the deposit as failed with the provider's words
+- added `features/player-site/deposit.feature`: the cashier ticket is in no step and in nothing the page keeps
 - added `features/player-site/deposit.feature`: a payment with no outcome in twenty minutes ends the deposit as timed out
 - added `features/player-site/deposit.feature`: a payment read that fails while waiting is ignored
 - added `features/player-site/deposit.feature`: closing a waiting deposit abandons the cashier session
@@ -165,6 +185,8 @@ provider stub.
 - added `features/player-site/deposit.feature`: a visitor arriving at the site's deposit address is asked to sign in and the deposit opens once they have
 - added `features/players/deposit-start.feature`: a started deposit answers the cashier ticket and the terminals of the cashier session it opened
 - added `features/players/deposit-start.feature`: a deposit the deposit gate refuses opens no cashier session and answers no cashier ticket
+- added `features/players/deposit-start.feature`: a deposit over the deposit limit is refused naming the period, the limit, what was used and what remains
+- added `features/players/deposit-start.feature`: a deposit by a player on a break is refused naming the end of the break
 - added `features/players/deposit-start.feature`: a deposit started again under the same request id answers the first cashier session
 - added `features/players/deposit-start.feature`: a deposit started again under the same request id with another amount is refused naming the request id
 
@@ -189,7 +211,6 @@ money at the running brand.
 
 **Acceptance Scenarios**:
 
-- added `features/game-provider/catalogue.feature`: a visitor browses the catalogue and reads a game with no sign-in
 - added `features/player-site/play.feature`: a visitor who picks a game is asked to register
 - added `features/player-site/play.feature`: a signed-in player with no playable funds is taken to the deposit
 - added `features/player-site/play.feature`: playable funds are a real balance, a restricted balance or free rounds for the game
@@ -205,7 +226,9 @@ money at the running brand.
 - added `features/player-site/play.feature`: keeping on at a reality check records the acknowledgement and schedules the next
 - added `features/player-site/play.feature`: stopping at a reality check ends the game session
 - added `features/player-site/play.feature`: no reality check fires when none is set or it could not be read
-- added `features/player-site/play.feature`: a reality check that falls due while the game is hidden fires when the game is shown again
+- added `features/player-site/play.feature`: time the game is hidden does not count toward a reality check
+- added `features/player-site/play.feature`: hiding and showing a game does not start a reality check's interval again
+- added `features/game-provider/catalogue.feature`: a visitor browses the catalogue and reads a game with no sign-in
 
 ---
 
@@ -264,6 +287,7 @@ rules alone.
 - added `features/player-site/amounts-and-refusals.feature`: every refusal code a behaviour can meet has words in each language the reference site offers
 - added `features/player-site/amounts-and-refusals.feature`: the page's language is the visitor's choice, else the browser's, else the site's first
 - added `features/player-site/amounts-and-refusals.feature`: a text missing in a language is shown in the site's first language
+- added `features/wallet/reads.feature`: a player's balance is written in major units by the currency's own decimals
 
 ---
 
@@ -344,10 +368,11 @@ that streams replies, approval requests, each refusal, and a reply that stops.
 - added `features/player-site/chat.feature`: a turn sent while an approval request awaits sends nothing
 - added `features/player-site/chat.feature`: a page loaded while an approval request awaits learns of it at the next turn and stands at awaiting approval
 - added `features/player-site/chat.feature`: a turn the brand refuses stands at a step naming the reason
+- added `features/player-site/chat.feature`: a refused turn allows only dismissing, which returns the chat to ready
 - added `features/player-site/chat.feature`: a turn after a conversation ended starts a new conversation
 - added `features/player-site/chat.feature`: a turn refused by a guardrail gives the page the support agent's refusal words and the chat is ready again
 - added `features/player-site/chat.feature`: a reply that stops arriving before the turn is answered ends the turn as interrupted
-- added `features/player-site/chat.feature`: a brand whose support agent is off has its chat hidden
+- added `features/player-site/chat.feature`: a turn sent at a brand whose support agent is off stands at unavailable
 - added `features/player-site/chat.feature`: a site of a brand that does not run the support module offers no chat behaviour
 
 ---
@@ -372,7 +397,10 @@ that streams replies, approval requests, each refusal, and a reply that stops.
   re-check or kept; either way the behaviour reopens it under the new sign-in.
 - A launch whose game session cannot be ended because the page is closing: the end is sent so that
   it outlives the page.
-- A reality check that falls due while the game is hidden: it fires when the game is shown again.
+- A game hidden for longer than the reality check's interval: no check falls due while hidden; the
+  count goes on from where it stood when the game is shown again.
+- A start that was not answered and whose retry is answered with the first cashier session: the
+  deposit goes on with that session, and no second one exists.
 - A wallet balance with more decimals than the currency's exponent, or not a number: refused as a
   malformed amount; the page shows no balance, never a rounded one.
 - A decision sent twice by two tabs: the brand answers the second as already decided; that tab
@@ -394,10 +422,12 @@ that streams replies, approval requests, each refusal, and a reply that stops.
 - **FR-002**: On sign-in the site server MUST pass the email address, password and device
   fingerprint to `players`' sign-in route with the visitor's network address and user agent, and
   keep what is issued only in cookies that the page's scripts cannot read, are sent only over a
-  secure connection, and are never sent to another site. *Established by:* the original's
+  secure connection, and are sent to the site alone: on a request another site makes, only when it
+  is the visitor's own arrival at a page. The site server MUST refuse a request that changes
+  anything unless it comes from the site's own pages. *Established by:* the original's
   `api/auth/login/route.ts` and its `eo_session`, `eo_refresh` cookies.
 - **FR-003**: The sign-in MUST NOT appear in any response to the page, in page storage, in a log or
-  in a trace.
+  in anything else the site server writes; it is sent to the service being called and nowhere else.
 - **FR-004**: The site server MUST add the sign-in to each call it makes for the page, and MUST
   serve only the routes the module clients name, each with its method; any other request is
   refused without a service being asked.
@@ -422,8 +452,9 @@ that streams replies, approval requests, each refusal, and a reply that stops.
   they choose to stay, which refreshes the sign-in. Both times are the site's configuration, with
   these defaults. *Established by:* `ClientShell.tsx`.
 - **FR-011**: While a game is shown, every five minutes the play behaviour MUST read the game
-  session and, where its last bet was within six minutes, refresh the sign-in and count the player
-  as not idle. *Established by:* `GameManagerContext.tsx`.
+  session and, where its last bet was within six minutes, refresh the sign-in and start the idle
+  count again. *Established by:* `GameManagerContext.tsx` for the read and the refresh; the idle
+  count is this spec's (*Changes from the original*).
 
 **The deposit behaviour**
 
@@ -434,7 +465,8 @@ that streams replies, approval requests, each refusal, and a reply that stops.
   type of `DepositModal.tsx`.
 - **FR-013**: At the amount step the behaviour MUST offer the site's preset amounts for the
   player's currency (default 10, 25, 50, 100, 200 and 500 major units, kept within the site's
-  minimum and maximum where it states them) and accept any whole amount of minor units above zero.
+  minimum and maximum where it states them) and accept any whole amount of minor units above zero;
+  the site's minimum and maximum bound the presets only, and the brand's answer bounds the amount.
 - **FR-014**: Confirming an amount MUST call `players`' deposit start once with the amount in minor
   units and the player's currency, under a request id the behaviour mints for that confirmation; a
   start that was not answered MAY be sent again under the same request id, and only under it.
@@ -442,7 +474,9 @@ that streams replies, approval requests, each refusal, and a reply that stops.
   fields the brand answered: the deposit gate with the KYC status; a deposit limit with its period,
   its value and what remains; cooling off with the end of the break; a self-exclusion; a restricted
   player with the status; a refusal of the cashier with the cashier's code; a service that did not
-  answer with its name. The refused step allows going back to the amount and closing, and nothing else.
+  answer with its name. The refused step allows going back to the amount and closing; where the
+  start was not answered it also allows trying again, which sends the same amount under the same
+  request id; and nothing else.
 - **FR-016**: The behaviour MUST NOT check a limit or a gate itself in place of the brand, and MUST
   hold no route by which a cashier session is opened except `players`' deposit start.
 - **FR-017**: An answered start MUST put the behaviour at choosing a terminal with the terminals the
@@ -451,7 +485,9 @@ that streams replies, approval requests, each refusal, and a reply that stops.
   ticket and the terminals of the cashier session it opened, and MUST pass a request id the player
   sends to the cashier as the cashier session's request id, so that a repeat with the same amount
   returns the first session and a repeat with another is refused naming the request id (spec 006);
-  a start with no request id behaves as today (spec 008 FR-043, amended).
+  a start with no request id behaves as today. Its refusal MUST carry what the deposit gate and
+  responsible gambling answered: the KYC status; the limit's period, value, used and remaining
+  amounts; the end of the break (spec 008 FR-043, amended).
 - **FR-019**: Choosing a terminal MUST follow the scheme's needs: a crypto scheme asks for the coin;
   a scheme that needs the player's name, telephone, address, or mobile number and province reads
   the player profile and, where a needed field is missing or malformed, asks for it at the details
@@ -465,14 +501,17 @@ that streams replies, approval requests, each refusal, and a reply that stops.
   payment provider with that address; one awaiting a crypto transfer, at waiting on a crypto payment
   with the address, the amount, the coin and the expiry; one awaiting payment, at waiting.
 - **FR-022**: A captured payment MUST end the behaviour as succeeded and cause the balance to be
-  read; a failed or expired one, as failed with the payment's reason; twenty minutes with no
-  outcome, as failed as timed out. A read that fails is ignored until then.
+  read; a failed or expired one, as failed with the payment's failure code; twenty minutes with no
+  outcome, as failed as timed out. A read that fails is ignored until then. A submit the payment
+  provider rejected with words for the player ends as failed carrying those words, shown as sent:
+  with the support agent's (FR-054), the only text of a service a behaviour passes on.
 - **FR-023**: Closing the deposit at a waiting step MUST abandon the cashier session under its
   ticket, without waiting for the answer.
-- **FR-024**: The cashier ticket MUST be held by the site server and the page that opened the
-  deposit only, and MUST NOT be written to page storage that outlives the page.
+- **FR-024**: The cashier ticket MUST be held only by the page that opened the deposit, inside the
+  behaviour: in no step, in no page storage, and in no address; the site server passes it on and
+  keeps nothing of it, and serves the cashier's routes only to a signed-in player.
 - **FR-025**: The SDK MUST provide the deposit address rule: a visitor arriving at the site's
-  deposit address is asked to sign in and the deposit opens once they have; a signed-in player's
+  deposit address (any page with `deposit=true`, as the original's) is asked to sign in and the deposit opens once they have; a signed-in player's
   deposit opens at once. *Established by:* `DepositParamWatcher.tsx`, which the game provider's
   own deposit button depends on.
 
@@ -508,10 +547,12 @@ that streams replies, approval requests, each refusal, and a reply that stops.
   when the game is closed, when the page is left, and on sign-out, sent so that it outlives the
   page.
 - **FR-033**: Where the player's responsible-gambling status states a reality check interval, the
-  behaviour MUST stand at the reality check once the game has been shown for that interval, with
-  the time played; keeping on MUST record the acknowledgement against the game session and schedule
+  behaviour MUST stand at the reality check once the game has been shown for that interval since
+  the last check, counting only time shown and never starting again because the game was hidden,
+  with the time played; keeping on MUST record the acknowledgement against the game session and schedule
   the next; stopping MUST end the game session. No interval, or a status that could not be read,
-  fires none. *Established by:* `GameManagerContext.tsx`.
+  fires none. *Established by:* `GameManagerContext.tsx`, except the count (*Changes from the
+  original*).
 
 **Module clients**
 
@@ -537,8 +578,13 @@ that streams replies, approval requests, each refusal, and a reply that stops.
 
 - **FR-037**: Every amount the SDK gives a page MUST be a whole number of minor units with its
   currency. An amount a service writes in major units as text MUST be read exactly by the
-  currency's exponent from the contract's currency table, and one that does not fit MUST be refused
-  as malformed; no amount passes through a floating-point number.
+  currency's exponent, from a currency table the contract publishes, and one that does not fit MUST
+  be refused as malformed; no amount passes through a floating-point number. The one exception is a
+  crypto payment's amount in its coin, which is the cashier's text and is shown as sent.
+- **FR-058**: The wallet's player routes MUST write an amount in major units by the currency's own
+  exponent (spec 002, amended): for a currency of two decimals, as today.
+- **FR-057**: `players`' game session read MUST answer the time of the session's last bet, and
+  nothing where there was none (spec 008, amended).
 - **FR-038**: The SDK MUST format an amount for a language from its minor units, its currency's
   exponent and that language's rules, and offer no other way to show one.
 - **FR-039**: Every refusal MUST reach a behaviour as one form: the status, a code, and the named
@@ -556,9 +602,9 @@ that streams replies, approval requests, each refusal, and a reply that stops.
 
 **The adapter, the reference site and the brand**
 
-- **FR-043**: The brand `guyanabet` MUST exist as a values file naming the modules core, casino,
-  engagement, support and player-site, with real money off, French first and English second, and
-  the euro as its players' currency.
+- **FR-043**: The brand `guyanabet` MUST exist as a values file with real money off, French first
+  and English second, and the euro as its players' currency, valid for an entitlement to core,
+  casino, engagement, support and player-site (locally, the modules the modules tool is told).
 - **FR-044**: An adapter MUST bind each behaviour to React: a component is told the step, the
   step's fields and the actions it allows, and is told again on each change. The adapter MUST add
   no rule of its own.
@@ -568,7 +614,8 @@ that streams replies, approval requests, each refusal, and a reply that stops.
   site address; with built files named by their content and the first page never cached.
 - **FR-046**: The reference site MUST hold no logic of a deposit, a launch, a sign-in or an amount
   outside the SDK: its own code is appearance, words and the choice of which behaviour to show.
-- **FR-047**: A brand's site MUST offer only the behaviours of the modules the brand runs.
+- **FR-047**: A brand's site MUST offer only the behaviours of the modules the brand runs, read
+  from the brand's own list of its modules and never from whether a service answered.
 - **FR-048**: The SDK and the reference site are TypeScript (constitution VI): they speak to a
   browser and to services over HTTP, hold no state that outlives an instance, and move no money
   themselves.
@@ -577,7 +624,8 @@ that streams replies, approval requests, each refusal, and a reply that stops.
 
 - **FR-049**: The chat behaviour's steps MUST be: ready; answering; awaiting approval; deciding;
   refused; ended; unavailable. A turn MUST be sent only from ready or ended, and a decision only
-  from awaiting approval; any other action sends nothing and is answered as not allowed.
+  from awaiting approval; refused allows only dismissing, which returns to ready; unavailable
+  allows nothing; any other action sends nothing and is answered as not allowed.
 - **FR-050**: The behaviour MUST mint a conversation's session id at its first turn, send every
   later turn under it, keep it for the page's tab so that a page loaded again continues the
   conversation, and mint a new one for the first turn after a conversation ended. *Established by:*
@@ -591,7 +639,7 @@ that streams replies, approval requests, each refusal, and a reply that stops.
   the page. A turn refused because a request awaits MUST put the behaviour at awaiting approval
   with the request the refusal names; a decision answered as already decided is read as decided.
 - **FR-053**: A refusal before the reply MUST put the behaviour: at unavailable, with the support
-  agent's unavailable words, when the support agent is off; at refused with the time to wait when
+  agent's unavailable words, when the support agent is off, which the behaviour learns from a turn's answer; at refused with the time to wait when
   the player sent too many turns; at ended with the closing words when the conversation has ended;
   at refused when the session is another player's, minting a new session id for the next turn.
 - **FR-054**: The support agent's words — a reply, an approval request's effect, a guardrail's
@@ -608,6 +656,18 @@ that streams replies, approval requests, each refusal, and a reply that stops.
   was never asked. Here the page asks `players`, which asks the deposit gate, the wallet's sums and
   responsible gambling and then opens the session with the player's own id and profile (spec 008
   FR-043). The page's own limit check is dropped: the brand's answer is the check.
+- **The sign-in's cookies arrive with the visitor from another site.** The original's were sent on
+  no request from another site, so a player returning from the payment provider, or sent by the
+  game provider's deposit button, arrived signed out. Here they are sent on such an arrival and on
+  nothing else another site makes, and the site server refuses any request that changes something
+  unless it comes from the site's own pages. The cookies' names change.
+- **A betting player is not idle.** The original refreshed the sign-in of a player placing bets
+  and still signed them out after thirty minutes without a key press, a click or a scroll outside
+  the game.
+- **A reality check counts time shown.** The original started the interval again each time the
+  game was shown, so hiding the game put the check off.
+- **The wallet writes by the currency's decimals.** The original wrote hundredths for every
+  currency.
 - **Amounts are minor units in the page.** The original's page held major units as numbers and
   converted at the cashier with a multiplication by 100.
 - **One refusal form.** The original parsed each service's errors where it met them, some by
@@ -629,13 +689,16 @@ that streams replies, approval requests, each refusal, and a reply that stops.
 ### Amendments to other specs
 
 - **Spec 008 (players) FR-043**: the deposit start's answer gains the cashier ticket and the
-  terminals of the session it opened, and the start takes a request id it passes to the cashier.
+  terminals of the session it opened, the start takes a request id it passes to the cashier; its
+  refusal carries the figures the deposit gate and responsible gambling answered.
+- **Spec 008 (players)**: the game session read answers the time of the last bet (FR-057).
+- **Spec 002 (wallet)**: the player routes write major units by the currency's exponent (FR-058).
 - **Spec 003 (game-provider) FR-027**: the catalogue's reads (games, one game, developers, popular
   games) are public routes, as the original's were: its site read them before sign-in. Spec 003's
   routes contract left this to be settled against the original, and says the reads become public
   if the lobby reads them signed out. The launch and the game session stay player routes.
-- **Spec 021 (core and modules)**: a module `player-site`; a configuration key for the site's
-  languages.
+- **Spec 021 (core and modules)**: a module `player-site`; configuration keys for the site's
+  languages and its players' currency.
 - **Spec 001 (brands and projects)**: a second brand's values file, `guyanabet`.
 - **Constitution, Scope**: the player site was out of scope, to change only base URLs. It is in
   scope as the player SDK and a reference site; a site built on the SDK holds no rule of a service
@@ -660,15 +723,17 @@ that streams replies, approval requests, each refusal, and a reply that stops.
 ### Measurable Outcomes
 
 - **SC-001**: A site builder with the SDK and a running brand has a page on which a player can sign
-  in, deposit and launch a game by writing appearance only: the reference site's own code contains
-  no call to a service and no rule of a deposit or a launch, checked by a test of its imports.
+  in, deposit and launch a game by writing appearance only: the reference site's own code, outside
+  its start of the site server, contains no call to a service and no rule of a deposit or a launch,
+  checked by a test of what it imports and calls.
 - **SC-002**: The deposit, play and chat behaviours each run from first step to last with no interface,
   and every step and refusal in this spec is reached in tests that use no browser.
 - **SC-003**: No test, at any step of any behaviour, can open a cashier session or obtain a game's
   address after the brand has refused, or send a turn while an approval request awaits: the count of
   such paths is zero.
 - **SC-004**: After a sign-in, a search of every response to the page, the page's storage, the
-  site server's log and its traces finds the sign-in zero times.
+  site server's log and every request it sends other than to the service called finds the sign-in
+  zero times.
 - **SC-005**: Every amount shown at the reference site equals the service's amount exactly, for
   every currency in the contract's table, in a test of each.
 - **SC-006**: Every refusal code the behaviours can meet has words in French and in English at the

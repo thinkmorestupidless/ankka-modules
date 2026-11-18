@@ -140,3 +140,13 @@ Feature: A player signs in, plays in game sessions, and signs out
     Given a brand with the default configuration and a player signed in on one device
     When the player signs in on a second device
     Then both player sessions are open
+
+  Scenario: a game session read answers the time of its last bet
+    Given a game session in which a round was settled
+    When the player reads the game session
+    Then the answer carries the time of the session's last bet
+
+  Scenario: a game session with no bet answers no time of a last bet
+    Given a game session opened at launch with no round
+    When the player reads the game session
+    Then the answer carries no time of a last bet

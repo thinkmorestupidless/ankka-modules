@@ -16,7 +16,19 @@ Feature: A player starts a deposit at the brand
   Scenario: a deposit the deposit gate refuses opens no cashier session and answers no cashier ticket
     Given the deposit gate refuses the player
     When the player starts a deposit of "5000" minor units of "EUR"
-    Then the player is refused with the deposit gate's code and words
+    Then the player is refused with the deposit gate's code and words and their KYC status
+    And no cashier session is opened
+
+  Scenario: a deposit over the deposit limit is refused naming the period, the limit, what was used and what remains
+    Given the player has a deposit limit that "5000" minor units would pass
+    When the player starts a deposit of "5000" minor units of "EUR"
+    Then the player is refused as "over_limit" naming the period, the limit, what was used and what remains
+    And no cashier session is opened
+
+  Scenario: a deposit by a player on a break is refused naming the end of the break
+    Given the player is cooling off
+    When the player starts a deposit of "5000" minor units of "EUR"
+    Then the player is refused as "cooling_off" naming the end of the break
     And no cashier session is opened
 
   Scenario: a deposit started again under the same request id answers the first cashier session

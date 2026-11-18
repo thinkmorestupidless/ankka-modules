@@ -29,12 +29,20 @@ Feature: A player deposits through the deposit behaviour
     Examples:
       | code                 | fields                                                 |
       | DEPOSIT_BLOCKED_KYC  | the KYC status                                         |
+      | DEPOSIT_BLOCKED_KYC_THRESHOLD | the KYC status                                |
+      | DEPOSIT_BLOCKED_KYC_CURRENCY  | the KYC status                                |
       | DEPOSIT_BLOCKED_SOF  | no fields                                              |
       | over_limit           | the period of the deposit limit, its value and what remains |
       | cooling_off          | the end of the break                                   |
       | excluded             | no fields                                              |
       | account_restricted   | the player status                                      |
-      | service_unavailable  | the service that did not answer                        |
+
+  Scenario: a start that was not answered stands at refused naming the service and may be tried again under the same request id
+    Given the brand does not answer the start of the deposit
+    When the player confirms "5000" minor units
+    Then the deposit behaviour stands at refused with the code "service_unavailable" and the service that did not answer
+    When the player tries again
+    Then the brand is asked to start a deposit of "5000" minor units of "EUR" under the same request id
 
   Scenario: a deposit the cashier refuses stands at refused with the cashier's code
     Given the cashier refuses the cashier session as "TOO_MANY_REQUESTS"
@@ -97,15 +105,25 @@ Feature: A player deposits through the deposit behaviour
     Then the deposit behaviour stands at succeeded
     And the player's balance is read again
 
-  Scenario Outline: a payment that fails or expires ends the deposit as failed with the payment's reason
+  Scenario Outline: a payment that fails or expires ends the deposit as failed with the payment's failure code
     Given the deposit behaviour stands at waiting at the payment provider
     When the payment is read as <outcome>
-    Then the deposit behaviour stands at failed with the payment's reason
+    Then the deposit behaviour stands at failed with the payment's failure code
 
     Examples:
       | outcome |
       | failed  |
       | expired |
+
+  Scenario: a submit the payment provider rejects ends the deposit as failed with the provider's words
+    Given the deposit behaviour stands at choosing a terminal
+    When the player chooses a terminal and the payment provider rejects the submit with words for the player
+    Then the deposit behaviour stands at failed with the code "PAYMENT_REJECTED" and the provider's words
+
+  Scenario: the cashier ticket is in no step and in nothing the page keeps
+    Given the deposit behaviour stands at choosing a terminal
+    When the page reads the step and everything the page keeps
+    Then the cashier ticket is in neither
 
   Scenario: a payment with no outcome in twenty minutes ends the deposit as timed out
     Given the deposit behaviour stands at waiting at the payment provider

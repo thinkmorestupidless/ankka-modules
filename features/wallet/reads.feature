@@ -31,3 +31,15 @@ Feature: Reads of a wallet: balance, restricted funds status, transactions and s
     When a sum by type over a date range is asked
     Then the total and the count are returned
     And lifetime totals report deposited, wagered and won
+
+  Scenario Outline: a player's balance is written in major units by the currency's own decimals
+    Given a player whose real balance is "<minor>" minor units of "<currency>"
+    When the player reads their balance
+    Then the real balance is written "<written>"
+
+    Examples:
+      | minor  | currency | written |
+      | 123450 | EUR      | 1234.50 |
+      | 5      | EUR      | 0.05    |
+      | 100    | JPY      | 100     |
+      | 1500   | KWD      | 1.500   |

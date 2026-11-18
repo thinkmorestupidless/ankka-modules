@@ -69,6 +69,13 @@ Feature: A player chats with the support agent through the chat behaviour
       | conversation_ended | ended       | the support agent's closing words     |
       | session_not_yours  | refused     | no fields                             |
 
+  Scenario: a refused turn allows only dismissing, which returns the chat to ready
+    Given the chat behaviour stands at refused
+    When the page asks the chat behaviour to send a turn
+    Then nothing is sent to the brand
+    When the player dismisses the refusal
+    Then the chat behaviour stands at ready
+
   Scenario: a turn after a conversation ended starts a new conversation
     Given the chat behaviour stands at ended
     When the player sends a turn
@@ -86,10 +93,11 @@ Feature: A player chats with the support agent through the chat behaviour
     Then the chat behaviour stands at ready with the turn marked interrupted
     And the turn is not sent again by itself
 
-  Scenario: a brand whose support agent is off has its chat hidden
+  Scenario: a turn sent at a brand whose support agent is off stands at unavailable
     Given the support agent of brand "guyanabet" is off
-    When the player opens the chat
-    Then the chat behaviour stands at unavailable
+    When the player sends a turn
+    Then the chat behaviour stands at unavailable with the support agent's unavailable words
+    And no action is allowed
 
   Scenario: a site of a brand that does not run the support module offers no chat behaviour
     Given a brand "solo" running the module "core" and not the module "support"

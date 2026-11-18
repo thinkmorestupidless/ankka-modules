@@ -27,7 +27,7 @@ here, ankka 0.16.3's web hosting reference, and spec 030's research on its branc
   runs calls through the module clients and feeds their answers back as events. Time is a `Clock`
   the machine is given (`now`, `after`, `every`), so every timer in the spec is tested without
   waiting.
-- **Why**: the steps are few (12, 9, 7, 5, 3), the rule "no action goes past a refusal" is then a
+- **Why**: the steps are few (9, 12, 9, 3, 7), the rule "no action goes past a refusal" is then a
   property of one function a test can enumerate (SC-003), and there is nothing to learn.
 - **Not**: XState (a dependency and a vocabulary for what a `switch` holds; its visualiser is not
   worth the weight here); the original's shape, state in components.
@@ -35,10 +35,10 @@ here, ankka 0.16.3's web hosting reference, and spec 030's research on its branc
 ## R3. The sign-in is in cookies, and the site server keeps no state
 
 - **Decision**: as the original. `__Host-eo_session` holds what `players` issued for calls, for its
-  life; `__Secure-eo_refresh`, path `/api/session/refresh`, 30 days, holds what refreshes it;
+  life; `__Secure-eo_refresh`, path `/api/session` (so that sign-out can refresh first), 30 days, holds what refreshes it;
   `__Host-eo_player` holds `{playerId, currency, country}` for FR-007, readable by nothing but the
   server. All `HttpOnly`, `Secure`. The server has no store and any instance answers any request.
-- **Changed from the original**: `SameSite=Lax`, not `Strict`. A player returning from the payment
+- **Changed from the original**, and declared in the spec: `SameSite=Lax`, not `Strict`. A player returning from the payment
   provider in the same tab, and the game provider's own deposit button (FR-025), arrive from
   another site, and under `Strict` arrive signed out. In exchange the server refuses any request
   that is not a `GET` whose `Origin` is not the site's own, and no `GET` changes anything.
@@ -66,7 +66,7 @@ here, ankka 0.16.3's web hosting reference, and spec 030's research on its branc
 
 - **Decision**: per module, `routes.ts` is a table `{id, service, method, path, audience, stream?}`
   and `client.ts` is an interface with one function per row and one implementation,
-  `overTransport(transport)`. The page's transport posts to `/api/c/…`; the server's own transport
+  `overTransport(transport)`. The page's transport sends the row's own method to `/api/c/<module>/<id>`; the server's own transport
   (sign-in, refresh, sign-out) calls the calling address. The server's allow-list is the same
   tables (FR-004). The later generated client produces the same two things from a service's
   OpenAPI document, which is why the seam is here (FR-034).
@@ -77,12 +77,18 @@ here, ankka 0.16.3's web hosting reference, and spec 030's research on its branc
 ## R6. Amounts
 
 - **Decision**: `Amount = {minor: bigint, currency: string}`. `readMajor("1234.50", "EUR")` splits
-  the text at the point and checks it against the exponent from `currencies.v1.json`, published by
-  the contract (`just schemas`) and copied into the package at build; it never calls `Number`.
+  the text at the point and checks it against the exponent from `currencies.v1.json`; it never
+  calls `Number`. The table does not exist today (`Amounts.exponent` asks the JDK and `just
+  schemas` writes topic schemas only): the contract gains a task that writes it from
+  `java.util.Currency`, copied into the package, with a CI check that the copy is current.
+- **The wallet** writes two decimals for every currency today (`Wire.major`), which is not major
+  units for a currency of none or three. Decided 2026-11-18: the wallet is amended to write by the
+  exponent (`Amounts.render`), not the SDK taught the fault. Two-decimal currencies are unchanged.
   `format(amount, language)` writes the minor units as decimal text by the exponent and gives
   that text to `Intl.NumberFormat` with the currency, which formats a decimal string exactly.
 - **Where major units arrive**: the wallet's player balance (`realBalance`, `bonusBalance`,
-  `available`), and responsible gambling's `usedAmounts`. Everything else is already minor.
+  `available`). Everything else this slice reads is already minor, except a crypto payment's
+  amount in its coin, which has no entry in any currency table and stays the cashier's text.
 - **Why `bigint`**: an amount in minor units of a three-decimal currency can pass 2^53 before a
   balance is implausible; and it stops arithmetic with a stray `number`.
 
@@ -142,17 +148,21 @@ here, ankka 0.16.3's web hosting reference, and spec 030's research on its branc
   the deposit and the chat as overlays. Words in `words/fr.ts`, `words/en.ts`.
 - **Appearance**: eitheror's own, plain; built with the `frontend-design` guidance at task time.
   It is a reference, not a brand.
-- **SC-001's test**: an import rule (`eslint no-restricted-imports` and a vitest that walks the
-  built module graph) forbids `fetch`, and any import of `@eitheror/player-sdk/*/client`, under
-  `services/player-site/src/pages`.
+- **SC-001's test**: an import rule (`eslint no-restricted-imports`, `no-restricted-globals`, and
+  a vitest that walks the built module graph) forbids `fetch`, `XMLHttpRequest`, `EventSource`,
+  `navigator.sendBeacon`, and any import of `@eitheror/player-sdk/*/client`, everywhere under
+  `services/player-site/src` except `server/`.
+- **The deposit address** is any page with `deposit=true`, as the original's.
 
 ## R13. The module and the brand
 
 - **Decision**: `modules/player-site/module.json`, kind `product`, depending on `core`; one service
   `player-site`, `hosting: web`, `expose: true`; env from keys `casino-brand`, `ingest-url`,
   `player-site-base`, and new keys `player-site-languages` (`fr,en`) and `player-site-currency`
-  (`EUR`). Which behaviours the site offers is read at start from which of `game-provider`,
-  `engagement` and `support-agent` answer at the calling address (FR-047), re-read every minute.
+  (`EUR`). Which behaviours the site offers is read from the existing key `casino-modules`
+  (`CASINO_MODULES`), the brand's own list, never by asking whether a service answers: an outage
+  must read as unavailable, not as a module the brand does not run. Through a vendor the brand
+  writes that key by hand for now (`contract/keys.md`).
 - `brands/guyanabet/values.json` after `goldvibe`'s: `realMoney: false`, providers
   `eitheror:st8`, `player-site-base` the site's derived hostname.
 - **To verify (V1)**: that the modules tool on `main` renders and locally applies a module whose
@@ -163,7 +173,7 @@ here, ankka 0.16.3's web hosting reference, and spec 030's research on its branc
 
 | Level | What | With |
 |---|---|---|
-| Unit | transitions, amounts, refusals, language, each client function's parsing | vitest, the original's tests ported (`DepositContext.test.ts`, `useGuardedPlay.test.ts`, `DepositModal.test.ts`, `rgApi.test.ts`, `unreadCount.test.ts`) |
+| Unit | transitions, amounts, refusals, language, each client function's parsing | vitest, the original's tests ported (`DepositContext.test.ts`, `useGuardedPlay.test.ts`, `DepositModal.test.ts`, `unreadCount.test.ts`; `rgApi.test.ts`'s cases for the status this slice reads) |
 | Behaviour | every scenario of `features/player-site/` except `reference-site.feature`, no browser | `vitest-cucumber` steps over the behaviours, the `Clock` double and `./testing`'s service doubles |
 | Site server | cookies, the allow-list, refresh, origin check, stream pass-through | vitest against the server over doubles |
 | Site | `reference-site.feature`, and SC-008's second appearance | `playwright-bdd` over the built site and doubles |
@@ -183,9 +193,30 @@ TypeScript is FR-048's.
 |---|---|---|
 | V1 | the modules tool renders and locally applies a `hosting: web` service | the change 030 made is made here |
 | V2 | events from the process reach the browser unbuffered through the proxy and gateway | R9's fallbacks |
-| V3 | `players`' sign-in accepts the network address and user agent the site server forwards (`X-Forwarded-For`, `User-Agent`) from a call at the calling address, where the proxy removes `X-Forwarded-For` from a service's request | the server sends them in the headers `players` reads for a trusted caller, or `players` is amended to read `X-Client-Address` from the service `player-site` only |
+| V3 | `players`' sign-in, registration and country lookup see the visitor's network address and user agent the site server forwards (`X-Forwarded-For`, `User-Agent`) from a call at the calling address, where the proxy removes `X-Forwarded-For` from a service's request | the server sends them in the headers `players` reads for a trusted caller, or `players` is amended to read `X-Client-Address` from the service `player-site` only |
 | V4 | `rewards`' free rounds answer names the games each grant is for | the funds rule counts any free rounds as playable for any game, and the launch decides |
 | V5 | the catalogue's game answer carries its restricted and prohibited territories to a player | FR-031 reads what it carries; if neither, the rule is dropped and the launch decides |
+| V6 | where `players` derives a game session's totals from settled rounds, the round's time is there to set `lastBetAt` | the field is set by the consumer of the rounds fact that the totals' source is fed by, added in the same task |
+
+## Analysis, 2026-11-18
+
+An independent read of the artifacts against the services' code and the original found 30
+findings (3 critical, 7 high, 15 medium, 5 low). All were applied. Those that were decisions:
+
+| Finding | Decided |
+|---|---|
+| A recent bet "not idle" was invented, and `lastBetAt` is always empty | kept, declared as a change; `players` answers the last bet (FR-057) |
+| `players` drops the figures of a refused start | passed on (FR-018) |
+| The wallet writes hundredths for every currency | the wallet is amended (FR-058) |
+| The reality check's count contradicted itself | time shown, cumulative, declared as a change (FR-033) |
+| Eight scenario corrections | all applied |
+
+Applied without a question, being corrections of fact: the cookie's `Lax` and the origin check
+declared; the constitution amended first; the payment id is the submit's; a cashier ticket only in
+a header and only for a signed-in player; which `401` refreshes; the refresh cookie's path; the
+modules from the brand's own key; the session's missing transitions; the coin list's source; the
+visitor's address forwarded for the country; every refusal code listed with one name per field;
+the brand's onboarding on the installation; the task order.
 
 ## Known limits
 

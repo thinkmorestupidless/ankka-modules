@@ -9,8 +9,10 @@ Nothing here is stored. These are the shapes the package gives a page.
 
 ## Refusal
 
-`{status: number, code: RefusalCode, fields: Record<string, unknown>, service?: string, words?: string}`.
-`code` is one of `codes.ts` or `unknown`. `words` only from the support agent (FR-054).
+`{status: number, code: RefusalCode, fields, service?: string, words?: string}`. `code` is one of
+`codes.ts` or `unknown`; `fields` is typed per code there, under one name per thing whatever the
+service called it (`until` for a break's end from `until`, `endsAt` and `coolingOffUntil`).
+`words` only from the support agent and a payment provider's rejection (FR-022, FR-054).
 
 ## Step
 
@@ -36,20 +38,22 @@ Nothing here is stored. These are the shapes the package gives a page.
 |---|---|---|
 | `amount` | `presets: Amount[]`, `currency` | `confirm(minor)`, `close` |
 | `starting` | `amount`, `requestId` | |
-| `refused` | `refusal`, `amount` | `back`, `close` |
+| `refused` | `refusal`, `amount` | `back`, `close`; and `retry` when the start was not answered |
 | `choosing_terminal` | `terminals: Terminal[]` | `choose(terminalId)`, `back`, `close` |
-| `choosing_coin` | `terminal`, `coins` | `chooseCoin(coin)`, `back`, `close` |
+| `choosing_coin` | `terminal`, `coins` (the list in `schemes.ts`, the original's) | `chooseCoin(coin)`, `back`, `close` |
 | `details` | `terminal`, `needs: FieldName[]`, `known` | `giveDetails(fields)`, `back`, `close` |
 | `submitting` | `terminal` | |
 | `waiting_at_provider` | `paymentId`, `address` | `close` |
-| `waiting_on_crypto` | `paymentId`, `address`, `amount`, `coin`, `expiresAt` | `close` |
+| `waiting_on_crypto` | `paymentId`, `address`, `cryptoAmount` (text, as the cashier sent it), `coin`, `expiresAt` | `close` |
 | `waiting` | `paymentId` | `close` |
 | `succeeded` | `amount` | `close` |
-| `failed` | `code`, `reason?` | `back`, `close` |
+| `failed` | `code`, `fields`, `words?` | `back`, `close` |
 
-Held by the machine and never in a step's fields: the cashier ticket.
+Held by the behaviour and never in a step's fields, in page storage or in an address: the cashier
+ticket.
 
-`Terminal`: `{id, name, scheme, gateway?, currencies?}`, from the cashier's `available_terminals`.
+`Terminal`: `{id, name, scheme, gateway?, currencies?}`, from the cashier's `available_terminals`
+(`terminalEntityId`, `supportedCurrencies` on the wire).
 
 ## Play
 
@@ -77,9 +81,9 @@ Held by the machine and never in a step's fields: the cashier ticket.
 |---|---|---|
 | `ready` | `turns: Turn[]`, `sessionId?` | `send(text)` |
 | `answering` | `turns` (the last growing) | |
-| `awaiting_approval` | `turns`, `request: {action, effect}` | `approve`, `cancel` |
+| `awaiting_approval` | `turns`, `request: {action, effect?}` (no effect when learnt from a refusal after a page load) | `approve`, `cancel` |
 | `deciding` | `turns`, `decision` | |
-| `refused` | `refusal`, `turns` | `send`, `dismiss` |
+| `refused` | `refusal`, `turns` | `dismiss` |
 | `ended` | `turns`, `words` | `send` |
 | `unavailable` | `words` | |
 
@@ -95,14 +99,18 @@ Held by the machine and never in a step's fields: the cashier ticket.
 | Field | From | |
 |---|---|---|
 | `brand` | `CASINO_BRAND` | |
+| `modules` | `CASINO_MODULES` | the brand's own list; which behaviours are offered |
 | `languages` | `PLAYER_SITE_LANGUAGES` | first is the site's first |
 | `currency` | `PLAYER_SITE_CURRENCY` | a new registration's |
 | `siteBase` | `PLAYER_SITE_BASE` | the origin the server accepts |
-| `cashierUrl` | `INGEST_URL` | |
-| `presets`, `minimum?`, `maximum?` | the site's code | major units, per currency |
+| `cashierUrl` | `INGEST_URL` | from the brand's keys, never written by a site builder |
+| `presets`, `minimum?`, `maximum?` | the site's code | major units as text or whole numbers, per currency; the bounds trim the presets only |
 | `idleMinutes`, `idleWarningSeconds` | the site's code | 30, 30 |
 
-## Changed in `players`
+## Changed in services
 
-The deposit start's request gains `requestId?: string`; its answer gains `cashierTicket: string`,
-`terminals: Terminal[]`, `requestId: string`. Nothing stored changes.
+- `players`' deposit start: the request gains `requestId?`; the answer gains `cashierTicket`,
+  `terminals`, `requestId`; a refusal gains the figures. Nothing stored.
+- `players`' game session: `lastBetAt: Instant?`, set from each settled round of the session
+  (stored on the game session's view row).
+- The wallet's player routes: major-unit text by the currency's exponent. Nothing stored.
