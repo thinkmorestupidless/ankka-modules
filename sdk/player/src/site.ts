@@ -19,6 +19,14 @@ export interface PlayerSiteOptions {
   readonly presets?: Readonly<Record<string, readonly (string | number)[]>>;
   /** The site's bounds per currency, which trim the presets only. */
   readonly bounds?: Readonly<Record<string, { readonly minimum?: string | number; readonly maximum?: string | number }>>;
+  /**
+   * Module clients in place of the hand-written ones, each made from the transport and the signed-in
+   * player's id: another implementation of the same interface changes no behaviour (SC-009).
+   */
+  readonly clients?: {
+    readonly core?: (transport: Transport, player: () => string | null) => CoreClient;
+    readonly casino?: (transport: Transport, player: () => string | null) => CasinoClient;
+  };
 }
 
 /**
@@ -69,8 +77,9 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
   const changed = () => {
     for (const l of [...listeners]) l();
   };
-  const core = coreClient(transport, () => player?.playerId ?? null);
-  const casino = casinoClient(transport, () => player?.playerId ?? null);
+  const playerId = () => player?.playerId ?? null;
+  const core = (options.clients?.core ?? coreClient)(transport, playerId);
+  const casino = (options.clients?.casino ?? casinoClient)(transport, playerId);
   const funds = fundsStore(core, clock);
   // Free rounds count toward playable funds where the brand runs casino (FR-027).
   const readFreeRounds = () => {
