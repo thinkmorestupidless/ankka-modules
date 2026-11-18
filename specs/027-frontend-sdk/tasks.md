@@ -50,7 +50,7 @@ original, read only).
 **Independent test**: `features/player-site/session.feature` bound over the doubles; the server's
 suites of Phase 2.
 
-- [ ] T017 [US1] `K/core/routes.ts` and `K/core/client.ts`, the `players` session rows of `contracts/module-clients.md` the page may call (`register`, `verifyEmail`, `resendVerification`, `requestPasswordReset`), each answer parsed by its Zod shape; suite `KT/unit/coreClient.session.test.ts`
+- [X] T017 [US1] `K/core/routes.ts` and `K/core/client.ts`, the `players` session rows of `contracts/module-clients.md` the page may call (`register`, `verifyEmail`, `resendVerification`, `requestPasswordReset`), each answer parsed by its Zod shape; suite `KT/unit/coreClient.session.test.ts`
 - [ ] T018 [US1] `K/core/session.ts`, added to `playerSite`: the session behaviour (`data-model.md`: Session; every transition of `contracts/behaviours.md`, among them verification, resending, the password reset request and `back`), hydrated from `GET /api/session`, the idle warning and sign-out on the clock from key presses, clicks and scrolls given through an `activity()` input, `notIdle()` for play's report of a recent bet; suite `KT/unit/session.test.ts`
 - [ ] T019 [US1] Bind `features/player-site/session.feature` in `KT/features/session.steps.ts`, the site-server scenarios (the page never given the sign-in; a request for what the SDK does not name; another brand) against the server over the HTTP doubles; the recent-bet scenario is named in `elsewhere.ts` and bound in T030
 
