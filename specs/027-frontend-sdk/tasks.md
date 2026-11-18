@@ -87,7 +87,7 @@ suites of Phase 2.
 unchanged. **Independent test**: `features/player-site/composing.feature`.
 
 - [X] T032 [US4] `K/index.ts`: `games`, `inbox`, `chat` offered only for the modules `/api/site` names (FR-047), `undefined` otherwise; the subpath exports resolve; suite `KT/unit/playerSite.test.ts` (written here against whichever behaviours exist; its inbox and chat cases are added in T036 and T039)
-- [ ] T033 [P] [US4] `K/react/useBehaviour.ts` (`useSyncExternalStore` over `subscribe` and `step`) and `K/react/PlayerSite.tsx` (context only); suite `KT/unit/react.test.tsx` with Testing Library: a component is rendered again on each step and given `allowed`; the adapter imports nothing but the kernel; `useCurrentDeposit(site)` over `site.subscribe`; a case rendering again when a second game is opened
+- [X] T033 [P] [US4] `K/react/useBehaviour.ts` (`useSyncExternalStore` over `subscribe` and `step`) and `K/react/PlayerSite.tsx` (context only); suite `KT/unit/react.test.tsx` with Testing Library: a component is rendered again on each step and given `allowed`; the adapter imports nothing but the kernel; `useCurrentDeposit(site)` over `site.subscribe`; a case rendering again when a second game is opened
 - [ ] T034 [US4] Bind `features/player-site/composing.feature` in `KT/features/composing.steps.ts`: the deposit with no component; a second `core` client written in the test over the same interface (SC-009); a transport that records every call, asserting each came through a module client; a site of a brand without `casino`; the two scenarios comparing sites are named in `elsewhere.ts` and bound in T047
 
 ## Phase 7: User Story 5 — amounts, refusals and language (P2)
