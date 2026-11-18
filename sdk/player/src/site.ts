@@ -1,5 +1,6 @@
 import { realClock, type Clock } from "./clock.ts";
 import { coreClient, type CoreClient } from "./core/client.ts";
+import { depositBehaviour, type DepositBehaviour } from "./core/deposit.ts";
 import { fundsStore, type FundsStore } from "./core/funds.ts";
 import { sessionBehaviour, type SessionBehaviour } from "./core/session.ts";
 import type { SignedInPlayer, SiteFacts, Transport } from "./transport.ts";
@@ -12,6 +13,10 @@ export interface PlayerSiteOptions {
   /** The site's idle times (data-model.md, *Site configuration*): 30 minutes, warned 30 seconds before. */
   readonly idleMinutes?: number;
   readonly idleWarningSeconds?: number;
+  /** The site's preset amounts per currency, in major units (data-model.md, *Site configuration*). */
+  readonly presets?: Readonly<Record<string, readonly (string | number)[]>>;
+  /** The site's bounds per currency, which trim the presets only. */
+  readonly bounds?: Readonly<Record<string, { readonly minimum?: string | number; readonly maximum?: string | number }>>;
 }
 
 /**
@@ -31,6 +36,13 @@ export interface PlayerSite {
   readonly core: CoreClient;
   /** The page's visibility, which the funds' and play's clocks follow. */
   visible(isVisible: boolean): void;
+  /**
+   * Opens a deposit for the signed-in player, as `currentDeposit`; one already open is answered
+   * as it stands. Nobody signed in: `undefined`.
+   */
+  deposit(): DepositBehaviour | undefined;
+  /** The deposit open now, until it is closed; told through `subscribe`. */
+  readonly currentDeposit: DepositBehaviour | undefined;
   /** Whether the brand runs a module, by `/api/site` alone. */
   runs(module: string): boolean;
   /** Told when anything the site holds changes (`currentDeposit`, the player). */
@@ -62,12 +74,45 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
     ...(options.idleWarningSeconds !== undefined ? { idleWarningSeconds: options.idleWarningSeconds } : {}),
     onPlayer(p) {
       player = p;
+      if (!p) closeDeposit();
       funds.player(p?.currency ?? null);
       changed();
     },
   });
   stops.push(session.stop);
   if (player) funds.player(player.currency);
+  let currentDeposit: DepositBehaviour | undefined;
+  const openDeposit = (): DepositBehaviour | undefined => {
+    if (!player) return undefined;
+    if (currentDeposit) return currentDeposit;
+    const bounds = options.bounds?.[player.currency] ?? {};
+    const presets = options.presets?.[player.currency];
+    const d = depositBehaviour({
+      core,
+      clock,
+      currency: player.currency,
+      country: player.country,
+      ...(presets ? { presets } : {}),
+      ...(bounds.minimum !== undefined ? { minimum: bounds.minimum } : {}),
+      ...(bounds.maximum !== undefined ? { maximum: bounds.maximum } : {}),
+      succeeded: () => void funds.read(),
+    });
+    currentDeposit = d;
+    d.subscribe((step) => {
+      if (step.kind === "closed" && currentDeposit === d) {
+        currentDeposit = undefined;
+        changed();
+      }
+    });
+    changed();
+    return d;
+  };
+  const closeDeposit = () => {
+    const d = currentDeposit;
+    currentDeposit = undefined;
+    d?.stop();
+  };
+  stops.push(closeDeposit);
   const ready = options.known
     ? Promise.resolve()
     : Promise.all([transport.session.site(), transport.session.read()]).then(([s, p]) => {
@@ -87,6 +132,10 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
       return player;
     },
     session,
+    deposit: openDeposit,
+    get currentDeposit() {
+      return currentDeposit;
+    },
     funds,
     core,
     visible: (isVisible) => funds.visible(isVisible),
@@ -102,4 +151,24 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
     transport,
     clock,
   };
+}
+
+/**
+ * The deposit address rule (FR-025, the original's `DepositParamWatcher`): a page address with
+ * `deposit=true` opens the deposit for a signed-in player at once, and for a visitor once they
+ * have signed in. Answers what the page should do now, and a function that stops waiting.
+ */
+export function followDepositAddress(site: PlayerSite, address: string | URL): { now: "none" | "opened" | "sign_in"; stop: () => void } {
+  const url = typeof address === "string" ? new URL(address, "http://site") : address;
+  if (url.searchParams.get("deposit") !== "true") return { now: "none", stop: () => {} };
+  if (site.player) {
+    site.deposit();
+    return { now: "opened", stop: () => {} };
+  }
+  const stop = site.subscribe(() => {
+    if (!site.player) return;
+    stop();
+    site.deposit();
+  });
+  return { now: "sign_in", stop };
 }

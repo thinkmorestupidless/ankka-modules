@@ -1,4 +1,7 @@
-export { playerSite, type PlayerSite, type PlayerSiteOptions } from "./site.ts";
+export { playerSite, followDepositAddress, type PlayerSite, type PlayerSiteOptions } from "./site.ts";
+export type { DepositStep, DepositBehaviour, DepositActions } from "./core/deposit.ts";
+export type { SessionStep, SessionBehaviour, SessionActions } from "./core/session.ts";
+export { hasPlayableFunds, type Funds } from "./core/funds.ts";
 export type { Behaviour, Step, Answer } from "./behaviour.ts";
 export type { Clock } from "./clock.ts";
 export { realClock } from "./clock.ts";

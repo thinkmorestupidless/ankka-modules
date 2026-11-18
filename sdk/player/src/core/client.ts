@@ -135,11 +135,17 @@ export function coreClient(transport: Transport, player: () => string | null = (
       if (!real.ok || !restricted.ok || !available.ok) return { ok: false, refusal: refusal("malformed_answer", 200, {}, "wallet") };
       return { ok: true, value: { real: real.amount, restricted: restricted.amount, available: available.amount } };
     },
-    submitCashier(t, terminalId, options = {}) {
+    async submitCashier(t, terminalId, options = {}) {
       const body: Record<string, string> = { selectedTerminalEntityId: terminalId };
       if (options.coin) body.cryptoCurrency = options.coin;
       for (const [k, v] of Object.entries(options.details ?? {})) if (v) body[customer[k as keyof CustomerDetails]] = v;
-      return ask(transport, row(routes, "submitCashier"), Submitted, { headers: ticket(t), body });
+      const r = await ask(transport, row(routes, "submitCashier"), Submitted, { headers: ticket(t), body, words: true });
+      // Words are passed on from a provider's rejection only (FR-022); every other refusal's are dropped.
+      if (!r.ok && r.refusal.code !== "PAYMENT_REJECTED" && r.refusal.words !== undefined) {
+        const { words: _dropped, ...kept } = r.refusal;
+        return { ok: false, refusal: kept };
+      }
+      return r;
     },
     abandonCashier: (t) => ask(transport, row(routes, "abandonCashier"), Anything, { headers: ticket(t), keepalive: true }),
     async payment(t, paymentId) {
