@@ -12,7 +12,8 @@
     "start": "NODE_ENV=production node src/server/main.ts",
     "typecheck": "tsc",
     "test": "vitest run --exclude 'tests/features/**'",
-    "lint": "eslint src tests"
+    "lint": "eslint src tests",
+    "features": "bddgen && playwright test"
   },
   "dependencies": {
     "@eitheror/player-sdk": "0.1.0",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@hono/node-server": "^2.1.9",
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/vite": "^4.3.5",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
@@ -31,6 +33,7 @@
     "@vitejs/plugin-react": "^6.3.0",
     "eslint": "^9.39.5",
     "jsdom": "^31.0.1",
+    "playwright-bdd": "^9.2.1",
     "tailwindcss": "^4.3.5",
     "typescript": "~5.9",
     "typescript-eslint": "^8.73.0",

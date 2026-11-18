@@ -728,6 +728,8 @@ jobs:
       - run: npm ci
       - name: Typecheck and lint
         run: npm run typecheck -w services/player-site && npm run lint -w services/player-site
+      - name: Unit suites (the words, the import rule, the site server)
+        run: npm test -w services/player-site
       - name: Build
         run: npm run build -w services/player-site
       - name: The first page's script size

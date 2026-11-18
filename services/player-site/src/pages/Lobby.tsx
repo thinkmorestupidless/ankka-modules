@@ -18,6 +18,7 @@ export function Lobby({ site }: { site: PlayerSite }) {
   const [search, setSearch] = useState("");
   const [read, setRead] = useState<Read>(null);
   useEffect(() => {
+    if (!site.games) return;
     let current = true;
     const id = setTimeout(() => {
       void site.casino.games(search.trim() ? { search: search.trim(), limit: 60 } : { limit: 60 }).then((r) => {
