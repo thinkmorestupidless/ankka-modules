@@ -290,6 +290,12 @@ the brand's onboarding on the installation; the task order.
   arrives. A balance that does not fit its currency is refused `malformed_amount` (the feature's
   code), where the client first answered `malformed_answer`.
 
+- **T054 (2026-11-18)**: the reference site's first page loads one script, 142.1 KB compressed (gzip,
+  KiB) against the plan's 150 KB; `npm run size -w services/player-site` measures it after a build and
+  CI's player-site job fails over the budget. React, the router and the SDK are most of it; the
+  margin is 8 KB, so a page that adds a library splits it out of the first page. `npm audit
+  --omit=dev` at the root: 0 vulnerabilities.
+
 ## Design finished
 
 2026-11-18: the person proceeded with 4 findings above LOW from the third analysis round, each

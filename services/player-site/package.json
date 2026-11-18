@@ -13,7 +13,8 @@
     "typecheck": "tsc",
     "test": "vitest run --exclude 'tests/features/**'",
     "lint": "eslint src tests",
-    "features": "bddgen && playwright test"
+    "features": "bddgen && playwright test",
+    "size": "node scripts/size.ts"
   },
   "dependencies": {
     "@eitheror/player-sdk": "0.1.0",
