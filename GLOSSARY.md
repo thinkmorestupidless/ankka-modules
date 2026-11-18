@@ -26,7 +26,7 @@ advertises, began, begin, begins, decremented, defect, doubled, elapsed, evidenc
 another, try
 attempt, attempts, instance, instances, abandons, deregisters, deregister, acknowledge, acknowledges, acknowledged, decremented, either, demo, exponent, loads, protocol, registered, registers, spends, sweep, younger
 descending, null, parameter, temporarily
-appearance, choice, chooses, choosing, component, driven, due, interface, mobile, pick, province
+appearance, choice, chooses, choosing, component, driven, due, effect, interface, interrupted, mobile, pick, province
 
 ## Terms
 
@@ -1406,67 +1406,72 @@ A game service that exists only in the house provider's test kit and is never de
 ## The player site
 
 ### player site
-*Proposed.* What a brand's players use the brand through: pages in the player's browser and the site server that serves them. One site serves one brand.
+What a brand's players use the brand through: pages in the player's browser and the site server that serves them. One site serves one brand.
 
 Avoid: frontend app, web app, client app
 
 ### site server
-*Proposed.* The part of a player site that runs beside the brand's services: it passes a sign-in to the brand, keeps what the realm issued where no script of the page can read it, makes every call for the page under it, and keeps nothing between its instances.
+The part of a player site that runs beside the brand's services: it passes a sign-in to the brand, keeps what the realm issued where no script of the page can read it, makes every call for the page under it, and keeps nothing between its instances.
 
 Avoid: BFF, backend-for-frontend, proxy server
 
 ### player SDK
-*Proposed.* What eitheror supplies to build a player site: the module clients, the site server, the behaviours, the adapter, and the rules for amounts, refusals and language. It holds what a site does and nothing of how it looks.
+What eitheror supplies to build a player site: the module clients, the site server, the behaviours, the adapter, and the rules for amounts, refusals and language. It holds what a site does and nothing of how it looks.
 
 Avoid: frontend SDK, UI SDK, UI kit
 
 ### behaviour
-*Proposed.* One task of a player as the steps it can stand at and the actions each step allows, with no appearance of its own and bound to no component: the session behaviour, the deposit behaviour, the play behaviour, the inbox behaviour. A behaviour has no action that goes past a refusal of the brand.
+One task of a player as the steps it can stand at and the actions each step allows, with no appearance of its own and bound to no component: the session behaviour, the deposit behaviour, the play behaviour, the inbox behaviour, the chat behaviour. A behaviour has no action that goes past a refusal of the brand.
 
 Avoid: state machine, widget
 
 ### session behaviour
-*Proposed.* The behaviour of a player's registering, signing in, staying signed in and signing out at a player site.
+The behaviour of a player's registering, signing in, staying signed in and signing out at a player site.
 
 ### deposit behaviour
-*Proposed.* The behaviour of one deposit at a player site: the amount, the brand's start, the terminal, the details, the submit and the wait for the payment's outcome.
+The behaviour of one deposit at a player site: the amount, the brand's start, the terminal, the details, the submit and the wait for the payment's outcome.
 
 Avoid: deposit modal, cashier widget
 
 ### play behaviour
-*Proposed.* The behaviour of picking, launching, playing and leaving one game at a player site, with its reality checks.
+The behaviour of picking, launching, playing and leaving one game at a player site, with its reality checks.
 
 Avoid: guarded play
 
 ### inbox behaviour
-*Proposed.* The behaviour that keeps a signed-in page's push connection open and its unread count current.
+The behaviour that keeps a signed-in page's push connection open and its unread count current.
+
+### chat behaviour
+The behaviour of a player's conversation with the support agent at a player site: a turn sent, the reply arriving part by part, an approval request awaiting the player's decision, and the conversation's end.
+
+Avoid: chat widget
 
 ### module client
-*Proposed.* One module's player routes as the calls a behaviour or the site server makes, behind one interface, so that another client meeting the interface replaces it.
+One module's player routes as the calls a behaviour or the site server makes, behind one interface, so that another client meeting the interface replaces it.
 
 Avoid: API client
 
 ### adapter
-*Proposed.* What binds a behaviour to a site builder's components: it tells a component the step, its fields and the actions it allows, and adds no rule.
+What binds a behaviour to a site builder's components: it tells a component the step, its fields and the actions it allows, and adds no rule.
 
 Avoid: hooks
 
 ### site builder
-*Proposed.* Whoever builds a player site on the player SDK: they configure the brand, the languages and the preset amounts, and supply the appearance.
+Whoever builds a player site on the player SDK: they configure the brand, the languages and the preset amounts, and supply the appearance.
 
 ### reference site
-*Proposed.* eitheror's own player site built on the player SDK, the one service of the module player-site.
+eitheror's own player site built on the player SDK, the one service of the module player-site.
 
 Avoid: demo site, sample site
 
 ### playable funds
-*Proposed.* What lets a player launch a game for money: a real balance that is not zero, a restricted balance that is not zero, or free rounds for that game. Balances not yet read count as playable funds.
+What lets a player launch a game for money: a real balance that is not zero, a restricted balance that is not zero, or free rounds for that game. Balances not yet read count as playable funds.
 
 ### preset amount
-*Proposed.* One of the amounts a player site offers at the start of a deposit, in the player's currency, configured by the site builder.
+One of the amounts a player site offers at the start of a deposit, in the player's currency, configured by the site builder.
 
 ### unread count
-*Proposed.* How many inbox items a player has not read, as the brand answers it.
+How many inbox items a player has not read, as the brand answers it.
 
 ### idle warning
-*Proposed.* The step the session behaviour stands at thirty seconds before it signs out a player who has done nothing for thirty minutes.
+The step the session behaviour stands at thirty seconds before it signs out a player who has done nothing for thirty minutes.

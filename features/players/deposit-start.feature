@@ -18,3 +18,14 @@ Feature: A player starts a deposit at the brand
     When the player starts a deposit of "5000" minor units of "EUR"
     Then the player is refused with the deposit gate's code and words
     And no cashier session is opened
+
+  Scenario: a deposit started again under the same request id answers the first cashier session
+    Given the player started a deposit of "5000" minor units of "EUR" under the request id "r-1"
+    When the player starts a deposit of "5000" minor units of "EUR" under the request id "r-1"
+    Then the player is answered the first cashier session's cashier ticket
+    And one cashier session exists for the player
+
+  Scenario: a deposit started again under the same request id with another amount is refused naming the request id
+    Given the player started a deposit of "5000" minor units of "EUR" under the request id "r-1"
+    When the player starts a deposit of "9000" minor units of "EUR" under the request id "r-1"
+    Then the player is refused naming the request id "r-1"

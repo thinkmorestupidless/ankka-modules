@@ -35,7 +35,8 @@ This spec separates the two. The **player SDK** holds the logic and none of the 
 - a **site server**: the part of a player site that runs beside the brand's services, holds each
   player's sign-in where the page's scripts cannot read it, and makes every call for the page;
 - **behaviours**: a player's task as steps and the actions each step allows — the session, the
-  deposit, play, the inbox signal — with no appearance, bound to no interface library;
+  deposit, play, the inbox, the chat with the support agent — with no appearance, bound to no
+  interface library;
 - an **adapter** that binds a behaviour to React;
 - the rules every behaviour shares: amounts as whole minor units, one form of refusal, the page's
   language.
@@ -52,8 +53,8 @@ first and English second.
 What was read, 2026-11-18: the original site's deposit (`DepositModal.tsx`, twelve steps, completion
 by polling), its guard (`useGuardedPlay`: signed in, then funds), its launch and timers
 (`GameManagerContext`), its session routes and cookies, its notification stream, and its tests; and
-every player route of `players`, `wallet`, `game-provider`, `kyc`, `responsible-gambling`,
-`engagement` and `support-agent` here. `packages/cashier/CashierWidget.tsx` is not used by the
+its chat with the support agent (`MotokoChat.tsx`); and every player route of `players`, `wallet`,
+`game-provider`, `kyc`, `responsible-gambling`, `engagement` and `support-agent` here. `packages/cashier/CashierWidget.tsx` is not used by the
 original site and is no source for this spec.
 
 Four decisions of 2026-11-18 bind it. The sign-in lives on the site server, as on the original site
@@ -76,6 +77,15 @@ and the client generated from them are a later spec; the module client's interfa
 - Q: Where do the services' route descriptions and the generated client go? → A: A later spec, once
   an ankka release holds spec 067; this spec's module clients are written by hand behind the
   interface a generated one will meet (FR-034).
+- Q: Do the 16 proposed glossary terms stand (player site, site server, player SDK, behaviour,
+  session behaviour, deposit behaviour, play behaviour, inbox behaviour, module client, adapter,
+  site builder, reference site, playable funds, preset amount, unread count, idle warning)? → A: All
+  accepted as defined; `chat behaviour` added with the answer below.
+- Q: Is the support chat in this slice? → A: Yes: a fifth behaviour, the chat with the support
+  agent (User Story 8, FR-049 to FR-055).
+- Q: Does `players`' deposit start take a request id? → A: Yes: the behaviour mints one per
+  confirmation and `players` passes it to the cashier as the cashier session's request id, so a
+  repeated start returns the first session (FR-014, FR-018).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -155,6 +165,8 @@ provider stub.
 - added `features/player-site/deposit.feature`: a visitor arriving at the site's deposit address is asked to sign in and the deposit opens once they have
 - added `features/players/deposit-start.feature`: a started deposit answers the cashier ticket and the terminals of the cashier session it opened
 - added `features/players/deposit-start.feature`: a deposit the deposit gate refuses opens no cashier session and answers no cashier ticket
+- added `features/players/deposit-start.feature`: a deposit started again under the same request id answers the first cashier session
+- added `features/players/deposit-start.feature`: a deposit started again under the same request id with another amount is refused naming the request id
 
 ---
 
@@ -304,6 +316,41 @@ run the reference site's features against it.
 
 ---
 
+### User Story 8 - A player chats with the support agent (Priority: P2)
+
+A signed-in player at a brand running the support module opens the chat and writes a turn. The
+reply arrives part by part. When the support agent would act for the player it ends the turn with
+an approval request, in its own words: the chat stands there until the player approves or cancels,
+and no new turn is sent meanwhile. The decision is sent once; an approved action's result and the
+reply follow. A brand whose support agent is off has no chat; a player sending too fast is told
+when they may send again; an ended conversation says so, and the next turn starts another.
+
+**Why this priority**: the brand runs the support module, and an approval request is the one
+place a player's word moves their money or bars them from play through a chat. A page that can
+send a turn past a pending request, or decide twice, is the fault to rule out.
+
+**Independent Test**: the chat behaviour with no interface against a double of the support agent
+that streams replies, approval requests, each refusal, and a reply that stops.
+
+**Acceptance Scenarios**:
+
+- added `features/player-site/chat.feature`: a turn the player sends is answered part by part and then the chat is ready again
+- added `features/player-site/chat.feature`: a conversation's first turn is sent under a new session id and its later turns under the same one
+- added `features/player-site/chat.feature`: a page loaded again continues the same conversation
+- added `features/player-site/chat.feature`: a turn that ends with an approval request stands at awaiting the player's decision
+- added `features/player-site/chat.feature`: approving an approval request sends the decision once and gives the page the action's result and the reply
+- added `features/player-site/chat.feature`: cancelling an approval request sends the decision and no action's result is given
+- added `features/player-site/chat.feature`: a turn sent while an approval request awaits sends nothing
+- added `features/player-site/chat.feature`: a page loaded while an approval request awaits learns of it at the next turn and stands at awaiting approval
+- added `features/player-site/chat.feature`: a turn the brand refuses stands at a step naming the reason
+- added `features/player-site/chat.feature`: a turn after a conversation ended starts a new conversation
+- added `features/player-site/chat.feature`: a turn refused by a guardrail gives the page the support agent's refusal words and the chat is ready again
+- added `features/player-site/chat.feature`: a reply that stops arriving before the turn is answered ends the turn as interrupted
+- added `features/player-site/chat.feature`: a brand whose support agent is off has its chat hidden
+- added `features/player-site/chat.feature`: a site of a brand that does not run the support module offers no chat behaviour
+
+---
+
 ### Edge Cases
 
 - A service that does not answer the site server within the bound: the behaviour's step is refused
@@ -327,6 +374,10 @@ run the reference site's features against it.
 - A reality check that falls due while the game is hidden: it fires when the game is shown again.
 - A wallet balance with more decimals than the currency's exponent, or not a number: refused as a
   malformed amount; the page shows no balance, never a rounded one.
+- A decision sent twice by two tabs: the brand answers the second as already decided; that tab
+  reads it as decided and waits for nothing.
+- A turn's reply still arriving when the player signs out: the reading stops and nothing of the
+  conversation is kept by the page.
 - A language catalogue missing a key: the site's first language's text is shown.
 - A brand whose values name `player-site` and not `casino`: the site is served without play.
 
@@ -384,7 +435,8 @@ run the reference site's features against it.
   player's currency (default 10, 25, 50, 100, 200 and 500 major units, kept within the site's
   minimum and maximum where it states them) and accept any whole amount of minor units above zero.
 - **FR-014**: Confirming an amount MUST call `players`' deposit start once with the amount in minor
-  units and the player's currency, under a request id the behaviour mints for that confirmation.
+  units and the player's currency, under a request id the behaviour mints for that confirmation; a
+  start that was not answered MAY be sent again under the same request id, and only under it.
 - **FR-015**: A refusal of the start MUST put the behaviour at the refused step with the code and
   fields the brand answered: the deposit gate with the KYC status; a deposit limit with its period,
   its value and what remains; cooling off with the end of the break; a self-exclusion; a restricted
@@ -395,7 +447,10 @@ run the reference site's features against it.
 - **FR-017**: An answered start MUST put the behaviour at choosing a terminal with the terminals the
   cashier session offers; with none, at failed for want of a way to pay.
 - **FR-018**: `players`' deposit start MUST answer, beside what it answers today, the cashier
-  ticket and the terminals of the cashier session it opened (spec 008 FR-043, amended).
+  ticket and the terminals of the cashier session it opened, and MUST pass a request id the player
+  sends to the cashier as the cashier session's request id, so that a repeat with the same amount
+  returns the first session and a repeat with another is refused naming the request id (spec 006);
+  a start with no request id behaves as today (spec 008 FR-043, amended).
 - **FR-019**: Choosing a terminal MUST follow the scheme's needs: a crypto scheme asks for the coin;
   a scheme that needs the player's name, telephone, address, or mobile number and province reads
   the player profile and, where a needed field is missing or malformed, asks for it at the details
@@ -470,7 +525,7 @@ run the reference site's features against it.
   visitor's country), `wallet` (balance), `responsible-gambling` (status, reality check
   acknowledgement), the cashier's submit, abandon and payment read; in casino, `game-provider`
   (launch, the catalogue's games and one game) and `rewards` (free rounds held); in engagement, the
-  push connection.
+  push connection; in support, the support agent's turn and decision.
 - **FR-036**: Each module client MUST be tested against its running service on the development
   installation, one test per function, so that a route's change is caught where the client is.
 
@@ -505,7 +560,7 @@ run the reference site's features against it.
   no rule of its own.
 - **FR-045**: A module `player-site` MUST hold one web-hosted service, the reference site: the
   SDK's site server and pages for registration, sign-in, the lobby from the catalogue, the balance,
-  the deposit, play with the reality check, and the unread count; exposed at the brand's player
+  the deposit, play with the reality check, the unread count, and the chat with the support agent; exposed at the brand's player
   site address; with built files named by their content and the first page never cached.
 - **FR-046**: The reference site MUST hold no logic of a deposit, a launch, a sign-in or an amount
   outside the SDK: its own code is appearance, words and the choice of which behaviour to show.
@@ -513,6 +568,33 @@ run the reference site's features against it.
 - **FR-048**: The SDK and the reference site are TypeScript (constitution VI): they speak to a
   browser and to services over HTTP, hold no state that outlives an instance, and move no money
   themselves.
+
+**The chat behaviour**
+
+- **FR-049**: The chat behaviour's steps MUST be: ready; answering; awaiting approval; deciding;
+  refused; ended; unavailable. A turn MUST be sent only from ready or ended, and a decision only
+  from awaiting approval; any other action sends nothing and is answered as not allowed.
+- **FR-050**: The behaviour MUST mint a conversation's session id at its first turn, send every
+  later turn under it, keep it for the page's tab so that a page loaded again continues the
+  conversation, and mint a new one for the first turn after a conversation ended. *Established by:*
+  `MotokoChat.tsx`, which lost it on a reload; spec 017's conversation survives one.
+- **FR-051**: The reply MUST reach the page part by part as the support agent sends it, through the
+  site server, which holds none of it back. A reply that stops before the turn is answered MUST end
+  the turn as interrupted; the behaviour never sends a turn or a decision again by itself.
+- **FR-052**: A turn that ends with an approval request MUST put the behaviour at awaiting approval
+  with the action's name and the support agent's statement of its effect, unchanged. The player's
+  approve or cancel MUST be sent once; an approved action's result and the reply are then given to
+  the page. A turn refused because a request awaits MUST put the behaviour at awaiting approval
+  with the request the refusal names; a decision answered as already decided is read as decided.
+- **FR-053**: A refusal before the reply MUST put the behaviour: at unavailable, with the support
+  agent's unavailable words, when the support agent is off; at refused with the time to wait when
+  the player sent too many turns; at ended with the closing words when the conversation has ended;
+  at refused when the session is another player's, minting a new session id for the next turn.
+- **FR-054**: The support agent's words — a reply, an approval request's effect, a guardrail's
+  refusal, the unavailable and closing words — are the brand's to the player and MUST be shown as
+  sent; they are the one exception to FR-039's rule on a service's text. The behaviour adds no word.
+- **FR-055**: Nothing of a conversation except its session id MUST be kept by the page beyond the
+  page's life, and nothing at all after sign-out.
 
 ### Changes from the original
 
@@ -530,8 +612,11 @@ run the reference site's features against it.
   file of strings in the site; the SDK holds no strings and a site offers what it translates.
 - **Not carried in this slice**, and still the original's to serve where a brand needs them:
   withdrawals and destinations, KYC documents, limits and breaks as the player sets them, rewards
-  and bonus codes, the inbox's pages, the support chat, account pages, activity history, favourites,
+  and bonus codes, the inbox's pages, the brand's human support chat, account pages, activity history, favourites,
   content pages, analytics and the affiliate click. Each is a behaviour for a later spec.
+- **A deposit start carries a request id.** The original's start had none and a repeat opened a
+  second cashier session; here a repeat returns the first.
+- **A conversation survives a page load.** The original's page forgot the session id on a reload.
 - **Dropped**: the original's `packages/cashier` widget (a demonstration against a simulator); the
   page opening the deposit by itself five seconds after sign-in when the player has no funds (an
   appearance choice a site may make with the funds rule); the launch route's handling of a second
@@ -540,7 +625,7 @@ run the reference site's features against it.
 ### Amendments to other specs
 
 - **Spec 008 (players) FR-043**: the deposit start's answer gains the cashier ticket and the
-  terminals of the session it opened.
+  terminals of the session it opened, and the start takes a request id it passes to the cashier.
 - **Spec 021 (core and modules)**: a module `player-site`; a configuration key for the site's
   languages.
 - **Spec 001 (brands and projects)**: a second brand's values file, `guyanabet`.
@@ -555,7 +640,7 @@ run the reference site's features against it.
 - **Module client**: one module's player routes as typed functions behind an interface.
 - **Site server**: the part of a player site that holds each player's sign-in and makes the page's
   calls; it serves one brand and keeps nothing between instances.
-- **Behaviour**: a player's task as steps and allowed actions: session, deposit, play, inbox.
+- **Behaviour**: a player's task as steps and allowed actions: session, deposit, play, inbox, chat.
 - **Step**: where a behaviour stands, with its fields and the actions it allows.
 - **Refusal**: a status, a code and named fields.
 - **Amount**: whole minor units and a currency.
@@ -569,10 +654,11 @@ run the reference site's features against it.
 - **SC-001**: A site builder with the SDK and a running brand has a page on which a player can sign
   in, deposit and launch a game by writing appearance only: the reference site's own code contains
   no call to a service and no rule of a deposit or a launch, checked by a test of its imports.
-- **SC-002**: The deposit and play behaviours each run from first step to last with no interface,
+- **SC-002**: The deposit, play and chat behaviours each run from first step to last with no interface,
   and every step and refusal in this spec is reached in tests that use no browser.
 - **SC-003**: No test, at any step of any behaviour, can open a cashier session or obtain a game's
-  address after the brand has refused: the count of such paths is zero.
+  address after the brand has refused, or send a turn while an approval request awaits: the count of
+  such paths is zero.
 - **SC-004**: After a sign-in, a search of every response to the page, the page's storage, the
   site server's log and its traces finds the sign-in zero times.
 - **SC-005**: Every amount shown at the reference site equals the service's amount exactly, for
