@@ -56,6 +56,7 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
 | 022 | brand | wallet primitives: reservations, settlement, payouts and non-player accounts | Scala |
 | 023 | brand | the predictions module: `markets` and `exchange` on ankka-predictions' libraries (built) | Scala |
 | 026 | shared `games` | provider: eitheror's own game provider, ST8's protocol, on the `provider-core` library it shares with 020 (amends 001, 003, 009, 020) | Scala |
+| 027 | brand | the player SDK (`sdk/player`) and the reference player site, the module `player-site` (web-hosted; amends 002, 003, 008, 021) | TypeScript |
 
 ## Working here
 
@@ -86,6 +87,12 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
   with the vendor's agent and is as strict: a fact the installation does not report is unmet. ankka
   057 (in flight) reports `broker` and `retention`; `erasure` stays "not stated" until ankka spec
   042, so a real-money brand cannot be applied through the vendor until then.
+- The player SDK (spec 027) is TypeScript in the npm workspace at the root (`npm ci`):
+  `sdk/player/` (its `README.md` says what a site builder does) and `services/player-site/`, the
+  reference site, a web-hosted service built from the root (`Dockerfile.dockerignore` admits only
+  the workspace). A page reaches the brand only through the SDK's behaviours (eslint and
+  `tests/imports.test.ts` hold it); `just player-sdk-test`, `player-sdk-features`,
+  `player-site-features` (playwright over the built site and the doubles) and `player-site-run`.
 - `tests/original/` records the original (`README.md` there); `tests/port/<service>/` holds the
   recordings a service's parity tests replay.
 - The `ankka@ankka` plugin must be installed (`/plugin install ankka@ankka`) for `ankka-port` and

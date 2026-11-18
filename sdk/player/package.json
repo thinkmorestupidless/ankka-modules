@@ -21,7 +21,8 @@
     "test": "vitest run --exclude 'tests/features/**' --exclude 'tests/contract/**'",
     "features": "vitest run tests/features",
     "contract": "vitest run tests/contract",
-    "lint": "eslint src tests"
+    "lint": "eslint src tests scripts",
+    "readme": "node scripts/steps.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.9",
