@@ -10,7 +10,7 @@ export interface Elsewhere {
 }
 
 export const elsewhere: readonly Elsewhere[] = [
-  { feature: "session.feature", scenario: "a player who placed a bet in the last six minutes is not idle", harness: "T030: play.steps.ts, beside the play behaviour" },
+  { feature: "session.feature", scenario: "a player who placed a bet in the last six minutes is not idle", harness: "play.steps.ts, beside the play behaviour (T030)" },
   { feature: "composing.feature", scenario: "a behaviour run with no appearance takes every step it takes at a player site", harness: "T047: services/player-site/tests/second-appearance" },
   { feature: "composing.feature", scenario: "two sites of different appearance run the same deposit", harness: "T047: services/player-site/tests/second-appearance" },
   { feature: "amounts-and-refusals.feature", scenario: "every refusal code a behaviour can meet has words in each language the reference site offers", harness: "T042: services/player-site/tests/words.test.ts" },
@@ -23,7 +23,6 @@ export const wholly: Readonly<Record<string, string>> = {
 
 /** Feature files whose steps are not written yet, by the task that writes them. Each task removes its line. */
 export const unbound: Readonly<Record<string, string>> = {
-  "play.feature": "T030",
   "composing.feature": "T040",
   "amounts-and-refusals.feature": "T035",
   "inbox.feature": "T038",
