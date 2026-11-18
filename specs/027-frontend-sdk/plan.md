@@ -58,7 +58,8 @@ transition synchronous.
 - no behaviour has an action past a refusal, and none checks a gate or a limit itself (FR-016,
   FR-030);
 - amounts are `bigint` minor units from the boundary inward; no `Number` on an amount (FR-037);
-- no text for a player in the package except the support agent's own (FR-042, FR-054);
+- no text for a player in the package except the support agent's own and a payment provider's
+  rejection words (FR-022, FR-042, FR-054);
 - at most two path parameters per route and one endpoint per prefix in `players`;
 - built files named by content, the first page uncached (FR-045).
 
@@ -86,7 +87,7 @@ transition synchronous.
 | V. Personal data marked | | Pass. The site server stores nothing. The details step writes to the player profile through `players`, which marks them. |
 | VI. Scala by default | reason for anything else | Pass. TypeScript by FR-048's reason; the one stateful change is in `players`, in Scala. |
 | VII. Specs in the domain's words | `just features` passes | Pass: 0 findings in 1,419 scenarios and 26 specs. |
-| Workflow: clarify before plan | | Pass: clarified 2026-11-18, seven answers. |
+| Workflow: clarify before plan | | Pass: clarified 2026-11-18, fourteen answers. |
 | Scope: frontends out of scope | | Amended by this spec (R15), in its own task, the first after setup, stating what changes and why. |
 
 No violations; Complexity Tracking is empty.
@@ -103,7 +104,9 @@ No violations; Complexity Tracking is empty.
 | FR-018 | `players`' `DepositRoutes`, `Ingest.read` | the owner of the start | the site server opening the session (the original's fault) |
 | FR-056 | `game-provider`'s `CatalogEndpoint` | spec 003 foresaw it | the site server reading the catalogue under an identity of its own (none exists for a visitor) |
 | FR-026, FR-027 | `core/funds.ts` | the one funds rule, with its original tests | per behaviour |
-| FR-028 to FR-033 | `casino/play.ts` | | |
+| FR-028 to FR-033, FR-059 | `casino/play.ts`, `casino/games.ts` | one behaviour per open game, as the deposit is one per deposit | one behaviour holding every game (its steps would multiply) |
+| FR-057 | `players`' `GameSessionEntity`, `RoundsActivity`, `GameSessionRoutes` | the fact already arrives there | reading game-provider's rounds from the site (a second call per check) |
+| FR-058 | the wallet's `Wire.major(minor, currency)` | one rule for every route | a second form for players only |
 | FR-034 to FR-036 | `<module>/routes.ts`, `<module>/client.ts`, `tests/contract/` | the seam the generated client will fill | types alone (no allow-list) |
 | FR-037, FR-038 | `amount.ts` over `currencies.v1.json` | one rule, the contract's table | `Intl` defaults; `number` |
 | FR-039, FR-040 | `refusal.ts`, `codes.ts` | typed codes make SC-006 a compile error | strings |
@@ -138,7 +141,7 @@ sdk/player/
 │   ├── behaviour.ts  clock.ts  amount.ts  refusal.ts  codes.ts  language.ts
 │   ├── transport.ts  eventStream.ts  currencies.v1.json
 │   ├── core/        routes.ts client.ts session.ts deposit.ts schemes.ts funds.ts
-│   ├── casino/      routes.ts client.ts play.ts
+│   ├── casino/      routes.ts client.ts play.ts games.ts
 │   ├── engagement/  routes.ts client.ts inbox.ts
 │   ├── support/     routes.ts client.ts chat.ts
 │   ├── server/      app.ts session.ts passThrough.ts modules.ts config.ts
@@ -156,8 +159,8 @@ services/player-site/
 └── tests/features/  tests/second-appearance/
 modules/player-site/module.json
 brands/guyanabet/values.json
-services/players/…/api/DepositRoutes.scala, GameSessionRoutes.scala, clients/{Ingest,Kyc,Rg}.scala  # amended
-services/wallet/…/wire/Wire.scala                                    # amended
+services/players/…/api/DepositRoutes.scala, GameSessionRoutes.scala, sessions/GameSessionEntity.scala, reads/ActivityView.scala, clients/{Ingest,Neighbours,Rg}.scala  # amended
+services/wallet/…/wire/Wire.scala, api/AudienceEndpoints.scala      # amended
 contract/ (the currency table's task, keys.md)   tools/modules/ (keys, web hosting, suites)
 tests/fixtures/manifests/guyanabet.json   Justfile   .github/workflows/{ci,release}.yml
 specs/{002,003,008,021}-*/ (each amended line)   .specify/memory/constitution.md

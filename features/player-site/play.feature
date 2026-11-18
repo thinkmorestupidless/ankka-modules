@@ -136,3 +136,34 @@ Feature: A player launches a game only when the brand allows it
     And the game was shown for "29" minutes
     When the game is hidden and shown again for "1" minute
     Then the play behaviour stands at the reality check
+
+  Scenario: a second game picked while one is open is launched under its own game session and the first is hidden
+    Given a player playing the game "pools" at the player site
+    And a game "wheel" in the catalogue of brand "guyanabet"
+    When they pick the game "wheel"
+    Then the game "wheel" is launched under a game session of its own
+    And the game "wheel" is shown and the game "pools" is hidden with its game session still open
+
+  Scenario: picking a game that is already open shows it and launches nothing
+    Given a player with the games "pools" and "wheel" open and "wheel" shown
+    When they pick the game "pools"
+    Then the game "pools" is shown and the game "wheel" is hidden
+    And no launch is asked of the brand
+
+  Scenario: closing the shown game ends its game session and shows the next open game
+    Given a player with the games "pools" and "wheel" open and "wheel" shown
+    When they close the game "wheel"
+    Then the game session of the game "wheel" is ended as the player's leaving
+    And the game "pools" is shown
+
+  Scenario: each open game counts its reality check by its own time shown
+    Given a player with a reality check of "30" minutes and the games "pools" and "wheel" open
+    And the game "pools" was shown for "20" minutes and the game "wheel" for "15" minutes
+    When the game "pools" is shown for "10" minutes more
+    Then the play behaviour of the game "pools" stands at the reality check
+    And the play behaviour of the game "wheel" stands at playing
+
+  Scenario: signing out ends the game session of every open game
+    Given a player with the games "pools" and "wheel" open
+    When they sign out
+    Then the game sessions of both games are ended as the player's leaving

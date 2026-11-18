@@ -59,13 +59,24 @@ ticket.
 
 | Step | Fields | Allowed |
 |---|---|---|
-| `idle` | | `pick(game, {funMode?})` |
-| `needs_registration` / `needs_sign_in` / `needs_deposit` | `game` | `pick`, `dismiss` |
+| `idle` | | `launch` |
+| `needs_registration` / `needs_sign_in` / `needs_deposit` | `game` | `launch`, `dismiss` |
 | `launching` | `game`, `funMode` | |
-| `playing` | `game`, `address`, `gameSession`, `shownSince` | `close`, `hide`, `show` |
-| `reality_check` | `game`, `gameSession`, `played` (seconds) | `keepOn`, `stop` |
+| `playing` | `game`, `address`, `gameSession`, `hidden: boolean`, `shownSeconds` (time shown since the last check, as of the step's last change) | `close` |
+| `reality_check` | `game`, `gameSession`, `played` (seconds the game has been shown since the launch; hidden time is not counted) | `keepOn`, `stop` |
 | `refused` | `refusal`, `game` | `dismiss` |
-| `ended` | `game` | `pick` |
+| `ended` | `game` | |
+
+One play behaviour per open game (FR-059). `site.games`, over them:
+
+| | |
+|---|---|
+| `open` | the play behaviours of the open games, in the order opened |
+| `shown` | the one shown, or none |
+| `pick(game, {funMode?})` | shows the game if open; else makes a play behaviour, launches, shows it and hides the rest |
+| `show(game)`, `hideAll()` | which is shown |
+
+Closing the shown game shows the next open one. A play at `ended` or dismissed leaves `open`.
 
 ## Inbox
 
@@ -112,5 +123,5 @@ ticket.
 - `players`' deposit start: the request gains `requestId?`; the answer gains `cashierTicket`,
   `terminals`, `requestId`; a refusal gains the figures. Nothing stored.
 - `players`' game session: `lastBetAt: Instant?`, set from each settled round of the session
-  (stored on the game session's view row).
-- The wallet's player routes: major-unit text by the currency's exponent. Nothing stored.
+  (stored in the game session's state and its view row).
+- The wallet, every route writing major-unit text: by the currency's exponent. Nothing stored.

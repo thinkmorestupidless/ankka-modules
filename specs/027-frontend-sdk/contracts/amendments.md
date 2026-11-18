@@ -26,13 +26,17 @@ gate, the wallet's sums, responsible gambling, then the cashier). The answer is 
 ## `players`: the game session read answers the last bet (spec 008)
 
 `GET /v1/casino/sessions/<slug>/{sessionId}` answers `lastBetAt` (an instant, or `null` with no
-bet), where it answers `null` always today. The game session's view row gains the field, set from each settled round of the session, from
-wherever the session's wagered and won totals are derived today (V6). `specs/008-players/spec.md` and `contracts/routes.md` gain the line.
+bet), where it answers `null` always today. `GameSessionEntity` gains a command recording a bet's time (a new event; the state's `lastBetAt`),
+sent by `RoundsActivity` (`reads/ActivityView.scala`, which consumes `casino.rounds`) for each
+round opened or settled under its `sessionId`, with the fact's `occurredAt`; an older time changes
+nothing. `SessionRow` gains the field for the list. Both `wire` functions of `GameSessionRoutes`
+answer it. `specs/008-players/spec.md` and `contracts/routes.md` gain the line.
 
 ## The wallet: major units by the currency's exponent (spec 002)
 
-`Wire.major` renders through `Amounts.render(minor, currency)` in place of two fixed decimals, on
-the player routes (`balance`, `transactions`) and wherever else it is used. For a currency of two
+`Wire.major(minor, currency)` renders through `Amounts.render` in place of two fixed decimals;
+each of its calls in `AudienceEndpoints.scala`, the player's and the operator's, passes the
+route's currency. For a currency of two
 decimals every answer is byte for byte as today; for one of none or three it changes (`100` JPY is
 `"100"`, not `"1.00"`). The service routes' integer minor units are untouched. `specs/002-wallet`
 gains the line, and the wallet's own suites a row per exponent.
@@ -40,7 +44,8 @@ gains the line, and the wallet's own suites a row per exponent.
 ## The contract: a published currency table
 
 A task `contract/schemas` writes `currencies.v1.json` (`{code: exponent}` for every ISO 4217 code
-`java.util.Currency` knows) beside the topic schemas; `just schemas` writes it and copies it to
+`java.util.Currency` knows, each exponent through `Amounts.exponent`, so a code the JDK gives no
+digits is 2 as the wallet treats it) beside the topic schemas; `just schemas` writes it and copies it to
 `sdk/player/src/`, and CI fails when the copy differs.
 
 ## `game-provider`: the catalogue's reads are public (spec 003 FR-027)
@@ -79,14 +84,16 @@ database, no retention.
              {"name": "guyanabet-players", "keys": ["REALM_ADMIN", "WEBHOOK_SECRET", "REALM_SECRET", "EMAIL_TOKEN", "LOOKUP_KEY", "MERCHANT_KEY"]}],
  "values": {"player-site-base": "https://player-site-guyanabet.127.0.0.1.sslip.io:8443",
             "player-site-languages": "fr,en", "player-site-currency": "EUR",
-            "casino-modules": "core,casino,engagement,support,player-site",
+            
             "game-provider-mode": "demo", "casino-providers": "eitheror:st8", "st8-operator-id": "op-1234",
             "reporting-zone": "America/Cayenne"}}
 ```
 
 Plus whatever key `just modules validate` names as missing for `engagement` and `support`. The
 values file names no module: what the brand runs is its entitlement's, locally
-`--modules casino,engagement,support,player-site`. A fixture under `tests/fixtures/manifests/` and
+`--modules casino,engagement,support,player-site`. `casino-modules` is not written: locally the
+modules tool derives it from the modules applied; through a vendor the brand writes it by hand
+until spec 021 has the vendor render it (`contract/keys.md`). A fixture under `tests/fixtures/manifests/` and
 a case in the modules tool's render suite.
 
 ### Onboarding it on `dev-kind`

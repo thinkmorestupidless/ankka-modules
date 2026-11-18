@@ -99,8 +99,8 @@ here, ankka 0.16.3's web hosting reference, and spec 030's research on its branc
   and a handler's `{error, …}`. `codes.ts` lists every code a behaviour can meet, by behaviour;
   a site's catalogue is typed `Record<RefusalCode, string>` per language, so a missing one is a
   type error and SC-006 is the compiler's.
-- **The support agent's words** (FR-054) are carried as `words` beside the code and are the only
-  text of a service a behaviour passes on.
+- **The support agent's words** (FR-054) and a payment provider's rejection words (FR-022) are
+  carried as `words` beside the code and are the only text of a service a behaviour passes on.
 
 ## R8. Language
 
@@ -196,7 +196,7 @@ TypeScript is FR-048's.
 | V3 | `players`' sign-in, registration and country lookup see the visitor's network address and user agent the site server forwards (`X-Forwarded-For`, `User-Agent`) from a call at the calling address, where the proxy removes `X-Forwarded-For` from a service's request | the server sends them in the headers `players` reads for a trusted caller, or `players` is amended to read `X-Client-Address` from the service `player-site` only |
 | V4 | `rewards`' free rounds answer names the games each grant is for | the funds rule counts any free rounds as playable for any game, and the launch decides |
 | V5 | the catalogue's game answer carries its restricted and prohibited territories to a player | FR-031 reads what it carries; if neither, the rule is dropped and the launch decides |
-| V6 | where `players` derives a game session's totals from settled rounds, the round's time is there to set `lastBetAt` | the field is set by the consumer of the rounds fact that the totals' source is fed by, added in the same task |
+| V6 | resolved in analysis: `players` derives no session totals; `RoundsActivity` consumes `casino.rounds`, whose facts carry `sessionId` and `occurredAt`, and tells `GameSessionEntity` | — |
 
 ## Analysis, 2026-11-18
 
@@ -211,7 +211,13 @@ findings (3 critical, 7 high, 15 medium, 5 low). All were applied. Those that we
 | The reality check's count contradicted itself | time shown, cumulative, declared as a change (FR-033) |
 | Eight scenario corrections | all applied |
 
-Applied without a question, being corrections of fact: the cookie's `Lax` and the origin check
+A second round found one critical and seven medium findings, all applied. Decided: several games
+may be open at once, as the original (FR-059); the wallet's amendment covers every route that
+writes major-unit text (FR-058). Corrected: the brand's values write no `casino-modules`; the
+last bet is stored on the game session; play at `needs_deposit` opens the deposit inside the SDK;
+the task order; the quickstart.
+
+In the first round, applied without a question, being corrections of fact: the cookie's `Lax` and the origin check
 declared; the constitution amended first; the payment id is the submit's; a cashier ticket only in
 a header and only for a signed-in player; which `401` refreshes; the refresh cookie's path; the
 modules from the brand's own key; the session's missing transitions; the coin list's source; the

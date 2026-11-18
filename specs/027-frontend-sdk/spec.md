@@ -101,6 +101,10 @@ and the client generated from them are a later spec; the module client's interfa
   agent's being off is learnt from a turn; a game session ends as the player's leaving; the
   brand's modules are its entitlement's; two more KYC codes; a failed payment carries its failure
   code and a rejected submit the provider's words; scenarios are run where the task list says.
+- Q: May several games be open at once? → A: Yes, as the original: each open game is a play
+  behaviour of its own with its own game session, one shown and the rest hidden (FR-059).
+- Q: Does the wallet's amendment cover the operators' routes? → A: Yes: every route of the wallet
+  that writes major-unit text writes by the currency's exponent (FR-058).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -200,7 +204,8 @@ gate, a break, the session limit, a restricted player, the rate limit — and ea
 that names the reason. A launched game is shown from the address the brand answered, under a game
 session that ends when the player leaves. Where the player has set a reality check, the game is
 paused at each interval until they acknowledge it or stop. A launch in fun mode needs a sign-in and
-no funds.
+no funds. Several games may be open at once, as on the original: one is shown and the rest are
+hidden, each under its own game session and its own reality check count.
 
 **Why this priority**: play is the product, and every one of its refusals is a protection the brand
 is licensed to enforce.
@@ -228,6 +233,11 @@ money at the running brand.
 - added `features/player-site/play.feature`: no reality check fires when none is set or it could not be read
 - added `features/player-site/play.feature`: time the game is hidden does not count toward a reality check
 - added `features/player-site/play.feature`: hiding and showing a game does not start a reality check's interval again
+- added `features/player-site/play.feature`: a second game picked while one is open is launched under its own game session and the first is hidden
+- added `features/player-site/play.feature`: picking a game that is already open shows it and launches nothing
+- added `features/player-site/play.feature`: closing the shown game ends its game session and shows the next open game
+- added `features/player-site/play.feature`: each open game counts its reality check by its own time shown
+- added `features/player-site/play.feature`: signing out ends the game session of every open game
 - added `features/game-provider/catalogue.feature`: a visitor browses the catalogue and reads a game with no sign-in
 
 ---
@@ -317,8 +327,8 @@ closing reason.
 
 ### User Story 7 - Brand guyanabet runs a reference site built on the SDK (Priority: P2)
 
-eitheror adds a brand, `guyanabet`, with a values file naming the modules core, casino, engagement,
-support and the new module `player-site`, whose one service is the reference site: the SDK's site
+eitheror adds a brand, `guyanabet`, with a values file, entitled to the modules core, casino,
+engagement, support and the new module `player-site`, whose one service is the reference site: the SDK's site
 server and a small set of pages with eitheror's own appearance. The site is served at the brand's
 player site address, in French first and English second. A visitor registers, verifies, signs in,
 deposits through the payment provider stub, launches a house provider game for money and in fun
@@ -327,7 +337,7 @@ mode, sees a reality check, and signs out, on the development installation.
 **Why this priority**: an SDK with no site built on it is unproven, and the brand is the first
 that is not the original's.
 
-**Independent Test**: `just modules render guyanabet`; apply it to the development installation;
+**Independent Test**: `just modules render guyanabet --modules casino,engagement,support,player-site`; apply it to the development installation;
 run the reference site's features against it.
 
 **Acceptance Scenarios**:
@@ -408,7 +418,9 @@ that streams replies, approval requests, each refusal, and a reply that stops.
 - A turn's reply still arriving when the player signs out: the reading stops and nothing of the
   conversation is kept by the page.
 - A language catalogue missing a key: the site's first language's text is shown.
-- A brand whose values name `player-site` and not `casino`: the site is served without play.
+- A brand that runs `player-site` and not `casino`: the site is served without play.
+- A player at the session limit with two games open: the brand ends each game session; each play
+  behaviour learns it at its next read and stands at ended.
 
 ## Requirements *(mandatory)*
 
@@ -472,7 +484,7 @@ that streams replies, approval requests, each refusal, and a reply that stops.
   start that was not answered MAY be sent again under the same request id, and only under it.
 - **FR-015**: A refusal of the start MUST put the behaviour at the refused step with the code and
   fields the brand answered: the deposit gate with the KYC status; a deposit limit with its period,
-  its value and what remains; cooling off with the end of the break; a self-exclusion; a restricted
+  its value, what was used and what remains; cooling off with the end of the break; a self-exclusion; a restricted
   player with the status; a refusal of the cashier with the cashier's code; a service that did not
   answer with its name. The refused step allows going back to the amount and closing; where the
   start was not answered it also allows trying again, which sends the same amount under the same
@@ -554,6 +566,12 @@ that streams replies, approval requests, each refusal, and a reply that stops.
   fires none. *Established by:* `GameManagerContext.tsx`, except the count (*Changes from the
   original*).
 
+- **FR-059**: Several games MAY be open at once. Each open game MUST be a play behaviour of its
+  own, with its own game session, bet check and reality check count; one is shown and the others
+  hidden; picking a game already open MUST show it and launch nothing; closing the shown game MUST
+  show the next open one; sign-out MUST end every open game's session. *Established by:*
+  `GameManagerContext.tsx` (`openGames`, `activeGameId`).
+
 **Module clients**
 
 - **FR-056**: `game-provider`'s catalogue reads MUST be served to a visitor with no sign-in (spec
@@ -581,8 +599,9 @@ that streams replies, approval requests, each refusal, and a reply that stops.
   currency's exponent, from a currency table the contract publishes, and one that does not fit MUST
   be refused as malformed; no amount passes through a floating-point number. The one exception is a
   crypto payment's amount in its coin, which is the cashier's text and is shown as sent.
-- **FR-058**: The wallet's player routes MUST write an amount in major units by the currency's own
-  exponent (spec 002, amended): for a currency of two decimals, as today.
+- **FR-058**: Every route of the wallet that writes an amount as major-unit text, the player's and
+  the operator's, MUST write it by the currency's own exponent (spec 002, amended): for a currency
+  of two decimals, as today.
 - **FR-057**: `players`' game session read MUST answer the time of the session's last bet, and
   nothing where there was none (spec 008, amended).
 - **FR-038**: The SDK MUST format an amount for a language from its minor units, its currency's
@@ -644,7 +663,8 @@ that streams replies, approval requests, each refusal, and a reply that stops.
   at refused when the session is another player's, minting a new session id for the next turn.
 - **FR-054**: The support agent's words — a reply, an approval request's effect, a guardrail's
   refusal, the unavailable and closing words — are the brand's to the player and MUST be shown as
-  sent; they are the one exception to FR-039's rule on a service's text. The behaviour adds no word.
+  sent; they are, with a payment provider's rejection words (FR-022), the only exception to FR-039's rule
+  on a service's text. The behaviour adds no word.
 - **FR-055**: Nothing of a conversation except its session id MUST be kept by the page beyond the
   page's life, and nothing at all after sign-out.
 
@@ -672,6 +692,9 @@ that streams replies, approval requests, each refusal, and a reply that stops.
   converted at the cashier with a multiplication by 100.
 - **One refusal form.** The original parsed each service's errors where it met them, some by
   searching the text.
+- **Smaller differences in staying signed in.** A tab whose refresh was refused reads the session
+  again before signing the player out, since another tab may have refreshed; a sign-out with a
+  lapsed sign-in refreshes first so the brand can still be told; the language cookie is renamed.
 - **Languages are the site's.** The original offered English, German, French and Portuguese from one
   file of strings in the site; the SDK holds no strings and a site offers what it translates.
 - **Not carried in this slice**, and still the original's to serve where a brand needs them:
@@ -692,7 +715,9 @@ that streams replies, approval requests, each refusal, and a reply that stops.
   terminals of the session it opened, the start takes a request id it passes to the cashier; its
   refusal carries the figures the deposit gate and responsible gambling answered.
 - **Spec 008 (players)**: the game session read answers the time of the last bet (FR-057).
-- **Spec 002 (wallet)**: the player routes write major units by the currency's exponent (FR-058).
+- **Spec 002 (wallet)**: every route writing major-unit text writes by the currency's exponent
+  (FR-058).
+- **The contract**: publishes a currency table, each code with its exponent (FR-037).
 - **Spec 003 (game-provider) FR-027**: the catalogue's reads (games, one game, developers, popular
   games) are public routes, as the original's were: its site read them before sign-in. Spec 003's
   routes contract left this to be settled against the original, and says the reads become public

@@ -10,10 +10,12 @@ just player-sdk-features      # features/player-site/*.feature except reference-
 
 Expect every scenario green and no test waiting on a real timer (the whole run under a minute).
 
-## 2. `players`' deposit start (US2)
+## 2. The amended services (US1, US2, US3, US5)
 
 ```bash
-just players-test             # features/players/deposit-start.feature and the parity suite
+just players-test             # deposit-start.feature, the two last-bet scenarios of sessions.feature, the parity suite
+just wallet-test              # the outline of reads.feature: major units by the currency's decimals
+just provider-test            # the catalogue read by a visitor; the parity suite
 ```
 
 ## 3. The reference site on this machine (US7)
@@ -24,7 +26,7 @@ just player-site-run          # ankka local web -- npm run dev, services found a
 
 Open the address it prints: the lobby in French; switch to English; register; follow the
 verification link from the mail catcher; sign in; deposit 50,00 € through the payment provider
-stub; pick a game; set a reality check through `responsible-gambling`'s route and see it fire;
+stub; pick a game, then a second, and switch between them; set a reality check through `responsible-gambling`'s route and see it fire;
 open the chat. In the browser's tools: no cookie readable by script but `eo_lang`; no request to
 any origin but the site's; no token in any response.
 
@@ -37,8 +39,8 @@ just player-site-features     # reference-site.feature, and tests/second-appeara
 ## 5. On `dev-kind` (US7, FR-036)
 
 ```bash
-just modules render guyanabet
-just modules apply guyanabet --installation dev-kind
+just modules render guyanabet --modules casino,engagement,support,player-site
+just modules apply guyanabet --modules casino,engagement,support,player-site --installation dev-kind
 just player-site-it           # one contract test per client function; then the end-to-end scenario
 ```
 
