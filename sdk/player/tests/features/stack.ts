@@ -54,7 +54,8 @@ export async function stack(options: { brand?: Partial<FakeBrand>; boundMs?: num
     headers.set("cookie", browser.header());
     if ((init?.method ?? "GET") !== "GET") headers.set("origin", SITE);
     const r = browser.take(await app.request(input, { ...init, headers }));
-    const body = await r.clone().text();
+    // a stream reaches the page as it arrives; only what is not a stream is recorded whole
+    const body = r.headers.get("content-type")?.startsWith("text/event-stream") ? "" : await r.clone().text();
     answers.push({ path: input, status: r.status, headers: [...r.headers], body });
     return r;
   };
@@ -73,7 +74,11 @@ export async function stack(options: { brand?: Partial<FakeBrand>; boundMs?: num
       s.site = playerSite({ transport: s.transport, clock });
       await s.site.ready;
     },
-    close: served.close,
+    async close() {
+      s.site?.stop();
+      for (const c of d.brand.pushes) c.end();
+      await served.close();
+    },
   };
   await s.reload();
   return s;

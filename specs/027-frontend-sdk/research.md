@@ -283,6 +283,13 @@ the brand's onboarding on the installation; the task order.
   decimals whatever the currency (`services/backoffice/src/shared/money.ts:91`, `walletMinor`, and
   its callers and tests), which is wrong for a currency of 0 or 3 decimals once this merges.
 
+- **The inbox's push (T036, T037)**: the inbox holds `engagement`'s stream, as R9 chose; T005,
+  which would show whether the gateway holds events back, has not run (the installation is down),
+  so the 30-second read R9 names as the fallback is not built. The stack harness's page fetch
+  recorded each answer whole, which held a stream until it ended; it now passes a stream on as it
+  arrives. A balance that does not fit its currency is refused `malformed_amount` (the feature's
+  code), where the client first answered `malformed_answer`.
+
 ## Design finished
 
 2026-11-18: the person proceeded with 4 findings above LOW from the third analysis round, each

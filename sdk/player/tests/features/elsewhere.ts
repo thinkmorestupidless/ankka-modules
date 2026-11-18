@@ -23,6 +23,5 @@ export const wholly: Readonly<Record<string, string>> = {
 
 /** Feature files whose steps are not written yet, by the task that writes them. Each task removes its line. */
 export const unbound: Readonly<Record<string, string>> = {
-  "inbox.feature": "T037",
   "chat.feature": "T040",
 };
