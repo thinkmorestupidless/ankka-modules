@@ -176,6 +176,7 @@ export const texts = {
   "chat.cancel": "Cancel",
   "chat.deciding": "Sending your answer…",
   "chat.interrupted": "The answer was cut short.",
+  "chat.ended": "This conversation has ended. Write to start another.",
   "chat.resultOk": "Done: {action}.",
   "chat.resultFailed": "Not done: {action}.",
   "cashierReturn.body": "You can close this tab and go back to the site.",

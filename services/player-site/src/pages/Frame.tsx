@@ -28,6 +28,7 @@ export function Frame({ site, overlays }: { site: PlayerSite; overlays?: React.R
                   {funds.restricted && funds.restricted.minor > 0n ? <span className="ml-2 text-sm text-white/70">+ {format(funds.restricted, language)} {t("balance.restricted")}</span> : null}
                 </span>
               ) : null}
+              <Unread site={site} />
               <Button tone="money" onClick={() => site.deposit()}>
                 {t("nav.deposit")}
               </Button>
@@ -68,5 +69,18 @@ export function Frame({ site, overlays }: { site: PlayerSite; overlays?: React.R
       {session.kind === "idle_warning" ? <IdleWarning site={site} step={session} /> : null}
       {overlays}
     </div>
+  );
+}
+
+/** The unread count, from the inbox behaviour, where the brand runs engagement. */
+function Unread({ site }: { site: PlayerSite }) {
+  const { t } = useLanguage();
+  const step = useBehaviour(site.inbox);
+  const count = step && "unread" in step ? (step.unread ?? 0) : 0;
+  if (count === 0) return null;
+  return (
+    <span role="status" className="rounded-full bg-white px-2 py-0.5 text-sm font-semibold text-canopy">
+      {t("inbox.unread", { count })}
+    </span>
   );
 }

@@ -7,7 +7,7 @@ import { Busy } from "./ui.tsx";
 
 /** A tile's band, from the game's name: the same game always wears the same colour. */
 const bands = ["#12382b", "#2f7a57", "#1d4f5c", "#5b4a1f", "#3b2f57", "#7a2f3a"];
-const band = (code: string) => bands[[...code].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % bands.length];
+const band = (code: string) => bands[[...code].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0, 2166136261) % bands.length];
 
 type Read = { games: Game[] } | { refusal: Parameters<typeof Refused>[0]["refusal"] } | null;
 

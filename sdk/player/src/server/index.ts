@@ -5,6 +5,7 @@ import { readConfig } from "./config.ts";
 export { siteServer, type SiteServerOptions } from "./app.ts";
 export { readConfig, MissingConfiguration, type SiteConfig } from "./config.ts";
 export type { LogLine } from "./context.ts";
+export { allRoutes } from "./modules.ts";
 
 /** Starts the site server on `PORT`, as the platform's proxy expects (ankka web hosting). */
 export function startSiteServer(options: SiteServerOptions = {}) {
