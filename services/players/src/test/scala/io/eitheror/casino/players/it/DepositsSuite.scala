@@ -93,3 +93,20 @@ class DepositsSuite extends munit.FunSuite with LogCapturing:
     val r = deposit(id, token)
     assertEquals((r.status, r.str("error"), r.str("service")), (422, "invalid_currency", "ingest"), r.text)
   }
+
+  test("a request id: sent as the cashier's transactionId and answered; a malformed one refused as invalid_request_id before anything is asked") {
+    val (id, token) = signedIn()
+    Seq("\"\"", "\"has space\"", "\"" + "x" * 65 + "\"", "42", "{}").foreach { bad =>
+      val r = deposit(id, token, s"""{"amount":5000,"currency":"EUR","requestId":$bad}""")
+      assertEquals((r.status, r.str("error")), (400, "invalid_request_id"), bad)
+    }
+    assertEquals((kycAsked(id).size, created(id).size), (0, 0))
+    val sent = "a-_9" * 16
+    val r = deposit(id, token, s"""{"amount":5000,"currency":"EUR","requestId":"$sent"}""")
+    assertEquals((r.status, r.str("requestId"), r.str("paymentId")), (200, sent, sent), r.text)
+    assertEquals(created(id).flatMap(_.json).map(_.textOr("transactionId", "")), Vector(sent))
+    val none = deposit(id, token, """{"amount":5000,"currency":"EUR","requestId":null}""")
+    assertEquals(none.status, 200, none.text)
+    assert(!created(id).last.json.get.has("transactionId"), "with no request id the cashier mints one")
+    assert(none.str("cashierTicket").nonEmpty && none.json.get("terminals").isArray, none.text)
+  }

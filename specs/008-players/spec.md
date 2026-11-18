@@ -633,6 +633,15 @@ store and `payments` for a personal field; fetch the response.
   spec 001 FR-020) with the customer fields spec 001 FR-018 names, and answer the cashier's redirect.
   The wallet's own `may-deposit` at credit (spec 002 FR-022) is the authoritative check; this one
   only spares the player a refused payment.
+  *Amended by spec 027* (FR-018): the start takes an optional `requestId` (1 to 64 of
+  `[A-Za-z0-9_-]`, else `400 invalid_request_id`) and sends it as the cashier session's
+  `transactionId`, so a repeat with the same content answers the first session and one with another
+  is the cashier's `409 REQUEST_ID_REUSED` naming `ingest`; with none the cashier mints the id, as
+  before. The answer gains the session's `cashierTicket` (the cashier's `session_token`), its
+  `terminals` (`available_terminals`, unchanged) and `requestId` (its `transactionId`, which
+  `paymentId` equals). A refusal carries the figures: `kyc`'s `kycStatus`, and responsible
+  gambling's `endsAt` (`cooling_off`) or `period`, `limit`, `used` and `remaining` in minor units
+  (`over_limit`). The answer is never logged: it carries the ticket.
 
 ### Key Entities
 

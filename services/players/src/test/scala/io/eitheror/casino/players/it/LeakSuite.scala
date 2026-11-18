@@ -160,5 +160,9 @@ class LeakSuite extends munit.FunSuite with LogCapturing:
     Thread.sleep(1000)
     val added: Places = tables.map((place, rows) => s"$place (new rows)" -> rows.filterNot(before.getOrElse(place, Vector.empty).toSet))
     assertNowhere(m.all, log ++ audit ++ facts ++ added)
+    // the answer carries the cashier ticket, the credential of the cashier session: never logged (spec 027 FR-018)
+    val ticket = d.str("cashierTicket")
+    assert(ticket.nonEmpty, d.text)
+    assertNowhere(Seq(ticket), log)
   }
 

@@ -7,10 +7,13 @@ import io.eitheror.casino.players.Json.*
 
 import java.time.Duration
 
-/** The deposit check's answer (spec 009 FR-019): allowed, or the code and message to pass on. */
+/**
+ * The deposit check's answer (spec 009 FR-019): allowed, or the code, message and the player's KYC
+ * status (kyc answers it for `DEPOSIT_BLOCKED_KYC*`) to pass on (spec 027 FR-018).
+ */
 enum KycDecision:
   case Allowed
-  case Refused(code: String, message: String)
+  case Refused(code: String, message: String, kycStatus: Option[String] = None)
 
 /** `kyc` within the project, under `/v1/casino/brands/<brand>/kyc`; the currency is the deposit's (009 R5). */
 trait Kyc:
@@ -29,7 +32,7 @@ object Kyc:
     if !r.ok then Left(s"status ${r.status}")
     else r.body match
       case Some(b) if b.bool("allowed").contains(true) => Right(KycDecision.Allowed)
-      case Some(b) => b.text("code").map(c => KycDecision.Refused(c, b.textOr("message", ""))).toRight("refused without a code")
+      case Some(b) => b.text("code").map(c => KycDecision.Refused(c, b.textOr("message", ""), b.text("kycStatus"))).toRight("refused without a code")
       case None    => Left("no body")
 
 /**

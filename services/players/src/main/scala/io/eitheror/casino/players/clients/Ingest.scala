@@ -8,12 +8,20 @@ import java.net.URI
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 import java.time.Duration
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters.*
 
-/** The cashier's answer to a create (006 `contracts/routes.md`): where to send the player, and the payment. */
+/**
+ * The cashier's answer to a create (006 `contracts/routes.md`): where to send the player, the session's
+ * `transactionId` (the request id, `paymentId` to callers that read it), its ticket (`session_token`)
+ * and its `available_terminals` as the cashier wrote them (spec 027 FR-018).
+ */
 enum CashierOutcome:
-  case Opened(redirectUrl: String, paymentId: String)
-  /** `ingest` or `merchant` refused: the status and the `error` code, passed to the player. */
-  case Refused(status: Int, code: String)
+  case Opened(redirectUrl: String, paymentId: String, cashierTicket: String, terminals: JsonNode)
+  /**
+   * `ingest` or `merchant` refused: the status, the `error` code and the refusal's other fields
+   * (`transactionId` of a `409 REQUEST_ID_REUSED`, `retryAfterSeconds`, `field`), passed to the player.
+   */
+  case Refused(status: Int, code: String, fields: Vector[(String, JsonNode)] = Vector.empty)
 
 /**
  * `ingest`'s public cashier route in the shared `payments` project (FR-043, R15), `POST
@@ -31,12 +39,17 @@ object Ingest:
   def read(r: Reply): Either[String, CashierOutcome] =
     if r.ok then
       (for
-        b   <- r.body
-        url <- b.text("redirectUrl")
-        id  <- b.text("transactionId")
-      yield CashierOutcome.Opened(url, id)).toRight("no redirectUrl or transactionId")
+        b      <- r.body
+        url    <- b.text("redirectUrl")
+        id     <- b.text("transactionId")
+        ticket <- b.text("session_token")
+      yield CashierOutcome.Opened(url, id, ticket, Option(b.get("available_terminals")).filter(_.isArray).getOrElse(Json.arr())))
+        .toRight("no redirectUrl, transactionId or session_token")
     else if r.status == 503 then Left("TRY_AGAIN")
-    else Right(CashierOutcome.Refused(r.status, r.body.flatMap(_.text("error")).getOrElse(s"status_${r.status}")))
+    else
+      val fields = r.body.filter(_.isObject).toVector.flatMap(_.properties.asScala.toVector.map(e => e.getKey -> e.getValue))
+        .filterNot((k, _) => k == "error" || k == "message" || k == "service")
+      Right(CashierOutcome.Refused(r.status, r.body.flatMap(_.text("error")).getOrElse(s"status_${r.status}"), fields))
 
 private final class HttpIngest(base: String) extends Ingest:
   import Neighbour.calls

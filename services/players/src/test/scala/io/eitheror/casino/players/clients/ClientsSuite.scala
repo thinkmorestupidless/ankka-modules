@@ -72,8 +72,10 @@ class ClientsSuite extends munit.FunSuite with LogCapturing:
     val asked = Json.parse(String(kycServices.requests.head.body, UTF_8)).get
     assertEquals((asked.text("playerId"), asked.long("amount"), asked.text("currency")), (Some("p-1"), Some(100L), Some("GBP")))
     def kyc(body: String) = Kyc.http(scripted(Kyc.Service)(_ => json(200, body)), "goldvibe")
-    assertEquals(answered(kyc("""{"allowed":false,"code":"DEPOSIT_BLOCKED_KYC","message":"Verify first"}""").depositCheck("p-1", 100, "EUR", bound)),
-      KycDecision.Refused("DEPOSIT_BLOCKED_KYC", "Verify first"))
+    assertEquals(answered(kyc("""{"allowed":false,"code":"DEPOSIT_BLOCKED_KYC","message":"Verify first","kycStatus":"pending"}""").depositCheck("p-1", 100, "EUR", bound)),
+      KycDecision.Refused("DEPOSIT_BLOCKED_KYC", "Verify first", Some("pending")))
+    assertEquals(answered(kyc("""{"allowed":false,"code":"DEPOSIT_BLOCKED_SOF","message":"Source of funds"}""").depositCheck("p-1", 100, "EUR", bound)),
+      KycDecision.Refused("DEPOSIT_BLOCKED_SOF", "Source of funds", None))
     assert(kyc("""{"allowed":false}""").depositCheck("p-1", 100, "EUR", bound).isInstanceOf[Raced.Failed[?]])
   }
 
@@ -114,15 +116,21 @@ class ClientsSuite extends munit.FunSuite with LogCapturing:
     protected def route(r: Received): Answer = answer(r)
 
   test("ingest: the cashier opened, refused with ingest's code, or TRY_AGAIN as failed; the key in the header") {
-    val ingest = Scripted(_ => Answer.ok(Json.obj("redirectUrl" -> "https://pay/x", "transactionId" -> "pay-1", "session_token" -> "s")))
+    val terminals = Json.arr(Json.obj("terminalEntityId" -> "t-1", "scheme" -> "card"))
+    val ingest = Scripted(_ => Answer.ok(Json.obj("redirectUrl" -> "https://pay/x", "transactionId" -> "pay-1", "session_token" -> "s",
+      "available_terminals" -> terminals)))
     try
       val out = Ingest.http(ingest.address).createSession(Json.obj("amountCents" -> 100L), "mk-1", bound)
-      assertEquals(answered(out), CashierOutcome.Opened("https://pay/x", "pay-1"))
+      assertEquals(answered(out), CashierOutcome.Opened("https://pay/x", "pay-1", "s", terminals))
       assertEquals(ingest.received.head.headers.get("merchantkey"), Some("mk-1"))
     finally ingest.stop()
     val refusing = Scripted(_ => Answer.json(400, Json.obj("error" -> "INVALID_REQUEST", "field" -> "country")))
-    try assertEquals(answered(Ingest.http(refusing.address).createSession(Json.obj(), "k", bound)), CashierOutcome.Refused(400, "INVALID_REQUEST"))
+    try assertEquals(answered(Ingest.http(refusing.address).createSession(Json.obj(), "k", bound)), CashierOutcome.Refused(400, "INVALID_REQUEST",
+      Vector("field" -> Json.mapper.getNodeFactory.textNode("country"))))
     finally refusing.stop()
+    val noTicket = Scripted(_ => Answer.ok(Json.obj("redirectUrl" -> "https://pay/x", "transactionId" -> "pay-1")))
+    try assert(Ingest.http(noTicket.address).createSession(Json.obj(), "k", bound).isInstanceOf[Raced.Failed[?]], "an opened session names its ticket")
+    finally noTicket.stop()
     val busy = Scripted(_ => Answer.json(503, Json.obj("error" -> "TRY_AGAIN")))
     try assert(Ingest.http(busy.address).createSession(Json.obj(), "k", bound).isInstanceOf[Raced.Failed[?]])
     finally busy.stop()
