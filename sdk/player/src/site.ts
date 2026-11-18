@@ -1,5 +1,6 @@
 import { realClock, type Clock } from "./clock.ts";
 import { casinoClient, type CasinoClient } from "./casino/client.ts";
+import { gamesBehaviour, type GamesBehaviour } from "./casino/games.ts";
 import { coreClient, type CoreClient } from "./core/client.ts";
 import { depositBehaviour, type DepositBehaviour } from "./core/deposit.ts";
 import { fundsStore, type FundsStore } from "./core/funds.ts";
@@ -44,6 +45,8 @@ export interface PlayerSite {
    * as it stands. Nobody signed in: `undefined`.
    */
   deposit(): DepositBehaviour | undefined;
+  /** The open games, where the brand runs `casino`; `undefined` where it does not, or before `ready`. */
+  readonly games: GamesBehaviour | undefined;
   /** The deposit open now, until it is closed; told through `subscribe`. */
   readonly currentDeposit: DepositBehaviour | undefined;
   /** Whether the brand runs a module, by `/api/site` alone. */
@@ -88,7 +91,10 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
     ...(options.idleWarningSeconds !== undefined ? { idleWarningSeconds: options.idleWarningSeconds } : {}),
     onPlayer(p) {
       player = p;
-      if (!p) closeDeposit();
+      if (!p) {
+        closeDeposit();
+        games?.closeAll();
+      }
       funds.player(p?.currency ?? null);
       changed();
     },
@@ -127,6 +133,28 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
     d?.stop();
   };
   stops.push(closeDeposit);
+  let games: GamesBehaviour | undefined;
+  const gamesNow = () => {
+    if (games || !facts?.modules.includes("casino")) return games;
+    games = gamesBehaviour({
+      core,
+      casino,
+      clock,
+      player: () => player,
+      funds: () => funds.current(),
+      needsDeposit: () => void openDeposit(),
+      recentBet: () => session.notIdle(),
+    });
+    games.visible(shownPage);
+    stops.push(games.stop);
+    return games;
+  };
+  // A sign-out, the player's or the idle one, ends every open game's session while the brand
+  // still holds the sign-in (FR-032, FR-059).
+  session.subscribe((s) => {
+    if (s.kind === "signing_out") games?.closeAll();
+  });
+  let shownPage = true;
   const ready = options.known
     ? Promise.resolve()
     : Promise.all([transport.session.site(), transport.session.read()]).then(([s, p]) => {
@@ -156,7 +184,14 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
     funds,
     core,
     casino,
-    visible: (isVisible) => funds.visible(isVisible),
+    visible(isVisible) {
+      shownPage = isVisible;
+      funds.visible(isVisible);
+      games?.visible(isVisible);
+    },
+    get games() {
+      return gamesNow();
+    },
     runs: (module) => facts?.modules.includes(module) ?? false,
     subscribe(listener) {
       listeners.add(listener);

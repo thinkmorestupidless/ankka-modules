@@ -10,3 +10,6 @@ export * from "./amount.ts";
 export * from "./refusal.ts";
 export { isRefusalCode, refusalCodes, codesByBehaviour, type RefusalCode, type RefusalFields } from "./codes.ts";
 export * from "./language.ts";
+export { casinoClient, type CasinoClient, type Game, type Launched, type CatalogueQuery } from "./casino/client.ts";
+export { blockedIn, type PlayBehaviour, type PlayStep, type PlayActions } from "./casino/play.ts";
+export type { GamesBehaviour, GamesStep, GamesActions } from "./casino/games.ts";
