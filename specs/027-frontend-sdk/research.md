@@ -259,6 +259,30 @@ the brand's onboarding on the installation; the task order.
 - **The package's scripts (T019)**: `vitest --dir` resolved the include patterns under the
   directory and found no file; the scripts filter by path.
 
+- **The deposit start (T020, T021)**: a request id is 1 to 64 of `[A-Za-z0-9_-]`, as the
+  amendments say (inside ingest's `REQUEST_ID_BOUND`); JSON `null` is absent; any other value is
+  `400 invalid_request_id`, checked after the amount and the currency. With none, players sends no
+  `transactionId` and ingest mints it. `409 REQUEST_ID_REUSED` passes on ingest's fields and adds
+  `requestId` and `service: "ingest"`; every ingest refusal now passes on its fields beside
+  `error`. A cashier answer with no `session_token` is unreadable, `503` naming `ingest`; no
+  `available_terminals` is `[]`. Responsible gambling's `reason`, `endsAt`, `period`, `limit`,
+  `used`, `remaining` and kyc's `kycStatus` are passed on whenever present. `tests/port/players/`
+  holds no deposit recording, so there was no deposit parity to keep (the 60 parity tests pass).
+  The feature's brand is `guyanabet`, so `DepositStartFeatures` runs its own kit in its own JVM.
+- **The last bet (T058)**: `RecordBet` for an unknown session, or a time no later than the one
+  held, is no event; an ended session still records a round settled after its end.
+  `SessionRow.lastBetAt` is an added optional field (epoch milliseconds), so the view keeps its
+  version. `Facts.gameSessions` gained a case for `BetRecorded`, which would otherwise have
+  crashed the `casino.sessions` publisher.
+- **The catalogue (T027)**: an old `SharedKitSuites` case asserted an anonymous read is `401`; it
+  now asserts `200` for the four reads, `404` for another brand, and `401` for an anonymous launch.
+- **The wallet's major units (T059)**: no reader of the wallet's major text outside the wallet on
+  this branch; every other service uses the service routes' minor units. Left open, outside this
+  spec: the operator's adjustment input (`Major.parse`) still reads two decimals, so for JPY an
+  operator reads `"1234"` but sends `"12.34"`; and 030's backoffice reads the text with two
+  decimals whatever the currency (`services/backoffice/src/shared/money.ts:91`, `walletMinor`, and
+  its callers and tests), which is wrong for a currency of 0 or 3 decimals once this merges.
+
 ## Design finished
 
 2026-11-18: the person proceeded with 4 findings above LOW from the third analysis round, each
