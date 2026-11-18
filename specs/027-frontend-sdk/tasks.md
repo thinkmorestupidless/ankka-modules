@@ -22,7 +22,7 @@ original, read only).
 
 ## Phase 1: Setup and verification
 
-- [ ] T001 Root `package.json` (private, workspaces `sdk/player`, `services/player-site`, Node `>=24`) and `sdk/player/package.json` (`@eitheror/player-sdk`, private, `type: module`, the subpath exports of research R1, scripts `typecheck`, `test`, `features`, `lint`), `tsconfig.json` (strict, `noUncheckedIndexedAccess`), `eslint.config.js`, `vitest.config.ts`; `.gitignore` for `node_modules`, `dist`; `npm ci && npm run typecheck -w sdk/player` passes on empty sources
+- [X] T001 Root `package.json` (private, workspaces `sdk/player`, `services/player-site`, Node `>=24`) and `sdk/player/package.json` (`@eitheror/player-sdk`, private, `type: module`, the subpath exports of research R1, scripts `typecheck`, `test`, `features`, `lint`), `tsconfig.json` (strict, `noUncheckedIndexedAccess`), `eslint.config.js`, `vitest.config.ts`; `.gitignore` for `node_modules`, `dist`; `npm ci && npm run typecheck -w sdk/player` passes on empty sources
 - [ ] T052 `.specify/memory/constitution.md`: before anything else is built, the *Scope* amendment of `contracts/amendments.md` and research R15, version and amendment note; check each open spec's wording against it
 - [ ] T002 [P] `Justfile`: `player-sdk-test`, `player-sdk-features`, `player-site-run`, `player-site-features`, `player-site-it`, per `quickstart.md`; a line each in the root `README.md`; `player-site-run` sets `PLAYER_SITE_LOCAL`
 - [ ] T003 [P] `.github/workflows/ci.yml`: path filters `sdk/**`, `services/player-site/**`, `features/player-site/**`; a `player-sdk` job (`npm ci`, typecheck, lint, test, features) and a `player-site` job (build, features); `players`' and `game-provider`'s jobs unchanged

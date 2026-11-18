@@ -1,0 +1,22 @@
+{
+  // Node runs the server and the tests directly, and a site imports the sources as they are, so
+  // the package is TypeScript that erases (`erasableSyntaxOnly`) and imports local files by their
+  // `.ts` name. Nothing is emitted.
+  "compilerOptions": {
+    "target": "es2024",
+    "module": "nodenext",
+    "lib": ["es2024", "dom", "dom.iterable"],
+    "types": ["node"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": false,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true
+  },
+  "include": ["src", "tests", "vitest.config.ts", "eslint.config.js"]
+}
