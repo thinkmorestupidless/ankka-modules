@@ -150,7 +150,8 @@ export function coreClient(transport: Transport, player: () => string | null = (
       const real = readMajor(r.value.realBalance, currency);
       const restricted = readMajor(r.value.bonusBalance, currency);
       const available = readMajor(r.value.available ?? r.value.realBalance, currency);
-      if (!real.ok || !restricted.ok || !available.ok) return { ok: false, refusal: refusal("malformed_answer", 200, {}, "wallet") };
+      // An amount that does not fit its currency is refused, never rounded (FR-037).
+      if (!real.ok || !restricted.ok || !available.ok) return { ok: false, refusal: refusal("malformed_amount", 200, undefined, "wallet") };
       return { ok: true, value: { real: real.amount, restricted: restricted.amount, available: available.amount } };
     },
     async submitCashier(t, terminalId, options = {}) {

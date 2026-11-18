@@ -42,7 +42,7 @@ describe("core's client: the deposit rows", () => {
     d.brand.balance = { real: "100", bonus: "0" };
     expect(await core.balance("JPY")).toMatchObject({ ok: true, value: { real: amount(100n, "JPY") } });
     d.brand.balance = { real: "12.345", bonus: "0" };
-    expect(await core.balance("EUR")).toMatchObject({ ok: false, refusal: { code: "malformed_answer", service: "wallet" } });
+    expect(await core.balance("EUR")).toMatchObject({ ok: false, refusal: { code: "malformed_amount", service: "wallet" } });
   });
 
   it("submitCashier sends the ticket in its header alone, the terminal, the coin and the details as the cashier names them", async () => {

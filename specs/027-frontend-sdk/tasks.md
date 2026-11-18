@@ -92,7 +92,7 @@ unchanged. **Independent test**: `features/player-site/composing.feature`.
 
 ## Phase 7: User Story 5 — amounts, refusals and language (P2)
 
-- [ ] T035 [US5] Bind `features/player-site/amounts-and-refusals.feature` in `KT/features/rules.steps.ts` over `amount.ts`, `refusal.ts`, `language.ts` and the `balance` client function; the scenario on the reference site's words is named in `elsewhere.ts` and bound in T042; the step comparing a shown amount treats every kind of space alike, since `Intl` writes narrow and no-break spaces
+- [X] T035 [US5] Bind `features/player-site/amounts-and-refusals.feature` in `KT/features/rules.steps.ts` over `amount.ts`, `refusal.ts`, `language.ts` and the `balance` client function; the scenario on the reference site's words is named in `elsewhere.ts` and bound in T042; the step comparing a shown amount treats every kind of space alike, since `Intl` writes narrow and no-break spaces
 
 ## Phase 8: User Story 6 — the page is told when the inbox changes (P2)
 
