@@ -87,6 +87,30 @@ class MoneyPathsItSuite extends Harness:
     assertEquals(sendWithToken("GET", s"/v1/casino/players/$brand/wallets/EUR/balance", TestTokens.player("pl", "casino-otherbrand"))._1, 403)
   }
 
+  // Spec 027 FR-058: the operator's reads write major units by the currency's exponent; two decimals as before.
+  for (currency, minor, written) <- Seq(("JPY", 1234L, "1234"), ("EUR", 1234L, "12.34"), ("KWD", 1234L, "1.234")) do
+    test(s"an operator's reads of a $currency wallet write $minor minor units as \"$written\", the exponent's decimals (spec 027 FR-058)") {
+      val player = s"ex-$currency"
+      val (ds, db) = send("POST", s"${wallet(player, currency)}/deposits", Some(s"""{"paymentId":"pay-$currency","amount":$minor,"paymentProvider":"dreamzpay","terminal":"t1"}"""), as = merchant)
+      assertEquals(ds, 200, db)
+      val base = s"/v1/casino/backoffice/$brand/wallets/$player/$currency"
+      val (status, balance) = sendWithToken("GET", s"$base/balance", TestTokens.operator("op-1"))
+      assertEquals((status, field(balance, "realBalance"), field(balance, "bonusBalance"), field(balance, "depositPoolBalance")),
+        (200, Some(written), Some(zero(currency)), Some(written)), balance)
+      val listed = eventually(sendWithToken("GET", s"$base/transactions", TestTokens.operator("op-1"))._2)(_.contains("\"deposit\""))
+      assert(listed.contains(s"\"amount\":\"$written\"") && listed.contains(s"\"balanceAfter\":\"$written\""), listed)
+      val totals = eventually(sendWithToken("GET", s"$base/lifetime-totals", TestTokens.operator("op-1"))._2)(field(_, "totalDeposited").contains(written))
+      assertEquals(field(totals, "totalWagered"), Some(zero(currency)))
+      val (_, mine) = sendWithToken("GET", s"/v1/casino/players/$brand/wallets/$currency/balance", TestTokens.player(player))
+      assertEquals(field(mine, "realBalance"), Some(written), "the player's read writes it the same way")
+    }
+
+  /** Zero as the currency's exponent writes it. */
+  private def zero(currency: String): String = currency match
+    case "JPY" => "0"
+    case "KWD" => "0.000"
+    case _     => "0.00"
+
   test("transactions, sums and lifetime totals answer from the views, and again after a restart (FR-029)") {
     deposit("vw", "pay-1", 3000)
     bet("vw", "b-1", "r1", 1000)

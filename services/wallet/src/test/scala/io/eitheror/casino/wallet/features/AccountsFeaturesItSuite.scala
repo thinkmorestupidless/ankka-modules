@@ -144,7 +144,7 @@ class AccountsFeaturesItSuite extends LedgerFeatures("accounts.feature"):
     (pool: String, a: String, reason: String) =>
       acted = true
       last = sendWithToken("POST", s"/v1/casino/backoffice/$brand/accounts/clearing/${p(pool)}/adjustments", operatorToken,
-        Some(s"""{"key":"${nextKey("adj")}","currency":"$currency","amount":"${Wire.major(a.toLong)}","reason":"$reason","category":"correction"}"""))
+        Some(s"""{"key":"${nextKey("adj")}","currency":"$currency","amount":"${Wire.major(a.toLong, io.eitheror.casino.contract.money.Currency.unsafe(currency))}","reason":"$reason","category":"correction"}"""))
       assertEquals(last._1, 200, last._2)
   }
 

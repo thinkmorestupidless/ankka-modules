@@ -9,7 +9,11 @@ prefix rather than matched. A request naming another brand matches no route and 
 Bodies use the original's field names where it has the route (`realBalance`, `bonusBalance`, `txnId`,
 `walletType`: camelCase, as its spray-json wrote them; [wire.md](wire.md)). Amounts on service and
 granted routes are minor-unit integers; on player and operator routes major-unit strings with two
-decimals. A route's ACL comes from `contract.access.Routes`; the granted routes and erasure replace
+decimals. *Amended by spec 027* (FR-058): on player and operator routes major-unit strings by the
+currency's exponent (`Wire.major(minor, currency)`, the contract's `Amounts.render`, with the route's
+currency): two decimals for a currency of two, byte for byte as before; `"1234"` for 1234 JPY,
+`"1.234"` for 1234 KWD. The operator's adjustment still reads its `amount` as at most two decimals.
+A route's ACL comes from `contract.access.Routes`; the granted routes and erasure replace
 the endpoint's ACL for themselves (`withAcl`).
 
 ## Service routes (`Routes.service()`: the project's services, no token)
