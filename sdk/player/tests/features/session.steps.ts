@@ -250,7 +250,7 @@ await bind("session.feature", ({ Background, Scenario, ScenarioOutline }) => {
     And("no service is asked", () => {
       expect(w.doubles.askedOf("players")).toEqual([]);
       // nothing but the sign-in and the funds' reads that follow it
-      expect(w.doubles.asked.filter((a) => !["signIn", "balance", "freeRounds"].includes(a.id))).toEqual([]);
+      expect(w.doubles.asked.filter((a) => !["signIn", "balance", "freeRounds", "push", "unread"].includes(a.id))).toEqual([]);
     });
   });
 

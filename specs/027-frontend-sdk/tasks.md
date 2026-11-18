@@ -96,7 +96,7 @@ unchanged. **Independent test**: `features/player-site/composing.feature`.
 
 ## Phase 8: User Story 6 — the page is told when the inbox changes (P2)
 
-- [ ] T036 [P] [US6] `K/engagement/routes.ts`, `client.ts` (`push` as a stream) and the core row `unread`; `K/engagement/inbox.ts`, added to `playerSite`: the inbox behaviour (`contracts/behaviours.md`), the wait doubling to 30 s on the clock, `visible()` input, closed at sign-out; port `O/utils/unreadCount.test.ts` where its rule is kept; suite `KT/unit/inbox.test.ts`
+- [X] T036 [P] [US6] `K/engagement/routes.ts`, `client.ts` (`push` as a stream) and the core row `unread`; `K/engagement/inbox.ts`, added to `playerSite`: the inbox behaviour (`contracts/behaviours.md`), the wait doubling to 30 s on the clock, `visible()` input, closed at sign-out; port `O/utils/unreadCount.test.ts` where its rule is kept; suite `KT/unit/inbox.test.ts`
 - [ ] T037 [US6] Bind `features/player-site/inbox.feature` in `KT/features/inbox.steps.ts`; where T005 found events held back, the 30-second read of research R9 instead of the stream, behind the same behaviour, and say so in `research.md`
 
 ## Phase 9: User Story 8 — the chat with the support agent (P2)

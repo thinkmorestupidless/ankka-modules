@@ -70,7 +70,11 @@ describe("the service doubles", () => {
       expect(d.askedOf("unread")[0]?.query).toEqual({ status: "unread", page: "1", pageSize: "1" });
       const s = await fetch(`${served.url}/engagement/v1/stream`);
       expect(s.headers.get("content-type")).toBe("text/event-stream");
-      expect(await s.text()).toContain("event: ready");
+      // the push connection stays open until the test ends it, as engagement's does
+      const reader = s.body!.getReader();
+      expect(new TextDecoder().decode((await reader.read()).value)).toContain("event: ready");
+      d.brand.pushes[0]!.end();
+      while (!(await reader.read()).done);
       expect((await fetch(`${served.url}/nowhere`)).status).toBe(404);
     } finally {
       await served.close();

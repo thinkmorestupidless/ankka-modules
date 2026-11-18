@@ -170,7 +170,7 @@ await bind("composing.feature", ({ Background, Scenario }) => {
     Then("every call made of the brand was made through a module client", () => {
       const rows = new Set<Route>([...coreRoutes, ...casinoRoutes, ...engagementRoutes, ...supportRoutes]);
       expect(calls.length).toBeGreaterThan(8);
-      expect(new Set(calls.map((c) => c.route.id))).toEqual(new Set(["balance", "freeRounds", "startDeposit", "submitCashier", "payment", "launch", "game", "protection", "gameSession", "acknowledgeRealityCheck", "endGameSession"]));
+      expect(new Set(calls.map((c) => c.route.id))).toEqual(new Set(["balance", "freeRounds", "startDeposit", "submitCashier", "payment", "launch", "game", "protection", "gameSession", "acknowledgeRealityCheck", "endGameSession", "push", "unread"]));
       for (const c of calls) {
         expect(rows.has(c.route), c.route.id).toBe(true);
         expect(c.stack, c.route.id).toMatch(/src\/(core|casino|engagement|support)\/client\.ts/);

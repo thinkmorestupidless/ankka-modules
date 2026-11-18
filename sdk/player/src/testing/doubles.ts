@@ -149,6 +149,8 @@ export interface FakeBrand {
   protection: { realityCheckIntervalMinutes: number | null; isCoolingOff: boolean; coolingOffUntil: string | null };
   country: string;
   unread: number;
+  /** Each push connection the page opened, in order: a test pushes into one or ends it. */
+  pushes: Channel[];
   next: number;
 }
 
@@ -188,6 +190,7 @@ export function fakeBrand(overrides: Partial<FakeBrand> = {}): FakeBrand {
     protection: { realityCheckIntervalMinutes: null, isCoolingOff: false, coolingOffUntil: null },
     country: "GF",
     unread: 0,
+    pushes: [],
     next: 1,
     ...overrides,
   };
@@ -318,7 +321,13 @@ const defaults: Record<string, (a: Asked, b: FakeBrand) => Reply> = {
     return g ? { status: 200, body: g } : { status: 404, body: { error: "game_not_found" } };
   },
   freeRounds: (_a, b) => ({ status: 200, body: b.freeRounds.map((f) => ({ ...f, gameName: f.gameId, expiresAt: "2026-12-01T00:00:00Z", providerStatus: "active" })) }),
-  push: () => ({ status: 200, stream: [{ event: "ready", data: JSON.stringify({ subjectId: "p-ana", serverTime: "2026-11-18T12:00:00Z" }) }] }),
+  // A push connection stays open until the test ends it, as engagement's does, beginning with `ready`.
+  push: (_a, b) => {
+    const c = channel();
+    c.push("ready", { subjectId: b.signedIn?.playerId ?? "p-ana", serverTime: "2026-11-18T12:00:00Z" });
+    b.pushes.push(c);
+    return { status: 200, stream: c };
+  },
   turn: () => ({ status: 200, stream: [{ event: "delta", data: JSON.stringify({ token: "Bonjour" }) }, { event: "done", data: "{}" }] }),
   decide: () => ({ status: 200, stream: [{ event: "done", data: "{}" }] }),
 };

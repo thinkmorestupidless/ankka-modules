@@ -5,6 +5,8 @@ import { coreClient, type CoreClient } from "./core/client.ts";
 import { depositBehaviour, type DepositBehaviour } from "./core/deposit.ts";
 import { fundsStore, type FundsStore } from "./core/funds.ts";
 import { sessionBehaviour, type SessionBehaviour } from "./core/session.ts";
+import { engagementClient } from "./engagement/client.ts";
+import { inboxBehaviour, type InboxBehaviour } from "./engagement/inbox.ts";
 import type { SignedInPlayer, SiteFacts, Transport } from "./transport.ts";
 
 export interface PlayerSiteOptions {
@@ -55,6 +57,8 @@ export interface PlayerSite {
   deposit(): DepositBehaviour | undefined;
   /** The open games, where the brand runs `casino`; `undefined` where it does not, or before `ready`. */
   readonly games: GamesBehaviour | undefined;
+  /** The inbox, where the brand runs `engagement`; `undefined` where it does not, or before `ready`. */
+  readonly inbox: InboxBehaviour | undefined;
   /** The deposit open now, until it is closed; told through `subscribe`. */
   readonly currentDeposit: DepositBehaviour | undefined;
   /** Whether the brand runs a module, by `/api/site` alone. */
@@ -104,6 +108,7 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
         closeDeposit();
         games?.closeAll();
       }
+      inbox?.signedIn(p !== null);
       funds.player(p?.currency ?? null);
       changed();
     },
@@ -163,6 +168,15 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
   session.subscribe((s) => {
     if (s.kind === "signing_out") games?.closeAll();
   });
+  let inbox: InboxBehaviour | undefined;
+  const inboxNow = () => {
+    if (inbox || !facts?.modules.includes("engagement")) return inbox;
+    inbox = inboxBehaviour({ engagement: engagementClient(transport), core, clock });
+    inbox.visible(shownPage);
+    stops.push(inbox.stop);
+    inbox.signedIn(player !== null);
+    return inbox;
+  };
   let shownPage = true;
   const ready = options.known
     ? Promise.resolve()
@@ -175,8 +189,10 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
           player = p.player;
           session.hydrate(p.player);
         }
+        inboxNow();
         changed();
       });
+  if (options.known) inboxNow();
   return {
     ready,
     get facts() {
@@ -197,6 +213,10 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
       shownPage = isVisible;
       funds.visible(isVisible);
       games?.visible(isVisible);
+      inbox?.visible(isVisible);
+    },
+    get inbox() {
+      return inboxNow();
     },
     get games() {
       return gamesNow();

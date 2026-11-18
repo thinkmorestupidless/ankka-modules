@@ -78,6 +78,7 @@ const Protection = z.object({
   isCoolingOff: z.boolean().catch(false).default(false),
   coolingOffUntil: z.string().nullish().catch(null),
 });
+const Unread = z.object({ unreadCount: z.number().int().nonnegative() });
 const Acknowledged = z.object({ acknowledged: z.boolean() }).partial().passthrough();
 const MajorBalance = z.object({ realBalance: z.string(), bonusBalance: z.string(), available: z.string().nullish(), currency: z.string() });
 
@@ -127,6 +128,8 @@ export interface CoreClient {
   /** What of the player's responsible-gambling status this slice reads. */
   protection(currency: string): Promise<Result<{ realityCheckIntervalMinutes: number | null; isCoolingOff: boolean; coolingOffUntil: string | null }>>;
   acknowledgeRealityCheck(sessionId: string): Promise<Result<unknown>>;
+  /** The count of the player's unread messages. */
+  unread(): Promise<Result<number>>;
 }
 
 /** `player` names the signed-in player, whose id fills `{player}`. */
@@ -181,6 +184,10 @@ export function coreClient(transport: Transport, player: () => string | null = (
       return r.ok ? { ok: true, value: { realityCheckIntervalMinutes: r.value.realityCheckIntervalMinutes ?? null, isCoolingOff: r.value.isCoolingOff, coolingOffUntil: r.value.coolingOffUntil ?? null } } : r;
     },
     acknowledgeRealityCheck: (sessionId) => ask(transport, row(routes, "acknowledgeRealityCheck"), Acknowledged, { path: me(), body: { sessionId } }),
+    async unread() {
+      const r = await ask(transport, row(routes, "unread"), Unread, { path: me() });
+      return r.ok ? { ok: true, value: r.value.unreadCount } : r;
+    },
     async payment(t, paymentId) {
       const r = await ask(transport, row(routes, "payment"), WirePayment, { headers: ticket(t), path: { paymentId } });
       return r.ok ? { ok: true, value: payment(r.value) } : r;
