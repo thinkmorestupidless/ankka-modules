@@ -401,9 +401,18 @@ export function doubleTransport(d: Doubles, options: { boundMs?: number } = {}):
     }
     return reply;
   };
+  // Whether this page held a sign-in: a player route finding none then is the lapsed sign-in the
+  // page transport's one refresh could not renew, and its listeners are told.
+  let held = false;
   const guard = (route: Route): Called | null => {
     if (route.audience === "public") return null;
-    if (!d.brand.signedIn) return { ok: false, refusal: refusal("signed_out", 401) };
+    if (!d.brand.signedIn) {
+      if (held) {
+        held = false;
+        for (const l of [...listeners]) l("refresh_expired");
+      }
+      return { ok: false, refusal: refusal("signed_out", 401) };
+    }
     return null;
   };
   const session: SessionApi = {
@@ -413,6 +422,7 @@ export function doubleTransport(d: Doubles, options: { boundMs?: number } = {}):
       if (reply.status !== 200) return { ok: false, refusal: readRefusal(reply.status, reply.body) };
       const p = d.brand.players.find((x) => x.playerId === (reply.body as { playerId: string }).playerId) ?? null;
       d.brand.signedIn = p;
+      held = p !== null;
       const b = reply.body as { playerId: string; brandId: string; currency: string; country: string };
       return { ok: true, player: { playerId: b.playerId, brand: b.brandId, currency: b.currency, country: b.country } };
     },
@@ -422,9 +432,11 @@ export function doubleTransport(d: Doubles, options: { boundMs?: number } = {}):
     async signOut() {
       await d.answer("signOut", { id: "signOut", service: "players", method: "POST", path: { brand: d.brand.brand, player: d.brand.signedIn?.playerId ?? "" }, query: {}, body: undefined, headers: {} });
       d.brand.signedIn = null;
+      held = false;
     },
     async read() {
       const p = d.brand.signedIn;
+      held = p !== null;
       return { ok: true, player: p ? { playerId: p.playerId, brand: p.brand, currency: p.currency, country: p.country } : null };
     },
     async site() {

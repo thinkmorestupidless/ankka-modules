@@ -1,4 +1,5 @@
 import { realClock, type Clock } from "./clock.ts";
+import { sessionBehaviour, type SessionBehaviour } from "./core/session.ts";
 import type { SignedInPlayer, SiteFacts, Transport } from "./transport.ts";
 
 export interface PlayerSiteOptions {
@@ -6,6 +7,9 @@ export interface PlayerSiteOptions {
   readonly clock?: Clock;
   /** What the first page already knows (the site and the player), so nothing is asked before it is shown. */
   readonly known?: { readonly site: SiteFacts; readonly player: SignedInPlayer | null };
+  /** The site's idle times (data-model.md, *Site configuration*): 30 minutes, warned 30 seconds before. */
+  readonly idleMinutes?: number;
+  readonly idleWarningSeconds?: number;
 }
 
 /**
@@ -17,6 +21,8 @@ export interface PlayerSite {
   readonly ready: Promise<void>;
   readonly facts: SiteFacts | undefined;
   readonly player: SignedInPlayer | null;
+  /** The player's registering, signing in, staying signed in and signing out (`core`). */
+  readonly session: SessionBehaviour;
   /** Whether the brand runs a module, by `/api/site` alone. */
   runs(module: string): boolean;
   /** Told when anything the site holds changes (`currentDeposit`, the player). */
@@ -37,17 +43,28 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
   const changed = () => {
     for (const l of [...listeners]) l();
   };
+  const session = sessionBehaviour({
+    transport,
+    clock,
+    player,
+    ...(options.idleMinutes !== undefined ? { idleMinutes: options.idleMinutes } : {}),
+    ...(options.idleWarningSeconds !== undefined ? { idleWarningSeconds: options.idleWarningSeconds } : {}),
+    onPlayer(p) {
+      player = p;
+      changed();
+    },
+  });
+  stops.push(session.stop);
   const ready = options.known
     ? Promise.resolve()
     : Promise.all([transport.session.site(), transport.session.read()]).then(([s, p]) => {
         if (s.ok) facts = s.site;
-        if (p.ok) player = p.player;
+        if (p.ok) {
+          player = p.player;
+          session.hydrate(p.player);
+        }
         changed();
       });
-  stops.push(transport.onSignedOut(() => {
-    player = null;
-    changed();
-  }));
   return {
     ready,
     get facts() {
@@ -56,6 +73,7 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
     get player() {
       return player;
     },
+    session,
     runs: (module) => facts?.modules.includes(module) ?? false,
     subscribe(listener) {
       listeners.add(listener);
