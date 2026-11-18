@@ -35,6 +35,13 @@ brand's project with `ankka casino secrets <slug> --secrets <file>`.
    `just modules apply <slug> --installation dev-kind [--modules casino]`. `just modules render <slug>`
    shows what either would run, and which keys are missing, before anything does.
 
+## The brands
+
+| Brand | Real money | Runs, locally | Notes |
+|---|---|---|---|
+| `goldvibe` | no | `core`, and the modules `--modules` names | the development brand of specs 001 to 026 |
+| `guyanabet` | no | `--modules casino,engagement,support,player-site` | the reference player site's brand (spec 027): French first, then English, in euros; its domain is not yet owned, so it runs on `dev-kind` under its slug |
+
 ## Taking real money
 
 A brand's `realMoney` flips to `true` only when the installation is fit: the core's manifest
