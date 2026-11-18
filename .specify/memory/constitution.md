@@ -43,7 +43,9 @@ field unmarked.
 
 ### VI. Scala by default, with a reason for anything else
 The money path and anything that must be atomic is Scala. An adapter that mostly speaks to an
-external HTTP API may be TypeScript or Python when the spec gives the reason. Every service owns its
+external HTTP API may be TypeScript or Python when the spec gives the reason. Code that runs in a
+player's browser, and the server that serves it, are TypeScript: they speak to a browser and to
+services over HTTP, hold no state that outlives an instance, and move no money themselves. Every service owns its
 own provisioned database and shares nothing with another.
 
 ### VII. Specs in the domain's words
@@ -55,8 +57,10 @@ A requirement is testable or it is not a requirement.
 
 - The platform is ankka at a version this repository pins; features the casino needs and ankka
   lacks are specs in ankka (038–044 at the time of writing), not workarounds here.
-- Frontends (`casino-player-frontend-next`, the affiliate portal, the operator console) are out of
-  scope: they change only base URLs.
+- The player site is in scope as spec 027: the player SDK and a reference site, a module of each
+  brand's own project. A site built on the SDK holds no rule of a service and reaches a service
+  only as the signed-in player. The affiliate portal and the operator console are out of scope:
+  they change only base URLs.
 - Chatwoot, Strapi, Keycloak and Unleash stay external; this repository integrates with them and
   replaces none of them.
 
@@ -74,7 +78,7 @@ This constitution outranks any other practice in the repository. An amendment is
 that states what changes and why, and every open spec is checked against it before merge. Where a
 spec and the constitution disagree, the spec is wrong until the constitution is amended.
 
-**Version**: 1.2.0 | **Ratified**: 2026-10-08 | **Last Amended**: 2026-10-09
+**Version**: 1.3.0 | **Ratified**: 2026-10-08 | **Last Amended**: 2026-11-18
 
 Amendment 1.1.0 (2026-10-09): principle III said shared projects hold "no brand's player data beyond
 a pseudonymous subject id". Spec 001 FR-018, settled after the cashier was read, has `payments` hold
@@ -86,3 +90,11 @@ reaches a brand only through a grant. Spec 020 adds `tools` (the game provider s
 reaches a brand's public provider routes as the real provider does: from outside, signed, with no
 platform identity and nothing to grant. The principle now names `tools` and says that a public route
 is reached as the internet reaches it; the grant rule governs every other route.
+
+Amendment 1.3.0 (2026-11-18): *Scope* put every frontend out of scope, changing only base URLs.
+Spec 027 builds the player site's behaviours (session, deposit, play, inbox, chat) as an SDK and a
+reference site on it, because a brand on these modules has no player site otherwise and the
+original's site holds rules the services own (it opened the cashier session itself). The player
+site is now in scope, holding no rule of a service and calling a service only as the signed-in
+player; principle VI gains the reason a browser's code is TypeScript. Spec 030 amends the same
+bullet for the operator console: whichever merges second keeps both sentences and takes 1.4.0.
