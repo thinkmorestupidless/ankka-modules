@@ -20,7 +20,7 @@ object Topics:
   require(Layout.SharedTopics.values.flatten.toSet.subsetOf(all.map(_.name).toSet), s"a shared topic of ${Layout.SharedTopics} is no topic of the contract")
   require(shared.map(_.name).toSet.subsetOf(Layout.SharedTopics.values.flatten.toSet))
 
-/** `sbt contract/schemas`: writes `<dir>/<topic>.v1.json` for every topic. */
+/** `sbt contract/schemas`: writes `<dir>/<topic>.v1.json` for every topic, and the currency table. */
 object WriteSchemas:
   def main(args: Array[String]): Unit =
     val dir = java.nio.file.Paths.get(args.headOption.getOrElse("contract/schemas"))
@@ -30,3 +30,11 @@ object WriteSchemas:
       java.nio.file.Files.writeString(file, topic.schema.render() + "\n")
       println(s"wrote $file")
     }
+    // The currency table beside the topics (spec 027 FR-037), and its copy in the player SDK.
+    val currencies = dir.resolve("currencies.v1.json")
+    java.nio.file.Files.writeString(currencies, io.eitheror.casino.contract.money.Currencies.render())
+    println(s"wrote $currencies")
+    val sdk = java.nio.file.Paths.get("sdk/player/src")
+    if java.nio.file.Files.isDirectory(sdk) then
+      java.nio.file.Files.copy(currencies, sdk.resolve("currencies.v1.json"), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+      println(s"wrote ${sdk.resolve("currencies.v1.json")}")
