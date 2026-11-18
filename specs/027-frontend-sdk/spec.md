@@ -189,6 +189,7 @@ money at the running brand.
 
 **Acceptance Scenarios**:
 
+- added `features/game-provider/catalogue.feature`: a visitor browses the catalogue and reads a game with no sign-in
 - added `features/player-site/play.feature`: a visitor who picks a game is asked to register
 - added `features/player-site/play.feature`: a signed-in player with no playable funds is taken to the deposit
 - added `features/player-site/play.feature`: playable funds are a real balance, a restricted balance or free rounds for the game
@@ -514,6 +515,9 @@ that streams replies, approval requests, each refusal, and a reply that stops.
 
 **Module clients**
 
+- **FR-056**: `game-provider`'s catalogue reads MUST be served to a visitor with no sign-in (spec
+  003 FR-027, amended), so that a player site shows its lobby before sign-in. *Established by:*
+  the original's `api/casino/[...path]/route.ts`, which serves `catalog/` with no session.
 - **FR-034**: Every call a behaviour or the site server makes of a service MUST go through a module
   client: per module, an interface of typed functions, one per route, and one implementation
   written by hand in this spec. A behaviour MUST depend on the interface only, so that a client
@@ -626,6 +630,10 @@ that streams replies, approval requests, each refusal, and a reply that stops.
 
 - **Spec 008 (players) FR-043**: the deposit start's answer gains the cashier ticket and the
   terminals of the session it opened, and the start takes a request id it passes to the cashier.
+- **Spec 003 (game-provider) FR-027**: the catalogue's reads (games, one game, developers, popular
+  games) are public routes, as the original's were: its site read them before sign-in. Spec 003's
+  routes contract left this to be settled against the original, and says the reads become public
+  if the lobby reads them signed out. The launch and the game session stay player routes.
 - **Spec 021 (core and modules)**: a module `player-site`; a configuration key for the site's
   languages.
 - **Spec 001 (brands and projects)**: a second brand's values file, `guyanabet`.
