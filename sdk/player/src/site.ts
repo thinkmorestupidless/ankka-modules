@@ -1,4 +1,6 @@
 import { realClock, type Clock } from "./clock.ts";
+import { coreClient, type CoreClient } from "./core/client.ts";
+import { fundsStore, type FundsStore } from "./core/funds.ts";
 import { sessionBehaviour, type SessionBehaviour } from "./core/session.ts";
 import type { SignedInPlayer, SiteFacts, Transport } from "./transport.ts";
 
@@ -23,6 +25,12 @@ export interface PlayerSite {
   readonly player: SignedInPlayer | null;
   /** The player's registering, signing in, staying signed in and signing out (`core`). */
   readonly session: SessionBehaviour;
+  /** The player's balance and free rounds (FR-026, FR-027). */
+  readonly funds: FundsStore;
+  /** `core`'s client, the one every core behaviour of this site calls through. */
+  readonly core: CoreClient;
+  /** The page's visibility, which the funds' and play's clocks follow. */
+  visible(isVisible: boolean): void;
   /** Whether the brand runs a module, by `/api/site` alone. */
   runs(module: string): boolean;
   /** Told when anything the site holds changes (`currentDeposit`, the player). */
@@ -43,6 +51,9 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
   const changed = () => {
     for (const l of [...listeners]) l();
   };
+  const core = coreClient(transport, () => player?.playerId ?? null);
+  const funds = fundsStore(core, clock);
+  stops.push(funds.stop);
   const session = sessionBehaviour({
     transport,
     clock,
@@ -51,10 +62,12 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
     ...(options.idleWarningSeconds !== undefined ? { idleWarningSeconds: options.idleWarningSeconds } : {}),
     onPlayer(p) {
       player = p;
+      funds.player(p?.currency ?? null);
       changed();
     },
   });
   stops.push(session.stop);
+  if (player) funds.player(player.currency);
   const ready = options.known
     ? Promise.resolve()
     : Promise.all([transport.session.site(), transport.session.read()]).then(([s, p]) => {
@@ -74,6 +87,9 @@ export function playerSite(options: PlayerSiteOptions): PlayerSite {
       return player;
     },
     session,
+    funds,
+    core,
+    visible: (isVisible) => funds.visible(isVisible),
     runs: (module) => facts?.modules.includes(module) ?? false,
     subscribe(listener) {
       listeners.add(listener);

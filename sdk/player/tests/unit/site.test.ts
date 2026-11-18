@@ -23,3 +23,20 @@ describe("playerSite", () => {
     expect(d.asked).toEqual([]);
   });
 });
+
+describe("playerSite's funds", () => {
+  it("are read when the player signs in and forgotten when they sign out", async () => {
+    const { handClock } = await import("../../src/testing/clock.ts");
+    const clock = handClock();
+    const d = doubles({ clock });
+    const site = playerSite({ transport: doubleTransport(d), clock });
+    await site.ready;
+    site.session.actions.signIn({ email: "ana@example.com", password: "correct horse battery 1!" });
+    await clock.settle();
+    expect(site.funds.current().real).toEqual({ minor: 5000n, currency: "EUR" });
+    site.session.actions.signOut();
+    await clock.settle();
+    expect(site.funds.current().real).toBeNull();
+    site.stop();
+  });
+});
