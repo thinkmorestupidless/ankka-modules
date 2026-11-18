@@ -55,7 +55,8 @@ Passed on: `traceparent`, `tracestate`. Never passed on: `Cookie`, `Authorizatio
 | `__Host-eo_player` | `{playerId, currency, country}` | `HttpOnly; Secure; SameSite=Lax; Path=/` | 30 days |
 | `eo_lang` | the visitor's language | `Secure; SameSite=Lax; Path=/` | 1 year |
 
-On a developer's machine (`ankka local web`, plain HTTP) the prefixes and `Secure` are left off.
+When the configuration's `local` is set (`PLAYER_SITE_LOCAL`, never a request's header: `ankka
+local web`, plain HTTP) the prefixes and `Secure` are left off.
 
 ## The deposit address
 

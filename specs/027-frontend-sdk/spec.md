@@ -105,6 +105,10 @@ and the client generated from them are a later spec; the module client's interfa
   behaviour of its own with its own game session, one shown and the rest hidden (FR-059).
 - Q: Does the wallet's amendment cover the operators' routes? → A: Yes: every route of the wallet
   that writes major-unit text writes by the currency's exponent (FR-058).
+- Q: With several games open, how does the reality check count? → A: One count for the player, as
+  the original: the time any game is shown, falling due on the game shown (FR-059).
+- Q: Does an open game notice that the brand ended its game session? → A: Yes: at its next bet
+  check it stands at ended (FR-060), declared as a change.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -205,7 +209,7 @@ that names the reason. A launched game is shown from the address the brand answe
 session that ends when the player leaves. Where the player has set a reality check, the game is
 paused at each interval until they acknowledge it or stop. A launch in fun mode needs a sign-in and
 no funds. Several games may be open at once, as on the original: one is shown and the rest are
-hidden, each under its own game session and its own reality check count.
+hidden, each under its own game session; the reality check keeps one count for the player across them.
 
 **Why this priority**: play is the product, and every one of its refusals is a protection the brand
 is licensed to enforce.
@@ -236,7 +240,9 @@ money at the running brand.
 - added `features/player-site/play.feature`: a second game picked while one is open is launched under its own game session and the first is hidden
 - added `features/player-site/play.feature`: picking a game that is already open shows it and launches nothing
 - added `features/player-site/play.feature`: closing the shown game ends its game session and shows the next open game
-- added `features/player-site/play.feature`: each open game counts its reality check by its own time shown
+- added `features/player-site/play.feature`: a reality check counts the time shown across the open games
+- added `features/player-site/play.feature`: a game whose game session the brand ended stands at ended at its next bet check
+
 - added `features/player-site/play.feature`: signing out ends the game session of every open game
 - added `features/game-provider/catalogue.feature`: a visitor browses the catalogue and reads a game with no sign-in
 
@@ -419,8 +425,9 @@ that streams replies, approval requests, each refusal, and a reply that stops.
   conversation is kept by the page.
 - A language catalogue missing a key: the site's first language's text is shown.
 - A brand that runs `player-site` and not `casino`: the site is served without play.
-- A player at the session limit with two games open: the brand ends each game session; each play
-  behaviour learns it at its next read and stands at ended.
+- A player at the session limit with two games open: the brand ends each game session; the game
+  shown learns it at its next bet check and stands at ended, and a hidden one when it is next shown
+  and checked.
 
 ## Requirements *(mandatory)*
 
@@ -567,9 +574,14 @@ that streams replies, approval requests, each refusal, and a reply that stops.
   original*).
 
 - **FR-059**: Several games MAY be open at once. Each open game MUST be a play behaviour of its
-  own, with its own game session, bet check and reality check count; one is shown and the others
-  hidden; picking a game already open MUST show it and launch nothing; closing the shown game MUST
-  show the next open one; sign-out MUST end every open game's session. *Established by:*
+  own, with its own game session and bet check; the reality check keeps one count for the player, of
+  the time any game is shown, and falls due on the game shown; one is shown and the others hidden;
+  picking a game already open MUST show it and launch nothing, unless it stands at needing a
+  registration, a sign-in or a deposit, when the checks of FR-028 are run again; closing the shown
+  game MUST show the most recently opened of those still open; sign-out MUST end every open game's
+  session.
+- **FR-060**: A play behaviour whose bet check reads a game session the brand has ended MUST stand
+  at ended and ask no end of it (*Changes from the original*). *Established by:*
   `GameManagerContext.tsx` (`openGames`, `activeGameId`).
 
 **Module clients**
@@ -692,6 +704,9 @@ that streams replies, approval requests, each refusal, and a reply that stops.
   converted at the cashier with a multiplication by 100.
 - **One refusal form.** The original parsed each service's errors where it met them, some by
   searching the text.
+- **A game picked again is shown, not launched again.** The original's launched it a second time.
+- **A game whose session the brand ended says so.** The original's stayed open until closed, the
+  provider refusing the next bet.
 - **Smaller differences in staying signed in.** A tab whose refresh was refused reads the session
   again before signing the player out, since another tab may have refreshed; a sign-out with a
   lapsed sign-in refreshes first so the brand can still be told; the language cookie is renamed.

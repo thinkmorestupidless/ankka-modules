@@ -217,6 +217,12 @@ writes major-unit text (FR-058). Corrected: the brand's values write no `casino-
 last bet is stored on the game session; play at `needs_deposit` opens the deposit inside the SDK;
 the task order; the quickstart.
 
+A third round found one critical and three medium findings, all from several open games.
+Decided: the reality check keeps one count for the player across the open games, as the
+original; a game whose session the brand ended stands at ended at its next bet check (FR-060).
+Corrected: `site.games` is a behaviour and `currentDeposit` is subscribed to; a pick of a game
+standing at a `needs_*` step runs the checks again. No round checked these last edits.
+
 In the first round, applied without a question, being corrections of fact: the cookie's `Lax` and the origin check
 declared; the constitution amended first; the payment id is the submit's; a cashier ticket only in
 a header and only for a signed-in player; which `401` refreshes; the refresh cookie's path; the
@@ -231,3 +237,17 @@ the brand's onboarding on the installation; the task order.
   this spec does not change that; the question is the person's before it ever does.
 - The site server holds the sign-in in a cookie of at most 4 KB; the realm's tokens are about
   1.5 KB today.
+
+## Design finished
+
+2026-11-18: the person proceeded with 4 findings above LOW from the third analysis round, each
+applied after it and checked by no further round:
+
+- CRITICAL: the reality check counted per open game, where the original keeps one count for the
+  player. Now one count across the open games (FR-059).
+- MEDIUM: nothing told a page when the open games or the current deposit changed. `site.games` is
+  a behaviour; `site.subscribe` tells of `currentDeposit`.
+- MEDIUM: a game standing at needing a deposit was not launched when picked again. A pick runs
+  the checks again.
+- MEDIUM: no transition for a game session the brand ended. A bet check that reads one stands at
+  ended (FR-060).

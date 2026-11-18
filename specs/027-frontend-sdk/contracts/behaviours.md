@@ -65,20 +65,25 @@ Steps and fields are in [data-model.md](../data-model.md). Below, what moves eac
 
 ## Play
 
-- `site.games.pick(game)`: a game already open is shown and nothing is launched; otherwise a play
-  behaviour is made for it and launched, shown, and the others hidden. Closing the shown game
-  shows the next open one. Sign-out closes every one.
+- `site.games.pick(game)`: a game whose play stands at `launching`, `playing` or
+  `reality_check` is shown and nothing is launched; one at a `needs_*` step has its launch run
+  again; one at `refused` is shown as it stands; otherwise a play behaviour is made for it and
+  launched, shown, and the others hidden. Closing the shown game shows the most recently opened of
+  those still open. Sign-out closes every one. `site.games` is itself a `Behaviour` (one step:
+  `open`, `shown`); `site.subscribe` tells of `currentDeposit` changing.
 - its launch: a visitor → `needs_registration` (fun mode: `needs_sign_in`); no playable funds and
   not fun mode → `needs_deposit`, on which `playerSite` opens a deposit, given to the page as
   `site.currentDeposit`; else `launching`.
 - `launching`: `launch` and `game` together. A refusal → `refused`. The game prohibited or
   restricted in the player's country → `endGameSession`, then `refused(blocked_in_territory)`.
   Else `playing`.
-- `playing`: every 5 minutes `gameSession`; `lastBetAt` within 6 minutes → the session refreshes
-  and is not idle. With an interval from `protection`: once the time shown since the last check
-  reaches it → `reality_check`. Time hidden is not counted and hiding starts nothing again, so no
-  check falls due while hidden (a change from the original). `played` is the seconds the game has
-  been shown since the launch. Each open game counts its own.
+- `playing`: every 5 minutes while shown, `gameSession`; a session the brand has ended → `ended`,
+  no `endGameSession` sent; `lastBetAt` within 6 minutes → the session refreshes
+  and is not idle. With an interval from `protection`: once the time any game has been shown
+  since the last check reaches it, the game shown → `reality_check`. Time hidden is not counted and hiding starts nothing again, so no
+  check falls due while hidden (a change from the original). `played` is the seconds any
+  game has been shown since the first of the open games was launched. The count is `site.games`',
+  across the open games.
 - `reality_check` —`keepOn`→ `acknowledgeRealityCheck` → `playing`, the interval starting again;
   —`stop`→ `endGameSession` → `ended`.
 - `close`, the page leaving (`pagehide`), sign-out → `endGameSession` (no body: `players` records the
@@ -108,6 +113,7 @@ Steps and fields are in [data-model.md](../data-model.md). Below, what moves eac
 ## The adapter
 
 ```tsx
-const { step, actions } = useBehaviour(site.deposit)   // re-renders on each step
+const deposit = useCurrentDeposit(site)                 // over site.subscribe
+const { step, actions } = useBehaviour(site.games)      // re-renders on each step
 <PlayerSite site={site}>…</PlayerSite>                  // context only
 ```

@@ -156,12 +156,19 @@ Feature: A player launches a game only when the brand allows it
     Then the game session of the game "wheel" is ended as the player's leaving
     And the game "pools" is shown
 
-  Scenario: each open game counts its reality check by its own time shown
+  Scenario: a reality check counts the time shown across the open games
     Given a player with a reality check of "30" minutes and the games "pools" and "wheel" open
-    And the game "pools" was shown for "20" minutes and the game "wheel" for "15" minutes
-    When the game "pools" is shown for "10" minutes more
-    Then the play behaviour of the game "pools" stands at the reality check
-    And the play behaviour of the game "wheel" stands at playing
+    And the game "pools" was shown for "20" minutes
+    When the game "wheel" is shown for "10" minutes
+    Then the play behaviour of the game "wheel" stands at the reality check
+    And the play behaviour of the game "pools" stands at playing
+
+  Scenario: a game whose game session the brand ended stands at ended at its next bet check
+    Given a player playing the game "pools" at the player site
+    And the brand ended the game session of the game "pools"
+    When the play behaviour next reads the game session
+    Then the play behaviour stands at ended
+    And no end of the game session is asked of the brand
 
   Scenario: signing out ends the game session of every open game
     Given a player with the games "pools" and "wheel" open

@@ -18,8 +18,8 @@ is the brand that runs it, in French and English, with no real money.
 
 Three services are amended. `players`: the deposit start takes a request id, answers the cashier
 ticket and the terminals and passes on a refusal's figures, and a game session read answers its
-last bet. `game-provider`: the catalogue's reads are public. The wallet: its player routes write
-major units by the currency's exponent. The contract publishes a currency table. The
+last bet. `game-provider`: the catalogue's reads are public. The wallet: every route writing
+major-unit text writes by the currency's exponent. The contract publishes a currency table. The
 constitution's *Scope* is amended, first, to put the player site in scope.
 
 Decisions and evidence are in [research.md](research.md), R1 to R15, with six things to verify
@@ -70,7 +70,7 @@ transition synchronous.
 | Stories | 8 |
 | Behaviours, steps | 5; 9 + 12 + 9 + 3 + 7 |
 | Module clients, routes | 4; 27 |
-| Feature files, scenarios | 8 under `features/player-site/` (90), `features/players/deposit-start.feature`, and scenarios added to `features/players/sessions.feature`, `features/wallet/reads.feature`, `features/game-provider/catalogue.feature`; counted in T055 |
+| Feature files, scenarios | 8 under `features/player-site/` (101), `features/players/deposit-start.feature`, and scenarios added to `features/players/sessions.feature`, `features/wallet/reads.feature`, `features/game-provider/catalogue.feature`; counted in T055 |
 | Services amended | 3 (`players`, two routes; `game-provider`, the catalogue's audience; the wallet, how it writes major units), and the contract |
 | Pages of the reference site | 6 and 2 overlays |
 
@@ -87,7 +87,7 @@ transition synchronous.
 | V. Personal data marked | | Pass. The site server stores nothing. The details step writes to the player profile through `players`, which marks them. |
 | VI. Scala by default | reason for anything else | Pass. TypeScript by FR-048's reason; the one stateful change is in `players`, in Scala. |
 | VII. Specs in the domain's words | `just features` passes | Pass: 0 findings in 1,419 scenarios and 26 specs. |
-| Workflow: clarify before plan | | Pass: clarified 2026-11-18, fourteen answers. |
+| Workflow: clarify before plan | | Pass: clarified 2026-11-18, sixteen answers. |
 | Scope: frontends out of scope | | Amended by this spec (R15), in its own task, the first after setup, stating what changes and why. |
 
 No violations; Complexity Tracking is empty.

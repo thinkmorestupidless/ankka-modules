@@ -32,7 +32,7 @@ Feature: A player deposits through the deposit behaviour
       | DEPOSIT_BLOCKED_KYC_THRESHOLD | the KYC status                                |
       | DEPOSIT_BLOCKED_KYC_CURRENCY  | the KYC status                                |
       | DEPOSIT_BLOCKED_SOF  | no fields                                              |
-      | over_limit           | the period of the deposit limit, its value and what remains |
+      | over_limit           | the period of the deposit limit, its value, what was used and what remains |
       | cooling_off          | the end of the break                                   |
       | excluded             | no fields                                              |
       | account_restricted   | the player status                                      |

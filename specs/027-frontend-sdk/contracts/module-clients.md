@@ -21,7 +21,7 @@ the path from it and passes the header on). Types are written from the services'
 | `changeProfile` | players | `PATCH …/{player}` | player | `{updated}` |
 | `startDeposit` | players | `POST …/{player}/deposits` | player | `{cashierTicket, terminals, requestId}`; the payment id is `submitCashier`'s, never the start's |
 | `unread` | players | `GET …/{player}/messages?status=unread&page=1&pageSize=1` | player | `{unreadCount}` |
-| `gameSession` | players | `GET /v1/casino/sessions/{brand}/{sessionId}` | player | the session, `lastBetAt` (amended, FR-057) |
+| `gameSession` | players | `GET /v1/casino/sessions/{brand}/{sessionId}` | player | the session's `status` and `lastBetAt` (amended, FR-057) |
 | `endGameSession` | players | `PATCH /v1/casino/sessions/{brand}/{sessionId}/end` | player | `{status}` |
 | `country` | players | `GET /v1/casino/geo/lookup` | public | `{country, dialCode}` |
 | `balance` | wallet | `GET /v1/casino/players/{brand}/wallets/{currency}/balance` | player | `{real: Amount, restricted: Amount, available: Amount}` read from major text by the exponent (the wallet amended, FR-058) |
