@@ -20,6 +20,7 @@ modules *args:
     sbt "modules/run {{args}}"
 
 # Every manifest at a release version into target/release/, images at the version, schemas inlined (spec 021).
+# player-site.json among them (spec 027): its image is the release's web-images job's, built from the root.
 release-render version:
     sbt "modules/run release render {{version}} --out target/release"
 
@@ -518,6 +519,10 @@ player-site-run:
     cd services/player-site && PLAYER_SITE_LOCAL=1 ankka local web -- npm run dev
 
 # reference-site.feature over the built site and the doubles, and the second appearance (spec 027).
+# The reference site's image as the release builds it: from the root, with its Dockerfile's ignore file.
+player-site-image tag="dev":
+    docker build -f services/player-site/Dockerfile -t europe-west1-docker.pkg.dev/eitheror/casino/player-site:{{tag}} .
+
 player-site-features:
     npm run build -w services/player-site
     npm run features -w services/player-site
