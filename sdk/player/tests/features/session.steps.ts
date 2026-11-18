@@ -94,11 +94,15 @@ await bind("session.feature", ({ Background, Scenario, ScenarioOutline }) => {
 
   Scenario("calls refused because the sign-in lapsed refresh it once and are each made once more", ({ Given, And, When, Then }) => {
     let answers: Awaited<ReturnType<typeof call>>[] = [];
+    let before = { asked: 0, answered: 0 };
     Given("the player is signed in at the player site", signIn);
-    And("the sign-in has lapsed", () => {
+    And("the sign-in has lapsed", async () => {
+      w.site.funds.stop(); // the funds' own reads are not the page's three calls
+      await until(() => w.doubles.askedOf("balance").length > 0);
       w.browser.delete("__Host-eo_session");
     });
     When("the page makes three calls at once", async () => {
+      before = { asked: w.doubles.askedOf("balance").length, answered: w.answers.filter((a) => a.path.startsWith("/api/c/core/balance")).length };
       answers = await Promise.all([call(), call(), call()]);
     });
     Then("the sign-in is refreshed once", () => {
@@ -106,8 +110,8 @@ await bind("session.feature", ({ Background, Scenario, ScenarioOutline }) => {
     });
     And("each of the three calls is made once more and answered", () => {
       expect(answers.every((a) => a.ok)).toBe(true);
-      expect(w.doubles.askedOf("balance")).toHaveLength(3);
-      expect(w.answers.filter((a) => a.path.startsWith("/api/c/core/balance"))).toHaveLength(6);
+      expect(w.doubles.askedOf("balance").length - before.asked).toBe(3);
+      expect(w.answers.filter((a) => a.path.startsWith("/api/c/core/balance")).length - before.answered).toBe(6);
     });
   });
 
@@ -244,7 +248,8 @@ await bind("session.feature", ({ Background, Scenario, ScenarioOutline }) => {
     });
     And("no service is asked", () => {
       expect(w.doubles.askedOf("players")).toEqual([]);
-      expect(w.doubles.asked.filter((a) => a.id !== "signIn")).toEqual([]);
+      // nothing but the sign-in and the funds' reads that follow it
+      expect(w.doubles.asked.filter((a) => a.id !== "signIn" && a.id !== "balance")).toEqual([]);
     });
   });
 
