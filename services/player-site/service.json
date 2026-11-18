@@ -1,0 +1,8 @@
+{
+  "name": "player-site",
+  "service": {
+    "image": "player-site:latest",
+    "hosting": "web",
+    "expose": true
+  }
+}

@@ -1,0 +1,12 @@
+# The build's context is the repository root, which holds credentials and every other service:
+# admit only the workspace's manifests, the SDK and the site.
+*
+!package.json
+!package-lock.json
+!sdk/player
+!services/player-site
+**/node_modules
+**/dist
+**/test-results
+**/playwright-report
+**/.features-gen
