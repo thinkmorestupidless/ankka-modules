@@ -47,6 +47,8 @@ jobs:
       public-api: ${{ steps.filter.outputs.public-api }}
       markets: ${{ steps.filter.outputs.markets }}
       exchange: ${{ steps.filter.outputs.exchange }}
+      player-sdk: ${{ steps.filter.outputs.player-sdk }}
+      player-site: ${{ steps.filter.outputs.player-site }}
     steps:
       - uses: dorny/paths-filter@v3
         if: github.event_name == 'pull_request'
@@ -177,6 +179,15 @@ jobs:
               - *build
               - services/exchange/**
               - features/predictions/**
+            player-sdk: &player-sdk
+              - package.json
+              - package-lock.json
+              - sdk/**
+              - features/player-site/**
+              - contract/schemas/currencies.v1.json
+            player-site:
+              - *player-sdk
+              - services/player-site/**
 
   check:
     runs-on: ubuntu-latest
@@ -677,3 +688,52 @@ jobs:
       - name: exchange's suites
         working-directory: services/exchange
         run: sbt test
+
+  # The player SDK (spec 027): TypeScript in the root npm workspace; its suites need no Docker and no
+  # service, the behaviours running over the package's own doubles.
+  player-sdk:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.player-sdk == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - name: The currency table is the contract's
+        run: cmp contract/schemas/currencies.v1.json sdk/player/src/currencies.v1.json
+      - name: Typecheck
+        run: npm run typecheck -w sdk/player
+      - name: Lint
+        run: npm run lint -w sdk/player
+      - name: Unit and site-server suites
+        run: npm test -w sdk/player
+      - name: features/player-site over the behaviours
+        run: npm run features -w sdk/player
+
+  # The reference player site (spec 027): built, then reference-site.feature and the second
+  # appearance in a browser against the package's doubles.
+  player-site:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.player-site == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - name: Typecheck and lint
+        run: npm run typecheck -w services/player-site && npm run lint -w services/player-site
+      - name: Build
+        run: npm run build -w services/player-site
+      - name: The first page's script size
+        run: npm run size -w services/player-site
+      - name: Browsers
+        run: npx -w services/player-site playwright install --with-deps chromium
+      - name: reference-site.feature and the second appearance
+        run: npm run features -w services/player-site
+
