@@ -124,7 +124,7 @@ unchanged. **Independent test**: `features/player-site/composing.feature`.
 
 - [X] T053 [P] `sdk/player/README.md`: what a site builder does, in order (run the site server, `playerSite`, `useBehaviour`, words), with the deposit as the worked example and the list of steps per behaviour generated from the sources; root `README.md` and `CLAUDE.md` rows for spec 027, the package and the site
 - [X] T054 [P] Script size of the reference site's first page measured in CI against the plan's 150 KB; `npm audit --omit=dev` clean or each finding answered in `research.md`
-- [ ] T055 `quickstart.md` walked start to end on a clean checkout; every number in `plan.md`'s scale table made true; `just features` 0 findings; `just test` and `just player-sdk-test` green
+- [X] T055 `quickstart.md` walked start to end on a clean checkout; every number in `plan.md`'s scale table made true; `just features` 0 findings; `just test` and `just player-sdk-test` green
 - [ ] T056 [P] The brain: `brain/projects/ankka-modules.md` gains spec 027 and what follows it (the route descriptions and generated client once ankka 067 is released; the behaviours not carried), in the repository that holds `brain/` (the parent directory), as its own commit there
 
 ## Dependencies

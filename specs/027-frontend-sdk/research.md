@@ -296,6 +296,19 @@ the brand's onboarding on the installation; the task order.
   margin is 8 KB, so a page that adds a library splits it out of the first page. `npm audit
   --omit=dev` at the root: 0 vulnerabilities.
 
+- **T055 (2026-11-18)**: the quickstart walked on a clean worktree of the branch, but for section 5
+  (dev-kind, T060 and T051). Green: `just player-sdk-test` (296), `just player-sdk-features` (757),
+  `just player-site-features` (5 scenarios in a browser), the site's suites (19), `just features`
+  (0 findings in 1440 scenarios), `sbt test` at the root (272, 185, 36), the Go tests, and the
+  amended services' suites under `CASINO_VERSION=0.2.0-027-SNAPSHOT`: players 444, wallet 791,
+  game-provider 277. The walk found two misses, both fixed: the contract's `LayoutSuite` did not
+  count `player-site`, and the original's players driver named none of spec 027's eight amended
+  scenarios as not driven. The quickstart named `just provider-test` (the shared house provider)
+  for the catalogue, which is `game-provider`'s; it now names `just service game-provider test`.
+  The plan's scale table counted the deposit's steps as 12; there are 13 with `closed`. Section 3
+  by hand over the doubles: every sign-in cookie `HttpOnly` (and `Secure` but locally), the
+  sign-in's answer holds no token, and the page asked only its own origin and the game's frame.
+
 ## Design finished
 
 2026-11-18: the person proceeded with 4 findings above LOW from the third analysis round, each

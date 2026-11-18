@@ -15,7 +15,7 @@ Expect every scenario green and no test waiting on a real timer (the whole run u
 ```bash
 just players-test             # deposit-start.feature, the two last-bet scenarios of sessions.feature, the parity suite
 just wallet-test              # the outline of reads.feature: major units by the currency's decimals
-just provider-test            # the catalogue read by a visitor; the parity suite
+just service game-provider test  # the catalogue read by a visitor (spec 003 FR-027); the parity suite
 ```
 
 ## 3. The reference site on this machine (US7)
@@ -33,7 +33,8 @@ any origin but the site's; no token in any response.
 ## 4. A second appearance (US4, SC-008)
 
 ```bash
-just player-site-features     # reference-site.feature, and tests/second-appearance against the same doubles
+just player-site-features     # reference-site.feature in a browser against the built site and the doubles
+npm test -w services/player-site  # tests/second-appearance: composing's two scenarios; the words; the import rule
 ```
 
 ## 5. On `dev-kind` (US7, FR-036)

@@ -68,7 +68,7 @@ transition synchronous.
 | Item | Count |
 |---|---|
 | Stories | 8 |
-| Behaviours, steps | 5; 9 + 12 + 9 + 3 + 7 |
+| Behaviours, steps | 5; 9 + 13 + 9 + 3 + 7 (the deposit's `closed` counted; T055) |
 | Module clients, routes | 4; 27 |
 | Feature files, scenarios | 8 under `features/player-site/` (101), `features/players/deposit-start.feature`, and scenarios added to `features/players/sessions.feature`, `features/wallet/reads.feature`, `features/game-provider/catalogue.feature`; counted in T055 |
 | Services amended | 3 (`players`, two routes; `game-provider`, the catalogue's audience; the wallet, how it writes major units), and the contract |
