@@ -4,7 +4,7 @@
 // developed). The same version is declared in service.json as `runtime`: change both together
 // when upgrading — see README.md, "Upgrading ankka". 0.16 for a session tagged with its data
 // subject (ankka 042; research R2); 0.16.2 for compacting one (ankka 064).
-val ankkaVersion = "0.16.2"
+val ankkaVersion = "0.18.0"
 
 // The casino's contract (facts, money, route classes, personal markers, the recording replayer),
 // published from the repository root with `sbt contract/publishLocal`.
@@ -26,11 +26,6 @@ val serviceNameChecked: String = {
     )
   serviceName
 }
-
-// The contract is built on ankka 0.13.0 and runs here on 0.16.2, as engagement's does: sbt's
-// early-semver check calls that a conflict, so it is lifted for ankka's artifacts alone.
-ThisBuild / libraryDependencySchemes ++= Seq("core", "sdk", "http", "runtime", "agent", "auth-oidc", "telemetry-otlp", "testkit")
-  .map(m => "com.thinkmorestupidless" %% s"ankka-$m" % VersionScheme.Always)
 
 ThisBuild / scalaVersion := "3.9.0"
 

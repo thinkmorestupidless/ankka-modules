@@ -2,7 +2,7 @@
   "name": "reporting",
   "service": {
     "image": "reporting:latest",
-    "runtime": "0.16.0",
+    "runtime": "0.18.0",
     "provisionObjectStorage": true,
     "personal": true
   }

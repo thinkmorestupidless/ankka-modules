@@ -2,7 +2,7 @@
   "name": "public-api",
   "service": {
     "image": "public-api:latest",
-    "runtime": "0.16.3",
+    "runtime": "0.18.0",
     "personal": true
   }
 }

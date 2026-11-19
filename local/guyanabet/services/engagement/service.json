@@ -3,7 +3,7 @@
   "service": {
     "image": "europe-west1-docker.pkg.dev/eitheror/casino/engagement:0.0.0",
     "port": 9207,
-    "runtime": "0.16.0",
+    "runtime": "0.18.0",
     "resources": {
       "instanceType": "medium"
     }
