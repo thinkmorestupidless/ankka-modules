@@ -25,10 +25,10 @@ No kind installation is used by any task (FR-025). What runs locally runs under 
 
 ## Phase 1: Setup (plan phase A)
 
-- [ ] T001 Upgrade the ankka command-line client to 0.18.0 (`brew upgrade thinkmorestupidless/tap/ankka`; `ankka version` prints 0.18.0) and record under "Found during implementation" in `specs/031-generated-player-clients/research.md` the version installed; if the tap has no 0.18.0, stop and ask
+- [X] T001 Upgrade the ankka command-line client to 0.18.0 (`brew upgrade thinkmorestupidless/tap/ankka`; `ankka version` prints 0.18.0) and record under "Found during implementation" in `specs/031-generated-player-clients/research.md` the version installed; if the tap has no 0.18.0, stop and ask
 - [ ] T002 Baseline on `main`'s tree, before any change: run `sbt test` at the root and, for each of the 21 services on ankka, the commands its CI job runs (from `.github/workflows/ci.yml`); record the commands and the pass counts per service in `specs/031-generated-player-clients/research.md` ("Baseline"), so SC-002 has numbers to compare with
 - [ ] T064 [P] `KT/features/elsewhere.ts`: list `generated-clients.feature` in `unbound` with the task that binds it (T056), so `KT/features/coverage.test.ts` and the `player-sdk` job stay green in the first pull request, which carries the feature file
-- [ ] T003 [P] Read the diff a service made when it moved from 0.13.0 to a 0.16 version (`git log --follow -p Sv/players/build.sbt` and the commit of PR #38) and list in `specs/031-generated-player-clients/research.md` ("The 0.13 to 0.16 changes, from players") every kind of source change it needed, as the checklist for T019 to T024
+- [X] T003 [P] Read the diff a service made when it moved from 0.13.0 to a 0.16 version (`git log --follow -p Sv/players/build.sbt` and the commit of PR #38) and list in `specs/031-generated-player-clients/research.md` ("The 0.13 to 0.16 changes, from players") every kind of source change it needed, as the checklist for T019 to T024
 
 ## Phase 2: User Story 1 — every service on ankka 0.18.0 (Priority: P1) 🎯 MVP (plan phase A)
 

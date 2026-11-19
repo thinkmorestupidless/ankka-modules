@@ -265,3 +265,20 @@ round; each was fixed after that round and not analysed again:
   loads, and the comparison with `main` is T031's evidence.
 - `contracts/runtime-check.md`: "an overlay is never set to 0.18.0" against the fixture overlay.
   Fixed: the rule is an installation's; a fixture's overlay is not one.
+
+## Found during implementation
+
+- **T001** (2026-11-19): `brew upgrade thinkmorestupidless/tap/ankka` installed the command-line
+  client 0.18.0 (`ankka version` prints `0.18.0`).
+- **T003, the 0.13 to 0.16 changes, from players**: PR #38 (`f05f51d8`) moved wallet, players, kyc,
+  responsible-gambling, payouts, attribution, game-provider and rewards from 0.13.0 to 0.16.3 with
+  "no source change": the library version, each descriptor's runtime, the manifests, and the
+  eviction block for the contract's 0.13 artifacts. Its suites passed except players' `RealmSuite`
+  p99 bound and payouts' `RequestSuite` and `ScaleSuite`, which failed the same way on `main` at
+  0.13 on this machine; payouts' SC-005 check was narrowed to its own requests' gateway calls,
+  because on 0.16 earlier suites' polls landed in its window. ankka 0.16.1's breaking note (type
+  arguments on route builders, annotated handler parameters, `Done.done`) touches none of the
+  eight services still on 0.13.0 or 0.14.2: none writes a route builder with type arguments
+  (`grep` of `get[`, `post[`, `postBody[` and the rest under each `src/`: 0 in each). The
+  checklist for T018 to T024 is therefore: the version, the descriptor, the eviction block, and
+  whatever the compiler then reports.
