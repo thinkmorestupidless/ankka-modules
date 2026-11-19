@@ -12,8 +12,8 @@ Two pull requests.
 module and shared manifest, `local/`, and the tool's suites, in six groups with each group's suites
 green before the next; `exchange` and `markets` take ankka-predictions 0.3.0; the modules tool
 gains a check that refuses a runtime an installation's platform cannot run. Nothing a caller
-observes changes, and no stored type changes. It is cut as `031-ankka-0-18` from `main` and merged
-before the second is opened for review.
+observes changes, and no stored type changes. It is raised as `031-ankka-0-18` against `main`; the
+second is raised on top of it and merges after it.
 
 **The second describes, checks and generates** (stories 2 to 4). The 79 player routes of nine
 services each get a route description; because every one of those routes reads its body as text

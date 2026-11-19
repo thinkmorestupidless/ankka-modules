@@ -1,6 +1,6 @@
 # Contract: the move to ankka 0.18.0
 
-The first pull request, branch `031-ankka-0-18` from `main`. One commit per group at least; the
+The first pull request, branch `031-ankka-0-18` against `main` (tasks T004 to T031). One commit per group at least; the
 repository builds at every commit (FR-005).
 
 | Group | What | Was | Gate, as CI runs it |

@@ -41,12 +41,14 @@ and 067); this repository's 22 service builds, the nine services' endpoints and 
 
 ## R3. The order of the move, and its pull request
 
-- **Decision**: one pull request, `031-ankka-0-18` cut from `main`, in this order, each group's
+- **Decision**: one pull request, `031-ankka-0-18` against `main`, in this order, each group's
   suites green before the next: (1) the root build (contract, provider-core, modules tool) and its
   fixtures; (2) the nine on 0.16.3; (3) audit, engagement, reporting, support-agent; (4) exchange,
   markets, with ankka-predictions 0.3.0; (5) the six on 0.13.0; (6) module and shared manifests,
   `local/`, the tool's suites, CI comments, READMEs, `CLAUDE.md`; (7) the runtime check (R11).
-  `031-generated-player-clients` is rebased on it once it merges and holds everything else.
+  The move is built on `031-generated-player-clients`; `031-ankka-0-18` is that branch at the
+  move's last commit, pushed and raised (T031). Work then continues on
+  `031-generated-player-clients`, whose own pull request is raised on top of the first.
 - **Rationale**: the person's decision (Clarifications). The contract first, because every service
   builds against the published contract. Manifests last, because a manifest naming 0.18.0 for a
   service still built on 0.13.0 is a lie between commits.

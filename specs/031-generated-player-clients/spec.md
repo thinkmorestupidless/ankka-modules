@@ -64,8 +64,8 @@ Three decisions of 2026-11-19 bind the spec (Clarifications).
 - Q: Do the six proposed glossary terms stand (player route, route description, service
   description, description check, selection, generated module client)? → A: All six, as proposed.
 - Q: How does the spec ship? → A: As two pull requests. The move to ankka 0.18.0 (story 1) is its
-  own, merged first with every suite green; the descriptions, the description check and the
-  generated clients (stories 2 to 4) follow in a second on top of it (FR-005).
+  own, raised first with every suite green and merged first; the descriptions, the description
+  check and the generated clients (stories 2 to 4) are a second, raised on top of it (FR-005).
 - Q: What of ankka 0.18.0 may the build use on the developer's machine? → A: The command-line
   client is upgraded to 0.18.0. No kind installation is used locally, because it is too heavy for
   the machine: what runs locally runs under `ankka local up`, the local brand among it. The
@@ -244,8 +244,8 @@ the SDK's build fails until it is generated again.
 - **FR-005**: The move MUST be made in an order that keeps the repository building at every
   commit: the contract first, then the services that already run a 0.16 version, then those on
   0.14.2, then those on 0.13.0, each service's suites green before the next group starts. The
-  move is one pull request, merged before the pull request that holds FR-006 to FR-024 is opened
-  for review; the second is built on the first.
+  move is one pull request; the pull request that holds FR-006 to FR-024 is raised on top of it
+  and merges after it.
 
 **Service descriptions**
 
@@ -298,7 +298,9 @@ the SDK's build fails until it is generated again.
   descriptions: a row's service, method, path, audience, query parameters and whether it streams
   come from the description. What a description cannot say is kept in one hand-written selection
   per module and nowhere else: the row's id, the module it belongs to, that only the site server
-  calls it, that the service is given the visitor's address, and a fixed query.
+  calls it, that the service is given the visitor's address, that the brand goes as a query
+  parameter, a query or a path value the module fixes, and a path value's name where the SDK's
+  differs from the service's.
 - **FR-018**: Every wire shape a module client sends or reads MUST be generated from the kept
   service descriptions, with the parse at the boundary: an answer that does not fit its generated
   shape is refused as a malformed answer naming the service (027 FR-034's rule, unchanged).
