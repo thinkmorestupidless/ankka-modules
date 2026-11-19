@@ -458,7 +458,7 @@ store and `payments` for a personal field; fetch the response.
   amendment P1).
   *Amended by spec 027* (FR-057): a game session also holds the time of its last bet: each round
   `casino.rounds` reports opened or settled under its `sessionId` records the fact's `occurredAt`,
-  keeping the latest to within a minute (an older time, a repeat, or one less than a minute after
+  keeping the latest to within 30 seconds (an older time, a repeat, or one less than 30 seconds after
   the one held is no event; a `players` from before this cannot replay the event, so it is not
   rolled back to); the player's read of the
   session and the list of their sessions answer it as `lastBetAt`, `null` with no bet.

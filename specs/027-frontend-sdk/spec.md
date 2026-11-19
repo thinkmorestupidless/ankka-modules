@@ -613,9 +613,11 @@ that streams replies, approval requests, each refusal, and a reply that stops.
   crypto payment's amount in its coin, which is the cashier's text and is shown as sent.
 - **FR-058**: Every route of the wallet that writes an amount as major-unit text, the player's and
   the operator's, MUST write it by the currency's own exponent (spec 002, amended): for a currency
-  of two decimals, as today.
+  of two decimals, as today. Every operator route that reads an amount as major-unit text MUST read
+  it by the same exponent, refusing more decimals than the currency has, so that what an operator
+  reads is what is moved (found in review).
 - **FR-057**: `players`' game session read MUST answer the time of the session's last bet, to
-  within a minute (a bet less than a minute after the one held is not recorded), and nothing
+  within 30 seconds (a bet less than 30 seconds after the one held is not recorded), and nothing
   where there was none (spec 008, amended).
 - **FR-038**: The SDK MUST format an amount for a language from its minor units, its currency's
   exponent and that language's rules, and offer no other way to show one.

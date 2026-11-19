@@ -36,8 +36,9 @@ none (`session.visitorCountry()`, contracts/behaviours.md).
 bet), where it answers `null` always today. `GameSessionEntity` gains a command recording a bet's time (a new event; the state's `lastBetAt`),
 sent by `RoundsActivity` (`reads/ActivityView.scala`, which consumes `casino.rounds`) for each
 round opened or settled under its `sessionId`, with the fact's `occurredAt`; an older time, or one
-less than a minute after the one held, changes nothing, so the journal grows by one event a minute
-of play, not one per round (found in review; the SDK's check is a 6-minute window). `SessionRow`
+less than 30 seconds after the one held, changes nothing, so the journal grows by at most two
+events a minute of play, not one per round (found in review; the SDK's check is a 6-minute window
+asked every 5 minutes, and 30 seconds of its margin is left). `SessionRow`
 gains the field for the list. Both `wire` functions of `GameSessionRoutes` answer it.
 `specs/008-players/spec.md` and `contracts/routes.md` gain the line.
 

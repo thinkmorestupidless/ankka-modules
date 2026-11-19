@@ -337,7 +337,7 @@ class SessionsFeatures extends PlayersFeatures("sessions.feature"):
     active(); signIn(); opened(): Unit
     val now = kit.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS)
     betAt = now.minusSeconds(10)
-    // a minute apart: a bet less than a minute after the one held is not recorded (FR-057)
+    // more than 30 seconds apart: a bet less than 30 seconds after the one held is not recorded (FR-057)
     round(opened = true, now.minusSeconds(80))
     round(opened = false, betAt)
     kit.eventually("the last bet recorded")(Option.when(game(gameId).lastBetAt.contains(betAt))(()))
