@@ -40,8 +40,8 @@ are not in the page's allow-list.
 |---|---|---|---|---|
 | `launch` | game-provider | `POST /v1/casino/sessions/{brand}/launch` | player | `{gameUrl, sessionId}`; `launchToken` is dropped |
 | `games` | game-provider | `GET /v1/casino/catalog/games?…` | public | `{games, total?, nextOffset?}` |
-| `game` | game-provider | `GET /v1/casino/catalog/games/{gameCode}` | public | the game, its territories (V5) |
-| `freeRounds` | rewards | `GET /v1/casino/brands/{brand}/rewards/{player}/free-rounds?currency=` | player | the games free rounds are held for (V4) |
+| `game` | game-provider | `GET /v1/casino/catalog/games/{gameId}` | public | the game: `gameId`, `provider`, `name`, `restrictedTerritories`, `prohibitedTerritories` (V5, read on the brand) |
+| `freeRounds` | rewards | `GET /v1/casino/brands/{brand}/rewards/{player}/free-rounds?currency=` | player | `[{id, gameId, gameName?, spinsRemaining, expiresAt?, providerStatus?}]`, each grant naming its game (V4) |
 
 `games` and `game` are public once spec 003 FR-027 is amended (amendments.md); `launch` and
 `freeRounds` stay the player's.

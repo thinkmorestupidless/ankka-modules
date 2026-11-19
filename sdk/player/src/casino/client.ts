@@ -5,7 +5,7 @@ import { routes } from "./routes.ts";
 
 /** A game as the catalogue answers it; the fields a site shows pass through as they are. */
 export interface Game {
-  readonly gameCode: string;
+  readonly gameId: string;
   readonly name?: string;
   readonly provider?: string;
   readonly restrictedTerritories?: readonly string[];
@@ -20,7 +20,7 @@ export interface Launched {
 
 export type CatalogueQuery = Partial<Record<"category" | "themes" | "features" | "bonusTypes" | "tag" | "developer" | "search" | "country" | "ids", string>> & { readonly limit?: number; readonly offset?: number };
 
-const WireGame = z.object({ gameCode: z.string(), restrictedTerritories: z.array(z.string()).nullish(), prohibitedTerritories: z.array(z.string()).nullish() }).passthrough();
+const WireGame = z.object({ gameId: z.string(), restrictedTerritories: z.array(z.string()).nullish(), prohibitedTerritories: z.array(z.string()).nullish() }).passthrough();
 const Catalogue = z.object({ games: z.array(WireGame), total: z.number().int().optional(), nextOffset: z.number().int().nullish() });
 const WireLaunch = z.object({ gameUrl: z.string().min(1), sessionId: z.string().min(1) });
 const Grant = z.object({ gameId: z.string().nullish(), spinsRemaining: z.number().nullish() }).passthrough();
@@ -36,7 +36,7 @@ export interface CasinoClient {
   /** The launch's address and game session; its `launchToken` is dropped. */
   launch(gameId: string, options: { currency: string; funMode?: boolean }): Promise<Result<Launched>>;
   games(query?: CatalogueQuery): Promise<Result<{ games: Game[]; total?: number; nextOffset?: number | null }>>;
-  game(gameCode: string): Promise<Result<Game>>;
+  game(gameId: string): Promise<Result<Game>>;
   /** The games the player holds free rounds for (V4: each grant names its game). */
   freeRounds(currency: string): Promise<Result<string[]>>;
 }
@@ -52,8 +52,8 @@ export function casinoClient(transport: Transport, player: () => string | null =
       const r = await ask(transport, row(routes, "games"), Catalogue, { query: q });
       return r.ok ? { ok: true, value: { games: r.value.games.map(game), ...(r.value.total !== undefined ? { total: r.value.total } : {}), ...(r.value.nextOffset !== undefined ? { nextOffset: r.value.nextOffset } : {}) } } : r;
     },
-    async game(gameCode) {
-      const r = await ask(transport, row(routes, "game"), WireGame, { path: { gameCode } });
+    async game(gameId) {
+      const r = await ask(transport, row(routes, "game"), WireGame, { path: { gameId } });
       return r.ok ? { ok: true, value: game(r.value) } : r;
     },
     async freeRounds(currency) {

@@ -33,9 +33,9 @@ describe("casino's client", () => {
     const { d, casino } = await setup();
     d.brand.games[0]!.prohibitedTerritories = ["GF"];
     const all = await casino.games({ search: "po", limit: 20 });
-    expect(all.ok && all.value.games.map((g) => g.gameCode)).toEqual(["pools", "wheel"]);
+    expect(all.ok && all.value.games.map((g) => g.gameId)).toEqual(["pools", "wheel"]);
     expect(d.askedOf("games")[0]!.query).toEqual({ search: "po", limit: "20" });
-    expect(await casino.game("pools")).toMatchObject({ ok: true, value: { gameCode: "pools", prohibitedTerritories: ["GF"] } });
+    expect(await casino.game("pools")).toMatchObject({ ok: true, value: { gameId: "pools", prohibitedTerritories: ["GF"] } });
     expect(await casino.game("nope")).toMatchObject({ ok: false, refusal: { status: 404 } });
   });
 

@@ -120,7 +120,7 @@ export interface FakePayment {
 }
 
 export interface FakeGame {
-  gameCode: string;
+  gameId: string;
   name: string;
   provider: string;
   restrictedTerritories?: string[];
@@ -182,8 +182,8 @@ export function fakeBrand(overrides: Partial<FakeBrand> = {}): FakeBrand {
     cashierSessions: new Map(),
     payments: new Map(),
     games: [
-      { gameCode: "pools", name: "Pools", provider: "eitheror", demo: true },
-      { gameCode: "wheel", name: "Wheel", provider: "st8", demo: true },
+      { gameId: "pools", name: "Pools", provider: "eitheror", demo: true },
+      { gameId: "wheel", name: "Wheel", provider: "st8", demo: true },
     ],
     gameSessions: new Map(),
     freeRounds: [],
@@ -317,7 +317,7 @@ const defaults: Record<string, (a: Asked, b: FakeBrand) => Reply> = {
   },
   games: (_a, b) => ({ status: 200, body: { games: b.games } }),
   game(a, b) {
-    const g = b.games.find((x) => x.gameCode === a.path.gameCode);
+    const g = b.games.find((x) => x.gameId === a.path.gameId);
     return g ? { status: 200, body: g } : { status: 404, body: { error: "game_not_found" } };
   },
   freeRounds: (_a, b) => ({ status: 200, body: b.freeRounds.map((f) => ({ ...f, gameName: f.gameId, expiresAt: "2026-12-01T00:00:00Z", providerStatus: "active" })) }),

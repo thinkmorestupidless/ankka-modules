@@ -47,7 +47,7 @@ await bind("play.feature", ({ Background, Scenario, ScenarioOutline }) => {
       w = await world({}, { idleMinutes: 24 * 60 });
     });
     And('a game "pools" in the catalogue of brand "guyanabet"', () => {
-      expect(w.doubles.brand.games.map((g) => g.gameCode)).toContain("pools");
+      expect(w.doubles.brand.games.map((g) => g.gameId)).toContain("pools");
     });
   });
 
@@ -153,7 +153,7 @@ await bind("play.feature", ({ Background, Scenario, ScenarioOutline }) => {
       expect(w.site.player?.country).toBe("GF");
     });
     And('the catalogue says the game "pools" is prohibited in "GF"', () => {
-      w.doubles.brand.games.find((g) => g.gameCode === "pools")!.prohibitedTerritories = ["GF"];
+      w.doubles.brand.games.find((g) => g.gameId === "pools")!.prohibitedTerritories = ["GF"];
     });
     When('they pick the game "pools"', () => pick("pools"));
     Then('the play behaviour stands at refused with the code "blocked_in_territory"', () => {
@@ -168,7 +168,7 @@ await bind("play.feature", ({ Background, Scenario, ScenarioOutline }) => {
   Scenario("a player of unknown country is not blocked by territory", ({ Given, When, Then }) => {
     Given("a player signed in at the player site with playable funds whose country is unknown", async () => {
       (w.doubles.brand.players[0] as { country: string }).country = "";
-      w.doubles.brand.games.find((g) => g.gameCode === "pools")!.prohibitedTerritories = ["GF"];
+      w.doubles.brand.games.find((g) => g.gameId === "pools")!.prohibitedTerritories = ["GF"];
       await signIn();
     });
     When('they pick the game "pools"', () => pick("pools"));
@@ -300,7 +300,7 @@ await bind("play.feature", ({ Background, Scenario, ScenarioOutline }) => {
       await playing();
       first = sessionOf("pools");
     });
-    And('a game "wheel" in the catalogue of brand "guyanabet"', () => expect(w.doubles.brand.games.map((g) => g.gameCode)).toContain("wheel"));
+    And('a game "wheel" in the catalogue of brand "guyanabet"', () => expect(w.doubles.brand.games.map((g) => g.gameId)).toContain("wheel"));
     When('they pick the game "wheel"', () => pick("wheel"));
     Then('the game "wheel" is launched under a game session of its own', () => {
       expect(w.doubles.askedOf("launch").map((a) => (a.body as { gameId: string }).gameId)).toEqual(["pools", "wheel"]);

@@ -47,15 +47,15 @@ export function Lobby({ site }: { site: PlayerSite }) {
       {read === null ? <Busy text={t("lobby.loading")} /> : "refusal" in read ? <Refused refusal={read.refusal} /> : read.games.length === 0 ? <p>{t("lobby.empty")}</p> : (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {read.games.map((g) => (
-            <li key={g.gameCode} className="flex flex-col overflow-hidden rounded-lg bg-white">
-              <div className="flex min-h-32 items-end p-3 text-white" style={{ background: band(g.gameCode) }}>
-                <h2 className="text-2xl leading-none font-black tracking-tight break-words">{g.name ?? g.gameCode}</h2>
+            <li key={g.gameId} className="flex flex-col overflow-hidden rounded-lg bg-white">
+              <div className="flex min-h-32 items-end p-3 text-white" style={{ background: band(g.gameId) }}>
+                <h2 className="text-2xl leading-none font-black tracking-tight break-words">{g.name ?? g.gameId}</h2>
               </div>
               <div className="flex items-center justify-between gap-2 p-3">
-                <button onClick={() => open(g.gameCode)} className="rounded-md bg-cayenne px-3 py-1.5 font-semibold text-white">
+                <button onClick={() => open(g.gameId)} className="rounded-md bg-cayenne px-3 py-1.5 font-semibold text-white">
                   {t("lobby.play")}
                 </button>
-                <button onClick={() => open(g.gameCode, true)} className="text-leaf hover:underline">
+                <button onClick={() => open(g.gameId, true)} className="text-leaf hover:underline">
                   {t("lobby.fun")}
                 </button>
               </div>
