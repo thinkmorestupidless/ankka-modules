@@ -235,6 +235,9 @@ the brand's onboarding on the installation; the task order.
 - French Guiana is a department of France: French law, not the Anjouan licence, governs gambling
   offered there, and it does not permit online casino games. The brand takes no real money and
   this spec does not change that; the question is the person's before it ever does.
+- A reality-check interval that cannot be read leaves reality checks off for that sign-in, as the
+  original does (`GameManagerContext.tsx:192`); a compliance reading under the Anjouan licence may
+  want it otherwise.
 - The site server holds the sign-in in a cookie of at most 4 KB; the realm's tokens are about
   1.5 KB today.
 
