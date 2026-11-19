@@ -4,7 +4,7 @@ A brand's read-only REST API over its players' records (spec 016): players, sess
 transactions, bonus awards, games and statistics, under the original's contract
 (`src/main/resources/public-api-v1.openapi.yaml`). Every call carries an access key that one of the
 brand's operators created in the backoffice; identifying fields are served only to a key allowed them,
-and every field served is audited. An ankka 0.16 service in Scala, one sbt build.
+and every field served is audited. An ankka 0.18 service in Scala, one sbt build.
 
 ## Run and test
 

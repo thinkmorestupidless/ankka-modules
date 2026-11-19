@@ -8,7 +8,7 @@ A brand's CRM and the player's live channel (spec 014):
 - the Customer.io webhook's actions, relayed to `players` and `rewards`;
 - the push channel: `/v1/stream` for the player, presence and the agent stream for operators.
 
-An ankka 0.16 service in Scala, one sbt build. Every personal value it stores is ankka's `Personal`
+An ankka 0.18 service in Scala, one sbt build. Every personal value it stores is ankka's `Personal`
 under `player/<id>`, sealed at rest by the keyring (feature 042).
 
 ## Components

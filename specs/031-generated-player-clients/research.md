@@ -282,3 +282,52 @@ round; each was fixed after that round and not analysed again:
   (`grep` of `get[`, `post[`, `postBody[` and the rest under each `src/`: 0 in each). The
   checklist for T018 to T024 is therefore: the version, the descriptor, the eviction block, and
   whatever the compiler then reports.
+- **T018** (2026-11-19): ankka-predictions 0.3.0 is on Maven Central and its POM names ankka 0.18.0
+  (`ankka-sdk_3`, `ankka-testkit_3`); exchange and markets default to it and compile unchanged.
+- **T005 to T024, the move**: every service changed only its `ankkaVersion`, its descriptor's
+  `runtime` and, for the 15 that had it, the eviction block (`libraryDependencySchemes …
+  VersionScheme.Always`) with its comment: the contract is now on the same ankka, so nothing is
+  evicted. All 21 compile with no source change. public-api's Jackson pin stays 2.21.6: ankka 0.18.0
+  brings pekko-serialization-jackson 1.7.1, as 0.16.3 did.
+- **T025, the fixtures**: the manifests under `tests/fixtures/manifests/` and
+  `MT/test/resources/manifests/predictions.json` move to 0.18.0, so the runtime check passes them.
+  `MT/test/resources/spec-001-goldvibe/plan.json` keeps 0.13.0: it is what spec 001's tool rendered,
+  and `RenderSuite` compares every field but the runtime with it. `tests/fixtures/sample-service/`
+  keeps 0.13.0 too: nothing builds or applies it, and its descriptor names the runtime its own build
+  is on.
+- **T029, `gke`'s platform**: asked; the person answered that `gke` runs platform 0.18.0, so its
+  overlay states `PLATFORM_VERSION=0.18.0`; `dev-kind`'s states 0.16.3. The fixture installations
+  under `tests/fixtures/installations/` state 0.18.0 and say they are fixtures. `GET /installation`'s
+  `platformVersion` is a top-level string (ankka `controlplane-api` `Installation`), read first when
+  present. The rule mirrors ankka's `Compatibility.supports`; anything after `+` or `-` is dropped,
+  so a snapshot platform's version parses. The check reads every module of the plan, held ones
+  included, because a held module is applied on the same platform once its keys are set.
+- **T028, scenario 2**: bound as `ranElsewhere`, as `RecordingFeatures` binds the runs it does not
+  make, naming the parity suites and T031's evidence. The step "no recording was changed" has no
+  definition: a definition here could assert only that the recordings load, which is not what the
+  step says. `Fixtures.applyRoot` is a temporary tree of links to the repository with only
+  `dev-kind`'s `settings.env` copied.
+- **T032, V1, V3 and V8 at ankka `v0.18.0`** (read from the tag, `modules/testkit/…/HeldToDocument.scala`
+  `HTD`, `modules/http/…/HttpServer.scala` `HS`, `modules/http/…/openapi/OpenApi.scala` `OA`):
+  - V1: `HeldToDocument.server` wraps the server and changes no answer (HTD:57-59). It checks each
+    answer's status and body (HTD:130-152), a request body when the answer is below 400
+    (HTD:154-164), and query parameters a handler reads that the description does not declare
+    (HTD:166-175). A status the description does not name is a violation unless it is one of
+    400, 401, 403, 413, 500, 503 and 504 (HTD:73, 135-137), or the operation names only `default`. A
+    streamed body is not checked (HS:1175-1177). A violation is a `String` naming `METHOD /template`, the
+    status and networknt's messages, never the body (HTD:126-163); `assertHeld()` throws
+    `NotHeldToDocument`, a `RuntimeException` (HTD:41-44, 181-184). The route is the matched route's
+    template, prefix included, looked up as an exact key of the served document (HS:951-955,
+    HTD:87-93), so a brand in a prefix is a literal on both sides and matches; an unmatched request
+    is not reported. `HeldToPlayerRoutes` therefore reads the method and path out of each violation's
+    text, keeps those that are an operation tagged `player` in the served document, and fails with
+    them as an `AssertionError`.
+  - V3: no public validator. `DocumentCheck` is `private[ankka]` and a listener (DocumentCheck.scala:8-19).
+    Fallback, as research.md names it: `DescriptionCheck` validates with `com.networknt:json-schema-validator`
+    1.5.9, the version ankka's testkit brings, at draft 2020-12, the operation's schema with the
+    document's `components` copied in, as HTD:77 and 119-123 do; the contract takes it at that version.
+  - V8: strict refuses only the incomplete operations the tag filter keeps (OA:90-99, 123-124); a tag
+    no route carries is an error (OA:128-129). An operation is incomplete only for a `request body` or
+    an `answer <status>` whose type has no shape and none described (OA:209-211, 245-249, 315); a
+    missing summary or tag is not incomplete, so the descriptions' summaries are held by T046's
+    outline, not by strict mode.

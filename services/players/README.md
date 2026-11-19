@@ -11,7 +11,7 @@ outside its personal fields; the password is in no table (SC-006, `LeakSuite`).
 
 ## The routes
 
-Seven endpoints, one prefix each (ankka 0.13 lets no two share a prefix). `contracts/routes.md` in
+Seven endpoints, one prefix each (ankka lets no two share a prefix). `contracts/routes.md` in
 `specs/008-players/` has every route, its answers and where it differs from the original.
 
 | Endpoint | Prefix | Who calls it |
