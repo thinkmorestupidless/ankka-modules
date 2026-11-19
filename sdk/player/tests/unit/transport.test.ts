@@ -129,6 +129,20 @@ describe("the page's transport (FR-001, FR-005)", () => {
     expect(signedOut).toEqual(["refresh_expired"]);
   });
 
+  it("calls still refused after the refresh share one sign-out, and the page is told once (review)", async () => {
+    const { transport, count } = site((s) => {
+      if (s.url === "/api/session/refresh") return answer(401, { error: "refresh_expired" });
+      if (s.url === "/api/session") return answer(200, { playerId: "p-ana", brand: "guyanabet", currency: "EUR", country: "GF" });
+      if (s.url === "/api/session/sign-out") return new Response(null, { status: 204 });
+      return answer(401, { error: "signed_out" });
+    });
+    const signedOut: string[] = [];
+    transport.onSignedOut((r) => signedOut.push(r));
+    await Promise.all([transport.call(balance), transport.call(balance), transport.call(balance)]);
+    expect(count("POST /api/session/sign-out")).toBe(1);
+    expect(signedOut).toEqual(["refresh_expired"]);
+  });
+
   it("a refresh the brand did not answer keeps the player signed in and refuses the call as unavailable", async () => {
     const { transport } = site((s) => {
       if (s.url === "/api/session/refresh") return answer(503, { error: "service_unavailable", service: "players" });

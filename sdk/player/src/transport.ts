@@ -154,6 +154,18 @@ export function pageTransport(fetchImpl: Fetch = (input, init) => fetch(input, i
     return refreshing;
   };
 
+  /** The one sign-out every call still refused after the refresh shares: sent once, told once. */
+  let signingOut: Promise<void> | null = null;
+  const signOutOnce = () => {
+    signingOut ??= (async () => {
+      await session.signOut().catch(() => undefined);
+      for (const listener of [...listeners]) listener("refresh_expired");
+    })().finally(() => {
+      signingOut = null;
+    });
+    return signingOut;
+  };
+
   const signedOut = (r: Response, route: Route, body: unknown) =>
     r.status === 401 && route.audience === "player" && typeof body === "object" && body !== null && (body as { error?: unknown }).error === "signed_out";
 
@@ -172,8 +184,7 @@ export function pageTransport(fetchImpl: Fetch = (input, init) => fetch(input, i
       // Still signed out after the refresh: the sign-in is gone. A refused refresh keeps the cookies
       // (another tab may have refreshed them), so they are removed here, then the page is told.
       if (tries > 0 && signedOut(r, route, body)) {
-        await session.signOut().catch(() => undefined);
-        for (const listener of [...listeners]) listener("refresh_expired");
+        await signOutOnce();
         return refused(refusal("signed_out", 401));
       }
       return refused(readRefusal(r.status, body, { words }));

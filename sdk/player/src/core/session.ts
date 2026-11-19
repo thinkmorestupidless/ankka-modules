@@ -164,13 +164,29 @@ export function sessionBehaviour(options: SessionOptions): SessionBehaviour {
       const at = m.step();
       if (at.kind !== "idle_warning") return;
       stopIdle();
-      void transport.session.refresh().then((r) => {
+      void renew().then((r) => {
         if (!m.still(at)) return;
-        if (r.ok || r.refusal.code !== "refresh_expired") tell(signedIn(at.player));
+        if (r !== "expired") tell(signedIn(at.player));
         else tell(signedOut({ reason: "refresh_expired" }));
       });
     }),
     back: m.action("back", () => tell(before.kind === "awaiting_verification" ? before : signedOut())),
+  };
+
+  /**
+   * A refresh as the transport decides one (contracts/site-server.md): a refused refresh keeps the
+   * cookies, which another tab may have just refreshed, so it is tried once more with what they hold;
+   * refused again, the sign-in is gone, and signing out removes the cookies. "unavailable": players
+   * did not answer, and the player stays signed in.
+   */
+  const renew = async (): Promise<"renewed" | "unavailable" | "expired"> => {
+    for (let tries = 0; tries < 2; tries++) {
+      const r = await transport.session.refresh();
+      if (r.ok) return "renewed";
+      if (r.refusal.code !== "refresh_expired") return "unavailable";
+    }
+    await transport.session.signOut().catch(() => undefined);
+    return "expired";
   };
 
   let country: Promise<string | null> | undefined;
@@ -191,8 +207,8 @@ export function sessionBehaviour(options: SessionOptions): SessionBehaviour {
       const at = m.step();
       if (at.kind !== "signed_in") return;
       startIdle();
-      void transport.session.refresh().then((r) => {
-        if (!r.ok && r.refusal.code === "refresh_expired" && m.still(at)) tell(signedOut({ reason: "refresh_expired" }));
+      void renew().then((r) => {
+        if (r === "expired" && m.still(at)) tell(signedOut({ reason: "refresh_expired" }));
       });
     },
   };

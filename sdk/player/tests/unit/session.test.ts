@@ -132,6 +132,61 @@ describe("the session behaviour", () => {
     expect(s.step().kind).toBe("signed_in");
   });
 
+  /** The transport's refreshes answered in turn, refused as expired past the list; each sign-out counted. */
+  function refreshes(transport: ReturnType<typeof doubleTransport>, answers: boolean[]) {
+    const seen = { refreshes: 0, signOuts: 0 };
+    const signOut = transport.session.signOut.bind(transport.session);
+    transport.session.refresh = async () => {
+      const ok = answers[seen.refreshes++] ?? false;
+      return ok ? { ok: true } : { ok: false, refusal: { status: 401, code: "refresh_expired", fields: {} } };
+    };
+    transport.session.signOut = async () => {
+      seen.signOuts++;
+      await signOut();
+    };
+    return seen;
+  }
+
+  async function atWarning() {
+    const x = await setup({ signedIn: true });
+    await x.clock.advance(29 * 60_000 + 40_000); // ten seconds into the warning
+    expect(x.s.step().kind).toBe("idle_warning");
+    return x;
+  }
+
+  it("stay, after a refresh another tab won: the second refresh holds the winner's sign-in, and the player stays (review)", async () => {
+    const { clock, transport, s } = await atWarning();
+    const seen = refreshes(transport, [false, true]);
+    s.actions.stay();
+    await clock.settle();
+    expect(s.step().kind).toBe("signed_in");
+    expect(seen).toEqual({ refreshes: 2, signOuts: 0 });
+  });
+
+  it("stay, with the sign-in gone: refused twice, signs out, which removes the cookies, at refresh_expired", async () => {
+    const { clock, transport, s } = await atWarning();
+    const seen = refreshes(transport, []);
+    s.actions.stay();
+    await clock.settle();
+    expect(s.step()).toMatchObject({ kind: "signed_out", reason: "refresh_expired" });
+    expect(seen).toEqual({ refreshes: 2, signOuts: 1 });
+  });
+
+  it("a recent bet whose refresh is refused twice signs out; one refused once stays signed in", async () => {
+    const won = await setup({ signedIn: true });
+    const a = refreshes(won.transport, [false, true]);
+    won.s.notIdle();
+    await won.clock.settle();
+    expect(won.s.step().kind).toBe("signed_in");
+    expect(a.signOuts).toBe(0);
+    const gone = await setup({ signedIn: true });
+    const b = refreshes(gone.transport, []);
+    gone.s.notIdle();
+    await gone.clock.settle();
+    expect(gone.s.step()).toMatchObject({ kind: "signed_out", reason: "refresh_expired" });
+    expect(b).toEqual({ refreshes: 2, signOuts: 1 });
+  });
+
   it("a call that finds the sign-in gone signs the player out with the reason refresh_expired", async () => {
     const { clock, d, transport, s } = await setup({ signedIn: true });
     d.brand.signedIn = null;
