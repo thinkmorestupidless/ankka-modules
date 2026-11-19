@@ -573,3 +573,43 @@ local-onboard brand="guyanabet":
     ./operator-token.sh
     python3 onboard-games.py
     cd ../.. && just local-project {{brand}} && (cd local/{{brand}} && ankka local up)
+
+# ── service descriptions (spec 031, contracts/descriptions.md) ─────────────────────────────────────
+
+# The services whose player routes are described, kept and held.
+described := "players wallet ingest game-provider kyc responsible-gambling rewards engagement support-agent"
+
+# Write services/<service>/openapi.player.json from the service's own routes: its player routes only,
+# refused while any of them is incomplete. describe.env holds the placeholders its settings demand.
+describe service:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    sbt -batch contract/publishLocal
+    cd services/{{service}}
+    set -a; [ -f describe.env ] && . ./describe.env; set +a
+    JAVA_TOOL_OPTIONS="-Dankka.document=openapi -Dankka.document.out=$PWD/openapi.player.json -Dankka.document.tags=player -Dankka.document.strict=true -Dankka.service.name={{service}}" \
+      sbt -batch run
+    echo "wrote services/{{service}}/openapi.player.json"
+
+# The kept description against a fresh one: one line per operation added, removed or changed, then the diff.
+describe-check service:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    sbt -batch contract/publishLocal
+    fresh="$(mktemp)"
+    cd services/{{service}}
+    set -a; [ -f describe.env ] && . ./describe.env; set +a
+    JAVA_TOOL_OPTIONS="-Dankka.document=openapi -Dankka.document.out=$fresh -Dankka.document.tags=player -Dankka.document.strict=true -Dankka.service.name={{service}}" \
+      sbt -batch run
+    if ! cmp -s openapi.player.json "$fresh"; then
+      python3 ../../scripts/describe-diff.py openapi.player.json "$fresh" || true
+      diff -u openapi.player.json "$fresh" || true
+      echo "services/{{service}}/openapi.player.json is out of date: just describe {{service}}" >&2
+      exit 1
+    fi
+    echo "services/{{service}}/openapi.player.json is current"
+
+# Every described service's description, then the SDK's module clients from them.
+descriptions:
+    for s in {{described}}; do just describe "$s"; done
+    npm run generate -w sdk/player

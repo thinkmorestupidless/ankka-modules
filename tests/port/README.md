@@ -271,3 +271,11 @@ the in-memory pseudonym registry's (row 6), and one assertion of end-to-end scen
 would need the original's whole stack started over the kind installation. `audit/README.md` says
 where each row comes from and how `services/audit/.../port/ParitySuite.scala` holds it; `just
 audit-parity` runs them.
+
+## The description check (spec 031)
+
+Nine services keep a description of their player routes, `services/<service>/openapi.player.json`.
+Each one's `port/DescriptionSuite` replays every recording here against it, through the
+`contract.port.DescriptionCheck`: a recorded call to one of its player routes must answer a status
+the description names, or one of the platform's own, with a body its schema admits. The routes no
+recording calls are listed, per service, in `unrecorded-player-routes/` (its `README.md`).
