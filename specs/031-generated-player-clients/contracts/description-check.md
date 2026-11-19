@@ -34,15 +34,27 @@ def run(
 
 | Service | Its recordings lie in | Read through |
 |---|---|---|
-| players | every directory (registration, sign-in, verification are in most) | `port/WireTranslation` |
-| kyc | `kyc/`, `engagement/` | `port/WireTranslation` |
-| rewards | `rewards/`, `engagement/`, `game-provider/` | `port/WireTranslation` |
+| players | every directory (registration, sign-in, verification are in most) | `port/WireTranslation`; status only (below) |
+| kyc | `kyc/`, `engagement/` | `port/WireTranslation`; status only (below) |
+| rewards | `rewards/`, `engagement/`, `game-provider/` | `port/WireTranslation`; status only (below) |
 | engagement | `engagement/` | `port/WireTranslation`; the stream's steps for status only |
 | ingest | `ingest/`, `merchant/` (host `merchant`) | as recorded |
 | game-provider | `players/`, `rewards/`, `game-provider/`, `engagement/`, `kyc/` (the launch) | as recorded |
 | support-agent | `support-agent/` | as recorded; status only |
 | responsible-gambling | `engagement/` (23 recordings), `reporting/` (1) | as recorded (V4) |
 | wallet | none | — : all three on the unrecorded list |
+
+**Status only.** players, kyc and rewards translate one way: the rebuild's answer into the
+original's shape, for the parity comparison. A recorded body is the original's and cannot be read
+as the rebuild's, so for these three the description check compares the recorded status with the
+description and drops the body; engagement's stream and support-agent's two routes are status
+only because their answers are streams or the model's words. Of the 43 routes a recording calls,
+that is 34 (players 21, kyc 5, rewards 5, engagement 1, support-agent 2); the other 9 (ingest 2,
+game-provider 1, responsible-gambling 6) have their recorded fields checked. The fields of those
+34 routes' answers are held to the description where the rebuild answers them:
+every parity replay runs through the service's held kit (FR-015), which fails on a body its
+description does not allow. The original's recorded fields are compared with the rebuild's by
+the parity suites, as before this spec.
 
 A step the service's parity test skips or reads through a named divergence is read the same way
 here: `read` is built from the service's own `Parity` where it has one.

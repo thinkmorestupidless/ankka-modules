@@ -158,10 +158,6 @@ Tasks: A is phases 1 and 2 of `tasks.md`; B and C are phase 3; D and E are phase
 check is built before the descriptions it reads, and each service's suite is written with its
 description); F is phase 6; G is phase 7.
 
-Tasks: A is phases 1 and 2 of `tasks.md`; B and C are phase 3; D and E are phases 4 and 5 (the
-check is built before the descriptions it reads, and each service's suite is written with its
-description); F is phase 6; G is phase 7.
-
 | Phase | Pull request | Holds | Gate |
 |---|---|---|---|
 | A | first | the move, groups 1 to 6 (contracts/move.md) | each group's suites as CI runs them; `just modules validate --all`; `just features` |
