@@ -35,6 +35,24 @@ brand's project with `ankka casino secrets <slug> --secrets <file>`.
    `just modules apply <slug> --installation dev-kind [--modules casino]`. `just modules render <slug>`
    shows what either would run, and which keys are missing, before anything does.
 
+## Onboarding a brand on one machine
+
+`guyanabet` runs as one project with `ankka local up` (`local/README.md`). Each step of spec 027's
+*Onboarding* (`specs/027-frontend-sdk/contracts/amendments.md`), as a command in `local/guyanabet/`
+with the project up; `just local-onboard` runs them in order:
+
+| Step | Command |
+|---|---|
+| the realm `casino-guyanabet` with its `casino-frontend` client, and the operators' realm | `./realm.sh` (the modules tool's realm command at the local identity provider) |
+| the secrets | local-only values in `local.json` (`local/generate.py`); none is a secret anywhere else |
+| an operator, and a token for the steps below | `./operator-token.sh` (`platform_admin`, `games`, `payments-operator`, scope level `platform`) |
+| the sub-brand at the shared payments, its cashier key, and an `EUR` routing tree to the payment provider stub | merchant seeds the sub-brand (`MERCHANT_BRANDS`); `python3 onboard-payments.py` adds the DreamzPay credential and terminal, deploys the tree and issues the key, which `just local-project` writes into `local.json` |
+| the house provider's brand entry and the brand's provider configurations, with the site's deposit and lobby addresses | `python3 onboard-games.py` (`eitheror`, and `st8` at the simulator) |
+| an email verified in a timed run | `GET /v1/casino/backoffice/guyanabet/players/{id}/verification-link` on `players`, which answers on a brand that takes no real money; `just player-site-it` reads it |
+
+On an installation the same steps run with the installation's addresses; the scripts name theirs
+at the top.
+
 ## The brands
 
 | Brand | Real money | Runs, locally | Notes |
