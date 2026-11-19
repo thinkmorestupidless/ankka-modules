@@ -559,3 +559,14 @@ What differs from the tasks as written, and what the machine demanded:
 
 - T061: the brain's dated line is written in `brain/projects/ankka-modules.md` and left uncommitted:
   this session's worktree guard refuses git in that repository, so the commit there is the person's.
+
+## Baseline
+
+T002 asked for every suite's pass count on `main`'s tree before the move. That run was started and
+its logs were not kept, so there are no before-numbers from this machine. SC-002 rests instead on:
+
+- `git diff origin/main 8ffa0f76 -- services/*/src/test contract/src/test` is empty: the move
+  changed no test and no expectation of any service or of the contract;
+- every one of those unchanged suites passes after it (the counts under "Acceptance" and
+  "Quickstart run");
+- `main`'s own CI runs the same commands, and the pull request's checks are those jobs.
