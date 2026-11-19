@@ -8,7 +8,7 @@ const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
 describe("the contract's published files", () => {
   test.each([
     ["operator-permissions.v1.json", "../../../../contract/schemas/access/operator-permissions.v1.json"],
-    ["currencies.v1.json", "../../../../contract/schemas/money/currencies.v1.json"],
+    ["currencies.v1.json", "../../../../contract/schemas/currencies.v1.json"],
   ])("%s is the contract's own", (name, source) => {
     expect(read(`../../src/shared/generated/${name}`), `run just backoffice-contract`).toBe(read(source));
   });

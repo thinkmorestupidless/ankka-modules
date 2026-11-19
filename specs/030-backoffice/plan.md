@@ -161,7 +161,7 @@ specs/030-backoffice/
 ```text
 contract/src/main/scala/io/eitheror/casino/contract/access/OperatorPermissions.scala, RoleBags.scala, Routes.scala
 contract/src/main/scala/io/eitheror/casino/contract/Layout.scala, facts/
-contract/schemas/access/operator-permissions.v1.json, money/currencies.v1.json
+contract/schemas/access/operator-permissions.v1.json, currencies.v1.json (spec 027's, one table)
 brands/_realm/eitheror-operators.json
 tools/modules/src/main/scala/io/eitheror/casino/modules/   # Render, Realm: web hosting, the brand's client
 modules/backoffice/module.json
