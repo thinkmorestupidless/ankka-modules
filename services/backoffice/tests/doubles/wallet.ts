@@ -5,6 +5,7 @@
 // the transactions read lists each adjustment with its reason, category, cause and actor. The wallet's
 // own suites hold its rules in full; this keeps what the backoffice's scenarios read back.
 import type { Answer } from "./owner.ts";
+import { walletText } from "../../src/shared/money.ts";
 
 export interface SeededWallet {
   player: string;
@@ -29,8 +30,8 @@ const Balance = /^\/v1\/casino\/backoffice\/[^/]+\/wallets\/([^/]+)\/([^/]+)\/ba
 const Adjust = /^\/v1\/casino\/backoffice\/[^/]+\/wallets\/([^/]+)\/([^/]+)\/adjustments$/;
 const Transactions = /^\/v1\/casino\/backoffice\/[^/]+\/wallets\/([^/]+)\/([^/]+)\/transactions$/;
 
-/** The wallet's major text: minor units over 100, two decimals, whatever the currency (Wire.major). */
-const major = (minor: number) => `${minor < 0 ? "-" : ""}${Math.floor(Math.abs(minor) / 100)}.${String(Math.abs(minor) % 100).padStart(2, "0")}`;
+/** The wallet's major text: by the currency's exponent, as `Wire.major` writes it (spec 027 FR-058). */
+const major = (minor: number, currency: string) => walletText(BigInt(minor), currency);
 
 export class Wallets {
   private kept = new Map<string, Kept>();
@@ -46,8 +47,8 @@ export class Wallets {
 
   private balance(w: Kept) {
     return {
-      realBalance: major(w.real), bonusBalance: major(w.restricted), currency: w.currency, primary: null,
-      depositPoolBalance: major(w.real), convertedPoolBalance: "0.00", reserved: "0.00", available: major(w.real),
+      realBalance: major(w.real, w.currency), bonusBalance: major(w.restricted, w.currency), currency: w.currency, primary: null,
+      depositPoolBalance: major(w.real, w.currency), convertedPoolBalance: major(0, w.currency), reserved: major(0, w.currency), available: major(w.real, w.currency),
     };
   }
 
@@ -97,9 +98,9 @@ export class Wallets {
     else w.restricted = after;
     const txnId = `txn-${w.player}-${w.transactions.length + 1}`;
     w.transactions.push({
-      transactionId: txnId, type: "admin_adjust", walletType: target === "real" ? "real" : "bonus", amount: major(amount), balanceBefore: major(before), balanceAfter: major(after),
+      transactionId: txnId, type: "admin_adjust", walletType: target === "real" ? "real" : "bonus", amount: major(amount, w.currency), balanceBefore: major(before, w.currency), balanceAfter: major(after, w.currency),
       status: "completed", roundId: null, awardRef: null, paymentReference: null, createdAt: new Date().toISOString(), depositPart: "0.00", convertedPart: "0.00",
-      depositPoolAfter: major(w.real), convertedPoolAfter: "0.00", reason: r.reason, category: r.category ?? "other", cause: r.cause ?? null, actorId: subject ?? null,
+      depositPoolAfter: major(w.real, w.currency), convertedPoolAfter: major(0, w.currency), reason: r.reason, category: r.category ?? "other", cause: r.cause ?? null, actorId: subject ?? null,
     });
     return keep({ body: { ...this.balance(w), txnId, walletType: target === "real" ? "real" : "bonus", amountMinor: amount, before, after, ...(r.cause ? { cause: r.cause } : {}), repeated: false } });
   }

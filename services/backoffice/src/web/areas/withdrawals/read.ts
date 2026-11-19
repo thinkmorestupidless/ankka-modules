@@ -90,8 +90,8 @@ export const readRequest = (requestId: string) => read<Request>(payouts.getWithd
 export const readHistory = (playerId: string, page: number, pageSize: number) =>
   read<Page>(payouts.getPlayersWithdrawalHistory({ playerId }, { query: { page: String(page), pageSize: String(pageSize) } }));
 
-/** The wallet answers its operator reads in major units with two places (spec 002 FR-003): back to minor units. */
-export const minorOf = (major: string | undefined | null): string | undefined => walletMinorText(major);
+/** The wallet answers its operator reads in major units by the currency's exponent (spec 027 FR-058): back to minor units. */
+export const minorOf = (major: string | undefined | null, currency: string): string | undefined => walletMinorText(major, currency);
 
 export interface Balances {
   real?: string;
@@ -100,7 +100,7 @@ export interface Balances {
 
 export async function readBalances(player: string, currency: string): Promise<Balances> {
   const b = await read<{ realBalance?: string; bonusBalance?: string }>(wallet.getWalletsBalance({ player, currency }));
-  return { real: minorOf(b.realBalance), restricted: minorOf(b.bonusBalance) };
+  return { real: minorOf(b.realBalance, currency), restricted: minorOf(b.bonusBalance, currency) };
 }
 
 export interface Deposit {
@@ -116,7 +116,7 @@ export async function readDeposits(player: string, currency: string, count = 5):
   const t = await read<{ transactions: { transactionId: string; amount: string; status: string; createdAt: string; paymentReference?: string | null }[] }>(
     wallet.getWalletsTransactions({ player, currency }, { query: { type: "deposit", page: "0", pageSize: String(count) } }),
   );
-  return t.transactions.map((d) => ({ ...d, amount: minorOf(d.amount) }));
+  return t.transactions.map((d) => ({ ...d, amount: minorOf(d.amount, currency) }));
 }
 
 export const readIdentity = async (playerId: string) => (await read<{ status: string }>(kyc.getByPlayerId({ playerId }))).status;

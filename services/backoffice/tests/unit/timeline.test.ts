@@ -230,13 +230,14 @@ describe("the standing", () => {
     expect(parts.notes).toEqual({ state: "ok", data: [] });
   });
 
-  // The wallet writes minor units over 100 with two decimals, whatever the currency (Wire.major).
+  // The wallet writes major units by the currency's exponent (Wire.major, Amounts.render; spec 027 FR-058).
   test.each([
     ["12.50", "EUR", "1250"],
-    ["480.00", "JPY", "48000"],
-    ["1500.00", "CLP", "150000"],
-    ["12.50", "KWD", "1250"],
-    ["1.250", "KWD", undefined],
+    ["480", "JPY", "480"],
+    ["480.00", "JPY", undefined],
+    ["150000", "CLP", "150000"],
+    ["1.250", "KWD", "1250"],
+    ["12.50", "KWD", undefined],
     ["-3.50", "EUR", "-350"],
     ["-3.5", "EUR", undefined],
     ["0.00", "EUR", "0"],

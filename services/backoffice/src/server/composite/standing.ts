@@ -7,8 +7,8 @@
 // account status and the dates the brand keeps; no name, email, address, date of birth or note text.
 import { walletMinorText } from "../../shared/money.ts";
 
-/** The wallet's amount text as minor units (shared/money.ts, the wallet's rule; the currency does not change it). */
-const minorOf = (text: unknown, _currency: string): string | undefined => walletMinorText(text);
+/** The wallet's amount text as minor units of the currency (shared/money.ts, by the currency's exponent as the wallet writes it). */
+const minorOf = (text: unknown, currency: string): string | undefined => walletMinorText(text, currency);
 
 export { minorOf };
 import { arr, ask, num, obj, str, type AskDeps, type Asked, type Obj } from "./ask.ts";

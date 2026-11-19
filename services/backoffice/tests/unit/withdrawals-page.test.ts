@@ -38,12 +38,15 @@ describe("the state an action is offered in", () => {
 
 describe("the wallet's major units", () => {
   test.each([
-    ["700.00", "70000"],
-    ["0.05", "5"],
-    ["-12.34", "-1234"],
-    ["0.00", "0"],
-  ])("%s is %s minor units", (major, minor) => expect(minorOf(major)).toBe(minor));
-  test("anything else is unknown", () => expect([minorOf("7"), minorOf(undefined), minorOf("1.5")]).toEqual([undefined, undefined, undefined]));
+    ["700.00", "EUR", "70000"],
+    ["0.05", "EUR", "5"],
+    ["-12.34", "EUR", "-1234"],
+    ["0.00", "EUR", "0"],
+    ["7000", "CLP", "7000"],
+    ["1.234", "KWD", "1234"],
+  ])("%s %s is %s minor units", (major, currency, minor) => expect(minorOf(major, currency)).toBe(minor));
+  test("anything else is unknown", () =>
+    expect([minorOf("7", "EUR"), minorOf(undefined, "EUR"), minorOf("1.5", "EUR"), minorOf("70.00", "CLP")]).toEqual([undefined, undefined, undefined, undefined]));
 });
 
 describe("the queue's place as payouts' query", () => {

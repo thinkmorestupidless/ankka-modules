@@ -95,7 +95,7 @@ function Recent({ player, currency }: { player: string; currency: string }) {
             </thead>
             <tbody>
               {rows.map((r) => {
-                const minor = walletMinor(r.amount);
+                const minor = walletMinor(r.amount, currency);
                 return (
                   <tr key={r.transactionId} data-adjustment={r.transactionId}>
                     <td>
@@ -139,8 +139,8 @@ function Adjuster({ player, currency }: { player: string; currency: string }) {
     queryKey: ["wallet", "balance", player, currency],
     queryFn: () => readJson<Balance>(wallet.getWalletsBalance({ player, currency })),
   });
-  const real = walletMinor(balance.data?.realBalance);
-  const restricted = walletMinor(balance.data?.bonusBalance);
+  const real = walletMinor(balance.data?.realBalance, currency);
+  const restricted = walletMinor(balance.data?.bonusBalance, currency);
   const current = target === "real" ? real : restricted;
   const minor = amountOf(amountText, currency);
   const signed = minor === undefined ? undefined : direction === "debit" ? -minor : minor;
