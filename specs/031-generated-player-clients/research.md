@@ -1,0 +1,249 @@
+# Research: generated player clients
+
+Read 2026-11-19: ankka at the tags `v0.13.0`, `v0.16.3` and `v0.18.0` (`docs/build/openapi.md`,
+`docs/deploy/upgrading.md`, `modules/http/.../openapi/`, `modules/testkit/.../HeldToDocument.scala`,
+`cli/.../openapi/OpenApiCommand.scala`, `controlplane-api/.../Compatibility.scala`, ankka specs 066
+and 067); this repository's 22 service builds, the nine services' endpoints and test kits,
+`tests/port/` (590 recordings), `tools/modules/`, `.github/workflows/ci.yml`, the `Justfile`,
+`local/`, and the SDK's four route tables and clients.
+
+## R1. Every service moves, because the platform runs two minor versions
+
+- **Decision**: all 22 services, the root build and every manifest name ankka 0.18.0.
+- **Rationale**: `Compatibility.supports` (and `upgrading.md`): a platform runs a runtime of its
+  own major version whose minor is its own or one below. Platform 0.18.0 runs 0.17.x and 0.18.x; a
+  descriptor naming 0.16.x or 0.13.x is `Unavailable` and no instance starts. A platform at 0.16
+  runs no 0.18 runtime. An installation therefore moves whole, and so does this repository.
+- **Alternatives**: the 13 services on 0.16.x and `ingest` (the first recommendation): leaves eight
+  services no 0.18 installation can run.
+
+## R2. What changes in a service's source
+
+| From | Change a service must make | Source |
+|---|---|---|
+| 0.13.0, 0.14.2 | route builders take no type arguments (`post[String, Done](…)` becomes `post(…)`); handler parameters are annotated; a handler answering `Done` ends with `Done.done` | ankka `e09ff6ea7 feat(http)!`, 0.16.1 |
+| 0.13.0, 0.14.2 | whatever 0.14 to 0.16.0 changed that the services on 0.16 already followed: read from the diff of a service that made that move (`players` at PR #38) | this repository's history |
+| any | 0.17.0: `ankka local up` and `ankka context-map check` refuse a project whose context map has a topic crossing and no `topics.json`; `local/guyanabet/topics.json` exists | ankka `f78fe3924 feat(066)!` |
+| any | 0.18.0: `FromBody.json` and `ToResponse.json` take `using ShapeOf.Maybe[A]`; a type with no shape makes a route incomplete, not a compile error. A hand-written `ToResponse` gains defaulted `shape` and `fixedStatus` | ankka `4f8a14dc5 feat(067)` |
+
+- No rename or removal was found between 0.16.3 and 0.18.0 in ankka's main sources, and the journal
+  and snapshot code is not in that diff. `upgrading.md`: schema changes are additive, applied at
+  each instance start. No statement was found that data written by 0.13 is read by 0.18; FR-003
+  therefore forbids a change to any stored type and leaves the replay of old data to spec 019.
+- "Two endpoints may not share a prefix" still holds at 0.18.0; "at most two path parameters" does
+  not (removed in 0.16.1). `CLAUDE.md` is corrected.
+- The 15 services that lift sbt's early-semver check for ankka's artifacts (`libraryDependencySchemes
+  … VersionScheme.Always`, because the contract was built on 0.13.0) lose that block: the root
+  build's default becomes 0.18.0 and one version is on every class path.
+- `exchange` and `markets` take ankka-predictions 0.3.0 (`PREDICTIONS_VERSION` default), built on
+  ankka 0.18.0 (the person, 2026-11-19; the tag `v0.3.0` is on its remote). What changed in its
+  API between 0.1.1 and 0.3.0 is read at task time (V7).
+
+## R3. The order of the move, and its pull request
+
+- **Decision**: one pull request, `031-ankka-0-18` cut from `main`, in this order, each group's
+  suites green before the next: (1) the root build (contract, provider-core, modules tool) and its
+  fixtures; (2) the nine on 0.16.3; (3) audit, engagement, reporting, support-agent; (4) exchange,
+  markets, with ankka-predictions 0.3.0; (5) the six on 0.13.0; (6) module and shared manifests,
+  `local/`, the tool's suites, CI comments, READMEs, `CLAUDE.md`; (7) the runtime check (R11).
+  `031-generated-player-clients` is rebased on it once it merges and holds everything else.
+- **Rationale**: the person's decision (Clarifications). The contract first, because every service
+  builds against the published contract. Manifests last, because a manifest naming 0.18.0 for a
+  service still built on 0.13.0 is a lie between commits.
+- **A service's suites** are `sbt test` and, where CI runs one, `sbt -Dit=true "testOnly …it.*
+  …port.* …features.*"`: the commands `ci.yml` runs, so the local result is CI's.
+
+## R4. A description is written by the service's own build, not by `ankka openapi <dir>`
+
+- **Decision**: `just describe <service>` runs the service's own sbt build in document mode:
+  `JAVA_TOOL_OPTIONS="-Dankka.document=openapi -Dankka.document.out=<file> -Dankka.document.tags=player
+  -Dankka.document.strict=true -Dankka.service.name=<service>" sbt run` in `services/<service>/`,
+  writing `services/<service>/openapi.player.json`. `just describe-check <service>` writes to a
+  temporary file and compares byte for byte. CI runs the check in each of the nine services' jobs.
+- **Rationale**: `OpenApiCommand.locate` treats a directory whose parent is named `services` as a
+  member of one root build and runs `sbt <service>/run` at the repository root; here each service
+  is a build of its own, so `ankka openapi services/wallet` runs the wrong build. The properties
+  are the documented equivalent and are what the command itself passes; the output is the same
+  file. `JAVA_TOOL_OPTIONS`, not `sbt -D`, because the command uses it and it reaches a forked run.
+  The document is deterministic (fixed key order, two-space indent, final newline, no timestamp).
+- **Alternatives**: `ankka openapi --check` (same `locate` problem); an in-process suite calling
+  `OpenApi.build` (a second way to write the same file, and its API is not a documented one).
+  ankka's `locate` rule is reported to ankka as an issue, not worked around further here.
+- `--api-version` is not passed: the kept description's `info.version` is `0.0.0`, and the
+  modules' release does not rewrite it (the spec's assumption that a release writes the service's
+  version is dropped: a version in a kept file would fail the check at every release).
+
+## R5. Document mode needs `main` to reach `start` with no environment
+
+- `ServiceBuilder.start` writes the document and exits before it needs a database or a broker, but
+  the nine services read settings from the environment first (`CASINO_BRAND`, issuer addresses,
+  keys) and `Oidc.authenticate()` gives a no-issuer authenticator only when `ankka.document` is set.
+- **Decision**: `just describe` exports a fixed environment per service, kept in
+  `services/<service>/describe.env`: every variable the service's `Settings` demands, at values
+  that are plainly placeholders, with the brand `the-brand`. Where a `main` does work before
+  `start` that needs a live neighbour, that work moves behind `start` (V2).
+- **The brand in a path**: most of the nine put the brand's slug in the endpoint's prefix as a
+  literal, so a description written for `guyanabet` would name `guyanabet`. Written for
+  `the-brand`, the generator turns that one segment into `{brand}`, which the site server fills
+  (as it does today). `game-provider`'s launch has `{brand}` as a real parameter and needs nothing.
+
+## R6. Every shape is stated, because no route of the nine has a type that says it
+
+- Every body-taking player route of the nine reads its body as a `String` and every answer is a
+  `Respond[Bytes]` built from a Jackson `JsonNode` (the wallet builds case classes and still
+  answers bytes). Underived, every one would be `x-ankka-incomplete` (`request body`, `answer 200`).
+- **Decision**: per service, `api/Described.scala` holds the case classes of what its player
+  routes take and answer, with `ShapeOf` derived, used by the route descriptions alone:
+  `described(_.summary(…).body[A].answers[B](200).refuses(409, "…").query[String]("currency").tag("player")) { … }`.
+  Where a service already has the type (the wallet's `MajorBalance`), that type is used. A refusal's
+  body is the service's own (`{error, message, …}`; the wallet's `RefusalBody`; ingest's), declared
+  once per endpoint with `refusalShape[A]` in the endpoint's `description`; support-agent's and the
+  stream's refusals are ankka's `AnkkaProblem`, the default.
+- **Rationale**: FR-009 forbids changing what a route does, so the handlers stay as they are; the
+  stated shape is held to the handler's bytes by the held test kit (R7), which validates every
+  JSON answer against its schema. `body(jsonSchema: String)` was rejected: a schema as text has no
+  compiler behind it.
+- **What it does not give**: a stated shape can be looser than the handler (a field marked
+  optional that is always there). The recordings (R8) and the SDK's contract tests are what catch
+  one that is wrong in the other direction.
+- **Scale**: 79 player routes: players 40 (36 + 3 + 1), wallet 3, ingest 3 (submit, abandon, the
+  payment read; `POST /sessions` is called by `players` under the cashier key and is not a player
+  route), game-provider 5, kyc 5, responsible-gambling 10, rewards 10 (`/free-rounds/eligible` is
+  a service's), engagement 1, support-agent 2.
+
+## R7. The held test kit, limited to player routes
+
+- `HeldToDocument.server(server, into: Violations)` wraps a server; it checks a status the route
+  does not name (400, 401, 403, 413, 500, 503 and 504 excepted as the platform's), a JSON answer
+  against its schema, an accepted request body against its schema, and a query parameter read that
+  is not declared. In Scala it fails after each test through the trait `HeldToDocument`, or at
+  `assertHeld()`. It has no tag limit: its document is every served endpoint's, so an operator's
+  or a service's route with an undescribed refusal is a violation too.
+- **Decision**: each of the nine kits (one `HttpServer.at` and one `AnkkaTestKit.start` each, in
+  `it/Kit.scala` or the wallet's `it/Harness.scala`) wraps its server with
+  `HeldToDocument.server(server, violations)` and, when it closes, fails on the violations whose
+  route is a player route of the kept description, listing each. Violations on other routes are
+  dropped: describing 200 service and operator routes is not this spec.
+- **V1** decides how the filter reads a violation's route. If a violation does not carry its
+  method and path, the fallback is the endpoint's own `description` with the refusals every route
+  of that endpoint makes, for the non-player endpoints of the nine, and no filter.
+- Suites that name a kit: players 9 files, wallet 15, ingest 10, game-provider 6, kyc 4,
+  responsible-gambling 2, rewards 9, engagement 7, support-agent 7. None changes: the kit does.
+
+## R8. The description check
+
+- **Recordings**: one JSON object per scenario (`scenario`, `requirement`, `steps[]`, each with
+  `request{method, path, service, body}` and `response{status, body}`), loaded by
+  `io.eitheror.casino.contract.port.Recording`. `request.service` is the original's host. 590
+  recordings in 14 directories; calls of one service's player routes lie in many directories
+  (players' registration is in 294 recordings; responsible gambling's routes are in
+  `tests/port/engagement/` and nowhere else).
+- **Decision**: `contract.port.DescriptionCheck` (beside `Recording` and `Replay`), given a kept
+  description, a table of the original's routes (`method`, a path pattern, the operation it is),
+  and an optional translation of a step: for every recording under `tests/port/` and every step
+  the table matches, the status must be one the operation names and a JSON body must fit that
+  answer's schema. It returns the differences and the operations no step matched. Each of the
+  nine services has `port/DescriptionSuite.scala`: its table, its translation where it has one
+  (`WireTranslation` in players, kyc, rewards, engagement), and two assertions: no difference, and
+  the unmatched operations equal that service's lines of `tests/port/unrecorded-player-routes.txt`.
+- **A named divergence**: where the service's `Parity.divergences` names a step, the check reads
+  the step as the parity test does (translated, or skipped where the parity test skips it).
+  ingest, game-provider and support-agent have no `WireTranslation`: their recordings are read as
+  recorded. responsible-gambling has no parity package at all: its suite reads
+  `tests/port/engagement/`'s scenarios 26 and 27 with the original's paths (`/v1/casino/rg/…`,
+  the same as the rebuilt ones) and no translation; a difference found there is either a missing
+  refusal in the description or a divergence, which is then named in spec 010's plan and in the
+  suite (V4).
+- **The wallet (FR-016)**: `PortSuite` reads `tests/port/wallet/`, which does not exist, and
+  registers one ignored test; when its recordings exist (spec 002 T074) they are service routes,
+  not player routes. The original has no player wallet route: its site read the balance through
+  the casino's own route. The wallet's three player routes are on the unrecorded list and are held
+  by R7 alone.
+- **The validator**: ankka's `DocumentCheck` (`modules/http/.../openapi/DocumentCheck.scala`) is
+  what `HeldToDocument` uses; `DescriptionCheck` uses it if it is public (V3), else
+  `com.networknt:json-schema-validator` in the contract's main scope.
+- **Unrecorded at the time of writing**, of the SDK's 27 rows: resendVerification,
+  requestPasswordReset, startDeposit, country, acknowledgeRealityCheck, abandonCashier, games,
+  game, freeRounds, balance. The full list over 79 routes is written by the first run of the check
+  and reviewed line by line (T-level task), then kept.
+
+## R9. What a description cannot say, and where it goes
+
+| What | Where it comes from |
+|---|---|
+| open to a visitor / a signed-in player | the document's `security`: `[]` is public, `bearer` is player |
+| admitted by a cashier ticket (ingest's three, served under `Routes.public`) | the route description's second tag, `ticket` |
+| the push connection (a custom ACL, `Stream.acl`) | `bearer` if the ACL holds an authenticator; else the tag `signed-in` (V5) |
+| a stream | the operation's `200` content is `text/event-stream` |
+| query parameters | the operation's parameters |
+| a header a route reads (the payment read's ticket header) | nowhere: ankka 067 describes no header. The site server sends the ticket by the row's audience, as today |
+| the row's id, its module, server-only, visitor, a fixed query, a fixed path value | the selection (R10) |
+
+## R10. The generator
+
+- **Decision**: `sdk/player/scripts/generate.ts`, run by Node 24 as `scripts/steps.ts` is, with no
+  new dependency. It reads `services/*/openapi.player.json` and `sdk/player/src/<module>/selection.ts`
+  and writes, per module, `routes.ts` (the table, `as const satisfies Routes`) and `shapes.ts` (a
+  Zod parser and its inferred type per shape a selected row takes or answers), each headed
+  `// Generated by scripts/generate.ts from services/*/openapi.player.json. Do not edit.`
+  `npm run generate -w sdk/player` writes; `npm run generate:check` generates to memory and fails
+  on a difference; `just player-sdk-test` and CI's `player-sdk` job run the check.
+- **`client.ts` stays by hand** and becomes the mapping alone: it imports its shapes from
+  `shapes.ts` and no longer declares a `z.object`. An eslint rule forbids `zod` imports and path
+  literals under `src/<module>/` outside the generated files (SC-006), except `events.ts` (below).
+- **JSON Schema to Zod**, the subset ankka writes: `object` with `required`, the scalar types,
+  `array`, `enum`, `$ref`, a nullable type, `oneOf` discriminated by `"type"`, `additionalProperties`.
+  Objects are not strict: an unknown field passes, as the codecs allow. Anything else fails the
+  generation naming the schema.
+- **Names**: a path parameter is renamed where the SDK's differs (`{playerId}` to `{player}`,
+  `{gameCode}` to `{gameId}`), by the selection, so `Transport` and the site server's fill of
+  `{brand}` and `{player}` are untouched. `turn`'s `{route}` is fixed to `chat_with_player` by the
+  selection. `unread`'s fixed query stays in the row's path as it is today.
+- **Streams**: the events of the push connection and the chat have no shape in a description
+  (ankka gives a stream's `200` no schema). Their parsers move to `src/<module>/events.ts`, by
+  hand, named as the exception in the eslint rule and in the spec's assumptions.
+- **Leniency lost**: the hand-written parsers forgive (`partial().passthrough()`, `.catch(null)` on
+  responsible gambling's interval). A generated parser is exactly the description. Where a unit
+  test of a client relied on forgiveness the service never needs, that test changes and is listed
+  in the pull request; behaviours', components' and the site's tests do not (FR-024).
+- **Alternatives**: `openapi-typescript` (types only: no parse at the boundary, FR-018);
+  `@hey-api/openapi-ts` or `openapi-zod-client` (whole clients we would discard, a dependency whose
+  output shifts between versions under a byte-for-byte check).
+
+## R11. The runtime check in the modules tool
+
+- Nothing in `tools/modules/src/main` compares a runtime with an installation; `Readiness`
+  evaluates `requires[]` for real-money brands only. `GET /installation` reports `platformVersion`.
+- **Decision**: `Runtimes.unsupported(platform: Option[String], runtimes: Set[String])` in the
+  modules tool, by ankka's rule (same major; the platform's minor or one below), called by every
+  apply (brand and shared project, real money or not, local mode and vendor mode) before anything
+  is deployed. The platform version is `GET /installation`'s when the control plane is asked, else
+  the overlay's `PLATFORM_VERSION` in `installation/overlays/<name>/settings.env`, a new setting
+  (V6 checks no existing one says it). Not reported is refused. It lands in the first pull
+  request, with the scenario it implements.
+
+## R12. Where things run
+
+- No kind (Clarifications). `ApplyOnKindSuite` (`just it`) is not run locally and no CI job runs
+  it either: no job uses kind today. The rendered runtime is proved by `RenderSuite` and the
+  runtime check's unit suite, and `ApplyOnKindSuite`'s default runtime is moved to 0.18.0
+  untested. FR-025 says so.
+- The local brand: `just local-images` (every service's image from this checkout), `just
+  local-project`, `ankka local up` in `local/guyanabet/`, `just local-onboard`, `just
+  player-site-it`. It runs 13 services; support-agent is left out, so the contract tests' chat
+  cases see `unavailable` as they did in spec 027 (24 of 24 was measured so).
+- The CLI: `brew upgrade thinkmorestupidless/tap/ankka` to 0.18.0, for `ankka local up` with 0.18
+  runtimes. CI installs no CLI and needs none (R4).
+
+## To verify at task time
+
+| | What | If it is not so |
+|---|---|---|
+| V1 | a `HeldToDocument` violation carries its route's method and path | R7's fallback: endpoint-wide descriptions on the non-player endpoints |
+| V2 | each of the nine `main`s reaches `start` in document mode under `describe.env` | move what runs before `start` behind it, in that service |
+| V3 | `DocumentCheck` validates a JSON value against a document's schema from outside ankka | `json-schema-validator` in the contract |
+| V4 | scenarios 26 and 27 pass against responsible gambling's description untranslated | name the divergence in spec 010's plan and the suite |
+| V5 | the push connection's ACL yields `bearer` in the document | the tag `signed-in` |
+| V6 | no overlay setting already states the platform's version | use it, add none |
+| V7 | ankka-predictions 0.3.0 changes nothing `exchange` and `markets` serve or store | a finding; stop and ask |
+| V8 | `--strict` with a tag refuses only incomplete routes that carry the tag | describe to completeness whatever it names, or write without strict and assert completeness in the check |

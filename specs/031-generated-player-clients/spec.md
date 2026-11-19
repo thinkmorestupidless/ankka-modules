@@ -68,9 +68,14 @@ Three decisions of 2026-11-19 bind the spec (Clarifications).
   generated clients (stories 2 to 4) follow in a second on top of it (FR-005).
 - Q: What of ankka 0.18.0 may the build use on the developer's machine? → A: The command-line
   client is upgraded to 0.18.0. No kind installation is used locally, because it is too heavy for
-  the machine: what runs locally runs under `ankka local up`, the local brand among it, and the
-  suite that applies a brand to a kind installation runs in continuous integration only
-  (FR-025, Assumptions).
+  the machine: what runs locally runs under `ankka local up`, the local brand among it. The
+  suite that applies a brand to a kind installation is not run by this spec, locally or in
+  continuous integration, which has no kind job (FR-025, Assumptions).
+- Q: How do `exchange` and `markets` get onto ankka 0.18.0, when ankka-predictions 0.1.1 is built
+  on 0.14.2? → A: They move to ankka-predictions 0.3.0, which is built on ankka 0.18.0 (FR-001).
+- Q: The modules tool has no check of an installation's platform version against a module's
+  runtime; the platform alone refuses, by starting nothing. Should the tool check? → A: Yes: the
+  tool refuses the apply before anything is deployed, naming both versions (FR-004).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -218,18 +223,24 @@ the SDK's build fails until it is generated again.
 - **FR-001**: Every service's build, every `service.json`, every module manifest, every shared
   project's manifest, the local brand's service files and the root build of the contract and the
   modules tool MUST name ankka 0.18.0. No service is left on an earlier version, and the
-  workarounds that let a contract built on one version run on another are removed.
+  workarounds that let a contract built on one version run on another are removed. `exchange` and
+  `markets` take ankka-predictions 0.3.0, the release built on ankka 0.18.0.
 - **FR-002**: The move MUST change nothing a caller observes: no route's path, method, admission,
   answer or refusal, no fact's shape or topic, no stored type's wire name. Every unit, feature,
   parity and integration suite of every service MUST pass on 0.18.0 with no expectation changed. A
   test changed for a reason other than a renamed or removed ankka API is a finding.
-- **FR-003**: What a service stored on its earlier version (journals, snapshots, view rows,
-  workflow state, timers) MUST be read on 0.18.0 without a migration step. Each service that
-  stores anything MUST have a suite that reads data written by its earlier version, or name the
-  existing suite that does.
+- **FR-003**: The move MUST change no stored type, no serializer and no manifest name of any
+  service, so that what a service stored on its earlier version is read on 0.18.0 without a
+  migration step; a change the move forces on one is a finding the build stops at. No brand holds
+  real money yet, so no suite replays data written by an earlier runtime: that check belongs to
+  the Spinvibe migration (spec 019).
 - **FR-004**: A brand's values MUST not change. A rendered brand MUST show 0.18.0 for every
-  service, and the modules tool MUST refuse to apply a brand to an installation that does not
-  report it can run 0.18.0, as strictly as the vendor's agent does.
+  service. The modules tool MUST refuse to apply a brand or a shared project to an installation
+  whose platform cannot run a runtime it names, before anything is deployed, naming the runtime
+  and the installation's platform version; the platform's own rule decides (the same major
+  version, and the platform's minor version or the one below it). An installation that reports no
+  platform version is refused as one that cannot. This check is new here: until now the platform
+  alone refused, by starting no instance of the service.
 - **FR-005**: The move MUST be made in an order that keeps the repository building at every
   commit: the contract first, then the services that already run a 0.16 version, then those on
   0.14.2, then those on 0.13.0, each service's suites green before the next group starts. The
@@ -249,7 +260,10 @@ the SDK's build fails until it is generated again.
 - **FR-008**: A route description MUST state: a summary in the glossary's words; what the route
   takes; what it answers on success; every refusal it makes, with its status and its reason; every
   query parameter it reads; and that its answer is a stream of events where it is one. Whatever
-  the route's own types already say MUST not be restated by hand.
+  the route's own types already say MUST not be restated by hand. The routes of these nine
+  services read their bodies as text and build their answers themselves, so their types say
+  nothing and every shape is stated in the route description; FR-015 is what holds each stated
+  shape to what the route answers.
 - **FR-009**: A route description MUST change nothing the route does: a described route answers
   byte for byte as it did undescribed.
 - **FR-010**: A service description with an incomplete player route MUST be refused, naming the
@@ -259,7 +273,8 @@ the SDK's build fails until it is generated again.
   each route added, removed or changed. Continuous integration MUST run that check for all nine.
 - **FR-012**: A service description MUST state who may call each route as the service enforces
   it: open to a visitor, a signed-in player's token, or a cashier ticket. Where the route's
-  admission is a rule the description cannot express, the route description names the audience.
+  admission is a rule its admission alone does not show (the cashier's routes are open to the
+  network and admit by the ticket they are given), the route description marks the audience.
 
 **Descriptions checked**
 
@@ -310,8 +325,9 @@ the SDK's build fails until it is generated again.
 - **FR-025**: Everything this spec's acceptance needs on a developer's machine MUST run without a
   kind installation: each service's suites, the description check, the generation and its check,
   and spec 027's contract tests against the local brand under `ankka local up`. The suite that
-  applies a brand to a kind installation is run by continuous integration, and its result there is
-  the evidence for the rendered runtime being one an installation runs (FR-004).
+  applies a brand to a kind installation is not run: its default runtime is moved to 0.18.0, and
+  the evidence that a rendered brand names a runtime an installation runs is the render's own
+  suite and the runtime check's (FR-004).
 
 ### Amendments
 
@@ -329,6 +345,8 @@ the SDK's build fails until it is generated again.
 
 ### Changes from the original
 
+- **The modules tool refuses a runtime an installation cannot run** (FR-004). The original has
+  no modules tool; the check is new to this repository.
 - **A service describes its routes.** The original publishes no description its code is held to;
   its clients were written from reading it. This is new, and it changes no answer (FR-009).
 - **Nothing else.** The move to 0.18.0 and the generated clients change nothing a player, an
@@ -383,10 +401,14 @@ the SDK's build fails until it is generated again.
 - The ankka command-line client on the developer's machine is upgraded to 0.18.0, and continuous
   integration installs 0.18.0; where a client is absent, the same description is written by the
   service's own build, and both give the same file.
-- `exchange` and `markets` depend on ankka-predictions' libraries; if no release of those runs on
-  0.18.0, that is found in the plan's research and raised as a question, not worked around.
-- A service description's version is the service's own version, and the modules' release writes
-  it; the kept description in the repository carries the development version.
+- ankka-predictions 0.3.0 is built on ankka 0.18.0 (Clarifications). What it changed since 0.1.1
+  that `exchange` and `markets` must follow is found when they are moved, and a change to what
+  either serves or stores is a finding (FR-002, FR-003).
+- A stream's route description says the answer is a stream; ankka 0.18.0 gives no shape to the
+  events in it, so the events of the push connection and of the chat stay shaped by hand in the
+  SDK's mapping, and are not counted as wire shapes by SC-006.
+- A kept service description carries no version of its service: a version in it would fail the
+  check of FR-011 at every release.
 - The description states the rebuilt service's behaviour. Where a spec already names a divergence
   from the original, the description follows the rebuilt service.
 - Generated code is committed, so that a site builder reads it and a build needs no generation
