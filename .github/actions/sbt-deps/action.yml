@@ -1,0 +1,36 @@
+name: sbt-deps
+description: >
+  Restores every sbt build's dependencies (~/.cache/coursier, ~/.ivy2/cache, ~/.sbt) from the cache
+  saved under the build files' hash, on this ref or on `main`. With `resolve: true`, when that exact
+  key is missing, resolves every build (scripts/ci-sbt-deps.sh) and saves it. Java and sbt must be
+  set up first.
+inputs:
+  resolve:
+    description: resolve and save when the exact key is missing
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - id: cache
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          ~/.cache/coursier
+          ~/.ivy2/cache
+          ~/.sbt
+          !~/.sbt/*.lock
+        key: sbt-deps-${{ runner.os }}-${{ hashFiles('**/*.sbt', '**/project/build.properties') }}
+        restore-keys: sbt-deps-${{ runner.os }}-
+    - if: inputs.resolve == 'true' && steps.cache.outputs.cache-hit != 'true'
+      name: Resolve every build
+      shell: bash
+      run: scripts/ci-sbt-deps.sh
+    - if: inputs.resolve == 'true' && steps.cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: |
+          ~/.cache/coursier
+          ~/.ivy2/cache
+          ~/.sbt
+          !~/.sbt/*.lock
+        key: ${{ steps.cache.outputs.cache-primary-key }}
