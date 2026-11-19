@@ -4,7 +4,7 @@ import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import java.time.Instant
 
 /** data-model.md's two session entities (T012). */
-class SessionEntitiesSuite extends munit.FunSuite with LogCapturing:
+class SessionEntitiesSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.players.it.Held:
 
   private val at = Instant.parse("2026-10-25T10:00:00Z")
 

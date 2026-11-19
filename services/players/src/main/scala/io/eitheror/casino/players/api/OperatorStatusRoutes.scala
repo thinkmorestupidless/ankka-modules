@@ -3,7 +3,7 @@ package io.eitheror.casino.players.api
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.thinkmorestupidless.ankka.core.EntityId
-import com.thinkmorestupidless.ankka.http.{Bytes, Principal, Respond}
+import com.thinkmorestupidless.ankka.http.{Principal, Respond}
 import io.eitheror.casino.players.{Json, PlayersRuntime}
 import io.eitheror.casino.players.Json.*
 import io.eitheror.casino.players.clients.{Neighbour, Reply as NeighbourReply}
@@ -22,6 +22,7 @@ import scala.concurrent.duration.*
 import scala.util.Try
 
 import Answers.*
+import io.eitheror.casino.contract.http.Json as JsonBody
 
 /**
  * What an operator, `kyc` and `responsible-gambling` do to a player's status (FR-031 to FR-034, FR-041),
@@ -424,7 +425,7 @@ final class OperatorStatusRoutes(ctx: Ctx):
     Try(Await.result(Neighbour.call(ctx.neighbours.call, ctx.neighbours.agent, method, path, payload), AgentBound)).toOption
       .filter(_.status < 500) match
       case None                         => refusal(503, "agent_unreachable", "agent unreachable")
-      case Some(r: NeighbourReply) if r.status == 204 => Respond(Bytes("application/json", Array.emptyByteArray), 204, Vector.empty)
+      case Some(r: NeighbourReply) if r.status == 204 => Respond(JsonBody(Array.emptyByteArray), 204, Vector.empty)
       case Some(r)                      => json(r.status, r.body.getOrElse(Json.obj()))
 
 object OperatorStatusRoutes:

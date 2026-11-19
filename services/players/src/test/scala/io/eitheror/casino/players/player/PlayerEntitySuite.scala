@@ -7,7 +7,7 @@ import io.eitheror.casino.players.player.PlayerEvent.*
 import java.time.{Duration, Instant}
 
 /** data-model.md's command table for `PlayerEntity`, row by row and in its order (T011). */
-class PlayerEntitySuite extends munit.FunSuite with LogCapturing:
+class PlayerEntitySuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.players.it.Held:
 
   private val at  = Instant.parse("2026-10-25T10:00:00Z")
   private def later(minutes: Long) = at.plusSeconds(minutes * 60)

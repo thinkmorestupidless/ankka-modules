@@ -5,6 +5,7 @@ import com.thinkmorestupidless.ankka.http.{Acl, Bytes, EndpointClients, Respond}
 import io.eitheror.casino.players.{Json, Neighbours, PlayersRuntime, Settings}
 
 import java.nio.charset.StandardCharsets.UTF_8
+import io.eitheror.casino.contract.http.Json as JsonBody
 
 /**
  * How the routes answer (contracts/routes.md, contracts/wire.md): a body as the original wrote it, a
@@ -12,10 +13,13 @@ import java.nio.charset.StandardCharsets.UTF_8
  * caller are the ACL's (spec 001 FR-020), written before a handler runs.
  */
 object Answers:
-  type Reply = Respond[Bytes]
+  type Reply = Respond[JsonBody]
 
   def json(status: Int, body: JsonNode, headers: Vector[(String, String)] = Vector.empty): Reply =
-    Respond(Bytes("application/json", Json.render(body).getBytes(UTF_8)), status, headers)
+    Respond(JsonBody(Json.render(body).getBytes(UTF_8)), status, headers)
+
+  /** A JSON answer as the bytes of a route that answers another type too (the activity's CSV). */
+  def bytes(r: Reply): Respond[Bytes] = Respond(Bytes("application/json", r.body.bytes), r.status, r.headers)
 
   def ok(body: JsonNode): Reply = json(200, body)
 

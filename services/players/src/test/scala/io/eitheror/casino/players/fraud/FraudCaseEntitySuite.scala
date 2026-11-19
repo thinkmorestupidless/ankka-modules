@@ -4,7 +4,7 @@ import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import java.time.Instant
 
 /** The fraud case entity (T013). */
-class FraudCaseEntitySuite extends munit.FunSuite with LogCapturing:
+class FraudCaseEntitySuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.players.it.Held:
 
   private val at = Instant.parse("2026-10-25T10:00:00Z")
 

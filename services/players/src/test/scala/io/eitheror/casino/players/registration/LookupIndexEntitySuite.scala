@@ -5,7 +5,7 @@ import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, LogCapturin
 import java.time.Instant
 
 /** The lookup index (T014; spec 011 T013). */
-class LookupIndexEntitySuite extends munit.FunSuite with LogCapturing:
+class LookupIndexEntitySuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.players.it.Held:
 
   test("Add answers the others already held; a repeat adds nothing; Remove takes one out") {
     val kit = KeyValueEntityTestKit.of(LookupIndexEntity, "token-1")

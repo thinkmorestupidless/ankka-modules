@@ -16,7 +16,7 @@ import scala.util.Random
  * T062: duplicate detection at registration and the operator's review (FR-036, FR-037, SC-005); spec
  * 011's duplicate check, email variant and address (FR-034, FR-035).
  */
-class DuplicatesSuite extends munit.FunSuite with LogCapturing:
+class DuplicatesSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.players.it.Held:
   override val munitTimeout = 120.seconds
   private lazy val kit = SharedKit.kit
 

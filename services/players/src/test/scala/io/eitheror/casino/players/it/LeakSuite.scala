@@ -16,7 +16,7 @@ import scala.jdk.CollectionConverters.*
  * case (T027); T069 adds the erasure (every table, view row, fact, operator answer and the export after
  * it) and T072 the deposit's customer fields.
  */
-class LeakSuite extends munit.FunSuite with LogCapturing:
+class LeakSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.players.it.Held:
   private lazy val kit = SharedKit.kit
 
   override def beforeEach(context: BeforeEach): Unit = kit.reset()

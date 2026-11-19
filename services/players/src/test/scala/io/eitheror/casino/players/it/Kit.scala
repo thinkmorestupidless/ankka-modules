@@ -63,7 +63,10 @@ final class Kit(base: Settings = Kit.Base):
   rewire()
 
   private val timers = TimerRuntime(200.millis)
-  private val server = HttpServer.at("127.0.0.1", 0)(PlayersService.endpoints(() => Kit.authenticate)*)
+  /** The player routes held to the kept description (spec 031 FR-015); `Held` asserts it after each test. */
+  val held = io.eitheror.casino.contract.port.HeldToPlayerRoutes(Kit.description, slug)
+  private val server = held.hold(HttpServer.at("127.0.0.1", 0)(PlayersService.endpoints(() => Kit.authenticate)*))
+  Kit.started.add(this): Unit
 
   val testKit: AnkkaTestKit = AnkkaTestKit.start(
     PlayersService.descriptors,
@@ -106,12 +109,14 @@ final class Kit(base: Settings = Kit.Base):
     PlayersService.started(timers, views)
 
   def stop(): Unit =
+    Kit.started.remove(this)
     testKit.stop()
     fakes.foreach(_.stop())
     LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).asInstanceOf[Logger].detachAppender(log): Unit
 
   /** The fakes as they started, the clock now, the log empty. Entities and views keep what earlier tests left. */
   def reset(): Unit =
+    held.violations.clear()
     realm.reset(); rg.reset(); kyc.reset(); payouts.reset(); engagement.reset(); ingest.reset(); wallet.reset(); geo.reset(); agent.reset()
     clockOffset = JDuration.ZERO
     log.list.clear()
@@ -246,6 +251,19 @@ final class Kit(base: Settings = Kit.Base):
   private def fail(why: String): Nothing = throw AssertionError(why)
 
 object Kit:
+  /** The kept description of the player routes (spec 031). */
+  val description: java.nio.file.Path =
+    java.nio.file.Paths.get(sys.props.getOrElse("casino.root", "../..")).resolve("services/players/openapi.player.json")
+
+  /** Every kit started and not stopped, for `Held`. */
+  private[players] val started: java.util.Set[Kit] = java.util.concurrent.ConcurrentHashMap.newKeySet[Kit]()
+
+  /** Fails, naming each answer since the last check that a kit's description does not allow; clears them all. */
+  def assertHeld(): Unit =
+    import scala.jdk.CollectionConverters.*
+    val failures = started.asScala.toVector.flatMap(k => scala.util.Try(k.held.assertHeld()).failed.toOption)
+    failures.headOption.foreach(throw _)
+
   val Base: Settings = Settings(
     brand = "goldvibe",
     realMoney = false,

@@ -382,3 +382,12 @@ round; each was fixed after that round and not analysed again:
   is written. A stream route's body taken as `String` is `text/plain` in the document, as an
   answer's was; `sseEventsBody` takes the contract's `Json` the same way. The chat's last segment
   stays a path parameter (`/run/{route}`), the one value served being `chat_with_player`.
+- T045 (players): the activity history is one route answering two content types (a CSV attachment,
+  or JSON with `format=json`), so it stays `Respond[Bytes]` and its `200` is
+  `application/octet-stream`, a string, in the document; the JSON shape is in its summary only. No
+  SDK row reads it. `POST /password-reset/confirm` only ever refuses (the realm's page confirms a
+  reset), and a strict document refuses an operation with no answer, so its `400` is described as
+  its answer. `PlayerCaller.matching`'s `401 missing_token` is the handler's own and is described on
+  every route with a player id. The original's answers hold fewer fields than the rebuild's, so
+  `port/DescriptionSuite` checks statuses and `ParitySuite` under the hold checks the bodies, as
+  kyc's and rewards'. 21 of the 40 routes are recorded; the 19 others are on the unrecorded list.

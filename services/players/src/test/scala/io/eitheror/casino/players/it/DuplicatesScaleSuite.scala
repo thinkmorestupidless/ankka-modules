@@ -14,7 +14,7 @@ import scala.concurrent.duration.*
  *
  * 500 players by default; 10,000 with `PLAYERS_PERF=1` (`just players-perf`). The figures are printed.
  */
-class DuplicatesScaleSuite extends munit.FunSuite with LogCapturing:
+class DuplicatesScaleSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.players.it.Held:
   private val perf = sys.env.get("PLAYERS_PERF").contains("1")
   private val size = if perf then 10_000 else 500
   override val munitTimeout = (if perf then 30 else 3).minutes

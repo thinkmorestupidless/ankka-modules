@@ -12,7 +12,7 @@ import scala.jdk.CollectionConverters.*
  * binds a scenario, the scenario is reported ignored naming the task that will (`pending`), never passed:
  * a story's task removes its scenarios from `pending` as it binds them.
  */
-abstract class PlayersFeatures(file: String) extends GherkinSuite(s"../../features/players/$file") with LogCapturing:
+abstract class PlayersFeatures(file: String) extends GherkinSuite(s"../../features/players/$file") with LogCapturing with io.eitheror.casino.players.it.Held:
   override val munitTimeout: Duration = 300.seconds
 
   protected def kit: Kit = SharedKit.kit
