@@ -47,19 +47,19 @@ function Account({ kind, name, currency }: { kind: Kind; name: string; currency:
   if (q.isError) return <RefusalNotice refusal={refusalOf(q.error)} />;
   if (!q.data) return <p role="status">{t("list.loading")}</p>;
   const b = q.data;
-  const balance = walletMinor(b.balance);
+  const balance = walletMinor(b.balance, currency);
   const minor = amountOf(amountText, currency);
   const signed = minor === undefined ? undefined : direction === "debit" ? -minor : minor;
   const figure = (text: string) => {
-    const m = walletMinor(text);
+    const m = walletMinor(text, currency);
     return m === undefined ? text : <Money value={{ minor: m, currency }} />;
   };
 
-  // the account's route takes the wallet's amount text (minor units over 100), not minor units
+  // the account's route takes the wallet's amount text (major units by the currency's exponent), not minor units
   const run = (reason: string | undefined) =>
-    keyed.send({ currency, amount: walletText(signed!), reason, category }, (key, body) => wallet.postAccountsAdjustments({ kind, name }, { body: { key, ...body } }));
+    keyed.send({ currency, amount: walletText(signed!, currency), reason, category }, (key, body) => wallet.postAccountsAdjustments({ kind, name }, { body: { key, ...body } }));
   const done = async (answer: Response) => {
-    setAfter(walletMinor(((await answer.json()) as AccountBalance).balance));
+    setAfter(walletMinor(((await answer.json()) as AccountBalance).balance, currency));
     setAmountText("");
     void client.invalidateQueries({ queryKey });
   };

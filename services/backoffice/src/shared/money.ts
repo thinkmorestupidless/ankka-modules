@@ -83,27 +83,27 @@ export function sumMoney(amounts: readonly Money[]): Money | undefined {
 }
 
 /**
- * The wallet's amount text as minor units. The wallet writes every amount as its minor units over 100
- * with two decimals, whatever the currency's own count (`Wire.major`, spec 002 FR-003), so "20.00" is
- * 2000 minor units of EUR, "5.00" is 500 of JPY and "1.500" is no wallet amount at all: read by that rule,
- * never by the currency's. Undefined when the text is not one.
+ * The wallet's amount text as minor units of `currency`. The wallet writes an amount in major units
+ * by the currency's own minor-unit count (`Wire.major`, the contract's `Amounts.render`; spec 027
+ * FR-058), exactly as [[decimalOf]] does: EUR "20.00" is 2000, JPY "500" is 500, KWD "1.500" is 1500.
+ * Undefined when the text is not one in that currency: a count of decimals other than the currency's
+ * is another currency's amount, never rounded or padded into this one.
  */
-export function walletMinor(text: unknown): bigint | undefined {
-  if (typeof text !== "string") return undefined;
-  const m = /^(-?)(\d+)\.(\d{2})$/.exec(text.trim());
+export function walletMinor(text: unknown, currency: string): bigint | undefined {
+  if (typeof text !== "string" || exponents[currency] === undefined) return undefined;
+  const e = exponents[currency]!;
+  const m = (e === 0 ? /^(-?)(\d+)()$/ : new RegExp(`^(-?)(\\d+)\\.(\\d{${e}})$`)).exec(text.trim());
   if (!m) return undefined;
-  const minor = BigInt(m[2]!) * 100n + BigInt(m[3]!);
+  const minor = BigInt(m[2]!) * 10n ** BigInt(e) + BigInt(m[3] || "0");
   return m[1] ? -minor : minor;
 }
 
 /** [[walletMinor]] as the decimal string of its minor units, as the server's answers carry them. */
-export function walletMinorText(text: unknown): string | undefined {
-  return walletMinor(text)?.toString();
+export function walletMinorText(text: unknown, currency: string): string | undefined {
+  return walletMinor(text, currency)?.toString();
 }
 
-/** Minor units as the wallet's amount text, by the same rule: 500 is "5.00", -1250 is "-12.50". */
-export function walletText(minor: bigint): string {
-  const negative = minor < 0n;
-  const abs = negative ? -minor : minor;
-  return `${negative ? "-" : ""}${abs / 100n}.${(abs % 100n).toString().padStart(2, "0")}`;
+/** Minor units as the wallet's amount text, by the same rule: EUR 500 is "5.00", JPY 500 is "500", KWD -1250 is "-1.250". */
+export function walletText(minor: bigint, currency: string): string {
+  return decimalOf({ minor, currency });
 }

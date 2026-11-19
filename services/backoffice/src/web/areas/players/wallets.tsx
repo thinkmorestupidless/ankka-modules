@@ -61,7 +61,7 @@ function Movements({ player, currency }: { player: string; currency: string }) {
     queryFn: () => readJson<{ transactions: Movement[]; total: number }>(wallet.getWalletsTransactions({ player, currency }, { query: { page: String(list.state.page - 1), pageSize: String(PageSize) } })),
   });
   const money = (text: string | null | undefined) => {
-    const minor = walletMinorText(text);
+    const minor = walletMinorText(text, currency);
     return minor === undefined ? (text ?? null) : <Money value={{ minor, currency }} />;
   };
   const columns: Column<Movement>[] = [

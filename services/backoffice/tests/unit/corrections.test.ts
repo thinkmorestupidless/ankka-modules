@@ -1,5 +1,5 @@
-// T086, T087: the corrections pages' own reading. The wallet's amount text read by its rule (minor
-// units over 100, whatever the currency); the batch's pasted rows checked line by line; the server's
+// T086, T087: the corrections pages' own reading. The wallet's amount text read by its rule (major
+// units by the currency's exponent); the batch's pasted rows checked line by line; the server's
 // streamed lines read as they arrive.
 import { describe, expect, test } from "vitest";
 import { walletMinor, walletText } from "../../src/web/areas/corrections/shared.tsx";
@@ -9,16 +9,17 @@ import { profileCurrency } from "../../src/web/areas/players/read.ts";
 
 describe("the wallet's amount text", () => {
   test.each([
-    ["20.00", 2000n],
-    ["-12.50", -1250n],
-    ["0.00", 0n],
-    ["5.00", 500n],
-  ])("%s is %s minor units", (text, minor) => {
-    expect(walletMinor(text)).toBe(minor);
-    expect(walletText(minor)).toBe(text);
+    ["20.00", "EUR", 2000n],
+    ["-12.50", "EUR", -1250n],
+    ["0.00", "EUR", 0n],
+    ["500", "JPY", 500n],
+    ["1.500", "KWD", 1500n],
+  ])("%s %s is %s minor units", (text, currency, minor) => {
+    expect(walletMinor(text, currency)).toBe(minor);
+    expect(walletText(minor, currency)).toBe(text);
   });
 
-  test.each(["20", "20.5", "abc", 20])("%j is not the wallet's text", (v) => expect(walletMinor(v)).toBeUndefined());
+  test.each(["20", "20.5", "abc", 20])("%j is not the wallet's text in EUR", (v) => expect(walletMinor(v, "EUR")).toBeUndefined());
 
   test("an amount typed is above zero in the currency's own decimals", () => {
     expect(amountOf("5.00", "EUR")).toBe(500n);

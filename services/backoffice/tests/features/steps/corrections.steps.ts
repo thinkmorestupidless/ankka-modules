@@ -5,7 +5,7 @@
 // wallet's own features hold its rules. Here the backoffice is what is shown and asked.
 import { randomUUID } from "node:crypto";
 import { t } from "../../../src/shared/messages/index.ts";
-import { formatMoney, parseMoney } from "../../../src/shared/money.ts";
+import { formatMoney, parseMoney, walletText } from "../../../src/shared/money.ts";
 import { DoublesUrl } from "../../doubles/env.ts";
 import { expect, Given, Then, When, type World } from "../world.ts";
 
@@ -134,7 +134,7 @@ Then("the adjustment is refused because it exceeds the balance", async ({ world 
 Then("the balance is still {string}", async ({ world }, balance: string) => {
   const s = state(world);
   const { minor, currency } = amount(balance);
-  expect((await walletRead(world, s.player!, currency, "balance")).realBalance).toBe((Number(minor) / 100).toFixed(2));
+  expect((await walletRead(world, s.player!, currency, "balance")).realBalance).toBe(walletText(BigInt(minor), currency));
   await world.page.getByRole("dialog").getByRole("button", { name: t("action.cancel") }).click();
   await expect(main(world).locator('[data-balance="real"]')).toContainText(formatMoney({ minor, currency }));
   await expect(main(world).locator("[data-adjusted]")).toHaveCount(0);
