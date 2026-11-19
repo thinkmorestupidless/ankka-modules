@@ -63,6 +63,9 @@ jobs:
             wallet:
               - *build
               - services/wallet/**
+              # its DescriptionSuite reads every recording and its unrecorded list (spec 031)
+              - tests/port/**
+              - scripts/describe-diff.py
               - features/wallet/**
               - tests/port/wallet/**
               - tests/original/wallet-driver/**
@@ -80,12 +83,18 @@ jobs:
             ingest:
               - *build
               - services/ingest/**
+              # its DescriptionSuite reads every recording and its unrecorded list (spec 031)
+              - tests/port/**
+              - scripts/describe-diff.py
               - features/payments/**
               - tests/port/ingest/**
               - tests/original/ingest-driver/**
             players:
               - *build
               - services/players/**
+              # its DescriptionSuite reads every recording and its unrecorded list (spec 031)
+              - tests/port/**
+              - scripts/describe-diff.py
               - features/players/**
               - tests/port/players/**
               - tests/original/players-driver/**
@@ -111,6 +120,9 @@ jobs:
               - *build
               - provider-core/**
               - services/game-provider/**
+              # its DescriptionSuite reads every recording and its unrecorded list (spec 031)
+              - tests/port/**
+              - scripts/describe-diff.py
               - features/game-provider/**
               - tests/port/game-provider/**
             simulator:
@@ -128,11 +140,17 @@ jobs:
             responsible-gambling:
               - *build
               - services/responsible-gambling/**
+              # its DescriptionSuite reads every recording and its unrecorded list (spec 031)
+              - tests/port/**
+              - scripts/describe-diff.py
               - features/responsible-gambling/**
               - tests/port/responsible-gambling/**
             kyc:
               - *build
               - services/kyc/**
+              # its DescriptionSuite reads every recording and its unrecorded list (spec 031)
+              - tests/port/**
+              - scripts/describe-diff.py
               - features/kyc/**
               - tests/port/kyc/**
             payouts:
@@ -143,11 +161,17 @@ jobs:
             rewards:
               - *build
               - services/rewards/**
+              # its DescriptionSuite reads every recording and its unrecorded list (spec 031)
+              - tests/port/**
+              - scripts/describe-diff.py
               - features/rewards/**
               - tests/port/rewards/**
             engagement:
               - *build
               - services/engagement/**
+              # its DescriptionSuite reads every recording and its unrecorded list (spec 031)
+              - tests/port/**
+              - scripts/describe-diff.py
               - features/engagement/**
               - tests/port/engagement/**
               - tests/stubs/crm-stub/**
@@ -164,6 +188,9 @@ jobs:
             support-agent:
               - *build
               - services/support-agent/**
+              # its DescriptionSuite reads every recording and its unrecorded list (spec 031)
+              - tests/port/**
+              - scripts/describe-diff.py
               - features/support-agent/**
               - tests/port/support-agent/**
             public-api:
@@ -259,6 +286,17 @@ jobs:
       - uses: ./.github/actions/sbt-deps
       - name: Publish the contract and the provider core locally
         run: sbt contract/publishLocal providerCore/publishLocal
+      - name: The kept description of game-provider's player routes is what its routes say (spec 031)
+        working-directory: services/game-provider
+        run: |
+          set -a; [ -f describe.env ] && . ./describe.env; set +a
+          fresh="$(mktemp)"
+          JAVA_TOOL_OPTIONS="-Dankka.document=openapi -Dankka.document.out=$fresh -Dankka.document.tags=player -Dankka.document.strict=true -Dankka.service.name=game-provider" sbt -batch run
+          if ! cmp -s openapi.player.json "$fresh"; then
+            python3 ../../scripts/describe-diff.py openapi.player.json "$fresh" || true
+            echo "::error::services/game-provider/openapi.player.json is out of date: just describe game-provider"
+            exit 1
+          fi
       - name: game-provider's suites
         working-directory: services/game-provider
         run: sbt test
@@ -279,6 +317,17 @@ jobs:
       - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
+      - name: The kept description of wallet's player routes is what its routes say (spec 031)
+        working-directory: services/wallet
+        run: |
+          set -a; [ -f describe.env ] && . ./describe.env; set +a
+          fresh="$(mktemp)"
+          JAVA_TOOL_OPTIONS="-Dankka.document=openapi -Dankka.document.out=$fresh -Dankka.document.tags=player -Dankka.document.strict=true -Dankka.service.name=wallet" sbt -batch run
+          if ! cmp -s openapi.player.json "$fresh"; then
+            python3 ../../scripts/describe-diff.py openapi.player.json "$fresh" || true
+            echo "::error::services/wallet/openapi.player.json is out of date: just describe wallet"
+            exit 1
+          fi
       - name: The wallet's suites
         working-directory: services/wallet
         run: sbt test
@@ -343,6 +392,17 @@ jobs:
       - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
+      - name: The kept description of ingest's player routes is what its routes say (spec 031)
+        working-directory: services/ingest
+        run: |
+          set -a; [ -f describe.env ] && . ./describe.env; set +a
+          fresh="$(mktemp)"
+          JAVA_TOOL_OPTIONS="-Dankka.document=openapi -Dankka.document.out=$fresh -Dankka.document.tags=player -Dankka.document.strict=true -Dankka.service.name=ingest" sbt -batch run
+          if ! cmp -s openapi.player.json "$fresh"; then
+            python3 ../../scripts/describe-diff.py openapi.player.json "$fresh" || true
+            echo "::error::services/ingest/openapi.player.json is out of date: just describe ingest"
+            exit 1
+          fi
       - name: ingest's suites
         working-directory: services/ingest
         run: sbt test
@@ -364,6 +424,17 @@ jobs:
       - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
+      - name: The kept description of players's player routes is what its routes say (spec 031)
+        working-directory: services/players
+        run: |
+          set -a; [ -f describe.env ] && . ./describe.env; set +a
+          fresh="$(mktemp)"
+          JAVA_TOOL_OPTIONS="-Dankka.document=openapi -Dankka.document.out=$fresh -Dankka.document.tags=player -Dankka.document.strict=true -Dankka.service.name=players" sbt -batch run
+          if ! cmp -s openapi.player.json "$fresh"; then
+            python3 ../../scripts/describe-diff.py openapi.player.json "$fresh" || true
+            echo "::error::services/players/openapi.player.json is out of date: just describe players"
+            exit 1
+          fi
       - name: players' suites
         working-directory: services/players
         run: sbt test
@@ -484,6 +555,17 @@ jobs:
       - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
+      - name: The kept description of responsible-gambling's player routes is what its routes say (spec 031)
+        working-directory: services/responsible-gambling
+        run: |
+          set -a; [ -f describe.env ] && . ./describe.env; set +a
+          fresh="$(mktemp)"
+          JAVA_TOOL_OPTIONS="-Dankka.document=openapi -Dankka.document.out=$fresh -Dankka.document.tags=player -Dankka.document.strict=true -Dankka.service.name=responsible-gambling" sbt -batch run
+          if ! cmp -s openapi.player.json "$fresh"; then
+            python3 ../../scripts/describe-diff.py openapi.player.json "$fresh" || true
+            echo "::error::services/responsible-gambling/openapi.player.json is out of date: just describe responsible-gambling"
+            exit 1
+          fi
       - name: responsible-gambling's suites
         working-directory: services/responsible-gambling
         run: sbt test
@@ -504,6 +586,17 @@ jobs:
       - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
+      - name: The kept description of kyc's player routes is what its routes say (spec 031)
+        working-directory: services/kyc
+        run: |
+          set -a; [ -f describe.env ] && . ./describe.env; set +a
+          fresh="$(mktemp)"
+          JAVA_TOOL_OPTIONS="-Dankka.document=openapi -Dankka.document.out=$fresh -Dankka.document.tags=player -Dankka.document.strict=true -Dankka.service.name=kyc" sbt -batch run
+          if ! cmp -s openapi.player.json "$fresh"; then
+            python3 ../../scripts/describe-diff.py openapi.player.json "$fresh" || true
+            echo "::error::services/kyc/openapi.player.json is out of date: just describe kyc"
+            exit 1
+          fi
       - name: kyc's suites
         working-directory: services/kyc
         run: sbt test
@@ -544,6 +637,17 @@ jobs:
       - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
+      - name: The kept description of rewards's player routes is what its routes say (spec 031)
+        working-directory: services/rewards
+        run: |
+          set -a; [ -f describe.env ] && . ./describe.env; set +a
+          fresh="$(mktemp)"
+          JAVA_TOOL_OPTIONS="-Dankka.document=openapi -Dankka.document.out=$fresh -Dankka.document.tags=player -Dankka.document.strict=true -Dankka.service.name=rewards" sbt -batch run
+          if ! cmp -s openapi.player.json "$fresh"; then
+            python3 ../../scripts/describe-diff.py openapi.player.json "$fresh" || true
+            echo "::error::services/rewards/openapi.player.json is out of date: just describe rewards"
+            exit 1
+          fi
       - name: rewards' suites
         working-directory: services/rewards
         run: sbt test
@@ -568,6 +672,17 @@ jobs:
       - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
+      - name: The kept description of engagement's player routes is what its routes say (spec 031)
+        working-directory: services/engagement
+        run: |
+          set -a; [ -f describe.env ] && . ./describe.env; set +a
+          fresh="$(mktemp)"
+          JAVA_TOOL_OPTIONS="-Dankka.document=openapi -Dankka.document.out=$fresh -Dankka.document.tags=player -Dankka.document.strict=true -Dankka.service.name=engagement" sbt -batch run
+          if ! cmp -s openapi.player.json "$fresh"; then
+            python3 ../../scripts/describe-diff.py openapi.player.json "$fresh" || true
+            echo "::error::services/engagement/openapi.player.json is out of date: just describe engagement"
+            exit 1
+          fi
       - name: engagement's suites
         working-directory: services/engagement
         run: sbt test
@@ -639,6 +754,17 @@ jobs:
       - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
+      - name: The kept description of support-agent's player routes is what its routes say (spec 031)
+        working-directory: services/support-agent
+        run: |
+          set -a; [ -f describe.env ] && . ./describe.env; set +a
+          fresh="$(mktemp)"
+          JAVA_TOOL_OPTIONS="-Dankka.document=openapi -Dankka.document.out=$fresh -Dankka.document.tags=player -Dankka.document.strict=true -Dankka.service.name=support-agent" sbt -batch run
+          if ! cmp -s openapi.player.json "$fresh"; then
+            python3 ../../scripts/describe-diff.py openapi.player.json "$fresh" || true
+            echo "::error::services/support-agent/openapi.player.json is out of date: just describe support-agent"
+            exit 1
+          fi
       - name: support-agent's suites
         working-directory: services/support-agent
         run: sbt test

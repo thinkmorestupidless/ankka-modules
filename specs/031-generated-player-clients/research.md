@@ -398,3 +398,7 @@ round; each was fixed after that round and not analysed again:
   endpoint and are named in `DescriptionFeatures.ranElsewhere`. The incomplete route's document is
   asked of an unstarted `HttpServer` through its public `document("openapi", …)` with
   `strict=true`, which is what `ankka openapi --strict` asks; `OpenApi.build` is private to ankka.
+- T047: 79 player routes are described, 36 of them unrecorded (contracts/description-check.md has
+  the lists). The nine services' CI jobs now run on any change under `tests/port/`, since each
+  `DescriptionSuite` reads every recording and its own unrecorded list; before, a job ran only on
+  its own recordings directory.

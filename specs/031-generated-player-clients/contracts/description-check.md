@@ -58,3 +58,89 @@ freeRounds, balance.
 
 A route leaves the list when a recording of it is added; the suite then fails until the line is
 removed, which is the point.
+
+## The lists as they stand (T047)
+
+Of the 79 player routes the nine services describe, 36 are called by no recording under any
+path and 43 are checked against the original's recorded answers (FR-014, SC-004). Each
+line was read against every recording through its service's route table; a recorded close, export
+and activity export are the operator's backoffice routes, not the player's.
+
+| Service | Described | Unrecorded |
+|---|---|---|
+| players | 40 | 19 |
+| wallet | 3 | 3 |
+| ingest | 3 | 1 |
+| game-provider | 5 | 4 |
+| kyc | 5 | 0 |
+| responsible-gambling | 10 | 4 |
+| rewards | 10 | 5 |
+| engagement | 1 | 0 |
+| support-agent | 2 | 0 |
+| all | 79 | 36 |
+
+`players.txt`:
+
+```text
+DELETE /v1/casino/players/the-brand/emails/{address}
+DELETE /v1/casino/players/the-brand/{playerId}/favourites/{gameId}
+GET /v1/casino/geo/lookup
+GET /v1/casino/players/the-brand/{playerId}/activity-history
+GET /v1/casino/players/the-brand/{playerId}/exports/{exportId}
+GET /v1/casino/players/the-brand/{playerId}/favourites
+GET /v1/casino/players/the-brand/{playerId}/recently-played
+POST /v1/casino/players/the-brand/email-change/verify
+POST /v1/casino/players/the-brand/emails/{address}/resend
+POST /v1/casino/players/the-brand/messages/{messageId}/delete
+POST /v1/casino/players/the-brand/password-reset/confirm
+POST /v1/casino/players/the-brand/password-reset/request
+POST /v1/casino/players/the-brand/resend-verification-email
+POST /v1/casino/players/the-brand/{playerId}/close
+POST /v1/casino/players/the-brand/{playerId}/deposits
+POST /v1/casino/players/the-brand/{playerId}/email-change
+POST /v1/casino/players/the-brand/{playerId}/erasure
+POST /v1/casino/players/the-brand/{playerId}/exports
+POST /v1/casino/players/the-brand/{playerId}/favourites/{gameId}
+```
+
+`wallet.txt`:
+
+```text
+GET /v1/casino/players/the-brand/wallets/{currency}/balance
+GET /v1/casino/players/the-brand/wallets/{currency}/restricted-funds
+GET /v1/casino/players/the-brand/wallets/{currency}/transactions
+```
+
+`ingest.txt`:
+
+```text
+POST /v1/cashier/sessions/{ticket}/abandon
+```
+
+`game-provider.txt`:
+
+```text
+GET /v1/casino/catalog/developers
+GET /v1/casino/catalog/games
+GET /v1/casino/catalog/games/{gameCode}
+GET /v1/casino/catalog/{brand}/games/popular
+```
+
+`responsible-gambling.txt`:
+
+```text
+DELETE /v1/casino/rg/the-brand/{player}/reality-check
+POST /v1/casino/rg/the-brand/{player}/reality-check/acknowledge
+POST /v1/casino/rg/the-brand/{player}/return
+PUT /v1/casino/rg/the-brand/{player}/reality-check
+```
+
+`rewards.txt`:
+
+```text
+GET /v1/casino/brands/the-brand/rewards/{playerId}/free-rounds
+GET /v1/casino/brands/the-brand/rewards/{playerId}/grants
+GET /v1/casino/brands/the-brand/rewards/{playerId}/history
+POST /v1/casino/brands/the-brand/rewards/{playerId}/deselect
+POST /v1/casino/brands/the-brand/rewards/{playerId}/switch
+```
