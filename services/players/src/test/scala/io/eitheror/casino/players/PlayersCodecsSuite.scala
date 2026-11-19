@@ -63,6 +63,8 @@ class PlayersCodecsSuite extends munit.FunSuite with LogCapturing:
     roundTrip(GameSessionState("p-1", "ps-1", "g-1", "EUR", demo = true, Some(at), Some(at), Some(3), "ended", Some("limit")),
       GameSessionEntity.stateSerializer)
     roundTrip(GameSessionEvent.Opened("p-1", "ps-1", "g-1", "EUR", false, at), GameSessionEntity.eventSerializer)
+    roundTrip(GameSessionEvent.BetRecorded(at), GameSessionEntity.eventSerializer)
+    roundTrip(GameSessionState("p-1", "ps-1", "g-1", "EUR", demo = false, Some(at), lastBetAt = Some(at)), GameSessionEntity.stateSerializer)
     roundTrip(MessageState("p-1", "bonus", "crm", Personal("s"), Personal("b"), Some(at), None, Some(at), None, true),
       MessageEntity.stateSerializer)
     roundTrip(MessageEvent.Created("p-1", "c", "operator", Personal("s"), Personal("b"), Some("op-1"), at), MessageEntity.eventSerializer)

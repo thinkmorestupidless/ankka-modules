@@ -15,7 +15,7 @@ import io.eitheror.casino.wallet.wire.*
 
 import java.time.Instant
 
-/** The player site's and backoffice's amounts: major units with two decimals (FR-003). */
+/** The player site's and backoffice's amounts: major units by the currency's exponent (FR-003; amended by spec 027 FR-058). */
 final case class MajorBalance(realBalance: String, bonusBalance: String, currency: String, primary: Option[MajorPrimary],
     depositPoolBalance: String, convertedPoolBalance: String, reserved: String, available: String)
 final case class MajorPrimary(grantRef: String, status: String, wageringRequirement: String, wagered: String, progressPercent: Long)
@@ -45,29 +45,39 @@ private[api] object Major:
   given JsonValueCodec[OperatorAccountAdjustRequest] = Codecs.make[OperatorAccountAdjustRequest]
   given JsonValueCodec[MajorAccountBalance]   = Codecs.make[MajorAccountBalance]
 
-  def accountBalance(b: io.eitheror.casino.wallet.accounts.AccountBalance, txnId: Option[String] = None): MajorAccountBalance =
-    MajorAccountBalance(Wire.major(b.balance), Wire.major(b.creditLine), Wire.major(b.floor), b.owner, b.currency, txnId)
+  // Each takes the route's currency, which the route has checked, and writes every amount by its exponent.
 
-  def balance(b: Balance): MajorBalance =
-    MajorBalance(Wire.major(b.realBalance), Wire.major(b.restrictedBalance), b.currency,
-      b.primary.map(p => MajorPrimary(p.grantRef, p.status, Wire.major(p.requirement), Wire.major(p.wagered), p.progressPercent)),
-      Wire.major(b.depositPoolBalance), Wire.major(b.convertedPoolBalance), Wire.major(b.reserved), Wire.major(b.available))
+  def accountBalance(b: io.eitheror.casino.wallet.accounts.AccountBalance, c: Currency, txnId: Option[String] = None): MajorAccountBalance =
+    MajorAccountBalance(Wire.major(b.balance, c), Wire.major(b.creditLine, c), Wire.major(b.floor, c), b.owner, b.currency, txnId)
 
-  def transactions(p: TransactionsPage): MajorTransactions =
-    MajorTransactions(p.transactions.map(r => MajorTransaction(r.transactionId, r.`type`, r.walletType, Wire.major(r.amount),
-      Wire.major(r.balanceBefore), Wire.major(r.balanceAfter), r.status, r.roundKey, r.awardRef, r.paymentReference, r.createdAt,
-      Wire.major(r.depositPart), Wire.major(r.convertedPart), Wire.major(r.depositPoolAfter), Wire.major(r.convertedPoolAfter),
+  def balance(b: Balance, c: Currency): MajorBalance =
+    MajorBalance(Wire.major(b.realBalance, c), Wire.major(b.restrictedBalance, c), b.currency,
+      b.primary.map(p => MajorPrimary(p.grantRef, p.status, Wire.major(p.requirement, c), Wire.major(p.wagered, c), p.progressPercent)),
+      Wire.major(b.depositPoolBalance, c), Wire.major(b.convertedPoolBalance, c), Wire.major(b.reserved, c), Wire.major(b.available, c))
+
+  def transactions(p: TransactionsPage, c: Currency): MajorTransactions =
+    MajorTransactions(p.transactions.map(r => MajorTransaction(r.transactionId, r.`type`, r.walletType, Wire.major(r.amount, c),
+      Wire.major(r.balanceBefore, c), Wire.major(r.balanceAfter, c), r.status, r.roundKey, r.awardRef, r.paymentReference, r.createdAt,
+      Wire.major(r.depositPart, c), Wire.major(r.convertedPart, c), Wire.major(r.depositPoolAfter, c), Wire.major(r.convertedPoolAfter, c),
       r.reference)),
       p.page, p.pageSize, p.total)
 
-  /** "10.00" → 1000: at most two decimals; anything else names the amount (spec 001 FR-026). */
-  def parse(text: String): Either[String, Long] =
-    val Pattern = """(-?)(\d{1,17})(?:\.(\d{1,2}))?""".r
+  /**
+   * An operator's amount in major units by the currency's exponent, as the reads write it (spec 027
+   * FR-058): EUR "10.00" → 1000, CLP "5000" → 5000, KWD "1.234" → 1234; a sign is kept (an
+   * adjustment may debit); more decimals than the currency has, or anything else, names the amount
+   * (spec 001 FR-026).
+   */
+  def parse(text: String, currency: Currency): Either[String, Long] =
+    val exp     = io.eitheror.casino.contract.money.Amounts.exponent(currency)
+    val Pattern = """(-?)(\d{1,15})(?:\.(\d+))?""".r
     text.trim match
-      case Pattern(sign, whole, fraction) =>
-        val cents = Option(fraction).fold(0L)(f => (f + "0").take(2).toLong)
-        Right((if sign == "-" then -1 else 1) * (whole.toLong * 100 + cents))
-      case _ => Left(s"the amount '$text' is not a whole number of minor units")
+      case Pattern(sign, whole, fraction) if Option(fraction).forall(f => f.length <= exp) =>
+        val minor = Option(fraction).fold(0L)(f => (f + "0" * exp).take(exp).toLong)
+        // Exact arithmetic: 15 digits of a currency of 4 decimals pass a Long (review).
+        scala.util.Try(Math.multiplyExact(Math.addExact(Math.multiplyExact(whole.toLong, BigInt(10).pow(exp).toLong), minor), if sign == "-" then -1L else 1L))
+          .toOption.toRight(s"the amount '$text' is not an amount of ${currency.code}")
+      case _ => Left(s"the amount '$text' is not an amount of ${currency.code}")
 
 /**
  * The backoffice (`Routes.operator(slug)`: a staff token whose realm roles name this brand): the
@@ -86,49 +96,49 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
   private val lifetime     = views.forView(LifetimeTotalsView)
 
   private def wallet(player: String, currency: String) = client.forEventSourcedEntity(WalletEntity.id(player, currency))
-  private def checked(currency: String)(answer: => Respond[Bytes]): Respond[Bytes] =
-    Currency.from(currency).fold(m => Wire.refusal("INVALID_REQUEST", m), _ => answer)
+  private def checked(currency: String)(answer: Currency => Respond[Bytes]): Respond[Bytes] =
+    Currency.from(currency).fold(m => Wire.refusal("INVALID_REQUEST", m), answer)
 
   postBody("/wallets/{player}/{currency}/adjustments") { (player: String, currency: String, r: OperatorAdjustRequest) =>
-    checked(currency) {
-      (Key.from(r.key), Major.parse(r.amount)) match
+    checked(currency) { c =>
+      (Key.from(r.key), Major.parse(r.amount, c)) match
         case (Left(_), _)        => Wire.missingKey
         case (_, Left(message))  => Wire.refusal("INVALID_REQUEST", message, Map("amount" -> r.amount))
         case (Right(k), Right(a)) =>
           val target = if r.walletType == "bonus" || r.walletType == "restricted" then "restricted" else "real"
           val o = wallet(player, currency).call(WalletEntity.adjust).invoke(Adjust(k.value, target, a, r.reason, r.category, principal.subject, clock()))
-          if o.accepted then Wire.json(200, Major.balance(wallet(player, currency).call(WalletEntity.balance).invoke()))
+          if o.accepted then Wire.json(200, Major.balance(wallet(player, currency).call(WalletEntity.balance).invoke(), c))
           else Wire.outcome(o, currency)
     }
   }
 
   putBody("/wallets/{player}/{currency}/turnover-override") { (player: String, currency: String, r: TurnoverOverrideRequest) =>
-    checked(currency) {
+    checked(currency) { c =>
       val terms = r.multiplier.map(m => TurnoverTerms(m, r.definition.getOrElse("gross_wagered")))
       if terms.exists(_.multiplier < 0) then Wire.refusal("INVALID_REQUEST", "a turnover multiplier is a whole, non-negative number")
       else
         wallet(player, currency).call(WalletEntity.setTurnoverOverride).invoke(SetTurnoverOverride(terms, principal.subject, clock())): Unit
-        Wire.json(200, Major.balance(wallet(player, currency).call(WalletEntity.balance).invoke()))
+        Wire.json(200, Major.balance(wallet(player, currency).call(WalletEntity.balance).invoke(), c))
     }
   }
 
   get("/wallets/{player}/{currency}/balance") { (player: String, currency: String) =>
-    checked(currency)(Wire.json(200, Major.balance(wallet(player, currency).call(WalletEntity.balance).invoke())))
+    checked(currency)(c => Wire.json(200, Major.balance(wallet(player, currency).call(WalletEntity.balance).invoke(), c)))
   }
 
   get("/wallets/{player}/{currency}/restricted-funds") { (player: String, currency: String) =>
-    checked(currency)(Wire.json(200, wallet(player, currency).call(WalletEntity.restrictedFundsStatus).invoke()))
+    checked(currency)(_ => Wire.json(200, wallet(player, currency).call(WalletEntity.restrictedFundsStatus).invoke()))
   }
 
   get("/wallets/{player}/{currency}/transactions") { (player: String, currency: String) =>
-    checked(currency)(Wire.json(200, Major.transactions(TransactionsQuery.page(transactions, s"$player/$currency",
+    checked(currency)(c => Wire.json(200, Major.transactions(TransactionsQuery.page(transactions, s"$player/$currency",
       query.optional[String]("type"), query.optional[String]("walletType"), query.optional[Long]("from"), query.optional[Long]("to"),
-      query.optional[Int]("page").getOrElse(0), query.optional[Int]("pageSize").getOrElse(50)))))
+      query.optional[Int]("page").getOrElse(0), query.optional[Int]("pageSize").getOrElse(50)), c)))
   }
 
   get("/wallets/{player}/{currency}/lifetime-totals") { (player: String, currency: String) =>
     val t = lifetime.get(s"$player/$currency").getOrElse(LifetimeTotals(s"$player/$currency", 0L, 0L, 0L))
-    checked(currency)(Wire.json(200, MajorLifetime(Wire.major(t.deposited), Wire.major(t.wagered), Wire.major(t.won))))
+    checked(currency)(c => Wire.json(200, MajorLifetime(Wire.major(t.deposited, c), Wire.major(t.wagered, c), Wire.major(t.won, c))))
   }
 
   // ── spec 022: non-player accounts (FR-009, FR-012) ────────────────────────
@@ -136,13 +146,13 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
   private def account(kind: String, name: String, currency: String) =
     client.forEventSourcedEntity(io.eitheror.casino.wallet.accounts.AccountEntity.id(kind, name, currency))
 
-  private def accountChecked(kind: String, currency: String)(answer: => Respond[Bytes]): Respond[Bytes] =
+  private def accountChecked(kind: String, currency: String)(answer: Currency => Respond[Bytes]): Respond[Bytes] =
     if !io.eitheror.casino.wallet.accounts.AccountState.Kinds(kind) then Wire.refusal("INVALID_REQUEST", s"an account is pool or clearing, not '$kind'")
     else checked(currency)(answer)
 
   postBody("/accounts/{kind}/{name}/adjustments") { (kind: String, name: String, r: OperatorAccountAdjustRequest) =>
-    accountChecked(kind, r.currency) {
-      (Key.from(r.key), Major.parse(r.amount)) match
+    accountChecked(kind, r.currency) { c =>
+      (Key.from(r.key), Major.parse(r.amount, c)) match
         case (Left(_), _)       => Wire.missingKey
         case (_, Left(message)) => Wire.refusal("INVALID_REQUEST", message, Map("amount" -> r.amount))
         case (Right(k), Right(a)) =>
@@ -150,16 +160,16 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
           val o = acc.call(io.eitheror.casino.wallet.accounts.AccountEntity.adjust)
             .invoke(io.eitheror.casino.wallet.accounts.AdjustAccount(k.value, a, r.reason, r.category, principal.subject, clock()))
           if !o.accepted then Wire.outcome(o, r.currency)
-          else Wire.json(200, Major.accountBalance(acc.call(io.eitheror.casino.wallet.accounts.AccountEntity.balance).invoke(), o.transactionId))
+          else Wire.json(200, Major.accountBalance(acc.call(io.eitheror.casino.wallet.accounts.AccountEntity.balance).invoke(), c, o.transactionId))
     }
   }
 
   get("/accounts/{kind}/{name}/balance") { (kind: String, name: String) =>
     val currency = query.required[String]("currency")
-    accountChecked(kind, currency) {
+    accountChecked(kind, currency) { c =>
       val b = account(kind, name, currency).call(io.eitheror.casino.wallet.accounts.AccountEntity.balance).invoke()
       if !b.found then Wire.refusal(Refusals.AccountNotFound, Refusals.accountNotFound(b.accountId))
-      else Wire.json(200, Major.accountBalance(b))
+      else Wire.json(200, Major.accountBalance(b, c))
     }
   }
 
@@ -188,20 +198,20 @@ final class PlayerEndpoint(client: ComponentClient, views: ViewClient, brand: St
   /** The token's player (`Routes.playerId`); `checked` refuses a token naming none before this is read. */
   private def player: String = Routes.playerId(principal).getOrElse("")
   private def wallet(currency: String) = client.forEventSourcedEntity(WalletEntity.id(player, currency))
-  private def checked(currency: String)(answer: => Respond[Bytes]): Respond[Bytes] =
+  private def checked(currency: String)(answer: Currency => Respond[Bytes]): Respond[Bytes] =
     if Routes.playerId(principal).isEmpty then Wire.refusal("player_id_mismatch", "the token names no player")
-    else Currency.from(currency).fold(m => Wire.refusal("INVALID_REQUEST", m), _ => answer)
+    else Currency.from(currency).fold(m => Wire.refusal("INVALID_REQUEST", m), answer)
 
   get("/{currency}/balance") { (currency: String) =>
-    checked(currency)(Wire.json(200, Major.balance(wallet(currency).call(WalletEntity.balance).invoke())))
+    checked(currency)(c => Wire.json(200, Major.balance(wallet(currency).call(WalletEntity.balance).invoke(), c)))
   }
 
   get("/{currency}/restricted-funds") { (currency: String) =>
-    checked(currency)(Wire.json(200, wallet(currency).call(WalletEntity.restrictedFundsStatus).invoke()))
+    checked(currency)(_ => Wire.json(200, wallet(currency).call(WalletEntity.restrictedFundsStatus).invoke()))
   }
 
   get("/{currency}/transactions") { (currency: String) =>
-    checked(currency)(Wire.json(200, Major.transactions(TransactionsQuery.page(transactions, s"$player/$currency",
+    checked(currency)(c => Wire.json(200, Major.transactions(TransactionsQuery.page(transactions, s"$player/$currency",
       query.optional[String]("type"), query.optional[String]("walletType"), query.optional[Long]("from"), query.optional[Long]("to"),
-      query.optional[Int]("page").getOrElse(0), query.optional[Int]("pageSize").getOrElse(50)))))
+      query.optional[Int]("page").getOrElse(0), query.optional[Int]("pageSize").getOrElse(50)), c)))
   }

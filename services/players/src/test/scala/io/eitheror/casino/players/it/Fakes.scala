@@ -127,23 +127,37 @@ final class FakeEngagement(brand: String, bind: Int = 0, echo: Boolean = false) 
       Answer.ok(Json.obj((Vector[(String, Any)]("status" -> outcome) ++ reason.map("reason" -> _))*))
 
 /**
- * `ingest`'s public cashier create: answers `redirectUrl` and a minted `transactionId`, the merchant key
- * recorded; `refusal` answers `(status, error)` instead.
+ * `ingest`'s public cashier create (006 `contracts/routes.md`): answers `redirectUrl`, the
+ * `transactionId` sent or a minted one, a `session_token` of its own and `terminals` as
+ * `available_terminals`, the merchant key recorded. A repeat under a `transactionId` with the same body
+ * answers the first answer and opens nothing; with another body, `409 REQUEST_ID_REUSED` naming it.
+ * `refusal` answers `(status, error)` instead.
  */
 final class FakeIngest(bind: Int = 0) extends KnobbedServer(bind):
   @volatile var refusal: Option[(Int, String)] = None
+  val terminals: JsonNode = Json.arr(Json.obj("terminalEntityId" -> "term-card-1", "scheme" -> "card", "name" -> "Card"),
+    Json.obj("terminalEntityId" -> "term-crypto-1", "scheme" -> "crypto", "name" -> "Crypto"))
+  private val sessions = ConcurrentHashMap[String, (String, JsonNode)]()
 
-  def reset(): Unit = { refusal = None; knobsReset() }
+  def reset(): Unit = { refusal = None; sessions.clear(); knobsReset() }
 
   def creates: Vector[Received] = received.filter(r => r.method == "POST" && r.path == "/v1/cashier/sessions")
   def merchantKeys: Vector[String] = creates.flatMap(_.headers.get("merchantkey"))
+
+  /** The sessions opened, each with its answer: a repeat that was answered from the first opens none. */
+  def opened: Vector[JsonNode] = sessions.values.asScala.toVector.map(_._2)
 
   protected def answer(r: Received): Answer =
     if r.path != "/v1/cashier/sessions" then Answer(404, "")
     else
       refusal.fold {
-        val id = r.json.flatMap(_.text("transactionId")).getOrElse(s"pay-${UUID.randomUUID()}")
-        Answer.ok(Json.obj("redirectUrl" -> s"https://cashier.example/$id", "transactionId" -> id, "session_token" -> "st"))
+        val body = r.json.map(Json.render).getOrElse("")
+        val id   = r.json.flatMap(_.text("transactionId")).getOrElse(s"pay-${UUID.randomUUID()}")
+        val made = Json.obj("redirectUrl" -> s"https://cashier.example/$id", "transactionId" -> id,
+          "session_token" -> s"st-${UUID.randomUUID()}", "available_terminals" -> terminals, "resolvedFrom" -> "sub-brand")
+        val (first, answer) = sessions.computeIfAbsent(id, _ => (body, made))
+        if first == body then Answer.ok(answer)
+        else Answer.json(409, Json.obj("error" -> "REQUEST_ID_REUSED", "transactionId" -> id))
       }((status, error) => Answer.json(status, Json.obj("error" -> error)))
 
 /**

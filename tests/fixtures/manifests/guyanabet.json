@@ -1,0 +1,24 @@
+{
+  "brand": {
+    "slug": "guyanabet",
+    "name": "Guyanabet",
+    "realMoney": false
+  },
+  "keycloak": {
+    "issuerBase": "https://auth-casino.127.0.0.1.sslip.io:8443"
+  },
+  "secrets": [
+    { "name": "guyanabet-st8", "keys": ["API_KEY"] },
+    { "name": "guyanabet-players", "keys": ["REALM_ADMIN", "WEBHOOK_SECRET", "REALM_SECRET", "EMAIL_TOKEN", "LOOKUP_KEY", "MERCHANT_KEY"] },
+    { "name": "guyanabet-model", "keys": ["API_KEY"] }
+  ],
+  "values": {
+    "player-site-base": "https://player-site-guyanabet.127.0.0.1.sslip.io:8443",
+    "player-site-languages": "fr,en",
+    "player-site-currency": "EUR",
+    "game-provider-mode": "demo",
+    "casino-providers": "eitheror:st8",
+    "st8-operator-id": "op-1234",
+    "reporting-zone": "America/Cayenne"
+  }
+}

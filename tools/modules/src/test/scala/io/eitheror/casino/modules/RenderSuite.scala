@@ -32,7 +32,7 @@ class RenderSuite extends munit.FunSuite:
   private val values  = Values.load(Fixtures.root.resolve("brands/goldvibe/values.json"), Main.valuesView(Fixtures.root)).toOption.get
   private val modules = ModuleManifest.validateTree(Fixtures.root, ModuleManifest.ContractView.fromTree(Fixtures.root))._1
   private val at      = Map("core" -> "0.1.0", "casino" -> "0.1.0", "engagement" -> "0.1.0", "reporting" -> "0.1.0", "support" -> "0.1.0",
-    "predictions" -> "0.1.0", "public-api" -> "0.1.0")
+    "predictions" -> "0.1.0", "public-api" -> "0.1.0", "player-site" -> "0.1.0")
 
   private val spec001: Vector[ServiceDescriptor] =
     fixture.path("descriptors").elements().asScala.toVector.map(n => readFromString[ServiceDescriptor](n.toString))
@@ -261,3 +261,35 @@ class RenderSuite extends munit.FunSuite:
     assertEquals(PluginVendor.channel(mapper.readTree("""{"channels":{"stable":"1.4.0"}}"""), "stable"), Some("1.4.0"))
     assertEquals(PluginVendor.channel(mapper.readTree("""{"channels":[{"name":"stable","version":"1.4.0"}]}"""), "stable"), Some("1.4.0"))
   }
+
+  test("guyanabet renders the player site beside casino, engagement and support, French first and taking no real money (spec 027)") {
+    val guyanabet = Values.load(Fixtures.manifest("guyanabet"), Main.valuesView(Fixtures.root)).fold(rs => fail(rs.mkString("; ")), identity)
+    val p = plan(Vector("casino", "engagement", "support", "player-site"), guyanabet)
+    assertEquals(p.held, Vector.empty)
+    assert(!p.realMoney)
+    val site = p.services.find(_.name == "player-site").get
+    assertEquals(site.service.hosting, "web")
+    val env = site.service.env.map(e => e.name -> e.value).toMap
+    assertEquals(env.get("CASINO_BRAND"), Some(Some("guyanabet")))
+    assertEquals(env.get("CASINO_MODULES"), Some(Some("core,casino,engagement,support,player-site")))
+    assertEquals(env.get("PLAYER_SITE_LANGUAGES"), Some(Some("fr,en")))
+    assertEquals(env.get("PLAYER_SITE_CURRENCY"), Some(Some("EUR")))
+    assertEquals(env.get("PLAYER_SITE_BASE"), Some(Some("https://player-site-guyanabet.127.0.0.1.sslip.io:8443")))
+    assert(env.contains("INGEST_URL"), env.keySet.toString)
+  }
+
+  test("a web-hosted module service renders hosting web with no protocol, and the descriptor carries it on the wire (spec 027 V1)") {
+    val node = ObjectMapper().readTree(
+      """{"image":"europe-west1-docker.pkg.dev/eitheror/casino/player-site:0.0.0","hosting":"web","expose":true,"env":[{"name":"CASINO_BRAND","key":"casino-brand"}]}""")
+      .asInstanceOf[com.fasterxml.jackson.databind.node.ObjectNode]
+    val service = ModuleManifest.Service("player-site", node, None)
+    val d = BrandRender.descriptor(service, Set.empty, Map("casino-brand" -> "guyanabet"), Some("1.2.3"))
+    assertEquals(d.service.hosting, "web")
+    assertEquals(d.service.protocol, None)
+    assertEquals(d.service.image, "europe-west1-docker.pkg.dev/eitheror/casino/player-site:1.2.3")
+    assertEquals(d.service.env.map(e => e.name -> e.value), Vector("CASINO_BRAND" -> Option("guyanabet")))
+    val wire = com.github.plokhotnyuk.jsoniter_scala.core.writeToString(d)
+    assert(wire.contains("\"hosting\":\"web\""), wire)
+    assertEquals(readFromString[ServiceDescriptor](wire).service.hosting, "web")
+  }
+

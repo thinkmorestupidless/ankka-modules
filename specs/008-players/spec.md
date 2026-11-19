@@ -456,6 +456,12 @@ store and `payments` for a personal field; fetch the response.
   end MUST name an approval id, which is claimed once as the end's key: the same session under it
   again ends nothing and answers as the first did; another session under it is `key_reused` (spec 017
   amendment P1).
+  *Amended by spec 027* (FR-057): a game session also holds the time of its last bet: each round
+  `casino.rounds` reports opened or settled under its `sessionId` records the fact's `occurredAt`,
+  keeping the latest to within 30 seconds (an older time, a repeat, or one less than 30 seconds after
+  the one held is no event; a `players` from before this cannot replay the event, so it is not
+  rolled back to); the player's read of the
+  session and the list of their sessions answer it as `lastBetAt`, `null` with no bet.
 - **FR-018**: `players` MUST answer `game-provider` the account status at launch (spec 003 FR-007):
   refused for `suspended`, `self_excluded`, `blocked` or `closed`, naming the status; the KYC play
   gate is `kyc`'s query (spec 009 FR-020) and a break, an exclusion or the session minutes are
@@ -633,6 +639,18 @@ store and `payments` for a personal field; fetch the response.
   spec 001 FR-020) with the customer fields spec 001 FR-018 names, and answer the cashier's redirect.
   The wallet's own `may-deposit` at credit (spec 002 FR-022) is the authoritative check; this one
   only spares the player a refused payment.
+  *Amended by spec 027* (FR-018): the start takes an optional `requestId` (1 to 64 of
+  `[A-Za-z0-9_-]`, else `400 invalid_request_id`) and sends it as the cashier session's
+  `transactionId`, so a repeat with the same content answers the first session and one with another
+  is the cashier's `409 REQUEST_ID_REUSED` naming `ingest`; with none the cashier mints the id, as
+  before. The answer gains the session's `cashierTicket` (the cashier's `session_token`), its
+  `terminals` (`available_terminals`, unchanged) and `requestId` (its `transactionId`, which
+  `paymentId` equals). A refusal carries the figures: `kyc`'s `kycStatus`, and responsible
+  gambling's `endsAt` (`cooling_off`) or `period`, `limit`, `used` and `remaining` in minor units
+  (`over_limit`). The answer is never logged: it carries the ticket.
+  *Amended by spec 027* (found during implementation): the session's `country` and
+  `customerCountry` are the profile's country, else the one registration found from the caller's
+  address (`networkCountry`), as the original's page sent it; a player who gave none can deposit.
 
 ### Key Entities
 

@@ -72,3 +72,9 @@ Feature: The catalogue is fed by the game provider and curated by the brand
     When an operator reads the brand's catalogue
     Then every game is listed, removed and disabled included
     And each layer of the enablement decision is shown
+
+  Scenario: a visitor browses the catalogue and reads a game with no sign-in
+    Given a visitor of brand "goldvibe" who is not signed in
+    When the visitor browses the brand's catalogue and reads game "book-x"
+    Then the enabled games are listed to them as to a player
+    And the game is answered

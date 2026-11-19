@@ -1,0 +1,193 @@
+# @eitheror/player-sdk
+
+The player SDK (spec 027): build a brand's player site by composing behaviours and supplying only
+the look. The SDK holds the data, the sign-in, the calls to the brand's services and every rule of
+a deposit or a launch. A site holds none of them: the responsible-gambling and KYC steps are steps
+of the behaviours, so a page cannot skip them.
+
+`services/player-site/` is the reference site built on it, and the worked example below follows
+it.
+
+## What a site builder does, in order
+
+### 1. Run the site server
+
+The site server is the only part of a site that calls a service. It serves the built pages, keeps
+the player's sign-in in cookies the page cannot read, and passes each call a page makes to the
+brand's service, as the signed-in player. It runs as an ankka web-hosted service:
+
+```ts
+// src/server/main.ts
+import path from "node:path";
+import { startSiteServer } from "@eitheror/player-sdk/server";
+
+startSiteServer({ static: path.join(import.meta.dirname, "../../dist") });
+```
+
+It reads its settings from the environment, which the module's manifest fills from the brand's
+values: `CASINO_BRAND`, `CASINO_MODULES`, `PLAYER_SITE_BASE`, `PLAYER_SITE_LANGUAGES` (the first is
+the fallback), `PLAYER_SITE_CURRENCY`, `INGEST_URL`, and `PORT` and `ANKKA_SERVICES_URL` from the
+platform. `PLAYER_SITE_LOCAL=1` drops the cookies' `Secure` for a machine without TLS. No address of
+a service is ever the page's.
+
+### 2. Make one site per page
+
+```ts
+import { pageTransport, playerSite } from "@eitheror/player-sdk";
+
+const site = playerSite({
+  transport: pageTransport(),
+  presets: { EUR: ["10", "25", "50", "100", "200", "500"] },
+  bounds: { EUR: { minimum: "5" } },
+  idleMinutes: 30,
+  idleWarningSeconds: 30,
+});
+await site.ready;
+```
+
+`site` offers the behaviours of the modules the brand runs and no others: `session`, `funds` and
+`deposit()` always; `games` with `casino`; `inbox` with `engagement`; `chat` with `support`. Each
+is `undefined` where the brand does not run its module.
+
+Tell it about the page: `site.visible(...)` when the page is hidden or shown,
+`site.session.activity()` on a key press or a click (the idle count), `site.stop()` on `pagehide`.
+`followDepositAddress(site, location.href)` opens the deposit for an address with `deposit=true`.
+
+### 3. Bind components to behaviours
+
+A behaviour is a state machine: `step()` is where it stands, `actions` are what can be asked of it,
+and `subscribe` tells of each move. A step names the actions it allows. An action it does not
+allow sends nothing and answers `{ ok: false, notAllowedAt }`.
+
+With React, `@eitheror/player-sdk/react`:
+
+```tsx
+import { PlayerSiteProvider, useBehaviour, useCurrentDeposit, usePlayer } from "@eitheror/player-sdk/react";
+
+function Deposit({ site }) {
+  const deposit = useCurrentDeposit(site);
+  const step = useBehaviour(deposit);
+  if (!deposit || !step) return null;
+  switch (step.kind) {
+    case "amount":
+      return step.presets.map((a) => <button onClick={() => deposit.actions.confirm(a.minor)}>{format(a, "fr")}</button>);
+    case "choosing_terminal":
+      return step.terminals.map((t) => <button onClick={() => deposit.actions.choose(t.id)}>{t.name}</button>);
+    case "waiting_at_provider":
+      return <a href={step.address} target="_blank" rel="noopener">…</a>;
+    case "succeeded":
+      return <p>{format(step.amount, "fr")}</p>;
+    // …one view per step: the tables below list them all
+  }
+}
+```
+
+That is the whole of the deposit's appearance. Which checks run, in what order, what is sent to
+the cashier, how the payment is followed and when it times out are the behaviour's.
+`services/player-site/src/pages/Deposit.tsx` is the reference site's deposit, and
+`services/player-site/tests/second-appearance/` is a second appearance of the same deposit. The
+second one takes the same steps and makes the same calls.
+
+Without React, call `subscribe` and render however you like: the behaviours import no framework.
+
+### 4. Supply the words
+
+Every refusal a behaviour can meet has a code (`refusalCodes`). A site supplies words for each code
+in each of its languages, typed so that a missing code fails the build:
+
+```ts
+import { catalogue, type RefusalWords } from "@eitheror/player-sdk";
+
+const fr = { cooling_off: "Vous êtes en pause jusqu'au {until}.", /* …every code */ } satisfies RefusalWords;
+const refusals = catalogue<RefusalWords>({ language: "fr", words: fr }, { en });
+```
+
+A refusal carries its fields (`until`, `retryAfterSeconds`, `remaining`, …) for the words to name.
+Amounts are minor units with their currency (`amount`, `format`, `fromMajor`), never a float.
+`format` needs `Intl.NumberFormat` v3, which formats a decimal string exactly: Chrome and Edge
+106, Firefox 116, Safari 15.4 or later; these are the browsers the SDK supports.
+`chooseLanguage` picks the page's language from the visitor's kept choice (the `eo_lang` cookie)
+and the browser's.
+
+## The steps of each behaviour
+
+<!-- steps: generated by `npm run readme` from the sources; do not edit by hand -->
+
+### session (`core`, `SessionStep`)
+
+| Step | Actions it allows | Fields |
+|---|---|---|
+| `signed_out` | `signIn`, `register`, `verifyEmail`, `resendVerification`, `requestPasswordReset` | `reason?`, `verified?`, `resent?`, `resetRequested?` |
+| `signing_in` | — | — |
+| `registering` | — | — |
+| `awaiting_verification` | `resendVerification`, `verifyEmail`, `signIn` | `email`, `resent?` |
+| `verifying` | — | — |
+| `signed_in` | `signOut` | `player` |
+| `idle_warning` | `stay`, `signOut` | `player`, `signsOutAt` |
+| `signing_out` | — | — |
+| `refused` | `back` | `refusal`, `during` |
+
+### deposit (`core`, `DepositStep`)
+
+| Step | Actions it allows | Fields |
+|---|---|---|
+| `amount` | `confirm`, `close` | `presets`, `currency` |
+| `starting` | — | `amount`, `requestId` |
+| `refused` | `back`, `close`, `retry` | `refusal`, `amount` |
+| `choosing_terminal` | `choose`, `back`, `close` | `terminals` |
+| `choosing_coin` | `chooseCoin`, `back`, `close` | `terminal`, `coins` |
+| `details` | `giveDetails`, `back`, `close` | `terminal`, `needs`, `known`, `invalid?` |
+| `submitting` | — | `terminal` |
+| `waiting_at_provider` | `close` | `paymentId`, `address` |
+| `waiting_on_crypto` | `close` | `paymentId`, `address`, `cryptoAmount`, `coin`, `expiresAt?` |
+| `waiting` | `close` | `paymentId` |
+| `succeeded` | `close` | `amount` |
+| `failed` | `back`, `close` | `code`, `fields`, `words?` |
+| `closed` | — | — |
+
+### play (`casino`, `PlayStep`)
+
+| Step | Actions it allows | Fields |
+|---|---|---|
+| `idle` | `launch` | `game` |
+| `needs_registration`, `needs_sign_in`, `needs_deposit` | `launch`, `dismiss` | `game` |
+| `launching` | — | `game`, `funMode` |
+| `playing` | `close` | `game`, `address`, `gameSession`, `hidden` |
+| `reality_check` | `keepOn`, `stop` | `game`, `gameSession`, `played` |
+| `refused` | `dismiss` | `refusal`, `game` |
+| `ended` | — | `game` |
+
+### inbox (`engagement`, `InboxStep`)
+
+| Step | Actions it allows | Fields |
+|---|---|---|
+| `closed` | — | — |
+| `connecting` | — | `attempt`, `unread?` |
+| `connected` | `refresh` | `unread` |
+
+### chat (`support`, `ChatStep`)
+
+| Step | Actions it allows | Fields |
+|---|---|---|
+| `ready` | `send` | `turns`, `sessionId?` |
+| `answering` | — | `turns` |
+| `awaiting_approval` | `approve`, `cancel` | `turns`, `request` |
+| `deciding` | — | `turns`, `decision` |
+| `refused` | `dismiss` | `turns`, `refusal` |
+| `ended` | `send` | `turns`, `words` |
+| `unavailable` | — | `words` |
+
+<!-- steps: end -->
+
+## Testing a site
+
+`@eitheror/player-sdk/testing` has doubles of every service the behaviours call and a hand clock:
+`doubles()`, `doubleTransport(d)` to run behaviours in a unit test, `serveDoubles(d, allRoutes)` to
+serve them over HTTP behind a real site server (`services/player-site/tests/doubles/serve.ts`), and
+`handClock()` with `advance` and `settle`.
+
+## Working on the SDK
+
+`npm ci` at the repository root, then `just player-sdk-test` (typecheck, lint, the unit and
+site-server suites), `just player-sdk-features` (`features/player-site/` bound to the behaviours,
+no browser), and `npm run readme -w sdk/player` after changing a step.

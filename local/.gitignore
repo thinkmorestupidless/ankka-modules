@@ -1,0 +1,3 @@
+.ankka/
+# holds the cashier key this machine issued (generate.py)
+*/local.json

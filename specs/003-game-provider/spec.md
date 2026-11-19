@@ -634,6 +634,10 @@ outbound money-adjacent calls.
   session and one round's transactions (FR-001), and the unacknowledged list, replay and resolve
   (FR-020) are operator routes; the callbacks are public and signature-verified; the free-rounds and
   known-player routes are service routes for `rewards`.
+  *Amended by spec 027* (FR-056): the catalogue's four reads (games, one game, developers, popular
+  games) are public routes, as the original's were, so a site shows its lobby before sign-in; a
+  `?brand=` or path naming another brand is still `404`, and the answers are unchanged. The launch and
+  the game session stay player routes.
 - **FR-028**: The service MUST hold no personal field: the player id, game ids, amounts and the
   provider's identifiers are not personal data (spec 001 FR-024); the profile it answers is read from
   `players` at the time of the call and not kept.

@@ -1,0 +1,83 @@
+{
+  "name": "player-site",
+  "kind": "product",
+  "description": "The brand's player site: the reference site built on the player SDK (spec 027)",
+  "dependencies": [
+    {
+      "module": "core",
+      "range": ">=0.4.0 <1.0.0"
+    }
+  ],
+  "services": [
+    {
+      "name": "player-site",
+      "descriptor": {
+        "image": "europe-west1-docker.pkg.dev/eitheror/casino/player-site:0.0.0",
+        "hosting": "web",
+        "expose": true,
+        "resources": {
+          "instanceType": "small"
+        },
+        "env": [
+          {
+            "name": "CASINO_BRAND",
+            "key": "casino-brand"
+          },
+          {
+            "name": "CASINO_MODULES",
+            "key": "casino-modules"
+          },
+          {
+            "name": "PLAYER_SITE_BASE",
+            "key": "player-site-base"
+          },
+          {
+            "name": "INGEST_URL",
+            "key": "ingest-url"
+          },
+          {
+            "name": "PLAYER_SITE_LANGUAGES",
+            "key": "player-site-languages"
+          },
+          {
+            "name": "PLAYER_SITE_CURRENCY",
+            "key": "player-site-currency"
+          }
+        ]
+      }
+    }
+  ],
+  "configuration": [
+    {
+      "key": "casino-brand",
+      "type": "string",
+      "secret": false
+    },
+    {
+      "key": "casino-modules",
+      "type": "string",
+      "secret": false
+    },
+    {
+      "key": "player-site-base",
+      "type": "url",
+      "secret": false
+    },
+    {
+      "key": "ingest-url",
+      "type": "url",
+      "secret": false
+    },
+    {
+      "key": "player-site-languages",
+      "type": "string",
+      "secret": false
+    },
+    {
+      "key": "player-site-currency",
+      "type": "string",
+      "secret": false
+    }
+  ],
+  "retention": "1d"
+}

@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+/* The reference site's tokens: a French Guiana canopy, and cayenne only where money or play is asked. */
+@theme {
+  --color-canopy: #12382b;
+  --color-leaf: #2f7a57;
+  --color-mist: #eef3ef;
+  --color-ink: #15201b;
+  --color-river: #8fb8a8;
+  --color-cayenne: #c2362b;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html {
+  background: var(--color-mist);
+  color: var(--color-ink);
+}
+:focus-visible {
+  outline: 3px solid var(--color-leaf);
+  outline-offset: 2px;
+}
+.amount {
+  font-variant-numeric: tabular-nums;
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

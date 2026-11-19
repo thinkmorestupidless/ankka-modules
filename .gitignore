@@ -14,3 +14,9 @@ tests/stubs/bin/
 
 # A game service's built browser client (spec 026 contracts/game-client.md): `just service <game> client` writes it.
 services/*/src/main/resources/client/
+
+# The player SDK and the reference site (spec 027).
+dist/
+test-results/
+playwright-report/
+.features-gen/

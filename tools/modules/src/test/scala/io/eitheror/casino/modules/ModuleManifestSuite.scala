@@ -88,10 +88,10 @@ class ModuleManifestSuite extends munit.FunSuite:
 
   private lazy val tree = ContractView.fromTree(Fixtures.root)
 
-  test("the seven manifests under modules/ validate against the tree's contract, and one service is in one module") {
+  test("the eight manifests under modules/ validate against the tree's contract, and one service is in one module") {
     val (valid, refused) = ModuleManifest.validateTree(Fixtures.root, tree)
     assertEquals(refused.map((p, rs) => s"$p: ${rs.mkString("; ")}"), Vector.empty)
-    assertEquals(valid.map(_.name), Vector("core", "casino", "engagement", "predictions", "public-api", "reporting", "support"))
+    assertEquals(valid.map(_.name), Vector("core", "casino", "engagement", "player-site", "predictions", "public-api", "reporting", "support"))
   }
 
   test("every service a manifest names has a build under services/ or is listed as not yet built in contract/keys.md") {
@@ -100,13 +100,28 @@ class ModuleManifestSuite extends munit.FunSuite:
     val named = ModuleManifest.validateTree(Fixtures.root, tree)._1.flatMap(_.serviceNames)
     named.foreach(s => assert(built.contains(s) || keys.notYetBuilt.contains(s), s"$s has no build and is not listed as not yet built"))
     assert(keys.notYetBuilt.keySet.intersect(built).isEmpty, s"listed as not yet built but built: ${keys.notYetBuilt.keySet.intersect(built)}")
-    assertEquals(named.filter(built.contains).toSet, Set("wallet", "game-provider", "players", "responsible-gambling", "attribution", "kyc", "payouts", "rewards", "markets", "exchange", "engagement", "reporting", "support-agent", "public-api"))
+    assertEquals(named.filter(built.contains).toSet, Set("wallet", "game-provider", "players", "responsible-gambling", "attribution", "kyc", "payouts", "rewards", "markets", "exchange", "engagement", "reporting", "support-agent", "public-api", "player-site"))
   }
 
   test("in the tree an image is the registry's, named for its service, at 0.0.0 until the release renders the tag") {
     ModuleManifest.validateTree(Fixtures.root, tree)._1.flatMap(_.services).foreach { s =>
       assertEquals(s.image, s"europe-west1-docker.pkg.dev/eitheror/casino/${s.name}:0.0.0", s.name)
     }
+  }
+
+  test("player-site is one web-hosted service, exposed, with no topic, grant or secret, and the keys of the amendment (spec 027)") {
+    val site = ModuleManifest.validateTree(Fixtures.root, tree)._1.find(_.name == "player-site").get
+    assertEquals(site.kind, "product")
+    assertEquals(site.serviceNames, Vector("player-site"))
+    val service = site.services.head
+    assertEquals(service.descriptor.path("hosting").asText(), "web")
+    assert(service.expose)
+    assertEquals(site.topics, Vector.empty)
+    assertEquals(site.secretKeys, Set.empty[String])
+    assertEquals(service.env.map(e => e.name -> e.key.getOrElse("")).toMap, Map(
+      "CASINO_BRAND" -> "casino-brand", "CASINO_MODULES" -> "casino-modules", "PLAYER_SITE_BASE" -> "player-site-base",
+      "INGEST_URL" -> "ingest-url", "PLAYER_SITE_LANGUAGES" -> "player-site-languages", "PLAYER_SITE_CURRENCY" -> "player-site-currency"))
+    assertEquals(site.dependencies.map(_.module), Vector("core"))
   }
 
   test("the core declares the real-money requirement on the installation, conditional on casino-real-money (FR-010, R6)") {

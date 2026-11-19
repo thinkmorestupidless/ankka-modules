@@ -16,7 +16,7 @@ the provider calls are the original's, unchanged (SC-006, SC-001).
 `{callback}` ∈ check, balance, player_profile, debit, credit, cancel, buyin, payout. A second
 provider: `/v1/casino/brands/{brand}/{provider}/{callback}` and `/{provider}/{callback}` only.
 
-## Player (`Routes.player(slug)`)
+## Player (`Routes.player(slug)`; the catalogue reads `Routes.public`, amended by spec 027)
 
 | Method | Path | Body / query | Answer |
 |---|---|---|---|
@@ -28,6 +28,11 @@ provider: `/v1/casino/brands/{brand}/{provider}/{callback}` and `/{provider}/{ca
 
 Whether the lobby reads the catalogue before sign-in is checked against the Playwright suite in
 Phase 1; if it does, the catalogue reads become `Routes.public` and FR-027 is corrected.
+
+*Amended by spec 027* (FR-056): the original's site reads the catalogue with no session
+(`api/casino/[...path]/route.ts` serves `catalog/` unauthenticated), so the four `catalog` reads
+above are `Routes.public`: a visitor reads them with no token. A `?brand=` or a path naming another
+brand is still `404`; the answers are unchanged. The launch stays `Routes.player(slug)`.
 
 ## Operator (`Routes.operator(slug)`)
 

@@ -20,6 +20,7 @@ modules *args:
     sbt "modules/run {{args}}"
 
 # Every manifest at a release version into target/release/, images at the version, schemas inlined (spec 021).
+# player-site.json among them (spec 027): its image is the release's web-images job's, built from the root.
 release-render version:
     sbt "modules/run release render {{version}} --out target/release"
 
@@ -501,3 +502,74 @@ exchange-it:
 # exchange's placement latency at 200 orders a second, SC-002's figures (Docker).
 exchange-perf:
     cd services/exchange && EXCHANGE_PERF=1 sbt "testOnly io.eitheror.casino.exchange.perf.*"
+
+# The player SDK's typecheck, lint, unit and site-server suites (spec 027). `npm ci` at the root first.
+player-sdk-test:
+    npm run typecheck -w sdk/player
+    npm run lint -w sdk/player
+    npm test -w sdk/player
+
+# features/player-site/*.feature over the behaviours and the service doubles, with no browser (spec 027).
+player-sdk-features:
+    npm run features -w sdk/player
+
+# The reference player site on this machine (spec 027): the site server beside the platform's local
+# proxy, services found as the local console finds them; plain cookie names and no `Secure`.
+player-site-run:
+    cd services/player-site && PLAYER_SITE_LOCAL=1 ankka local web -- npm run dev
+
+# The reference site's image as the release builds it: from the root, with its Dockerfile's ignore file.
+player-site-image tag="dev":
+    docker build -f services/player-site/Dockerfile -t europe-west1-docker.pkg.dev/eitheror/casino/player-site:{{tag}} .
+
+# reference-site.feature over the built site and the doubles, and the second appearance (spec 027).
+player-site-features:
+    npm run build -w services/player-site
+    npm run features -w services/player-site
+
+# One contract test per client function against the brand on the installation ANKKA_URL names, then
+# the end-to-end scenario in a browser (spec 027 FR-036, SC-007). On purpose only.
+player-site-it brand="guyanabet":
+    PLAYER_SITE_BRAND={{brand}} npm run contract -w sdk/player
+    PLAYER_SITE_BRAND={{brand}} npm run e2e -w services/player-site
+
+# A brand as one project on this machine for `ankka local up` (local/README.md): its plan rendered,
+# then local/generate.py writes local/<brand>/.
+local-project brand="guyanabet" modules="casino,engagement,support,player-site":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    plan="$(mktemp)"
+    # sbt prefixes the tool's output with [info]; the plan is from its first line that is only `{`.
+    sbt -batch "modules/run render {{brand}} --modules {{modules}} --format json" \
+      | sed -n '/^\[info\] {$/,$p' | grep '^\[info\]' | sed 's/^\[info\] \{0,1\}//' >"$plan"
+    python3 local/generate.py {{brand}} "$plan"
+    (cd local/{{brand}} && ankka context-map render >/dev/null)
+
+# Every image local/<brand> runs, built from this branch as 0.0.0, under a version of the contract of
+# this branch's own (other worktrees publish 0.2.0-SNAPSHOT).
+local-images brand="guyanabet" version="0.2.0-local-SNAPSHOT":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export CASINO_VERSION={{version}} DOCKER_REPOSITORY=europe-west1-docker.pkg.dev/eitheror/casino SERVICE_VERSION=0.0.0
+    sbt -batch contract/publishLocal providerCore/publishLocal
+    for d in local/{{brand}}/services/*/; do
+      s=$(basename "$d")
+      if [ "$s" = player-site ]; then docker build -f services/player-site/Dockerfile -t "$DOCKER_REPOSITORY/player-site:0.0.0" .
+      else (cd "services/$s" && sbt -batch Docker/publishLocal); fi
+    done
+    (cd tests && docker build -f stubs/psp-stub/Dockerfile -t "$DOCKER_REPOSITORY/psp-stub:0.0.0" .)
+
+# Onboard the brand on its local project once it is up (realms, operator, payments, game providers).
+# A cashier key issued now is kept in .ankka/local and written into local.json, and the project restarted.
+local-onboard brand="guyanabet":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd local/{{brand}}
+    ./realm.sh
+    ./operator-token.sh
+    # A key is printed only when one is issued; an existing one stays as it was saved.
+    issued="$(python3 onboard-payments.py | grep '^MERCHANT_KEY=' || true)"
+    if [ -n "$issued" ]; then printf '%s\n' "$issued" >.ankka/local/merchant-key.env; fi
+    ./operator-token.sh
+    python3 onboard-games.py
+    cd ../.. && just local-project {{brand}} && (cd local/{{brand}} && ankka local up)

@@ -1,0 +1,110 @@
+{
+  "project": "guyanabet",
+  "services": [
+    {
+      "name": "wallet",
+      "owns": "the brand's wallet (core module)",
+      "boundary": {
+        "criterion": "ownership",
+        "why": "ankka-modules releases it as its own service"
+      }
+    },
+    {
+      "name": "players",
+      "owns": "the brand's players (core module)",
+      "boundary": {
+        "criterion": "ownership",
+        "why": "ankka-modules releases it as its own service"
+      }
+    },
+    {
+      "name": "kyc",
+      "owns": "the brand's kyc (core module)",
+      "boundary": {
+        "criterion": "ownership",
+        "why": "ankka-modules releases it as its own service"
+      }
+    },
+    {
+      "name": "responsible-gambling",
+      "owns": "the brand's responsible-gambling (core module)",
+      "boundary": {
+        "criterion": "ownership",
+        "why": "ankka-modules releases it as its own service"
+      }
+    },
+    {
+      "name": "game-provider",
+      "owns": "the brand's game-provider (casino module)",
+      "boundary": {
+        "criterion": "ownership",
+        "why": "ankka-modules releases it as its own service"
+      }
+    },
+    {
+      "name": "rewards",
+      "owns": "the brand's rewards (casino module)",
+      "boundary": {
+        "criterion": "ownership",
+        "why": "ankka-modules releases it as its own service"
+      }
+    },
+    {
+      "name": "engagement",
+      "owns": "the brand's engagement (engagement module)",
+      "boundary": {
+        "criterion": "ownership",
+        "why": "ankka-modules releases it as its own service"
+      }
+    },
+    {
+      "name": "player-site",
+      "owns": "the brand's player-site (player-site module)",
+      "boundary": {
+        "criterion": "ownership",
+        "why": "ankka-modules releases it as its own service"
+      }
+    },
+    {
+      "name": "merchant",
+      "owns": "the shared payments project's merchant",
+      "boundary": {
+        "criterion": "ownership",
+        "why": "ankka-modules releases it as its own service"
+      }
+    },
+    {
+      "name": "psp-gateway",
+      "owns": "the shared payments project's psp-gateway",
+      "boundary": {
+        "criterion": "ownership",
+        "why": "ankka-modules releases it as its own service"
+      }
+    },
+    {
+      "name": "ingest",
+      "owns": "the shared payments project's ingest",
+      "boundary": {
+        "criterion": "ownership",
+        "why": "ankka-modules releases it as its own service"
+      }
+    },
+    {
+      "name": "provider",
+      "owns": "the shared games project's provider",
+      "boundary": {
+        "criterion": "ownership",
+        "why": "ankka-modules releases it as its own service"
+      }
+    },
+    {
+      "name": "game-provider-simulator",
+      "owns": "the shared tools project's game-provider-simulator",
+      "boundary": {
+        "criterion": "ownership",
+        "why": "ankka-modules releases it as its own service"
+      }
+    }
+  ],
+  "crossings": []
+}

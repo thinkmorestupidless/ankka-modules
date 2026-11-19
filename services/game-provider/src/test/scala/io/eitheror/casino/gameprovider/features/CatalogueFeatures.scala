@@ -266,6 +266,33 @@ class CatalogueFeatures extends ProviderFeatures("catalogue.feature"):
     assertEquals(ours, Set("p1", "p2", "p3", "p4", "p5").map(code))
   }
 
+  // ── a visitor (spec 027 FR-056; spec 003 FR-027 amended) ────────────────────────────────────
+
+  private var visitorBrowse: Reply = null
+
+  Given("a visitor of brand {string} who is not signed in") { (slug: String) =>
+    assertEquals(kit.brand, slug)
+    refresh("st8", Seq(Listed("book-x"), Listed("dark-x", enabled = false), Listed("other-x")))
+  }
+
+  When("the visitor browses the brand's catalogue and reads game {string}") { (name: String) =>
+    visitorBrowse = kit.request("GET", s"/v1/casino/catalog/games?brand=${kit.brand}", None, Nil)
+    last = kit.request("GET", s"/v1/casino/catalog/games/${code(name)}", None, Nil)
+  }
+
+  Then("the enabled games are listed to them as to a player") { () =>
+    assertEquals(visitorBrowse.status, 200, visitorBrowse.text)
+    val ours = (b: Reply) => b.json.objects("games").flatMap(_.text("gameId")).filter(_.startsWith(prefix)).toSet
+    assertEquals(ours(visitorBrowse), Set(code("book-x"), code("other-x")))
+    val asPlayer = kit.request("GET", s"/v1/casino/catalog/games?brand=${kit.brand}", None, kit.asPlayer(player))
+    assertEquals(ours(asPlayer), ours(visitorBrowse))
+  }
+
+  Then("the game is answered") { () =>
+    assertEquals(last.status, 200, last.text)
+    assertEquals((last.json.text("gameId"), last.json.text("provider")), (Some(code("book-x")), Some("st8")))
+  }
+
   Then("each layer of the enablement decision is shown") { () =>
     val byCode = last.json.objects("games").map(g => g.text("code").get -> g).toMap
     val p3 = byCode(code("p3")); val p4 = byCode(code("p4")); val p5 = byCode(code("p5")); val p1 = byCode(code("p1"))

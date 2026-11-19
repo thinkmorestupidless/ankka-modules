@@ -317,3 +317,40 @@ class SessionsFeatures extends PlayersFeatures("sessions.feature"):
   Then("the other player's session is answered {string}") { (code: String) =>
     assertEquals(kit.request("GET", kit.sessionPath(s"/$other"), None, kit.asToken(token)).str("error"), code)
   }
+
+
+  // ── the last bet (spec 027 FR-057) ─────────────────────────────────────────────────────────────
+
+  private var betAt: java.time.Instant = null
+
+  private def round(opened: Boolean, at: java.time.Instant): Unit =
+    import io.eitheror.casino.contract.money.{Currency, MinorUnits, SignedMinorUnits}
+    val eur     = Currency.unsafe("EUR")
+    val roundId = s"r-${UUID.randomUUID().toString.take(8)}"
+    val fact: CasinoRoundsFact =
+      if opened then RoundOpened(playerId, eur, roundId, "st8", "pr", "g-9", gameId, None, at)
+      else RoundSettled(playerId, eur, roundId, "st8", "pr", "g-9", gameId, MinorUnits.unsafe(100), MinorUnits.unsafe(0),
+        SignedMinorUnits(-100), "loss", Vector.empty, Vector.empty, Vector.empty, None, at)
+    kit.publish(CasinoRounds, s"$playerId/EUR", fact)
+
+  Given("a game session in which a round was settled") { () =>
+    active(); signIn(); opened(): Unit
+    val now = kit.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS)
+    betAt = now.minusSeconds(10)
+    // more than 30 seconds apart: a bet less than 30 seconds after the one held is not recorded (FR-057)
+    round(opened = true, now.minusSeconds(80))
+    round(opened = false, betAt)
+    kit.eventually("the last bet recorded")(Option.when(game(gameId).lastBetAt.contains(betAt))(()))
+  }
+  Given("a game session opened at launch with no round") { () => active(); signIn(); opened(): Unit }
+  When("the player reads the game session") { () => reply = kit.request("GET", kit.sessionPath(s"/$gameId"), None, kit.asToken(token)) }
+  Then("the answer carries the time of the session's last bet") { () =>
+    assertEquals((reply.status, reply.str("lastBetAt")), (200, betAt.toString), reply.text)
+    val listed = kit.eventually("the list carries it")(Option(kit.request("GET", kit.sessionPath(s"/players/$playerId"), None, kit.asToken(token)))
+      .map(_.json.get("sessions")).filter(s => s.size == 1 && s.get(0).get("lastBetAt").asText == betAt.toString))
+    assertEquals(listed.get(0).get("lastBetAt").asText, betAt.toString)
+  }
+  Then("the answer carries no time of a last bet") { () =>
+    assertEquals(reply.status, 200, reply.text)
+    assert(reply.json.has("lastBetAt") && reply.json.get("lastBetAt").isNull, reply.text)
+  }

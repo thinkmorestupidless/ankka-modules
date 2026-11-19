@@ -34,7 +34,7 @@ statuses are the original's where it had the route.
 | `POST /emails/{address}/resend`, `POST /emails/{address}/promote`, `DELETE /emails/{address}` | player | `PlayerEntity` | 202; 200; 404 `address_not_found`; 400 `already_verified`; 400 `not_verified`; 400 `already_primary`; 409 `email_conflict`; 400 `cannot_remove_primary` |
 | `POST /{playerId}/email-change` | player | body `newEmail`, `password` | 202; 400 `missing_fields`; 400 `invalid_password`; 409 `email_already_registered` |
 | `POST /email-change/verify` | *public* | `ChangeEmail`, the realm's address | 200; 400 `invalid_token`; 400 `expired_token`; 409 `email_already_registered` |
-| `POST /{playerId}/deposits` | player | FR-043 (R15); body `amount` (minor units), `currency`, `method` | 200 `{redirectUrl, paymentId}`; the refusal `kyc` or `responsible-gambling` answered, naming it; 503 naming the silent service |
+| `POST /{playerId}/deposits` | player | FR-043 (R15); body `amount` (minor units), `currency`, `method`, `requestId?` (amended by spec 027) | 200 `{redirectUrl, paymentId, cashierTicket, terminals, requestId}`; 400 `invalid_request_id`; the refusal `kyc` or `responsible-gambling` answered, naming it, with its figures; 409 `REQUEST_ID_REUSED` naming `ingest`; 503 naming the silent service |
 | `POST /{playerId}/erasure` | player | `ErasureWorkflow` | 202 `{correlationId, holdUntil}`; 409 `not_closed` |
 | `POST /{playerId}/exports`, `GET /{playerId}/exports/{exportId}` | player | `ExportWorkflow`; the read | 202 `{exportId}`; 200 the response with `missing`; 409 `export_not_ready`; 404 `export_not_found`; 410 `export_expired` |
 
@@ -68,8 +68,14 @@ logged (001 FR-023).
 | Route | Does | Answers |
 |---|---|---|
 | `GET /players/{playerId}` | `SessionsView` by player (the original's `GET ?playerId=`) | 200; 403 `player_id_mismatch` |
-| `GET /{sessionId}` | the session | 200; 404 `session_not_found` (another player's too) |
+| `GET /{sessionId}` | the session; `lastBetAt` the latest round's time (amended by spec 027) | 200; 404 `session_not_found` (another player's too) |
 | `PATCH /{sessionId}/end` | `GameSessionEntity.End(player)`, `PlayerEntity.GameSessionEnded`; idempotent | 200 `{status: completed, sessionId, durationMinutes}`; 403 `player_id_mismatch` (another player's, as the original); 404 |
+
+*Amended by spec 027* (FR-057, T058): a game session's body (`GET /{sessionId}`, each of `GET
+/players/{playerId}`'s `sessions`, and the service route's history) answers `lastBetAt`, an ISO-8601
+instant: the latest `occurredAt` of a `round_opened` or `round_settled` on `casino.rounds` under the
+session's id (`RoundsActivity` sends `GameSessionEntity`'s `record-bet`; an older time is no event),
+`null` when there was none. Where the original answered `lastBetAt` it was always `null`.
 
 `POST /launch` is spec 003's (`game-provider`) and is not served here.
 
@@ -151,6 +157,17 @@ logged (001 FR-023).
   keeps ingest's status; a player who is not active is `403 account_restricted` with `reason`, before
   anything is asked; `amount` that is not a whole number above zero is `400 invalid_amount`, a currency
   that is not three letters `400 invalid_currency`.
+- *Amended by spec 027* (FR-018, T020): the start takes `requestId?` (1 to 64 of `[A-Za-z0-9_-]`,
+  checked after `amount` and `currency`, else `400 invalid_request_id`) and sends it to `ingest` as
+  `transactionId`; with none, none is sent and `ingest` mints one. `200` gains `cashierTicket`
+  (`ingest`'s `session_token`), `terminals` (its `available_terminals`, unchanged) and `requestId`
+  (its `transactionId`; `paymentId` is the same value, kept for callers that read it, and is not a
+  payment's id). A repeat under the same `requestId` and content is `ingest`'s first answer, so the
+  same `cashierTicket`; under another amount `409 {error: REQUEST_ID_REUSED, message, transactionId,
+  requestId, service: "ingest"}`. Every `ingest` refusal passes on the fields `ingest` answered beside
+  `error`. `kyc`'s refusal gains `kycStatus` when `kyc` answers one (`DEPOSIT_BLOCKED_KYC*`);
+  responsible gambling's gains `endsAt` (`cooling_off`) and `period`, `limit`, `used`, `remaining`
+  in minor units (`over_limit`). The answer is not logged: it carries the ticket.
 - `platform_admin` is admitted on every operator route (contract `Routes.operator`, spec 001; the original's
   `requireBrandAccess`), so T056's "a `platform_admin` without the brand role → `403`" does not hold.
 

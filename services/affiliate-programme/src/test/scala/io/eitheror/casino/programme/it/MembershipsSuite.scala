@@ -194,7 +194,9 @@ class MembershipsSuite extends munit.FunSuite with LogCapturing:
     def figures(n: JsonNode) = n.get("figures").elements().asScala.toVector
     val one = kit.eventually("goldvibe's CPA")(Option(read("&brand=goldvibe")).filter(n => figures(n).exists(_.get("cpaCommission").asLong == 5_000)))
     assertEquals(figures(one).map(_.get("brandId").asText).distinct, Vector("goldvibe"))
-    val all = kit.eventually("both brands' figures")(Option(read("")).filter(n => figures(n).count(_.get("cpaCommission").asLong > 0) == 2))
+    // Both brands' commission and their deposit counts, which are folded a moment apart (a race CI met).
+    val all = kit.eventually("both brands' figures")(Option(read("")).filter(n =>
+      figures(n).count(_.get("cpaCommission").asLong > 0) == 2 && figures(n).map(_.get("depositCount").asLong).sum == 2L))
     val byBrand = figures(all).map(f => (f.get("brandId").asText, f.get("currency").asText) -> f.get("cpaCommission").asLong).toMap
     assertEquals(byBrand, Map(("goldvibe", "EUR") -> 5_000L, ("silvervibe", "USD") -> 7_000L))
     assertEquals(figures(all).map(f => f.get("depositCount").asLong).sum, 2L)

@@ -44,6 +44,18 @@ class DepositsSuite extends munit.FunSuite with LogCapturing:
     assert(b.textOr("customerEmail", "").contains("@"))
   }
 
+  test("a player who gave no country: the cashier opened with the country registration found from their address (spec 027)") {
+    kit.geo.countries.put("203.0.113.52", "GF")
+    val address = s"p-${java.util.concurrent.ThreadLocalRandom.current().nextLong(1L << 52)}@example.test"
+    val r = kit.registerFrom(Some("203.0.113.52"), "email" -> address, "country" -> None)
+    assertEquals(r.status, 201, r.text)
+    assertEquals(kit.verify(address).status, 200)
+    val id = r.str("playerId")
+    assertEquals(deposit(id, kit.signIn(address).str("token")).status, 200)
+    val b = created(id).head.json.get
+    assertEquals((b.textOr("country", ""), b.textOr("customerCountry", "")), ("GF", "GF"))
+  }
+
   test("kyc refusing: its code and message, naming it, and nothing after it asked") {
     val (id, token) = signedIn()
     kit.kyc.refusals.put(id, ("kyc_required", "verify your identity first"))
@@ -92,4 +104,21 @@ class DepositsSuite extends munit.FunSuite with LogCapturing:
     kit.ingest.refusal = Some((422, "invalid_currency"))
     val r = deposit(id, token)
     assertEquals((r.status, r.str("error"), r.str("service")), (422, "invalid_currency", "ingest"), r.text)
+  }
+
+  test("a request id: sent as the cashier's transactionId and answered; a malformed one refused as invalid_request_id before anything is asked") {
+    val (id, token) = signedIn()
+    Seq("\"\"", "\"has space\"", "\"" + "x" * 65 + "\"", "42", "{}").foreach { bad =>
+      val r = deposit(id, token, s"""{"amount":5000,"currency":"EUR","requestId":$bad}""")
+      assertEquals((r.status, r.str("error")), (400, "invalid_request_id"), bad)
+    }
+    assertEquals((kycAsked(id).size, created(id).size), (0, 0))
+    val sent = "a-_9" * 16
+    val r = deposit(id, token, s"""{"amount":5000,"currency":"EUR","requestId":"$sent"}""")
+    assertEquals((r.status, r.str("requestId"), r.str("paymentId")), (200, sent, sent), r.text)
+    assertEquals(created(id).flatMap(_.json).map(_.textOr("transactionId", "")), Vector(sent))
+    val none = deposit(id, token, """{"amount":5000,"currency":"EUR","requestId":null}""")
+    assertEquals(none.status, 200, none.text)
+    assert(!created(id).last.json.get.has("transactionId"), "with no request id the cashier mints one")
+    assert(none.str("cashierTicket").nonEmpty && none.json.get("terminals").isArray, none.text)
   }

@@ -131,15 +131,40 @@ class ReadsFeatures extends RouteFeatures("reads.feature"):
 
   Then("real balance {string}, reserved amount {string} and available amount {string} are returned as major-unit strings") {
     (r: String, a: String, v: String) =>
-      def major(m: String) = io.eitheror.casino.wallet.wire.Wire.major(m.toLong)
+      def major(m: String) = io.eitheror.casino.wallet.wire.Wire.major(m.toLong, io.eitheror.casino.contract.money.Currency.unsafe(currency))
       assertEquals((read.get("realBalance").asText, read.get("reserved").asText, read.get("available").asText), (major(r), major(a), major(v)))
       assert(read.get("reserved").isTextual && read.get("available").isTextual, read.toString)
   }
 
-  When("the balance is read") { () =>
+  private def readOwnBalance(): Unit =
     val (status, body) = sendWithToken("GET", s"/v1/casino/players/$brand/wallets/$currency/balance", TestTokens.player(player))
     assertEquals(status, 200, body)
     read = node(body)
+
+  When("the balance is read") { () => readOwnBalance() }
+
+  // ── spec 027 FR-058: major units by the currency's exponent ───────────────
+
+  Given("a player whose real balance is {string} minor units of {string}") { (minor: String, c: String) =>
+    currency = c
+    player = s"px${(scenarioId + c + minor).hashCode.abs}"
+    keys = 0
+    val (status, body) = deposit(minor.toLong)
+    assertEquals(status, 200, body)
+  }
+
+  When("the player reads their balance") { () => readOwnBalance() }
+
+  When("an operator credits {string} of {string} to the player's real balance") { (amount: String, c: String) =>
+    val (status, body) = sendWithToken("POST", s"/v1/casino/backoffice/$brand/wallets/$player/$c/adjustments", TestTokens.operator("op-1"),
+      Some(s"""{"key":"${nextKey("adj")}","walletType":"real","amount":"$amount","reason":"a correction","category":"goodwill"}"""))
+    assertEquals(status, 200, body)
+    readOwnBalance()
+  }
+
+  Then("the real balance is written {string}") { (written: String) =>
+    assertEquals(read.get("realBalance").asText, written, read.toString)
+    assert(read.get("realBalance").isTextual, read.toString)
   }
 
   Then("real balance, restricted balance and currency are returned as major-unit strings") { () =>

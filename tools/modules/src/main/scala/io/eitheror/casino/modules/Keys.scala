@@ -55,8 +55,13 @@ object Keys:
 
   def load(root: Path): Keys = parse(Files.readString(root.resolve("contract/keys.md")))
 
-  /** The services the tree has a build for: `services/<name>/build.sbt`. */
+  /**
+   * The services the tree has a build for: `services/<name>/build.sbt`, or for a web-hosted one a
+   * `package.json` and a `Dockerfile`, the release's rule for a web image (spec 030 D4, spec 027).
+   */
   def built(root: Path): Set[String] =
     val dir = root.resolve("services")
     if !Files.isDirectory(dir) then Set.empty
-    else Files.list(dir).iterator().asScala.filter(d => Files.exists(d.resolve("build.sbt"))).map(_.getFileName.toString).toSet
+    else Files.list(dir).iterator().asScala
+      .filter(d => Files.exists(d.resolve("build.sbt")) || (Files.exists(d.resolve("package.json")) && Files.exists(d.resolve("Dockerfile"))))
+      .map(_.getFileName.toString).toSet

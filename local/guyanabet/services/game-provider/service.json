@@ -1,0 +1,11 @@
+{
+  "name": "game-provider",
+  "service": {
+    "image": "europe-west1-docker.pkg.dev/eitheror/casino/game-provider:0.0.0",
+    "port": 9205,
+    "runtime": "0.16.3",
+    "resources": {
+      "instanceType": "medium"
+    }
+  }
+}

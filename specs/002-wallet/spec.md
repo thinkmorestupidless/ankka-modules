@@ -453,7 +453,12 @@ in `TestScenario7_CasinoGate3_FullPlayerJourney`, and the reporting routes' sums
 - **FR-003**: Every amount MUST be a whole number of minor units carried as a 64-bit integer;
   every rate a whole percent; every product of two amounts computed in 64 bits with truncating
   integer division, as the resolver does. Replies to the player site and backoffice MUST render
-  major-unit strings with two decimals, as today.
+  major-unit strings with two decimals, as today. *Amended by spec 027* (FR-058): they MUST render
+  them by the currency's own exponent (the contract's `Amounts.render`): a currency of two decimals
+  exactly as before (`"12.34"`), one of none or three by its own (`1234` JPY is `"1234"`, KWD
+  `"1.234"`). The operator's adjustments read their `amount` by the same exponent, refusing more
+  decimals than the currency has (CLP `"5000"` is 5000 minor units). The service and granted routes'
+  integer minor units are untouched.
 - **FR-004**: A brand's bet switches — contribution rate per game type, whether bonus wagering
   counts toward release, whether partial splits are allowed — MUST be held in one key value entity
   per brand inside the wallet service, written by a service route admitted to `rewards`, and read

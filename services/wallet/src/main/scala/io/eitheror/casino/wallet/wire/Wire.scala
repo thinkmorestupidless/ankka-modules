@@ -3,7 +3,7 @@ package io.eitheror.casino.wallet.wire
 import com.github.plokhotnyuk.jsoniter_scala.core.{JsonReader, JsonValueCodec, JsonWriter, writeToArray}
 import com.thinkmorestupidless.ankka.core.Codecs
 import com.thinkmorestupidless.ankka.http.{Bytes, Respond}
-import io.eitheror.casino.contract.money.{AmountNotMinorUnits, MinorUnits, SignedMinorUnits}
+import io.eitheror.casino.contract.money.{AmountNotMinorUnits, Amounts, Currency, MinorUnits, SignedMinorUnits}
 import io.eitheror.casino.wallet.entity.{DepositSums, Outcome}
 import io.eitheror.casino.wallet.funding.Leg
 
@@ -184,8 +184,9 @@ object Wire:
   val missingKey: Respond[Bytes] =
     refusal("MISSING_KEY", io.eitheror.casino.contract.money.MissingKey.message)
 
-  /** Major-unit text with two decimals, for the player site and the backoffice (FR-003). */
-  def major(minor: Long): String =
-    val sign = if minor < 0 then "-" else ""
-    val abs  = math.abs(minor)
-    f"$sign${abs / 100}%d.${abs % 100}%02d"
+  /**
+   * Major-unit text by the currency's exponent, for the player site and the backoffice (FR-003;
+   * amended by spec 027 FR-058): the contract's `Amounts.render`, so `9500` EUR is `"95.00"` as it
+   * always was, `100` JPY is `"100"` and `1234` KWD is `"1.234"`.
+   */
+  def major(minor: Long, currency: Currency): String = Amounts.render(minor, currency)

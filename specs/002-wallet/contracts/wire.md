@@ -44,6 +44,10 @@ Routes of the original with no row are dropped (spec *Changes from the original*
 
 ## Fields
 
+*Amended by spec 027* (FR-058): the player and operator routes write major-unit text by the
+currency's exponent, not two fixed decimals; every recording here is of a two-decimal currency, whose
+text is unchanged.
+
 | Original | Rebuild | Rule |
 |---|---|---|
 | `paymentRef` | `paymentId` | the deposit's key (FR-002) |

@@ -128,9 +128,14 @@ class CatalogueViewSuite extends SharedKitSuite:
     assertEquals(devs.flatMap(_.text("developerId")).filter(_.startsWith(run)).toSet, (0 until 5).map(d => s"$run-dev-$d").toSet)
   }
 
-  test("another brand's catalogue is refused, and an anonymous reader is asked to sign in") {
+  test("another brand's catalogue is refused, signed in or not; an anonymous reader reads this brand's, and is asked to sign in only to launch (spec 027 FR-056)") {
     assertEquals(kit.request("GET", "/v1/casino/catalog/games?brand=spinvibe", None, kit.asPlayer("p")).status, 404)
-    assertEquals(kit.request("GET", s"/v1/casino/catalog/games?brand=${kit.brand}").status, 401)
+    assertEquals(kit.request("GET", "/v1/casino/catalog/games?brand=spinvibe").status, 404)
+    assertEquals(kit.request("GET", "/v1/casino/catalog/spinvibe/games/popular").status, 404)
+    assertEquals(kit.request("GET", s"/v1/casino/catalog/games?brand=${kit.brand}").status, 200)
+    assertEquals(kit.request("GET", s"/v1/casino/catalog/developers?brand=${kit.brand}").status, 200)
+    assertEquals(kit.request("GET", s"/v1/casino/catalog/${kit.brand}/games/popular").status, 200)
+    assertEquals(kit.request("POST", s"/v1/casino/sessions/${kit.brand}/launch", Some("""{"gameId":"g-1","currency":"EUR"}""")).status, 401)
   }
 
 /** The refresh's retries, its status, and the operator's refresh-now through the durable timer (FR-021, research R11). */

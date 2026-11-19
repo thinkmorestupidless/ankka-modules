@@ -20,7 +20,9 @@ final case class SessionRow(
     startedAt: Long = 0L,
     endedAt: Option[Long] = None,
     durationMinutes: Option[Long] = None,
-    reason: Option[String] = None
+    reason: Option[String] = None,
+    /** The game session's latest bet, epoch milliseconds (spec 027 FR-057); an older row lacks it and reads none. */
+    lastBetAt: Option[Long] = None
 ):
   def open: Boolean = endedAt.isEmpty
 
@@ -53,6 +55,8 @@ final class SessionsViewRows extends KeyedView[SessionRow]:
           effects.updateRow(key, r.copy(status = GameSessionState.Ended, endedAt = Some(e.at.toEpochMilli),
             durationMinutes = Some(minutes), reason = Some(e.reason)))
         }
+      case e: GameSessionEvent.BetRecorded =>
+        change.rows.get(key).fold(effects.ignore())(r => effects.updateRow(key, r.copy(lastBetAt = Some(e.at.toEpochMilli))))
 
 object SessionsView extends KeyedView.Companion[SessionsViewRows, SessionRow](
       ComponentId("sessions"),

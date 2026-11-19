@@ -14,7 +14,8 @@ import java.time.Instant
 
 /** data-model.md's consumers: what each fact or event becomes, a redelivery changing nothing, a new player starting a record. */
 class ConsumersSuite extends munit.FunSuite with LogCapturing:
-  private val at  = Instant.parse("2026-10-15T12:00:00Z")
+  // A day ago, not a fixed date: the player entity drops what is older than its window by the clock.
+  private val at  = Instant.now().minus(java.time.Duration.ofDays(1)).truncatedTo(java.time.temporal.ChronoUnit.MILLIS)
   private val Eur = Currency.unsafe("EUR")
 
   private def registered(player: String, names: Boolean = true, email: Boolean = true) =

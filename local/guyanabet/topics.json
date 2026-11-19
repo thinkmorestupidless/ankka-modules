@@ -1,0 +1,53 @@
+{
+  "topics": [
+    {
+      "name": "affiliates.attribution",
+      "partitions": 6
+    },
+    {
+      "name": "casino.players",
+      "partitions": 6
+    },
+    {
+      "name": "casino.push",
+      "partitions": 6
+    },
+    {
+      "name": "casino.rewards",
+      "partitions": 6
+    },
+    {
+      "name": "casino.rounds",
+      "partitions": 12
+    },
+    {
+      "name": "casino.sessions",
+      "partitions": 12
+    },
+    {
+      "name": "casino.withdrawals",
+      "partitions": 6
+    },
+    {
+      "name": "money.transactions",
+      "partitions": 12
+    },
+    {
+      "name": "payments.merchants",
+      "partitions": 6,
+      "retention": "everything"
+    },
+    {
+      "name": "payments.payments",
+      "partitions": 6
+    },
+    {
+      "name": "platform.audit",
+      "partitions": 12
+    },
+    {
+      "name": "platform.modules",
+      "partitions": 6
+    }
+  ]
+}

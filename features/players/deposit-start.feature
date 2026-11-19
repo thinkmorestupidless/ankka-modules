@@ -1,0 +1,43 @@
+Feature: A player starts a deposit at the brand
+  A player asks the brand to start a deposit of an amount in a currency. The brand asks the deposit
+  gate, reads the wallet's sums and asks responsible gambling, and only then opens a cashier session
+  at the shared payments under the brand's cashier key with the player's own id and profile. The
+  player is answered what the cashier session offers, so that their page can finish the deposit.
+
+  Background:
+    Given a player of brand "guyanabet" who is active
+
+  Scenario: a started deposit answers the cashier ticket and the terminals of the cashier session it opened
+    Given the deposit gate and responsible gambling allow a deposit of "5000" minor units of "EUR"
+    When the player starts a deposit of "5000" minor units of "EUR"
+    Then a cashier session is opened at the shared payments for the player
+    And the player is answered the cashier ticket and the terminals the cashier session offers
+
+  Scenario: a deposit the deposit gate refuses opens no cashier session and answers no cashier ticket
+    Given the deposit gate refuses the player
+    When the player starts a deposit of "5000" minor units of "EUR"
+    Then the player is refused with the deposit gate's code and words and their KYC status
+    And no cashier session is opened
+
+  Scenario: a deposit over the deposit limit is refused naming the period, the limit, what was used and what remains
+    Given the player has a deposit limit that "5000" minor units would pass
+    When the player starts a deposit of "5000" minor units of "EUR"
+    Then the player is refused as "over_limit" naming the period, the limit, what was used and what remains
+    And no cashier session is opened
+
+  Scenario: a deposit by a player on a break is refused naming the end of the break
+    Given the player is cooling off
+    When the player starts a deposit of "5000" minor units of "EUR"
+    Then the player is refused as "cooling_off" naming the end of the break
+    And no cashier session is opened
+
+  Scenario: a deposit started again under the same request id answers the first cashier session
+    Given the player started a deposit of "5000" minor units of "EUR" under the request id "r-1"
+    When the player starts a deposit of "5000" minor units of "EUR" under the request id "r-1"
+    Then the player is answered the first cashier session's cashier ticket
+    And one cashier session exists for the player
+
+  Scenario: a deposit started again under the same request id with another amount is refused naming the request id
+    Given the player started a deposit of "5000" minor units of "EUR" under the request id "r-1"
+    When the player starts a deposit of "9000" minor units of "EUR" under the request id "r-1"
+    Then the player is refused naming the request id "r-1"
