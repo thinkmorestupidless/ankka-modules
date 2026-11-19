@@ -545,13 +545,13 @@ matches the payment id, the cashier's transaction id or the provider's transacti
 
 ### US7's commit under US8's message, 2026-11-15
 
-`00a1d35a` carries the header of T099 and T100 but holds US7's 17 files: two agents committed through
+`053ae36a` carries the header of T099 and T100 but holds US7's 17 files: two agents committed through
 the shared index at once. Nothing was lost; history is not rewritten. Agents now commit through a
 private index (`commit-own.sh`).
 
 ### Identity and protection, 2026-11-15 (T093–T097)
 
-- `00a1d35a` holds T095 and T096 (the identity queue, a player's identity and protection, the
+- `053ae36a` holds T095 and T096 (the identity queue, a player's identity and protection, the
   protection cases), under T099/T100's header (above).
 - The document route (FR-031) follows kyc's signed link only under `BACKOFFICE_DOCUMENT_STORE`: same
   scheme, host and port, under the store's path, no credentials, no redirect. Nothing in a page's or
@@ -686,9 +686,9 @@ amendment (K5 in contracts/amendments.md). The document route passes kyc's bytes
 
 ### players for the investigation, 2026-11-16 (T066–T068)
 
-- The regression from P1 (bd098288): the operator endpoint's `Acl.DenyAll` is checked for any path no
+- The regression from P1 (b0df8dd8): the operator endpoint's `Acl.DenyAll` is checked for any path no
   route matches, so an unknown route answered 403. The endpoint ACL is `Routes.operator(slug)` again,
-  and every route keeps its own permission (8d6ede28).
+  and every route keeps its own permission (045bf648).
 - The players list combines `search` with the filters, as the original's spec 180 does. Each facet
   applies every other filter and leaves out its own. `identity` is `verified` or `unverified` only,
   which is all players knows. Online means an open player session. Birthday windows are today, 7 and
@@ -707,9 +707,9 @@ amendment (K5 in contracts/amendments.md). The document route passes kyc's bytes
   text. ankka 042's encryption of personal fields will refuse both queries at start. players'
   `lists.feature` freshness scenario stays unbound: "the views are catching up" cannot be shown while
   `rebuilding` is always false (V2).
-- `repeated` (7432a7fd) is answered only on the operator's adjustment route; the support agent's route
+- `repeated` (164b36b6) is answered only on the operator's adjustment route; the support agent's route
   strips it, so its answer is unchanged. It is never stored. The batch scenario's refused row is a debit
-  larger than the player's real balance (1b391777).
+  larger than the player's real balance (10add35e).
 
 ### The wallet's reward settings, 2026-11-16 (T104, W3)
 
@@ -904,7 +904,7 @@ seeded brand fills in the rest.
   the programme answered nor by dropping the figures.
 - The other findings (DR-01 to DR-18) were defects and are fixed; DR-08 needed only the doubles to
   answer players' facets. Times are in the brand's reporting zone, which `/api/me` now answers.
-- The programme's traffic (030 A3, 2b53578d, 8221308e) counts clicks, registrations, FTDs and QFTDs
+- The programme's traffic (030 A3, d52e7430, 204985f5) counts clicks, registrations, FTDs and QFTDs
   per period, affiliate and link. The original counted clicks only: its dashboard read impressions,
   unique clicks and QFTDs that nothing wrote. Impressions and unique clicks stay uncounted (no fact
   carries them; unique clicks would need the visitor digest on spec 012's click fact), so CTR too.
@@ -919,15 +919,15 @@ seeded brand fills in the rest.
 - kind-ankka (T136), found bringing goldvibe up for the suites:
   - backoffice-state reached the realm at the issuer's `:8443` host, which the gateway answers only
     from outside the cluster; it now calls the installation's in-cluster Keycloak (`KEYCLOAK_URL`,
-    from `keycloak-jwks-base`) for the token, revoke and logout calls (a21d6cb6, ef8f8e8a).
+    from `keycloak-jwks-base`) for the token, revoke and logout calls (92993fe1, cfd2828c).
   - An apply without `--secrets` let Keycloak mint the backoffice client's secret, and a later apply
-    never replaced it; the modules tool now gives an existing client the brand's secret (1a17efff).
+    never replaced it; the modules tool now gives an existing client the brand's secret (497e359e).
   - Decision (Trevor): players runs as `large`, heap half the instance, for every brand. As a
     `medium` it ran out under the seed's registrations: at a quarter or half heap the JVM, at 60%
-    the container (3aec766a, 338e90c3). No leak was looked for.
+    the container (bd801bda, d3d8582a). No leak was looked for.
   - Players seeded its default roles on the starting thread and ended when a call missed its
-    10 seconds on a busy node; the seed is now tried again on that thread until it holds (d5bfc461;
-    b1e2a207 had moved it off the thread, which lost the roles' existing once the service started).
+    10 seconds on a busy node; the seed is now tried again on that thread until it holds (f75326f6;
+    86748c69 had moved it off the thread, which lost the roles' existing once the service started).
   - To fit the node, exchange, backoffice-probe, game-provider, attribution, public-api and
     markets are paused on kind-ankka's goldvibe; a suite that needs one of them is resumed for.
   - Gap, accepted (Trevor): on kind-ankka the seed is 3,000 players, 1,500 withdrawal requests and
@@ -942,7 +942,7 @@ seeded brand fills in the rest.
     run must restart every service whose image it loaded; a tag per build would make it plain.
   - The seed's emails differed only in digits, which players' duplicate check drops (spec 011
     FR-035): every seeded player was one email variant from one address, a duplicate ring, and
-    rewards refused their bonuses. The emails are now in letters (f1c64326), and the seed was run
+    rewards refused their bonuses. The emails are now in letters (d039a862), and the seed was run
     again from nothing; the first run's 2,406 players stay on goldvibe, flagged.
   - Decision (Trevor): payouts and rewards run as `medium`, as ankka's scaling guide asks of a
     service with a topic view or a producer; at the default `small` both were OOMKilled under the
