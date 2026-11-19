@@ -116,7 +116,8 @@ export function depositBehaviour(options: DepositOptions): DepositBehaviour {
       case "EXPIRED":
         return failed("payment_expired", p.failureCode ? { failureCode: p.failureCode } : {});
       case "AWAITING_REDIRECT":
-        return p.redirectUrl ? { kind: "waiting_at_provider", allowed: ["close"], paymentId, address: p.redirectUrl } : null;
+        // With no address yet, the player waits and may close, rather than standing at submitting (review).
+        return p.redirectUrl ? { kind: "waiting_at_provider", allowed: ["close"], paymentId, address: p.redirectUrl } : { kind: "waiting", allowed: ["close"], paymentId };
       case "AWAITING_CRYPTO":
         return p.paymentAddress && p.cryptoAmount
           ? { kind: "waiting_on_crypto", allowed: ["close"], paymentId, address: p.paymentAddress, cryptoAmount: p.cryptoAmount, coin: p.cryptoCurrency ?? "", ...(p.validUntil ? { expiresAt: p.validUntil } : {}) }

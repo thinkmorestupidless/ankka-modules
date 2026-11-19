@@ -116,6 +116,16 @@ describe("the deposit behaviour", () => {
     expect(s.dep.step()).toMatchObject({ kind: "waiting_at_provider", address: expect.stringMatching(/^https:\/\/psp\.example\/pay\//) });
   });
 
+  it("a payment awaiting the provider with no address yet waits, and may be closed (review)", async () => {
+    const s = await atTerminals();
+    Object.assign(s.d.brand.players[0]!.profile, { phone: "+594694000000", addressLine1: "1 rue", stateProv: "973" });
+    s.d.script("payment", { status: 200, body: { paymentId: "x", status: "AWAITING_REDIRECT", redirectUrl: "" } });
+    s.dep.actions.choose("t-card");
+    await s.clock.settle();
+    await s.clock.advance(1500);
+    expect(s.dep.step()).toMatchObject({ kind: "waiting", allowed: ["close"] });
+  });
+
   it("a wallet lacking the name asks for it, saves it and submits with it; a bad answer stays at details", async () => {
     const s = await atTerminals();
     s.d.brand.players[0]!.profile = {};
