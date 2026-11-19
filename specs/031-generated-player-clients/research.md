@@ -486,3 +486,76 @@ A draft of one issue, not filed: it is filed on the person's word.
    authenticator in a function (ours adds the brand's check) gets no `security` at all, so a
    signed-in route is told from an open one only by the absence of the field. Asked: a way for an
    ACL to say it authenticates, or for `described` to say so.
+
+## Acceptance
+
+Run on 2026-11-19 on the local brand `guyanabet` (`ankka local up`, client 0.18.0, 13 services
+and their companions), every image built from this branch's head by `just local-images`.
+
+| Run | Clients | Result |
+|---|---|---|
+| T030 | hand-written, `sdk/player` as it stood at `8ffa0f76`, the move's last commit | 24 of 24 |
+| T060 | generated, this branch's head | 24 of 24 |
+| the timed browser run (`npm run e2e -w services/player-site`) | generated | 1 of 1 |
+
+The two runs pass the same 24 cases, compared by name: register, resendVerification, verifyEmail,
+requestPasswordReset, country; profile, changeProfile, balance, protection, unread, startDeposit,
+submitCashier, payment, abandonCashier; games, game, freeRounds, launch; gameSession,
+acknowledgeRealityCheck, endGameSession; push; turn, decide.
+
+What differs from the tasks as written, and what the machine demanded:
+
+- **One brand, not two.** T030 was to run on the move's own commit before the first pull request.
+  Both runs were made against services built from this branch's head, because building the 13
+  images a second time at `8ffa0f76` did not fit this machine's disk (5.8 GiB free) or time. The
+  services' wire at the head is the move's: describing a route changes no answer (held kits,
+  parity suites, `HeldFixtureSuite`), so 24 of 24 with the hand-written clients is the move's
+  result too. Both pull requests say so.
+- **The local volume was another checkout's.** `ankka local up` keeps a project's data in Docker
+  volumes named by the project (`ankka-guyanabet_pgdata`), and its secret keys in the checkout's
+  `.ankka/local/state.json`. The volume was the main checkout's, so three services refused their
+  stored secrets ("the secret key is not the one … was kept with"). The main checkout's local-only
+  keys, realm secrets and cashier key were copied into this worktree's `.ankka/local/`; the other
+  way was `ankka local down --volumes`, which would have removed that checkout's data.
+- **Startup under load.** With 13 JVMs starting at once, two services ended on a 10-second
+  start-up bound; a second `ankka local up` started them. Nothing in 0.18.0 demanded a change that
+  0.17.0 did not; every service showed ready, the five that were on 0.13 among them.
+- **A kind cluster on the machine starved the brand.** With `ankka-control-plane` (kind, not this
+  work's) using about seven cores, players' two-second ask of responsible gambling at sign-in
+  timed out and 12 cases were skipped behind it. The person had it stopped; the next run was 24 of
+  24. It is left stopped, as they chose.
+- **Every service's suites**, as CI runs them, on this machine: 21 of 21 pass. Three were rerun
+  alone after failing beside other builds (ingest's `KeysSuite` latency bound; attribution's
+  `CarriersSuite` and affiliate-programme's `CommunicationsSuite` and `MembershipSteps`, each "not
+  observed within 20 seconds" or a read made before a projection caught up), and players twice
+  (a latency bound, and classes rebuilt under it by the image build).
+- `git diff origin/main -- tests/port` shows the unrecorded lists and two READMEs added and no
+  recording changed (SC-002).
+
+## Quickstart run
+
+2026-11-19, on this branch's head.
+
+| Step | Result |
+|---|---|
+| 1. One ankka version | the root build's suites pass (contract 195, modules tool 296, provider-core 36); `modules/run validate --all` passes; the 21 services' suites pass as CI runs them ("Acceptance" has the reruns); a search of every `build.sbt`, `service.json`, module and shared manifest and `local/` finds 0 ankka versions other than 0.18.0 |
+| 2. The runtime check | `RuntimesSuite` passes among the modules tool's 296 |
+| 3. The local brand, before generation | 24 of 24 with the hand-written clients ("Acceptance": on one brand, built from the head) |
+| 4. Descriptions | `just describe-check` is current for each of the nine; each service's suites pass held to its description, `DescriptionSuite` among them. The checks were seen to bite while building: game-provider's hold caught a `404 wrong_brand` no route named (T040), and players' described profile and terminals were found short by the generated shapes (T053) |
+| 5. Generation | `generate:check` reports nothing out of date; `just player-sdk-test` (324), `player-sdk-features` (764 with the 7 new scenarios), `player-site-features` (5) pass; `git diff origin/main --stat -- sdk/player/tests/features services/player-site sdk/player/src/react` shows `elsewhere.ts` (one line) and the new steps file only |
+| 6. Acceptance | 24 of 24 with the generated clients; `just features`: 0 findings in 1476 scenarios and 27 specs |
+
+## Success criteria
+
+- [x] **SC-001**: 21 services and the contract on 0.18.0; the search finds no other (step 1).
+- [x] **SC-002**: every suite passes; no expectation changed by the move; `git diff origin/main -- tests/port` shows no recording changed.
+- [x] **SC-003**: 79 player routes in nine strict descriptions, 0 incomplete (a strict document refuses one; `DescriptionFeatures` holds the count to the routes tagged in each service's sources).
+- [x] **SC-004**: each `DescriptionSuite` finds no difference against the recordings, and its unrecorded list equals the kept one (36 of 79; `contracts/description-check.md`).
+- [x] **SC-005**: 24 of 24 on the local brand with the generated clients.
+- [x] **SC-006**: `routes.ts` and `shapes.ts` are generated in all four modules; eslint refuses `zod` and a `/v1/` literal elsewhere in a module; no behaviour's, component's or site's test changed. Two unit tests of the clients changed ("Client tests changed, and why").
+- [x] **SC-007**: a route that changes without its kept description fails its service's CI job (`describe-check`, naming the operations); a kept description that changes without the generated clients fails `generate:check`, first in the `player-sdk` job, whose path filter takes `services/*/openapi.player.json`.
+- [x] **SC-008**: a dry run in a scratch copy added `kycDocuments` to core by one selection row and one mapping function; generation wrote its row and shape, the copy typechecked, and no file under `services/` changed.
+- [x] **SC-009**: `just features` reports 0 findings.
+
+- T061: the brain's dated line is written in `brain/projects/ankka-modules.md` and left uncommitted:
+  this session's worktree guard refuses git in that repository, so the commit there is the person's.
