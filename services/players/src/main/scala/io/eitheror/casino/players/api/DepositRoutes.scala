@@ -66,12 +66,15 @@ final class DepositRoutes(ctx: Ctx):
       case (None, _) | (_, Left(_)) => silent(Ingest.Service)
       case (Some(ingest), Right(key)) =>
         val profile = s.profile
+        // The player's own country, else the one registration found from their address (spec 027): the
+        // original's page sent that one itself; a player who gave none can still deposit.
+        val country = profile.get("country").orElse(s.registration.networkCountry).getOrElse("")
         val body = Json.obj("amountCents" -> amount, "currency" -> currency, "customerId" -> s"${ctx.slug}:$playerId",
-          "country" -> profile.get("country").getOrElse(""), "redirectUrl" -> s"${ctx.settings.playerSiteBase}/cashier/return",
+          "country" -> country, "redirectUrl" -> s"${ctx.settings.playerSiteBase}/cashier/return",
           "paymentMethod" -> method, "customerEmail" -> s.primary.map(_.address.reveal).getOrElse(""),
           "customerFirstName" -> profile.get("firstName").getOrElse(""), "customerLastName" -> profile.get("lastName").getOrElse(""),
           "customerPhone" -> profile.get("phone").getOrElse(""), "customerMobile" -> profile.get("mobile").getOrElse(""),
-          "customerProvince" -> profile.get("province").getOrElse(""), "customerCountry" -> profile.get("country").getOrElse(""),
+          "customerProvince" -> profile.get("province").getOrElse(""), "customerCountry" -> country,
           "customerCity" -> profile.get("city").getOrElse(""), "customerAddress" -> profile.get("addressLine1").getOrElse(""),
           "customerPostCode" -> profile.get("postalCode").getOrElse(""), "customerState" -> profile.get("stateProv").getOrElse(""),
           "transactionId" -> requestId)

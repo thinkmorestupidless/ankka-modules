@@ -115,6 +115,8 @@ export const texts = {
   "register.title": "Créer un compte",
   "register.email": "Adresse e-mail",
   "register.password": "Mot de passe",
+  "register.country": "Pays",
+  "register.countryPick": "Choisissez votre pays",
   "register.submit": "Créer mon compte",
   "register.working": "Création du compte…",
   "register.sent": "Un lien de confirmation a été envoyé à {email}. Ouvrez-le pour activer votre compte.",

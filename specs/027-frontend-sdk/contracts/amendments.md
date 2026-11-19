@@ -20,6 +20,13 @@ submit answers. `Kyc.read`, `KycDecision.Refused` and the responsible-gambling b
 carry the added fields. Checks and their order are unchanged (the deposit
 gate, the wallet's sums, responsible gambling, then the cashier). The answer is not logged.
 
+The session's `country` and `customerCountry` are the profile's country, else the country
+registration found from the caller's address (`networkCountry`): a player registered at the
+reference site with only an email address and a password could not deposit, because ingest refuses
+a session with no country (found during implementation; the original's page sent the country it
+found itself). The reference site's registration asks for a country only when the address names
+none (`session.visitorCountry()`, contracts/behaviours.md).
+
 `specs/008-players/contracts/routes.md` and spec 008 FR-043 are edited to say so, with a line
 "Amended by spec 027".
 

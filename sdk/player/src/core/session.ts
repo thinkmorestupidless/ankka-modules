@@ -36,6 +36,11 @@ export interface SessionBehaviour extends Behaviour<SessionStep, SessionActions>
   notIdle(): void;
   /** The player `GET /api/session` named, for a session made before it answered. */
   hydrate(player: SignedInPlayer | null): void;
+  /**
+   * The visitor's country by their address, asked once; null when unknown (a private address, a
+   * lookup that failed). A registration form asks for a country only then (spec 027).
+   */
+  visitorCountry(): Promise<string | null>;
 }
 
 export interface SessionOptions {
@@ -168,8 +173,13 @@ export function sessionBehaviour(options: SessionOptions): SessionBehaviour {
     back: m.action("back", () => tell(before.kind === "awaiting_verification" ? before : signedOut())),
   };
 
+  let country: Promise<string | null> | undefined;
   return {
     ...behaviour(m, actions),
+    visitorCountry() {
+      country ??= core.country().then((r) => (r.ok ? r.value.country : null), () => null);
+      return country;
+    },
     activity() {
       if (m.step().kind === "signed_in") startIdle();
     },

@@ -44,6 +44,18 @@ class DepositsSuite extends munit.FunSuite with LogCapturing:
     assert(b.textOr("customerEmail", "").contains("@"))
   }
 
+  test("a player who gave no country: the cashier opened with the country registration found from their address (spec 027)") {
+    kit.geo.countries.put("203.0.113.52", "GF")
+    val address = s"p-${java.util.concurrent.ThreadLocalRandom.current().nextLong(1L << 52)}@example.test"
+    val r = kit.registerFrom(Some("203.0.113.52"), "email" -> address, "country" -> None)
+    assertEquals(r.status, 201, r.text)
+    assertEquals(kit.verify(address).status, 200)
+    val id = r.str("playerId")
+    assertEquals(deposit(id, kit.signIn(address).str("token")).status, 200)
+    val b = created(id).head.json.get
+    assertEquals((b.textOr("country", ""), b.textOr("customerCountry", "")), ("GF", "GF"))
+  }
+
   test("kyc refusing: its code and message, naming it, and nothing after it asked") {
     val (id, token) = signedIn()
     kit.kyc.refusals.put(id, ("kyc_required", "verify your identity first"))

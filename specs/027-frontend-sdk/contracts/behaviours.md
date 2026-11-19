@@ -31,6 +31,8 @@ Steps and fields are in [data-model.md](../data-model.md). Below, what moves eac
 - any call answered `signed_out` after the one shared refresh was refused → `signed_out` with
   reason `refresh_expired`, after the re-read of R3.
 - `play` reports a recent bet → the idle count starts again (a change from the original).
+- `visitorCountry()` is not an action: `core`'s country lookup, asked once and kept; null when it
+  is unknown or failed. A registration form asks for a country only when it is null.
 
 ## Deposit
 

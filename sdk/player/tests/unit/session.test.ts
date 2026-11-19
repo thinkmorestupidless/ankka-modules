@@ -146,4 +146,17 @@ describe("the session behaviour", () => {
     expect(clock.pending()).toBe(0);
     expect(s.actions.signOut()).toMatchObject({ ok: false });
   });
+
+  it("the visitor's country: core's lookup, asked once; null when unknown or failed", async () => {
+    const { d, s } = await setup();
+    expect(await s.visitorCountry()).toBe("GF");
+    d.script("country", { status: 200, body: { country: "BR", dialCode: "+55" } });
+    expect(await s.visitorCountry()).toBe("GF");
+    const unknown = await setup();
+    unknown.d.script("country", { status: 200, body: { country: null, dialCode: null } });
+    expect(await unknown.s.visitorCountry()).toBeNull();
+    const failed = await setup();
+    failed.d.script("country", { status: 503, body: { error: "unavailable" } });
+    expect(await failed.s.visitorCountry()).toBeNull();
+  });
 });

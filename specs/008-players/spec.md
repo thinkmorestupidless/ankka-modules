@@ -646,6 +646,9 @@ store and `payments` for a personal field; fetch the response.
   `paymentId` equals). A refusal carries the figures: `kyc`'s `kycStatus`, and responsible
   gambling's `endsAt` (`cooling_off`) or `period`, `limit`, `used` and `remaining` in minor units
   (`over_limit`). The answer is never logged: it carries the ticket.
+  *Amended by spec 027* (found during implementation): the session's `country` and
+  `customerCountry` are the profile's country, else the one registration found from the caller's
+  address (`networkCountry`), as the original's page sent it; a player who gave none can deposit.
 
 ### Key Entities
 
