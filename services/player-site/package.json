@@ -11,7 +11,7 @@
     "build": "vite build",
     "start": "NODE_ENV=production node src/server/main.ts",
     "typecheck": "tsc",
-    "test": "vitest run --exclude 'tests/features/**'",
+    "test": "vitest run --exclude 'tests/features/**' --exclude 'tests/e2e/**'",
     "lint": "eslint src tests",
     "features": "bddgen && playwright test",
     "size": "node scripts/size.ts",
