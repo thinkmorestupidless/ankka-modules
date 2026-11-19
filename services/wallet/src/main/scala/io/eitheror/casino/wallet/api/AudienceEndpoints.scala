@@ -62,14 +62,20 @@ private[api] object Major:
       r.reference)),
       p.page, p.pageSize, p.total)
 
-  /** "10.00" → 1000: at most two decimals; anything else names the amount (spec 001 FR-026). */
-  def parse(text: String): Either[String, Long] =
-    val Pattern = """(-?)(\d{1,17})(?:\.(\d{1,2}))?""".r
+  /**
+   * An operator's amount in major units by the currency's exponent, as the reads write it (spec 027
+   * FR-058): EUR "10.00" → 1000, CLP "5000" → 5000, KWD "1.234" → 1234; a sign is kept (an
+   * adjustment may debit); more decimals than the currency has, or anything else, names the amount
+   * (spec 001 FR-026).
+   */
+  def parse(text: String, currency: Currency): Either[String, Long] =
+    val exp     = io.eitheror.casino.contract.money.Amounts.exponent(currency)
+    val Pattern = """(-?)(\d{1,15})(?:\.(\d+))?""".r
     text.trim match
-      case Pattern(sign, whole, fraction) =>
-        val cents = Option(fraction).fold(0L)(f => (f + "0").take(2).toLong)
-        Right((if sign == "-" then -1 else 1) * (whole.toLong * 100 + cents))
-      case _ => Left(s"the amount '$text' is not a whole number of minor units")
+      case Pattern(sign, whole, fraction) if Option(fraction).forall(f => f.length <= exp) =>
+        val minor = Option(fraction).fold(0L)(f => (f + "0" * exp).take(exp).toLong)
+        Right((if sign == "-" then -1 else 1) * (whole.toLong * math.pow(10, exp).toLong + minor))
+      case _ => Left(s"the amount '$text' is not an amount of ${currency.code}")
 
 /**
  * The backoffice (`Routes.operator(slug)`: a staff token whose realm roles name this brand): the
@@ -93,7 +99,7 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
 
   postBody("/wallets/{player}/{currency}/adjustments") { (player: String, currency: String, r: OperatorAdjustRequest) =>
     checked(currency) { c =>
-      (Key.from(r.key), Major.parse(r.amount)) match
+      (Key.from(r.key), Major.parse(r.amount, c)) match
         case (Left(_), _)        => Wire.missingKey
         case (_, Left(message))  => Wire.refusal("INVALID_REQUEST", message, Map("amount" -> r.amount))
         case (Right(k), Right(a)) =>
@@ -144,7 +150,7 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
 
   postBody("/accounts/{kind}/{name}/adjustments") { (kind: String, name: String, r: OperatorAccountAdjustRequest) =>
     accountChecked(kind, r.currency) { c =>
-      (Key.from(r.key), Major.parse(r.amount)) match
+      (Key.from(r.key), Major.parse(r.amount, c)) match
         case (Left(_), _)       => Wire.missingKey
         case (_, Left(message)) => Wire.refusal("INVALID_REQUEST", message, Map("amount" -> r.amount))
         case (Right(k), Right(a)) =>

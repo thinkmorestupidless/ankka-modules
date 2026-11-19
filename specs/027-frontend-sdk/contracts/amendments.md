@@ -48,6 +48,13 @@ decimals every answer is byte for byte as today; for one of none or three it cha
 `"100"`, not `"1.00"`). The service routes' integer minor units are untouched. `specs/002-wallet`
 gains the line, and the wallet's own suites a row per exponent.
 
+The operator's adjustments (`/wallets/{player}/{currency}/adjustments` and
+`/accounts/{kind}/{name}/adjustments`) read `amount` by the same exponent (`Major.parse(text,
+currency)`), so what an operator reads is what is credited: CLP `"5000"` is 5000, not 500000; more
+decimals than the currency has are refused. Found in review: amending the reads alone would have
+opened that gap. 030's backoffice reads the text with two decimals (`walletMinor`) and must read it
+by the exponent before it merges after this.
+
 ## The contract: a published currency table
 
 A task `contract/schemas` writes `currencies.v1.json` (`{code: exponent}` for every ISO 4217 code

@@ -277,9 +277,9 @@ the brand's onboarding on the installation; the task order.
 - **The catalogue (T027)**: an old `SharedKitSuites` case asserted an anonymous read is `401`; it
   now asserts `200` for the four reads, `404` for another brand, and `401` for an anonymous launch.
 - **The wallet's major units (T059)**: no reader of the wallet's major text outside the wallet on
-  this branch; every other service uses the service routes' minor units. Left open, outside this
-  spec: the operator's adjustment input (`Major.parse`) still reads two decimals, so for JPY an
-  operator reads `"1234"` but sends `"12.34"`; and 030's backoffice reads the text with two
+  this branch; every other service uses the service routes' minor units. The operator's adjustment
+  input (`Major.parse`) read two decimals; the review found that this would credit CLP 100 times
+  over, so it now reads by the exponent too (amendments.md). Left open, outside this spec: 030's backoffice reads the text with two
   decimals whatever the currency (`services/backoffice/src/shared/money.ts:91`, `walletMinor`, and
   its callers and tests), which is wrong for a currency of 0 or 3 decimals once this merges.
 
