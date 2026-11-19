@@ -244,8 +244,9 @@ the SDK's build fails until it is generated again.
   version, and the platform's minor version or the one below it). An installation that reports no
   platform version is refused as one that cannot. This check is new here: until now the platform
   alone refused, by starting no instance of the service.
-- **FR-005**: The move MUST be made in an order that keeps the repository building at every
-  commit: the contract first, then the services that already run a 0.16 version, then those on
+- **FR-005**: The move MUST be made in an order that keeps the root build and every service
+  already moved building and passing at every commit, and every check of continuous integration
+  green at its last: the contract first, then the services that already run a 0.16 version, then those on
   0.14.2, then those on 0.13.0, each service's suites green before the next group starts. The
   move is one pull request; the pull request that holds FR-006 to FR-024 is raised on top of it
   and merges after it.

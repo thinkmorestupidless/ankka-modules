@@ -56,7 +56,8 @@ nine services, a generator in a TypeScript library, and one check in a command-l
 **Constraints**:
 
 - a described route answers byte for byte as before (FR-009): handlers are not touched;
-- the repository builds at every commit of the move (FR-005);
+- the root build and every service already moved build at every commit of the move, and CI is
+  green at its last (FR-005);
 - generation reads kept files only: no service, database or broker (FR-023);
 - the generated files are committed and compared byte for byte (FR-021);
 - each module client's interface is spec 027's, function for function (FR-019).
@@ -117,8 +118,8 @@ tools/modules/src/main/scala/io/eitheror/casino/modules/
 tools/modules/src/test/…                    # RenderSuite, Spec001RenderSuite, fixtures: 0.18.0
 installation/overlays/<name>/settings.env   # PLATFORM_VERSION (V6)
 
-services/<each of 22>/build.sbt             # ankkaVersion 0.18.0; the eviction block removed
-services/<each of 22>/service.json          # runtime 0.18.0
+services/<each of 21>/build.sbt             # ankkaVersion 0.18.0; the eviction block removed
+services/<each of 21>/service.json          # runtime 0.18.0 (player-site names none)
 modules/*/module.json, shared/*/manifest.json, local/**/service.json   # 0.18.0
 
 services/<each of 9>/
@@ -180,5 +181,7 @@ local brand, before and after generation.
 |---|---|---|
 | A second branch, `031-ankka-0-18`, for one spec, where *Workflow* has one feature per branch named after its spec directory | The person's decision (Clarifications, 2026-11-19): the move of 21 services is the riskiest step and must be reviewable and revertible without the rest | One pull request: a regression from the move could not be reverted without the descriptions and the generated clients. Two specs: the move exists only so the descriptions can be written, and has no scenarios of its own beyond story 1 |
 
-The second branch holds no work of its own: it is `031-generated-player-clients` at the move's
-last commit, so the spec directory's branch remains where the feature is built.
+The second branch holds no work of its own beyond a later fix to the move (T031): it is
+`031-generated-player-clients` at the move's last commit, so the spec directory's branch remains
+where the feature is built. The second pull request is raised against `031-ankka-0-18` and
+retargeted to `main` once the first merges.

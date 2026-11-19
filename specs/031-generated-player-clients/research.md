@@ -223,7 +223,8 @@ and 067); this repository's 21 service builds on ankka, the nine services' endpo
   is deployed. The platform version is `GET /installation`'s when the control plane is asked, else
   the overlay's `PLATFORM_VERSION` in `installation/overlays/<name>/settings.env`, a new setting
   (V6 checks no existing one says it), set to what that installation runs today and never to
-  what this spec would like it to run. Not reported is refused. It lands in the first pull
+  what this spec would like it to run. It is read on its own, apart from the readiness facts, and
+  the tool's apply suites read a fixture root whose overlay states 0.18.0. Not reported is refused. It lands in the first pull
   request, with the scenario it implements.
 
 ## R12. Where things run
@@ -251,3 +252,16 @@ and 067); this repository's 21 service builds on ankka, the nine services' endpo
 | V6 | no overlay setting already states the platform's version | use it, add none |
 | V7 | ankka-predictions 0.3.0 changes nothing `exchange` and `markets` serve or store | a finding; stop and ask |
 | V8 | `--strict` with a tag refuses only incomplete routes that carry the tag | describe to completeness whatever it names, or write without strict and assert completeness in the check |
+
+## Design finished
+
+2026-11-19: the person proceeded with 3 findings above LOW, all MEDIUM, from the third analysis
+round; each was fixed after that round and not analysed again:
+
+- T029: reading the platform's version through the control plane's facts would have switched
+  where every readiness fact comes from, and the apply suites had no way to a fixture overlay.
+  Fixed: the version is read on its own, and `Fixtures` gains a second root.
+- T028: the step "no recording was changed" had no definition. Fixed: it asserts every recording
+  loads, and the comparison with `main` is T031's evidence.
+- `contracts/runtime-check.md`: "an overlay is never set to 0.18.0" against the fixture overlay.
+  Fixed: the rule is an installation's; a fixture's overlay is not one.

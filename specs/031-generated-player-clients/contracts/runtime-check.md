@@ -23,8 +23,9 @@ anything is deployed.
 
 **The platform's version**: `GET /installation`'s `platformVersion` when the control plane is
 asked; else `PLATFORM_VERSION` in `installation/overlays/<name>/settings.env`, which states what
-that installation runs today (`dev-kind`: 0.16.3 until it is rebuilt). An overlay is never set to
-0.18.0 to make an apply pass.
+that installation runs today (`dev-kind`: 0.16.3 until it is rebuilt). An installation's overlay is never set
+to 0.18.0 to make an apply pass. The tool's own suites apply against a fixture root whose
+`dev-kind` overlay states 0.18.0 (T029): a fixture's overlay is not an installation's.
 
 **The refusal** (exit 1, nothing deployed):
 

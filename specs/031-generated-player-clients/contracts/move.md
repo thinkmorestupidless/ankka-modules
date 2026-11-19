@@ -1,7 +1,8 @@
 # Contract: the move to ankka 0.18.0
 
-The first pull request, branch `031-ankka-0-18` against `main` (tasks T004 to T031). One commit per group at least; the
-repository builds at every commit (FR-005).
+The first pull request, branch `031-ankka-0-18` against `main` (tasks T004 to T031). One commit per group at least; at
+every commit the root build and every service already moved build and pass, and at the last
+commit every job of CI is green (FR-005).
 
 | Group | What | Was | Gate, as CI runs it |
 |---|---|---|---|
@@ -27,7 +28,9 @@ repository builds at every commit (FR-005).
 
 - A service on 0.18.0 against a contract published on another version.
 - A manifest naming 0.18.0 for a service whose build is still on an earlier version, at any commit.
-- A recording or a `.feature` file in the diff.
+- A change to an existing recording or an existing `.feature` file. The diff does carry spec
+  031's directory and its three new feature files, with `generated-clients.feature` listed as
+  unbound (T064).
 
 ## The local brand (phase C)
 
