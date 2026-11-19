@@ -1,0 +1,17 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "fixture", "version": "0" },
+  "paths": {
+    "/v1/casino/players/the-brand/wallets/{currency}/balance": {
+      "get": {
+        "operationId": "get /v1/casino/players/the-brand/wallets/{currency}/balance",
+        "summary": "The signed-in player's balance in one currency",
+        "tags": ["player"],
+        "responses": {
+          "200": { "description": "the balance", "content": { "application/json": { "schema": { "type": "object" } } } },
+          "404": { "description": "no wallet" }
+        }
+      }
+    }
+  }
+}

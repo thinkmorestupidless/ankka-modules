@@ -53,7 +53,12 @@ lazy val contract = project
       "com.thinkmorestupidless" %% "ankka-auth-oidc" % ankkaVersion,
       // Recordings are JSON documents read as trees (contract.port).
       "com.fasterxml.jackson.core" % "jackson-databind" % "2.18.2",
-      "com.thinkmorestupidless" %% "ankka-testkit"   % ankkaVersion % Test,
+      // The description check validates recorded answers against a kept description's schemas, with the
+      // validator and version ankka's testkit validates its own with (spec 031 research, V3).
+      "com.networknt"            % "json-schema-validator" % "1.5.9",
+      // HeldToPlayerRoutes wraps ankka's HeldToDocument; every service has the testkit on its test class
+      // path, and no service's main code calls it (spec 031 T034).
+      "com.thinkmorestupidless" %% "ankka-testkit"   % ankkaVersion % Provided,
       "org.scalameta"           %% "munit"           % munitVersion % Test
     ),
     // Written relative to the forked run's working directory, which is the repository root.
