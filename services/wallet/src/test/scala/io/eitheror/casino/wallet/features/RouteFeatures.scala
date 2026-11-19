@@ -155,6 +155,13 @@ class ReadsFeatures extends RouteFeatures("reads.feature"):
 
   When("the player reads their balance") { () => readOwnBalance() }
 
+  When("an operator credits {string} of {string} to the player's real balance") { (amount: String, c: String) =>
+    val (status, body) = sendWithToken("POST", s"/v1/casino/backoffice/$brand/wallets/$player/$c/adjustments", TestTokens.operator("op-1"),
+      Some(s"""{"key":"${nextKey("adj")}","walletType":"real","amount":"$amount","reason":"a correction","category":"goodwill"}"""))
+    assertEquals(status, 200, body)
+    readOwnBalance()
+  }
+
   Then("the real balance is written {string}") { (written: String) =>
     assertEquals(read.get("realBalance").asText, written, read.toString)
     assert(read.get("realBalance").isTextual, read.toString)

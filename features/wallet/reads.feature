@@ -43,3 +43,14 @@ Feature: Reads of a wallet: balance, restricted funds status, transactions and s
       | 5      | EUR      | 0.05    |
       | 100    | JPY      | 100     |
       | 1500   | KWD      | 1.500   |
+
+  Scenario Outline: an operator's adjustment is read in the currency's own decimals, as the balance is written
+    Given a player whose real balance is "<minor>" minor units of "<currency>"
+    When an operator credits "<amount>" of "<currency>" to the player's real balance
+    Then the real balance is written "<written>"
+
+    Examples:
+      | minor | currency | amount | written |
+      | 1000  | EUR      | 10.00  | 20.00   |
+      | 5000  | CLP      | 5000   | 10000   |
+      | 1500  | KWD      | 1.234  | 2.734   |

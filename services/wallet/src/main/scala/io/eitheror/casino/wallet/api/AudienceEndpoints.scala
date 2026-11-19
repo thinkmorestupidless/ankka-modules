@@ -74,7 +74,9 @@ private[api] object Major:
     text.trim match
       case Pattern(sign, whole, fraction) if Option(fraction).forall(f => f.length <= exp) =>
         val minor = Option(fraction).fold(0L)(f => (f + "0" * exp).take(exp).toLong)
-        Right((if sign == "-" then -1 else 1) * (whole.toLong * math.pow(10, exp).toLong + minor))
+        // Exact arithmetic: 15 digits of a currency of 4 decimals pass a Long (review).
+        scala.util.Try(Math.multiplyExact(Math.addExact(Math.multiplyExact(whole.toLong, BigInt(10).pow(exp).toLong), minor), if sign == "-" then -1L else 1L))
+          .toOption.toRight(s"the amount '$text' is not an amount of ${currency.code}")
       case _ => Left(s"the amount '$text' is not an amount of ${currency.code}")
 
 /**

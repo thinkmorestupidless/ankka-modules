@@ -30,6 +30,11 @@ class MajorSuite extends munit.FunSuite:
       assertEquals(Major.parse(io.eitheror.casino.contract.money.Amounts.render(minor, currency), currency), Right(minor), code)
   }
 
+  test("an amount beyond a Long is refused, not wrapped: 15 digits of a currency of 4 decimals") {
+    assert(Major.parse("999999999999999.9999", c("CLF")).isLeft)
+    assertEquals(Major.parse("1.2345", c("CLF")), Right(12345L))
+  }
+
   test("anything else names the amount") {
     assert(Major.parse("ten", c("EUR")).left.exists(_.contains("'ten'")))
     assert(Major.parse("", c("EUR")).isLeft)
