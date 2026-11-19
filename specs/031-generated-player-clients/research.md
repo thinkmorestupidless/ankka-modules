@@ -376,3 +376,9 @@ round; each was fixed after that round and not analysed again:
   (no `security` is a signed-in player) covers the rest. The stream's refusals are ankka's problems,
   so the endpoint sets no refusal shape. Its path is the original's (`/v1/stream`, host `push`), read
   as recorded for status.
+- T044 (support-agent): the service does not start, so writes no document, without its issuers'
+  settings and a model-provider key; `describe.env` holds placeholders for them (addresses under
+  `auth.invalid`, a key that says it is none), nothing being fetched or called while the document
+  is written. A stream route's body taken as `String` is `text/plain` in the document, as an
+  answer's was; `sseEventsBody` takes the contract's `Json` the same way. The chat's last segment
+  stays a path parameter (`/run/{route}`), the one value served being `chat_with_player`.

@@ -16,7 +16,7 @@ import scala.concurrent.duration.*
  * that could not answer is the unavailable message, not a refusal. That each refusal is recorded is AuditSuite's
  * (T054), on the audit topic.
  */
-class GuardrailSuite extends munit.FunSuite:
+class GuardrailSuite extends munit.FunSuite with io.eitheror.casino.support.it.Held:
   override val munitTimeout = 120.seconds
   private lazy val kit = SharedKit.kit
 

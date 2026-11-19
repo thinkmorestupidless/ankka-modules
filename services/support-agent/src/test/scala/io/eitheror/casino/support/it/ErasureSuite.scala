@@ -12,7 +12,7 @@ import scala.concurrent.duration.*
  * answered with no history and records nothing, and the trail kept beside them (`Conversation`) held no text of
  * theirs to erase.
  */
-class ErasureSuite extends munit.FunSuite:
+class ErasureSuite extends munit.FunSuite with io.eitheror.casino.support.it.Held:
   override val munitTimeout = 120.seconds
   private lazy val kit = SharedKit.kit
 

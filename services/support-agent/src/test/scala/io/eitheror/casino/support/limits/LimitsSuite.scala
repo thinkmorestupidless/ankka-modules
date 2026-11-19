@@ -5,7 +5,7 @@ import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
 import java.time.Instant
 
 /** `TurnWindow` and `Budget` (T045; data-model.md, FR-024, R10) through ankka's unit kit. */
-class LimitsSuite extends munit.FunSuite:
+class LimitsSuite extends munit.FunSuite with io.eitheror.casino.support.it.Held:
   private val at = Instant.parse("2026-11-11T23:59:30Z")
 
   test("a turn window takes the limit's turns in a minute, and refuses the next with when to try again"):

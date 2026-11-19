@@ -1,0 +1,274 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "support-agent",
+    "version": "0.0.0"
+  },
+  "paths": {
+    "/v1/casino/agent/the-brand/resume/{session}": {
+      "post": {
+        "operationId": "post_v1_casino_agent_the_brand_resume_session",
+        "summary": "The player's decision on the action Motoko awaits: the turn's frames from there",
+        "tags": [
+          "player"
+        ],
+        "parameters": [
+          {
+            "name": "session",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "text/event-stream": {
+                
+              }
+            }
+          },
+          "403": {
+            "description": "session_not_yours",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnkkaProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "no_pending_action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnkkaProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "already_decided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnkkaProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "invalid_action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnkkaProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "agent_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnkkaProblem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnkkaProblem"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      }
+    },
+    "/v1/casino/agent/the-brand/run/{route}": {
+      "post": {
+        "operationId": "post_v1_casino_agent_the_brand_run_route",
+        "summary": "A chat turn with Motoko: the reply's frames, as server-sent events; the route is chat_with_player",
+        "tags": [
+          "player"
+        ],
+        "parameters": [
+          {
+            "name": "route",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TurnBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "text/event-stream": {
+                
+              }
+            }
+          },
+          "400": {
+            "description": "missing_fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnkkaProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "session_not_yours",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnkkaProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnkkaProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Session already active, conversation_ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnkkaProblem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "too_many_turns",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnkkaProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "agent_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnkkaProblem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnkkaProblem"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AnkkaProblem": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "error"
+        ]
+      },
+      "DecisionBody": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "feedback": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "action"
+        ]
+      },
+      "TurnBody": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message",
+          "session_id"
+        ]
+      }
+    }
+  }
+}

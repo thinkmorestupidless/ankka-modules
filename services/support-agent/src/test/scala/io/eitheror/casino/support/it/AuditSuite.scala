@@ -12,7 +12,7 @@ import scala.concurrent.duration.*
  * approval request, decision, tool call, guardrail rejection and configuration version, with no message text, no
  * `feedback` and no personal value.
  */
-class AuditSuite extends munit.FunSuite:
+class AuditSuite extends munit.FunSuite with io.eitheror.casino.support.it.Held:
   override val munitTimeout = 180.seconds
   private lazy val kit = SharedKit.kit
 

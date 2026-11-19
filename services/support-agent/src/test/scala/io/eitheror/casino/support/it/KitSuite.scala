@@ -1,7 +1,7 @@
 package io.eitheror.casino.support.it
 
 /** The kit itself (T021): the service starts, answers its health, refuses with the agent off, and streams a turn. */
-class KitSuite extends munit.FunSuite:
+class KitSuite extends munit.FunSuite with io.eitheror.casino.support.it.Held:
   override val munitTimeout = scala.concurrent.duration.Duration(120, "s")
   private lazy val kit = SharedKit.kit
 

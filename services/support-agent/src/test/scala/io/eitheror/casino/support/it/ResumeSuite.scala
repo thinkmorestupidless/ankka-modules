@@ -11,7 +11,7 @@ import scala.concurrent.duration.*
  * `confirm_action` and `done`; the resume route decides and streams `action_result`, the reply and `done`. An approved
  * write runs once, keyed by the approval id (FR-015, SC-001); one cancelled, or decided twice, runs nothing more.
  */
-class ResumeSuite extends munit.FunSuite:
+class ResumeSuite extends munit.FunSuite with io.eitheror.casino.support.it.Held:
   override val munitTimeout = 180.seconds
   private lazy val kit = SharedKit.kit
 

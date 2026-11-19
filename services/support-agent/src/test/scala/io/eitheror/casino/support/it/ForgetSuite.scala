@@ -11,7 +11,7 @@ import scala.concurrent.duration.*
  * brand's retention has its memory cleared and is recorded as forgotten; one touched since is kept and its timer set
  * again; the next turn on a forgotten one starts a new conversation; and an end outlives the forgetting.
  */
-class ForgetSuite extends munit.FunSuite:
+class ForgetSuite extends munit.FunSuite with io.eitheror.casino.support.it.Held:
   override val munitTimeout = 120.seconds
   private lazy val kit = SharedKit.kit
 

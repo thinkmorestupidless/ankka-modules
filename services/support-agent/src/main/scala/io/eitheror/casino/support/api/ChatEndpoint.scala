@@ -5,6 +5,7 @@ import com.thinkmorestupidless.ankka.agent.{AgentCalls, AgentOutcome, AgentPart,
   SessionMemoryEntity, forAgent, forSessionMemory}
 import com.thinkmorestupidless.ankka.http.*
 import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.http.Json as JsonBody
 import io.eitheror.casino.support.Json
 import io.eitheror.casino.support.Json.*
 import io.eitheror.casino.support.agent.{Actions, Context, Guardrails, Motoko, Turn}
@@ -31,19 +32,33 @@ import scala.util.control.NonFatal
 final class ChatEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/agent/${ctx.slug}"):
   val acl: Acl = Routes.player(ctx.slug, ctx.authenticate())
 
-  sseEventsBody("/run/{route}") { (route: String, body: String) =>
-    if route != Chat.Route then throw Answers.notFound
-    Chat.run(ctx, player(), body)
+  // Spec 031: described for the player SDK. Each refusal is ankka's problem, made before the stream opens.
+  described(_.summary("A chat turn with Motoko: the reply's frames, as server-sent events; the route is chat_with_player")
+    .body[Chat.TurnBody].refuses(400, "missing_fields").refuses(403, "session_not_yours").refuses(404, "not_found")
+    .refuses(409, "Session already active, conversation_ended").refuses(429, "too_many_turns")
+    .refuses(503, "agent_unavailable").tag("player")) {
+    sseEventsBody("/run/{route}") { (route: String, body: JsonBody) =>
+      if route != Chat.Route then throw Answers.notFound
+      Chat.run(ctx, player(), body.text)
+    }
   }
 
-  sseEventsBody("/resume/{session}") { (session: String, body: String) =>
-    Chat.resume(ctx, player(), session, body)
+  described(_.summary("The player's decision on the action Motoko awaits: the turn's frames from there")
+    .body[Chat.DecisionBody].refuses(403, "session_not_yours").refuses(404, "no_pending_action")
+    .refuses(409, "already_decided").refuses(422, "invalid_action").refuses(503, "agent_unavailable").tag("player")) {
+    sseEventsBody("/resume/{session}") { (session: String, body: JsonBody) =>
+      Chat.resume(ctx, player(), session, body.text)
+    }
   }
 
   private def player(): String = Routes.playerId(principal).getOrElse(throw Answers.sessionNotYours)
 
 object Chat:
   val Route = "chat_with_player"
+
+  /** The turn's body and the decision's, for their descriptions (spec 031). */
+  final case class TurnBody(message: String, session_id: String)
+  final case class DecisionBody(action: String, feedback: Option[String])
 
   /** Who decides when the player's arguments cannot be put to them (FR-011). */
   val Service = "support-agent"

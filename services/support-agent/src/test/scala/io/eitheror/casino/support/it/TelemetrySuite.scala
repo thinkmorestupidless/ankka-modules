@@ -12,7 +12,7 @@ import scala.concurrent.duration.*
  * span recorded, searched for the markers. None may carry a message's text, a reply, the feedback or a tool's
  * argument values.
  */
-class TelemetrySuite extends munit.FunSuite with LogCapturing:
+class TelemetrySuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.support.it.Held:
   override val munitTimeout = 180.seconds
   private lazy val kit = SharedKit.kit
 
