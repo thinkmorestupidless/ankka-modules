@@ -309,6 +309,58 @@ the brand's onboarding on the installation; the task order.
   by hand over the doubles: every sign-in cookie `HttpOnly` (and `Secure` but locally), the
   sign-in's answer holds no token, and the page asked only its own origin and the game's frame.
 
+- **One machine in place of `dev-kind` (T004 to T006, T060, T051; 2026-11-19)**: the person
+  directed `ankka local up` (docker compose) in place of the kind installation, which ran out of
+  CPU; kind was stopped while it ran. `local/generate.py` writes the brand as one project beside the
+  shared services it calls (`local/README.md` and the script's docstring list every difference).
+  The tasks' "on dev-kind" is read as on that project. What one machine does not stand in for
+  (identity, certificates, the gateway, more than one instance) is ankka's own list.
+- **ST8's key**: game-provider reads `ST8_API_KEY` from a secret, so a local value is enough. ST8
+  is the game provider simulator (spec 020) as a second provider configuration `st8`, beside the
+  house provider `eitheror`, which has no game yet. Nothing here reaches ST8.
+- **V1 (T004)**: the modules tool renders the brand's plan with the web-hosted `player-site`
+  (`hosting: web`, no database, no protocol) and `ankka local up` runs it as the proxy and its
+  program. The local apply through the tool was not needed: the plan is what the project is made
+  from (`just local-project`).
+- **V2 (T005)**: through the site's proxy, `engagement`'s stream opens in about 30 ms with `ready`,
+  and a signal arrives 3.0 s after an operator's message while the stream stays open: nothing on the
+  way holds events back (`tests/contract`, `push`). R9's fallback is not needed. The gateway in
+  front of an installation is not on one machine and is not checked here.
+- **V3 (T005)**: the calling address passes `X-Forwarded-For`, `X-Real-IP` and `User-Agent` to
+  `players` as the site server sends them (from inside the site's container, the country of a
+  built-in address is found). The local proxy, with no gateway in front of it, passes on no
+  visitor's address, so on one machine players finds no country. `contracts/site-server.md` names
+  the headers. No fallback taken.
+- **V4, V5 (T006)**: `rewards`' free rounds answer each grant with its `gameId` (with
+  `spinsRemaining`, `expiresAt`; read in its code, and `[]` on the brand for a player with no
+  grant); the catalogue's game answer carries `restrictedTerritories` and
+  `prohibitedTerritories`. Shapes in `contracts/module-clients.md`. No fallback taken.
+- **`gameCode` is `gameId` (T006)**: the catalogue answers `gameId`; the client and the doubles had
+  `gameCode`. Renamed in the SDK, the doubles, the site and `contracts/module-clients.md`, as the
+  person chose.
+- **A country at registration**: a player registered with only an email address and a password
+  could not deposit: `players` opened the cashier with the profile's country, and ingest refuses
+  a session without one. The person chose: `players` falls back to the country registration found
+  from the address (spec 008 FR-043, amended), and the reference site's registration asks for a
+  country only when `session.visitorCountry()` finds none (contracts/behaviours.md).
+- **The house provider's entry** allows `language` `es` or `pt` only (026 contracts/brand-entry.md),
+  and `guyanabet` is French first; the local entry says `es`. Left for spec 026: whether the entry
+  takes `fr`.
+- **Merchant's operator routes** need a staff token holding `platform_admin` and the claim
+  `eitheror_scope_level=platform`, from a user attribute through the `eitheror-operator-scope`
+  client scope (`local/guyanabet/operator-token.sh`).
+- **DreamzPay's address** is the player's browser's, so on one machine it is `localhost`, not the
+  address the services use for one another.
+- **Found in ankka's CLI, not fixed here**: the readiness check asks port 7630, which the 0.13
+  runtime does not serve, so those services stand at "running, not ready" while working;
+  `ankka local up <names>` stops every service it is not given; the schema cache's directories are
+  made read-only and then cannot be written; 13 JVMs pass Postgres's default 100 connections.
+- **T060**: each onboarding step's command is in `brands/README.md`; `just local-onboard` runs them.
+- **T051 (2026-11-19)**: `just player-site-it`: the contract tests, 24 of 24, one per client
+  function against the running brand, with the deposit completed at the provider stub as a browser
+  would and a real-money game session; then `reference-site.feature`'s end-to-end scenario in a
+  French browser, playing after 10.6 s (SC-007: within 3 minutes).
+
 ## Design finished
 
 2026-11-18: the person proceeded with 4 findings above LOW from the third analysis round, each

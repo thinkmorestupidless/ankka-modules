@@ -1,0 +1,9 @@
+{
+  "name": "player-site",
+  "service": {
+    "image": "europe-west1-docker.pkg.dev/eitheror/casino/player-site:0.0.0",
+    "port": 3310,
+    "hosting": "web",
+    "processPort": 8080
+  }
+}

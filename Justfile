@@ -532,3 +532,44 @@ player-site-features:
 player-site-it brand="guyanabet":
     PLAYER_SITE_BRAND={{brand}} npm run contract -w sdk/player
     PLAYER_SITE_BRAND={{brand}} npm run e2e -w services/player-site
+
+# A brand as one project on this machine for `ankka local up` (local/README.md): its plan rendered,
+# then local/generate.py writes local/<brand>/.
+local-project brand="guyanabet" modules="casino,engagement,support,player-site":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    plan="$(mktemp)"
+    # sbt prefixes the tool's output with [info]; the plan is from its first line that is only `{`.
+    sbt -batch "modules/run render {{brand}} --modules {{modules}} --format json" \
+      | sed -n '/^\[info\] {$/,$p' | grep '^\[info\]' | sed 's/^\[info\] \{0,1\}//' >"$plan"
+    python3 local/generate.py {{brand}} "$plan"
+    (cd local/{{brand}} && ankka context-map render >/dev/null)
+
+# Every image local/<brand> runs, built from this branch as 0.0.0, under a version of the contract of
+# this branch's own (other worktrees publish 0.2.0-SNAPSHOT).
+local-images brand="guyanabet" version="0.2.0-local-SNAPSHOT":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export CASINO_VERSION={{version}} DOCKER_REPOSITORY=europe-west1-docker.pkg.dev/eitheror/casino SERVICE_VERSION=0.0.0
+    sbt -batch contract/publishLocal providerCore/publishLocal
+    for d in local/{{brand}}/services/*/; do
+      s=$(basename "$d")
+      if [ "$s" = player-site ]; then docker build -f services/player-site/Dockerfile -t "$DOCKER_REPOSITORY/player-site:0.0.0" .
+      else (cd "services/$s" && sbt -batch Docker/publishLocal); fi
+    done
+    (cd tests && docker build -f stubs/psp-stub/Dockerfile -t "$DOCKER_REPOSITORY/psp-stub:0.0.0" .)
+
+# Onboard the brand on its local project once it is up (realms, operator, payments, game providers).
+# A cashier key issued now is kept in .ankka/local and written into local.json, and the project restarted.
+local-onboard brand="guyanabet":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd local/{{brand}}
+    ./realm.sh
+    ./operator-token.sh
+    # A key is printed only when one is issued; an existing one stays as it was saved.
+    issued="$(python3 onboard-payments.py | grep '^MERCHANT_KEY=' || true)"
+    if [ -n "$issued" ]; then printf '%s\n' "$issued" >.ankka/local/merchant-key.env; fi
+    ./operator-token.sh
+    python3 onboard-games.py
+    cd ../.. && just local-project {{brand}} && (cd local/{{brand}} && ankka local up)

@@ -1,0 +1,11 @@
+{
+  "name": "players",
+  "service": {
+    "image": "europe-west1-docker.pkg.dev/eitheror/casino/players:0.0.0",
+    "port": 9202,
+    "runtime": "0.16.3",
+    "resources": {
+      "instanceType": "medium"
+    }
+  }
+}

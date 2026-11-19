@@ -1,0 +1,11 @@
+{
+  "name": "responsible-gambling",
+  "service": {
+    "image": "europe-west1-docker.pkg.dev/eitheror/casino/responsible-gambling:0.0.0",
+    "port": 9203,
+    "runtime": "0.16.3",
+    "resources": {
+      "instanceType": "medium"
+    }
+  }
+}
