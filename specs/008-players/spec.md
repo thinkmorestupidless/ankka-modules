@@ -458,7 +458,9 @@ store and `payments` for a personal field; fetch the response.
   amendment P1).
   *Amended by spec 027* (FR-057): a game session also holds the time of its last bet: each round
   `casino.rounds` reports opened or settled under its `sessionId` records the fact's `occurredAt`,
-  keeping the latest (an older time changes nothing, a repeat is no event); the player's read of the
+  keeping the latest to within a minute (an older time, a repeat, or one less than a minute after
+  the one held is no event; a `players` from before this cannot replay the event, so it is not
+  rolled back to); the player's read of the
   session and the list of their sessions answer it as `lastBetAt`, `null` with no bet.
 - **FR-018**: `players` MUST answer `game-provider` the account status at launch (spec 003 FR-007):
   refused for `suspended`, `self_excluded`, `blocked` or `closed`, naming the status; the KYC play

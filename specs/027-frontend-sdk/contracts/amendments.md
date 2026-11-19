@@ -35,9 +35,16 @@ none (`session.visitorCountry()`, contracts/behaviours.md).
 `GET /v1/casino/sessions/<slug>/{sessionId}` answers `lastBetAt` (an instant, or `null` with no
 bet), where it answers `null` always today. `GameSessionEntity` gains a command recording a bet's time (a new event; the state's `lastBetAt`),
 sent by `RoundsActivity` (`reads/ActivityView.scala`, which consumes `casino.rounds`) for each
-round opened or settled under its `sessionId`, with the fact's `occurredAt`; an older time changes
-nothing. `SessionRow` gains the field for the list. Both `wire` functions of `GameSessionRoutes`
-answer it. `specs/008-players/spec.md` and `contracts/routes.md` gain the line.
+round opened or settled under its `sessionId`, with the fact's `occurredAt`; an older time, or one
+less than a minute after the one held, changes nothing, so the journal grows by one event a minute
+of play, not one per round (found in review; the SDK's check is a 6-minute window). `SessionRow`
+gains the field for the list. Both `wire` functions of `GameSessionRoutes` answer it.
+`specs/008-players/spec.md` and `contracts/routes.md` gain the line.
+
+**Rollback.** `BetRecorded` is a new event in `GameSessionEntity`'s journal, which a `players`
+image from before this change cannot read. Once this version has run, rolling `players` back past
+it is not supported: a session holding the event would not replay. A rollback goes to this
+version or a later one.
 
 ## The wallet: major units by the currency's exponent (spec 002)
 

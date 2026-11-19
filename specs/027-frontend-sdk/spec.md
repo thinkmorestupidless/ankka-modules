@@ -614,8 +614,9 @@ that streams replies, approval requests, each refusal, and a reply that stops.
 - **FR-058**: Every route of the wallet that writes an amount as major-unit text, the player's and
   the operator's, MUST write it by the currency's own exponent (spec 002, amended): for a currency
   of two decimals, as today.
-- **FR-057**: `players`' game session read MUST answer the time of the session's last bet, and
-  nothing where there was none (spec 008, amended).
+- **FR-057**: `players`' game session read MUST answer the time of the session's last bet, to
+  within a minute (a bet less than a minute after the one held is not recorded), and nothing
+  where there was none (spec 008, amended).
 - **FR-038**: The SDK MUST format an amount for a language from its minor units, its currency's
   exponent and that language's rules, and offer no other way to show one.
 - **FR-039**: Every refusal MUST reach a behaviour as one form: the status, a code, and the named

@@ -80,11 +80,14 @@ final class GameSessionEntity(@scala.annotation.unused context: EventSourcedEnti
       effects.persist(Ended(c.reason, c.at, s.playerId, s.gameId, minutes, c.actorId)).thenReply(n => GameSessionEnd(true, n))
 
   /**
-   * Keeps the latest bet's time: an unknown session, or a time no later than the one held, is no event
-   * (a fact delivered again, or out of order). An ended session still records a round settled after it.
+   * Keeps the latest bet's time to within a minute (FR-057): an unknown session, a time no later than
+   * the one held (a fact delivered again, or out of order), or one less than a minute after it, is no
+   * event, so a session's journal grows by one event a minute of play, not one per round. An ended
+   * session still records a round settled after it.
    */
   def recordBet(c: RecordBet): Effect[GameSessionState] =
-    if !currentState.exists || currentState.lastBetAt.exists(!c.at.isAfter(_)) then effects.reply(currentState)
+    if !currentState.exists || currentState.lastBetAt.exists(held => c.at.isBefore(held.plus(GameSessionEntity.BetPrecision))) then
+      effects.reply(currentState)
     else effects.persist(BetRecorded(c.at)).thenReply(identity)
 
   def get: ReadOnlyEffect[GameSessionState] = effects.reply(currentState)
@@ -95,6 +98,9 @@ object GameSessionEntity
       stateSerializer = PlayersCodecs.serializer[GameSessionState]("game-session-state"),
       eventSerializer = PlayersCodecs.serializer[GameSessionEvent]("game-session-event")
     ):
+
+  /** How close the last bet's time is kept: the SDK asks whether a bet fell within 6 minutes. */
+  val BetPrecision: Duration = Duration.ofMinutes(1)
 
   given Serializer[GameSessionState] = PlayersCodecs.serializer[GameSessionState]("game-session-reply")
   given Serializer[OpenGameSession]  = PlayersCodecs.serializer[OpenGameSession]("open-game-session")
