@@ -3,7 +3,7 @@
 // contracts/generation.md). `npm run generate` writes `src/<module>/routes.ts` and `shapes.ts`;
 // `npm run generate:check` writes nothing and fails naming each file that differs. It reads those
 // files and nothing else: no network, no environment, nothing run.
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import type { Audience, Method, ModuleName, Route } from "../src/route.ts";
@@ -323,9 +323,16 @@ export async function run(options: { sdk: string; services: string; check: boole
   return { code: lines.length > 0 ? 1 : 0, lines };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+/** Whether this file is the program being run: by its real path, so a space or a link in the path does not hide it. */
+function isMain(): boolean {
+  const ran = process.argv[1];
+  return ran !== undefined && existsSync(ran) && import.meta.url === pathToFileURL(realpathSync(ran)).href;
+}
+
+if (isMain()) {
   const sdk = path.resolve(import.meta.dirname, "..");
   const done = await run({ sdk, services: path.resolve(sdk, "../../services"), check: process.argv.includes("--check") });
   for (const line of done.lines) console.error(line);
+  if (done.code === 0) console.log(`${modules.length} modules: ${process.argv.includes("--check") ? "current" : "generated"}`);
   process.exitCode = done.code;
 }

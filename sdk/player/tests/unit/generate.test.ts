@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -180,11 +180,25 @@ describe("the command", () => {
     const ran = spawnSync(process.execPath, [path.join(sdk, "scripts/generate.ts"), "--check"], { env: {}, encoding: "utf8" });
     expect(ran.stderr).toBe("");
     expect(ran.status).toBe(0);
+    expect(ran.stdout.trim()).toBe("4 modules: current");
     const source = readFileSync(path.join(sdk, "scripts/generate.ts"), "utf8");
     const imported = [...source.matchAll(/^import .* from "([^"]+)";$/gm)].map((m) => m[1]!);
     expect(imported.filter((i) => !i.startsWith("node:") && !i.startsWith("../src/"))).toEqual([]);
     expect(imported.filter((i) => i.startsWith("node:")).sort()).toEqual(["node:fs", "node:path", "node:url"]);
     expect(source).not.toMatch(/process\.env|fetch\(|child_process/);
+  });
+
+  it("runs when it is reached through a link whose path holds a space", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "generate link "));
+    try {
+      const link = path.join(dir, "generate.ts");
+      symlinkSync(path.join(sdk, "scripts/generate.ts"), link);
+      const ran = spawnSync(process.execPath, [link, "--check"], { env: {}, encoding: "utf8" });
+      expect(ran.stderr).toBe("");
+      expect(ran.stdout.trim()).toBe("4 modules: current");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("the check names each file that differs and writes nothing; generating writes them", async () => {
