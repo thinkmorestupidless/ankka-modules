@@ -391,3 +391,10 @@ round; each was fixed after that round and not analysed again:
   every route with a player id. The original's answers hold fewer fields than the rebuild's, so
   `port/DescriptionSuite` checks statuses and `ParitySuite` under the hold checks the bodies, as
   kyc's and rewards'. 21 of the 40 routes are recorded; the 19 others are on the unrecorded list.
+- T046: the contract's tests start no service (a kit needs Postgres in Docker, and the root
+  build's `sbt test` runs without it), so the two scenarios that need a served route, "a test that
+  causes an answer the service description does not allow fails" and "describing a route changes
+  nothing the route answers", run in responsible-gambling's `it.HeldFixtureSuite` over a fixture
+  endpoint and are named in `DescriptionFeatures.ranElsewhere`. The incomplete route's document is
+  asked of an unstarted `HttpServer` through its public `document("openapi", …)` with
+  `strict=true`, which is what `ankka openapi --strict` asks; `OpenApi.build` is private to ankka.
