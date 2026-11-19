@@ -70,12 +70,12 @@ const terminal = (t: NonNullable<shapes.Started["terminals"]>[number]): Terminal
 /** A payment as the page is given it: `failureReason` and the rest of the read are not passed on. */
 const payment = (p: shapes.WirePayment): Payment => ({
   status: p.status,
-  ...(p.redirectUrl ? { redirectUrl: p.redirectUrl } : {}),
-  ...(p.paymentAddress ? { paymentAddress: p.paymentAddress } : {}),
-  ...(p.cryptoAmount ? { cryptoAmount: p.cryptoAmount } : {}),
-  ...(p.cryptoCurrency ? { cryptoCurrency: p.cryptoCurrency } : {}),
-  ...(p.validUntil ? { validUntil: p.validUntil } : {}),
-  ...(p.failureCode ? { failureCode: p.failureCode } : {}),
+  ...(typeof p.redirectUrl === "string" ? { redirectUrl: p.redirectUrl } : {}),
+  ...(typeof p.paymentAddress === "string" ? { paymentAddress: p.paymentAddress } : {}),
+  ...(typeof p.cryptoAmount === "string" ? { cryptoAmount: p.cryptoAmount } : {}),
+  ...(typeof p.cryptoCurrency === "string" ? { cryptoCurrency: p.cryptoCurrency } : {}),
+  ...(typeof p.validUntil === "string" ? { validUntil: p.validUntil } : {}),
+  ...(typeof p.failureCode === "string" ? { failureCode: p.failureCode } : {}),
 });
 
 const customer: Record<keyof CustomerDetails, string> = {
