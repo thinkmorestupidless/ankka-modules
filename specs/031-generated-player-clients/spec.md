@@ -61,6 +61,16 @@ Three decisions of 2026-11-19 bind the spec (Clarifications).
   route takes and answers, and the parse at the boundary). The mapping to the SDK's own names stays
   written by hand over the generated calls, so each module client's interface is unchanged
   (FR-017 to FR-019).
+- Q: Do the six proposed glossary terms stand (player route, route description, service
+  description, description check, selection, generated module client)? → A: All six, as proposed.
+- Q: How does the spec ship? → A: As two pull requests. The move to ankka 0.18.0 (story 1) is its
+  own, merged first with every suite green; the descriptions, the description check and the
+  generated clients (stories 2 to 4) follow in a second on top of it (FR-005).
+- Q: What of ankka 0.18.0 may the build use on the developer's machine? → A: The command-line
+  client is upgraded to 0.18.0. No kind installation is used locally, because it is too heavy for
+  the machine: what runs locally runs under `ankka local up`, the local brand among it, and the
+  suite that applies a brand to a kind installation runs in continuous integration only
+  (FR-025, Assumptions).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -78,7 +88,7 @@ them across five minor versions.
 
 **Independent Test**: Every service's unit, feature, parity and integration suites pass on 0.18.0
 with no expectation changed; `just modules render` shows 0.18.0 for every service of every module
-and shared project; the local brand `guyanabet` comes up and its player site signs a player in.
+and shared project; the local brand `guyanabet` comes up and its player site signs a player in under `ankka local up`.
 
 **Acceptance Scenarios**:
 
@@ -222,7 +232,9 @@ the SDK's build fails until it is generated again.
   report it can run 0.18.0, as strictly as the vendor's agent does.
 - **FR-005**: The move MUST be made in an order that keeps the repository building at every
   commit: the contract first, then the services that already run a 0.16 version, then those on
-  0.14.2, then those on 0.13.0, each service's suites green before the next group starts.
+  0.14.2, then those on 0.13.0, each service's suites green before the next group starts. The
+  move is one pull request, merged before the pull request that holds FR-006 to FR-024 is opened
+  for review; the second is built on the first.
 
 **Service descriptions**
 
@@ -293,6 +305,14 @@ the SDK's build fails until it is generated again.
   clients, all 24, with no test changed; and no behaviour's, component's or reference site's test
   is changed (027 SC-009).
 
+**Where it runs**
+
+- **FR-025**: Everything this spec's acceptance needs on a developer's machine MUST run without a
+  kind installation: each service's suites, the description check, the generation and its check,
+  and spec 027's contract tests against the local brand under `ankka local up`. The suite that
+  applies a brand to a kind installation is run by continuous integration, and its result there is
+  the evidence for the rendered runtime being one an installation runs (FR-004).
+
 ### Amendments
 
 - **Spec 027 FR-034 and FR-035**: "one implementation written by hand in this spec" becomes the
@@ -355,13 +375,14 @@ the SDK's build fails until it is generated again.
 - ankka 0.18.0's description covers request routes and server-sent event routes of Scala services,
   which all nine are. `player-site` is web-hosted TypeScript, has no description, and needs none:
   it is the caller.
-- The development installation (`dev-kind`) is rebuilt at platform 0.18.0 before the integration
-  suites and the local brand run; an installation's own upgrade is its operator's step and not
-  this spec's. A real-money installation takes the modules' 0.18.0 release only after its platform
-  is at 0.18.0 (story 1).
-- The ankka command-line client on a developer's machine and in continuous integration is 0.18.0;
-  where it is not, the same description is written by the service's own build, and both give the
-  same file.
+- No kind installation is rebuilt or used on the developer's machine (Clarifications). An
+  installation's own upgrade to platform 0.18.0 is its operator's step and not this spec's; a
+  real-money installation takes the modules' 0.18.0 release only after its platform is at 0.18.0
+  (story 1). The other worktrees' services stay on their versions until they are rebased on the
+  first pull request.
+- The ankka command-line client on the developer's machine is upgraded to 0.18.0, and continuous
+  integration installs 0.18.0; where a client is absent, the same description is written by the
+  service's own build, and both give the same file.
 - `exchange` and `markets` depend on ankka-predictions' libraries; if no release of those runs on
   0.18.0, that is found in the plan's research and raised as a question, not worked around.
 - A service description's version is the service's own version, and the modules' release writes

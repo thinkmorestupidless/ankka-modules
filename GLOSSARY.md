@@ -1477,24 +1477,24 @@ How many inbox items a player has not read, as the brand answers it.
 The step the session behaviour stands at thirty seconds before it signs out a player who has done nothing for thirty minutes.
 
 ### player route
-*Proposed.* A route of a service that a player site calls for a visitor, a signed-in player or a player presenting a cashier ticket. A route of an operator, of another service, of a game provider or of a payment provider is not one.
+A route of a service that a player site calls for a visitor, a signed-in player or a player presenting a cashier ticket. A route of an operator, of another service, of a game provider or of a payment provider is not one.
 
 ### route description
-*Proposed.* What one route says of itself beyond what it is built from: a summary, what it takes and answers where it builds those itself, every refusal it makes, the query parameters it reads, and that it is a player route. It changes nothing the route answers.
+What one route says of itself beyond what it is built from: a summary, what it takes and answers where it builds those itself, every refusal it makes, the query parameters it reads, and that it is a player route. It changes nothing the route answers.
 
 ### service description
-*Proposed.* One service's player routes, each with what it takes, what it answers, its refusals and who may call it, derived from the routes the service serves and their route descriptions. It is kept in the repository, the service's tests are held to it, and the module clients are generated from it.
+One service's player routes, each with what it takes, what it answers, its refusals and who may call it, derived from the routes the service serves and their route descriptions. It is kept in the repository, the service's tests are held to it, and the module clients are generated from it.
 
 Avoid: API specification, API document, schema file
 
 ### description check
-*Proposed.* The test that reads every recording for calls of player routes and fails when a recorded answer is one the route description does not allow, or when the player routes no recording calls differ from the kept list of them.
+The test that reads every recording for calls of player routes and fails when a recorded answer is one the route description does not allow, or when the player routes no recording calls differ from the kept list of them.
 
 ### selection
-*Proposed.* Per module, the routes its module client has, each naming one player route of one service description, with what a service description cannot say: the call's name, that only the site server makes it, and a query the module fixes.
+Per module, the routes its module client has, each naming one player route of one service description, with what a service description cannot say: the call's name, that only the site server makes it, and a query the module fixes.
 
 ### generated module client
-*Proposed.* A module client whose routes and whose shapes of what each route takes and answers are produced from a selection and the kept service descriptions, under the interface of the module client it replaces. What maps a route's answer to the player SDK's own words stays written by hand.
+A module client whose routes and whose shapes of what each route takes and answers are produced from a selection and the kept service descriptions, under the interface of the module client it replaces. What maps a route's answer to the player SDK's own words stays written by hand.
 
 Avoid: generated SDK, codegen client
 
