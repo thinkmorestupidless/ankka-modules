@@ -214,17 +214,19 @@ class NetworkSteps extends ProgrammeFeatures("network.feature"):
       .filter(_.size >= n))
     // A joiner's application by the link is its own row (change 17); the actions on it are the parent's.
     def acted(a: String, n: Int) = audited(a, n).filterNot(_.actor == "invite-link")
-    // The scenario's claim: the parent's approval is there, and every action on the sub is the parent's.
-    // Waited for, not counted: the audit folds its rows a moment apart (seen on CI); the rows last seen
-    // are named when it never holds.
-    var seen = Vector.empty[(String, String)]
-    try
-      kit.eventually(s"$sub's audit to hold the parent's approval, and only the parent's actions") {
-        seen = acted(sub, 2).map(r => (r.action, r.actor))
-        Option(seen).filter(s => s.contains(("SUB_AFFILIATE_APPROVE", parent)) && s.forall(_._2 == parent))
-      }: Unit
-    catch case e: AssertionError => fail(s"${e.getMessage}; the parent is $parent, last seen $seen")
-    assertEquals(acted(subs(1), 4).map(_.actor).distinct, Vector(parent))
+    // The scenario's claim: every action on each sub is the parent's, the approval among them. Waited
+    // for, not counted: the audit folds a row's fields a moment apart, so a row may show no actor yet
+    // (seen on CI for both subs); the rows last seen are named when it never holds.
+    def onlyParents(a: String, n: Int, holds: Vector[(String, String)] => Boolean): Unit =
+      var seen = Vector.empty[(String, String)]
+      try
+        kit.eventually(s"$a's audit to hold only the parent's actions") {
+          seen = acted(a, n).map(r => (r.action, r.actor))
+          Option(seen).filter(s => s.forall(_._2 == parent) && holds(s))
+        }: Unit
+      catch case e: AssertionError => fail(s"${e.getMessage}; the parent is $parent, last seen $seen")
+    onlyParents(sub, 2, _.contains(("SUB_AFFILIATE_APPROVE", parent)))
+    onlyParents(subs(1), 4, _.nonEmpty)
   }
 
   Given("a sub an operator has suspended") { () =>
