@@ -13,7 +13,7 @@ import java.util.UUID
 import scala.concurrent.duration.*
 
 /** Each consumer of data-model.md's table, through the kit's broker: the fact read, the send claimed under its key. */
-class ConsumersSuite extends munit.FunSuite:
+class ConsumersSuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   override val munitTimeout = 120.seconds
   private lazy val kit = SharedKit.kit
   private val eur      = Currency.unsafe("EUR")

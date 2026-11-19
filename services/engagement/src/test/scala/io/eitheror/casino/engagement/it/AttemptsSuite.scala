@@ -8,7 +8,7 @@ import scala.concurrent.duration.*
  * Research R5's attempts through the consumers: the waits doubling from the kit's 50 ms (±25 %), a 429, a 5xx and a
  * hang tried again, a 4xx not, the fourth failure parking the send with the last answer.
  */
-class AttemptsSuite extends munit.FunSuite:
+class AttemptsSuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   override val munitTimeout = 120.seconds
   private lazy val kit   = SharedKit.kit
   private lazy val facts = Facts(kit)

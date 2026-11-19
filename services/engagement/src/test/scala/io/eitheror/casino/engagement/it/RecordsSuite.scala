@@ -12,7 +12,7 @@ import scala.concurrent.duration.*
  * SC-008: what Customer.io accepted equals what the records say was accepted, and every refusal, parking and discard
  * is a record, the refusals and the discards each an audit record too.
  */
-class RecordsSuite extends munit.FunSuite:
+class RecordsSuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   override val munitTimeout = 180.seconds
   private lazy val kit   = SharedKit.kit
   private lazy val facts = Facts(kit)

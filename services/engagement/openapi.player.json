@@ -1,0 +1,85 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "engagement",
+    "version": "0.0.0"
+  },
+  "paths": {
+    "/v1/stream": {
+      "get": {
+        "operationId": "get_v1_stream",
+        "summary": "The signed-in player's push connection: the brand's signals, as server-sent events",
+        "tags": [
+          "player",
+          "signed-in"
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "text/event-stream": {
+                
+              }
+            }
+          },
+          "403": {
+            "description": "subject_unresolved, wrong_brand",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnkkaProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "capacity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnkkaProblem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnkkaProblem"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AnkkaProblem": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "error"
+        ]
+      }
+    }
+  }
+}

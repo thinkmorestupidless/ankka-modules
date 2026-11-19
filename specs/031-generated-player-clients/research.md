@@ -369,3 +369,10 @@ round; each was fixed after that round and not analysed again:
   parse outside a replay; such a step is translated by its path alone, since no player route's
   translation reads an amount. `/free-rounds/eligible` is game-provider's and is not described.
   rewards, engagement and support-agent run their kit suites only under `-Dit=true`.
+- T043 (engagement), V5: ankka writes `bearer` only for an ACL holding a `TokenAuthenticator`
+  (`OpenApi.access`). `Stream.acl`, and `Routes.player` in every service, wrap the authenticator in
+  a function, so no signed-in route of any kept description has a `security` entry; a public route
+  has `security: []`. The stream is tagged `signed-in` as V5 decided, and the generator's last rule
+  (no `security` is a signed-in player) covers the rest. The stream's refusals are ankka's problems,
+  so the endpoint sets no refusal shape. Its path is the original's (`/v1/stream`, host `push`), read
+  as recorded for status.

@@ -13,7 +13,7 @@ import scala.concurrent.duration.*
 import scala.util.Try
 
 /** research R4 and R5 against the fake Customer.io: the claim, each answer, the attempts, parking, suppression. */
-class SendSuite extends munit.FunSuite:
+class SendSuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   override val munitTimeout = 120.seconds
   private lazy val kit = SharedKit.kit
 

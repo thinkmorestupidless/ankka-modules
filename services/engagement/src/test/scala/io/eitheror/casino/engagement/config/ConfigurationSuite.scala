@@ -8,7 +8,7 @@ import java.time.{Duration, Instant}
 import scala.collection.mutable
 
 /** data-model.md's `Configuration` and the secrets' cache (FR-004, R12). */
-class ConfigurationSuite extends munit.FunSuite:
+class ConfigurationSuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   private val config = CrmConfig("site-1", "eu", "hello@goldvibe.example", Map("DepositConfirmed" -> "7"))
 
   test("a put keeps the configuration and answers the fields it changed, by name") {

@@ -9,7 +9,7 @@ import java.time.{Duration, Instant}
 import scala.concurrent.duration.*
 
 /** FR-009 through the timer: the clock past 03:05 UTC, the players above zero identified with 0, once. */
-class DepositDaySuite extends munit.FunSuite:
+class DepositDaySuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   override val munitTimeout = 180.seconds
   private lazy val kit   = SharedKit.kit
   private lazy val facts = Facts(kit)

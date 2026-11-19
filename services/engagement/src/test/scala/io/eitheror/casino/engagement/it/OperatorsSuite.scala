@@ -19,7 +19,7 @@ import scala.jdk.CollectionConverters.*
  * 50 a page; the parked sends and their search; a retry accepted, parked again or refused for suppression; a discard
  * with its reason; each act an audit record naming the operator; the refusals; presence with `since`.
  */
-class OperatorsSuite extends munit.FunSuite:
+class OperatorsSuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   override val munitTimeout = 300.seconds
   private lazy val kit   = SharedKit.kit
   private lazy val facts = Facts(kit)

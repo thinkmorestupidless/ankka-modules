@@ -26,10 +26,15 @@ import scala.util.control.NonFatal
 final class StreamEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/stream"):
   val acl: Acl = Stream.acl(ctx.slug, ctx.authenticate())
 
-  sseEvents("/") { () =>
-    val p      = principal
-    val player = Routes.playerId(p).getOrElse(throw HttpProblem(403, Stream.Unresolved, Map.empty))
-    Stream.open(ctx, player, p.claims.get("exp").flatMap(_.toLongOption).map(Instant.ofEpochSecond))
+  // Spec 031: described for the player SDK. Its ACL is no token authenticator, so the document has no `bearer`;
+  // `signed-in` tells the generator a signed-in player opens it (V5). The refusals are ankka's problems.
+  described(_.summary("The signed-in player's push connection: the brand's signals, as server-sent events")
+    .refuses(403, "subject_unresolved, wrong_brand").refuses(503, "capacity").tag("player").tag("signed-in")) {
+    sseEvents("/") { () =>
+      val p      = principal
+      val player = Routes.playerId(p).getOrElse(throw HttpProblem(403, Stream.Unresolved, Map.empty))
+      Stream.open(ctx, player, p.claims.get("exp").flatMap(_.toLongOption).map(Instant.ofEpochSecond))
+    }
   }
 
 object Stream:

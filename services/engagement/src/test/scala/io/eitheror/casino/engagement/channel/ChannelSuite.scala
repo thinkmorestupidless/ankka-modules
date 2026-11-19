@@ -8,7 +8,7 @@ import java.nio.charset.StandardCharsets.UTF_8
 import java.time.Instant
 
 /** data-model.md's `Channel` command table, row by row, with presence crossing zero, the sweep, the ring and `Delivered` (R10, R11). */
-class ChannelSuite extends munit.FunSuite:
+class ChannelSuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   private val at = Instant.parse("2026-11-07T12:00:00Z")
   private type Kit = EventSourcedTestKit[Channel, ChannelState, ChannelEvent]
 

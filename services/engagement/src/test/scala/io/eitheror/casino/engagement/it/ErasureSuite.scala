@@ -15,7 +15,7 @@ import scala.concurrent.duration.*
  * send of theirs `discarded`, erases the profile, and afterwards a replayed fact of theirs makes no call. Only
  * `players` may call it.
  */
-class ErasureSuite extends munit.FunSuite:
+class ErasureSuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   override val munitTimeout = 180.seconds
   private lazy val kit   = SharedKit.kit
   private lazy val facts = Facts(kit)

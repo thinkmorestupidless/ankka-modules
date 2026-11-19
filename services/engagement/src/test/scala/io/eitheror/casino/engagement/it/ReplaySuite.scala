@@ -9,7 +9,7 @@ import scala.concurrent.duration.*
  * SC-002: a year of a player's facts delivered twice into an empty journal. The first delivery skips every fact older
  * than the staleness bound and sends the rest once; the second finds every send and makes no call.
  */
-class ReplaySuite extends munit.FunSuite:
+class ReplaySuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   override val munitTimeout = 300.seconds
   private lazy val kit   = SharedKit.kit
   private lazy val facts = Facts(kit)
