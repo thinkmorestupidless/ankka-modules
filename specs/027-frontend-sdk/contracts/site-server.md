@@ -13,7 +13,8 @@ What a page may ask of the site server of its own origin. Every answer is JSON u
 | `GET /api/site` | — | `200 {brand, languages, currency, modules: ["core", …]}`; never cached |
 
 The visitor's network address and user agent are forwarded to `players` on `signIn`, `register`
-and `country`, by the header V3 settles. Sign-out with no session cookie refreshes first, so that
+and `country`, as `X-Forwarded-For` and `X-Real-IP` (the last entry of the `X-Forwarded-For` the
+gateway wrote) and `User-Agent` (V3: the calling address passes them to `players` as sent). Sign-out with no session cookie refreshes first, so that
 `players` can still be asked to end the player session.
 
 ## Pass-through
