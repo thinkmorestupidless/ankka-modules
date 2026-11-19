@@ -37,6 +37,8 @@ describe("the pass-through (FR-001, FR-004, FR-008)", () => {
       ["POST", "/api/c/core/signIn"],
       ["GET", "/api/c/payments/balance"],
       ["GET", "/api/other"],
+      ["GET", "/api/c/constructor/x"],
+      ["GET", "/api/c/toString/x"],
     ] as const) {
       const r = await s.request(method, path);
       expect(r.status, path).toBe(404);

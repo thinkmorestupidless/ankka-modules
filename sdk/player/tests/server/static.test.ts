@@ -38,5 +38,6 @@ describe("the built site (FR-045)", () => {
     close = s.close;
     expect((await s.request("GET", "/assets/index-old000.js")).status).toBe(404);
     expect((await s.request("GET", "/assets/..%2f..%2fetc%2fpasswd")).status).toBe(404);
+    expect((await s.request("GET", "/assets/%E0%A4%A")).status, "a malformed escape").toBe(404);
   });
 });

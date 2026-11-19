@@ -68,7 +68,9 @@ export function format(a: Amount, language: string): string {
     minimumFractionDigits: exp,
     maximumFractionDigits: exp,
   });
-  // A decimal string is formatted exactly (Intl.NumberFormat v3); no amount passes through a number.
+  // A decimal string is formatted exactly by Intl.NumberFormat v3 (Chrome and Edge 106, Firefox 116,
+  // Safari 15.4, Node 19), the browsers the SDK supports (README); an older engine would make it a
+  // number and lose exactness above 2^53. The cast is only for TypeScript's older signature.
   return formatter.format(majorText(a) as unknown as number);
 }
 

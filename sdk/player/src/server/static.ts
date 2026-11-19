@@ -26,7 +26,13 @@ export function staticFiles(root: string): Hono {
   const app = new Hono();
   const base = normalize(root);
   app.get("/assets/*", async (c) => {
-    const path = normalize(join(base, decodeURIComponent(new URL(c.req.url).pathname)));
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(new URL(c.req.url).pathname);
+    } catch {
+      return c.notFound(); // a malformed escape names no file (review)
+    }
+    const path = normalize(join(base, decoded));
     if (!path.startsWith(base + sep)) return c.notFound();
     try {
       const file = await readFile(path);

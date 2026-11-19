@@ -12,7 +12,8 @@ export const allRoutes: readonly Route[] = Object.values(tables).flat();
 
 /** A row a page may ask for: in its module's table, with its method, and not the server's own. */
 export function pageRoute(module: string, id: string, method: string): Route | undefined {
-  const table = (tables as Record<string, readonly Route[] | undefined>)[module];
+  // Own keys only: `constructor` or `toString` is no module (review).
+  const table = Object.hasOwn(tables, module) ? (tables as Record<string, readonly Route[]>)[module] : undefined;
   const row = table?.find((r) => r.id === id);
   if (!row || row.serverOnly || row.method !== method) return undefined;
   return row;

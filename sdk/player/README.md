@@ -104,6 +104,8 @@ const refusals = catalogue<RefusalWords>({ language: "fr", words: fr }, { en });
 
 A refusal carries its fields (`until`, `retryAfterSeconds`, `remaining`, …) for the words to name.
 Amounts are minor units with their currency (`amount`, `format`, `fromMajor`), never a float.
+`format` needs `Intl.NumberFormat` v3, which formats a decimal string exactly: Chrome and Edge
+106, Firefox 116, Safari 15.4 or later; these are the browsers the SDK supports.
 `chooseLanguage` picks the page's language from the visitor's kept choice (the `eo_lang` cookie)
 and the browser's.
 
