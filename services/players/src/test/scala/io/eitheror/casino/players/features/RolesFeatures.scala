@@ -64,13 +64,26 @@ class RolesFeatures extends PlayersFeatures("roles.feature"):
     PlayersRuntime.bags.refresh()
     settled
 
+  /**
+   * Puts the brand's roles back to the role matrix. The list is read again on every attempt and only what
+   * still differs is reset or deleted: a list that lags the last scenario's change shows a role as it was,
+   * and one pass over it would leave that role as the scenario left it (run 44590271829).
+   */
   private def restore(): Unit =
     until("the default roles seeded")(r => OperatorPermissions.DefaultRoles.keySet.subsetOf(r.keySet))
-    for (name, bag) <- OperatorPermissions.DefaultRoles if roles.get(name).exists(_ != bag) do
-      assertEquals(reset(name, asPlatform).status, 200)
-    for name <- roles.keySet -- OperatorPermissions.DefaultRoles.keySet do
-      assertEquals(delete(name, asPlatform).status, 200)
-    until("the role matrix")(_ == OperatorPermissions.DefaultRoles)
+    kit.eventually("the role matrix", 60.seconds) {
+      val now = roles
+      if now == OperatorPermissions.DefaultRoles then Some(())
+      else
+        for (name, bag) <- OperatorPermissions.DefaultRoles if now.get(name).exists(_ != bag) do
+          assertEquals(reset(name, asPlatform).status, 200)
+        // A role deleted on an earlier attempt and still listed is answered 404: it is gone, as wanted.
+        for name <- now.keySet -- OperatorPermissions.DefaultRoles.keySet do
+          assert(Set(200, 404)(delete(name, asPlatform).status), s"deleting $name")
+        Thread.sleep(500)
+        None
+    }
+    PlayersRuntime.bags.refresh()
 
   private def audits(action: String, subject: String): Vector[AuditRecord] =
     kit.facts(PlatformAudit).collect { case a: AuditRecord if a.action == action && a.subjectId == subject => a }

@@ -350,8 +350,11 @@ class OffersFeatures extends RewardsFeatures("offers.feature"):
 
   Then("every reward is listed across players, filterable by state") { () =>
     assertEquals(items(last).flatMap(_.text("playerId")).toSet, Set(player, otherPlayer), last.text)
-    assertEquals(items(grants(s"?offerId=$offerId&status=ACTIVE")).flatMap(_.text("playerId")), Vector(player))
-    assertEquals(items(grants(s"?offerId=$offerId&status=available")).flatMap(_.text("playerId")), Vector(otherPlayer))
+    // The list is a view: a reward's state reaches it after the reward's own record, so a filter by state
+    // is asked until it holds what the record says (run 44590271829 read ACTIVE before it was listed).
+    def byState(state: String) = items(grants(s"?offerId=$offerId&status=$state")).flatMap(_.text("playerId"))
+    eventually(s"only $player listed ACTIVE")(Some(byState("ACTIVE")).filter(_ == Vector(player)))
+    eventually(s"only $otherPlayer listed available")(Some(byState("available")).filter(_ == Vector(otherPlayer)))
   }
 
   When("an operator gives a player a free bonus of {string} at a wagering multiplier of {string}") { (amount: String, wager: String) =>
