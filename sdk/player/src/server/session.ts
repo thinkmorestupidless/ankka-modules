@@ -117,7 +117,9 @@ export function sessionRoutes(deps: ServerDeps): Hono {
     const r = await refreshWith(deps, c.req.raw, h.refresh);
     if (r === undefined) return json(503, { error: "service_unavailable", service: "players" });
     if (r === "expired") return json(401, { error: "refresh_expired" }, cleared(deps));
-    return noContent(issued(deps, r.access, r.refresh));
+    // The player cookie is renewed with the refresh cookie, or it lapses 30 days after the sign-in
+    // while the refresh cookie lives on (review).
+    return noContent(issued(deps, r.access, r.refresh, h.player));
   });
 
   app.post("/api/session/sign-out", async (c) => {

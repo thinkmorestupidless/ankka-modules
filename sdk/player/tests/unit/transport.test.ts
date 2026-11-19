@@ -86,6 +86,19 @@ describe("the page's transport (FR-001, FR-005)", () => {
     expect(signedOut).toEqual(["refresh_expired"]);
   });
 
+  it("a call still signed out after a refresh that worked signs the player out (review)", async () => {
+    const { transport, count } = site((s) => {
+      if (s.url === "/api/session/refresh") return new Response(null, { status: 204 });
+      return answer(401, { error: "signed_out" });
+    });
+    const signedOut: string[] = [];
+    transport.onSignedOut((r) => signedOut.push(r));
+    const r = await transport.call(balance);
+    expect(r).toEqual({ ok: false, refusal: { status: 401, code: "signed_out", fields: {} } });
+    expect(signedOut).toEqual(["refresh_expired"]);
+    expect(count("POST /api/session/refresh")).toBe(1);
+  });
+
   it("a refresh the brand did not answer keeps the player signed in and refuses the call as unavailable", async () => {
     const { transport } = site((s) => {
       if (s.url === "/api/session/refresh") return answer(503, { error: "service_unavailable", service: "players" });

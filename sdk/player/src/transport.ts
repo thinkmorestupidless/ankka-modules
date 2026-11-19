@@ -169,6 +169,11 @@ export function pageTransport(fetchImpl: Fetch = (input, init) => fetch(input, i
         if (after === "signed_out") return refused(refusal("signed_out", 401));
         return refused(after);
       }
+      // Still signed out after a refresh that worked: the sign-in is gone all the same (review).
+      if (tries > 0 && signedOut(r, route, body)) {
+        for (const listener of [...listeners]) listener("refresh_expired");
+        return refused(refusal("signed_out", 401));
+      }
       return refused(readRefusal(r.status, body, { words }));
     }
   };

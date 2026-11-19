@@ -69,6 +69,9 @@ describe("the site server holds the sign-in (FR-002, FR-003, FR-005 to FR-007)",
     const r = browser.take(await s.post("/api/session/refresh", {}, browser.header()));
     expect(r.status).toBe(204);
     expect(browser.get("__Host-eo_session")).not.toBe(before);
+    // The player cookie is renewed with the refresh cookie, for as long (review).
+    const renewed = setCookies(r);
+    expect(renewed.get("__Host-eo_player")!.attributes.find((a) => a.startsWith("Max-Age"))).toBe(renewed.get("__Secure-eo_refresh")!.attributes.find((a) => a.startsWith("Max-Age")));
     s.doubles.script("refresh", { status: 401, body: { error: "refresh_expired" } });
     const refused = browser.take(await s.post("/api/session/refresh", {}, browser.header()));
     expect(refused.status).toBe(401);
