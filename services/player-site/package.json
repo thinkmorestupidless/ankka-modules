@@ -14,7 +14,8 @@
     "test": "vitest run --exclude 'tests/features/**'",
     "lint": "eslint src tests",
     "features": "bddgen && playwright test",
-    "size": "node scripts/size.ts"
+    "size": "node scripts/size.ts",
+    "e2e": "playwright test -c playwright.e2e.config.ts"
   },
   "dependencies": {
     "@eitheror/player-sdk": "0.1.0",
