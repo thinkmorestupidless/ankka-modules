@@ -971,3 +971,22 @@ seeded brand fills in the rest.
   not yet a job (FR-029, a server job kind); wallet's service-to-service transactions route, older
   than this branch, still carries an adjustment's reason; and three small changes to
   `areas/affiliates/account.tsx`, which was open in the person's editor.
+
+### Rebased on spec 027, 2026-11-19
+
+- **The wallet's amount text is the currency's again.** Spec 027 (#43, FR-058) changed `Wire.major`
+  to the contract's `Amounts.render`: the wallet now writes an amount in major units by the
+  currency's own minor-unit count (EUR "20.00", JPY "500", KWD "1.500"), and reads an operator's
+  amount by the same rule. The review's blocking findings on the movements tab and the standing
+  (review.md, round 1) were right of the wallet as it then was, two decimals in every currency; the
+  backoffice now reads and writes by the currency (`walletMinor`, `walletMinorText` and `walletText`
+  in `shared/money.ts` take it), and text with another count of decimals is no amount of that
+  currency. An adjustment still sends `amountMinor`, which no rule of text touches.
+- **The wallet's bound meets the currency's decimals.** 030's bound on an operator's amount
+  (10^15 minor units either way, review S3) is kept, now on spec 027's parse by the exponent.
+- **The constitution's amendment is 1.4.0.** Spec 027 took 1.3.0 for the player site; 030's
+  amendment of the same *Scope* bullet keeps both sentences, as 027's note asked of whichever merged
+  second.
+- **Two currency tables.** The contract now publishes 027's `currencies.v1.json` (code to exponent,
+  from the JDK it is written on) and 030's `money/currencies.v1.json` (a fixed list of codes, so the
+  same on every JDK). Both come from `Amounts.exponent`. One should go; which is left open here.
