@@ -188,6 +188,32 @@ serve them over HTTP behind a real site server (`services/player-site/tests/doub
 
 ## Working on the SDK
 
-`npm ci` at the repository root, then `just player-sdk-test` (typecheck, lint, the unit and
-site-server suites), `just player-sdk-features` (`features/player-site/` bound to the behaviours,
-no browser), and `npm run readme -w sdk/player` after changing a step.
+`npm ci` at the repository root, then `just player-sdk-test` (the generation check, typecheck,
+lint, the unit and site-server suites), `just player-sdk-features` (`features/player-site/` bound
+to the behaviours, no browser), and `npm run readme -w sdk/player` after changing a step.
+
+### A module client's rows are generated
+
+A module's `routes.ts` (its route table, which is also the site server's allow-list) and
+`shapes.ts` (a Zod parser and its type for what each row takes and answers) are generated from the
+services' own descriptions, `services/<service>/openapi.player.json`, and are never edited. What is
+written by hand, per module:
+
+- `selection.ts`: one row per call, naming the operation of the service's description it is
+  (`GET /v1/casino/players/the-brand/{playerId}`) and what a description cannot say: the row's id,
+  a path parameter under the SDK's name (`rename`), one with a single value (`fixed`), the query
+  parameters a page may send, `serverOnly`, `visitor`, and the names its shapes get (`takes`,
+  `answers`).
+- `client.ts`: the mapping from a generated shape to the SDK's words, behind the interface the
+  behaviours call. It imports no Zod and writes no path; eslint holds both.
+- `events.ts`, where the module has a stream: a description gives a stream's events no shape, so
+  the push connection's and the chat's are read by hand.
+
+To add a call: add its row to the module's `selection.ts`, run `npm run generate -w sdk/player`
+(`just player-sdk-generate`), and write its function in `client.ts` over the new shape. To follow a
+service whose route changed: `just describe <service>` rewrites its description, then generate.
+`npm run generate:check -w sdk/player` fails naming each generated file that is out of date, and
+runs first in `just player-sdk-test` and in CI. A selection that names an operation no description
+holds, or a parameter the operation does not have, fails the generation naming it. A player route
+no selection names is in no table, so a page's call of it is refused by the site server as any
+unknown row is.

@@ -71,7 +71,8 @@ here, ankka 0.16.3's web hosting reference, and spec 030's research on its branc
   tables (FR-004). The later generated client produces the same two things from a service's
   OpenAPI document, which is why the seam is here (FR-034).
 - **Types** are written by hand from the services' `contracts/routes.md` and checked by FR-036's
-  test per function against the running service. Zod parses each answer at the boundary: an
+  test per function against the running service. *Superseded by spec 031 FR-018:* the wire shapes
+  are generated into `shapes.ts` from the services' kept descriptions; FR-036's test stays. Zod parses each answer at the boundary: an
   answer that does not fit is `malformed_answer`, never a wrong field on a page.
 
 ## R6. Amounts

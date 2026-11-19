@@ -402,3 +402,87 @@ round; each was fixed after that round and not analysed again:
   the lists). The nine services' CI jobs now run on any change under `tests/port/`, since each
   `DescriptionSuite` reads every recording and its own unrecorded list; before, a job ran only on
   its own recordings directory.
+- T048–T052: the generated tables equal the four hand-written ones row for row (27 rows: 20, 4,
+  1, 2), compared by `tests/unit/generate.test.ts` against `tests/unit/fixtures/routes-027.ts`.
+  Decisions the contract left to the generator:
+  - an object is `z.looseObject`, so a field the description does not name passes to the mapping,
+    as `passthrough()` did in the hand-written game and grant;
+  - a row's shape is written out under the name its selection gives (`Unread` is players'
+    `Messages`); a schema a shape refers to is emitted once as `<Service><Name>`, unexported;
+  - a row that names no `answers` must be a stream, and a row that names `takes` must take a JSON
+    body: two rules beside the contract's six, each with its message;
+  - `anyOf` with a null member is read as nullable (the wallet's `primary`), which R10 did not list.
+- players' `Terminal` was described as an open object (T045), which would have generated a shape
+  with no field. It now names what a site reads of ingest's `available_terminals`
+  (`terminalEntityId`, `scheme`, `name`, `gateway`, `supportedCurrencies`); the route answers the
+  same bytes, and the kept description gained the fields.
+- T053 (the mapping): the generated shapes are the descriptions exactly, and four things followed.
+  - **The SDK's doubles answered less than the services do**, which the hand-written parsers
+    forgave. They now answer as the descriptions say (`src/testing/doubles.ts`, not a test): the
+    profile with `emailVerified`, `profileComplete` and `missingProfileFields`; the unread count in
+    the messages' page (`items`, `total`, `page`, `pageSize`); a game session with `launchedAt`; a
+    catalogued game with the fields every game has; the password reset's `{status: "ok"}`, the
+    sign-out's `{status: "logged_out"}` and the sign-in's `pendingBonusCode: ""`, each read from
+    the service's own route.
+  - **players' profile answers every profile field the player holds** (`ProfileRoutes.profileOf`,
+    the 16 of `player.Profile.all`), which T045's description left out; the deposit reads four of
+    them. `Described.Profile` now names them and the kept description gained them; the route
+    answers the same bytes.
+  - **Guards about meaning stay in the mapping**, since a description says "a string" and "an
+    integer": a cashier ticket, a launch address or a game session that is empty is
+    `malformed_answer`, as `min(1)` made it; a reality check interval of zero or less is none.
+  - `abandonCashier` and `requestPasswordReset` were parsed as anything and are now parsed as
+    what ingest and players describe (the payment, `{status}`).
+- T054: the chat's events moved to `support/events.ts` whole (`client.ts` re-exports `chatEvent`
+  and `ChatEvent`, so no importer changed). The push connection's events carry no data the SDK
+  reads; `engagement/events.ts` names the three (`ready`, `signal`, `closing`) and the inbox reads
+  them through it.
+- T055: no formatter runs over the SDK (eslint only, no prettier), so nothing needed excluding.
+- T056: "generating the module clients changes no behaviour" drives one deposit from the amount to
+  succeeded and holds its steps to `amount, starting, choosing_terminal, submitting,
+  waiting_at_provider, succeeded`; `deposit.feature`'s own scenarios, bound unchanged, hold each
+  step. One run of the whole SDK suite beside two sbt runs failed `session.feature`'s first
+  scenario (a real HTTP stack with its own bounds) and passed alone and on the next whole run.
+- T059: spec 001's files name no ankka version (its manifests do, moved in phase 2), so there was
+  nothing to amend there.
+
+## Client tests changed, and why
+
+Two unit tests relied on forgiveness the services never need (T053). No test under
+`sdk/player/tests/features`, `services/player-site` or `sdk/player/src/react` changed, other than
+the new `generated-clients.steps.ts` and its line in `elsewhere.ts` (FR-024).
+
+| Test | Was | Is | Why |
+|---|---|---|---|
+| `tests/unit/casinoClient.test.ts`, protection: "an interval missing, zero, negative, fractional or not a number is none" | six values, each read as none | "missing, zero or negative is none" (four values, by the mapping) and a new case, "fractional or not a number is a malformed answer" (`2.5`, `"30"`) | responsible gambling's description says a whole number or none; an answer outside it is malformed as any other is, and `.catch(null)` forgave it |
+| `tests/unit/deposit.test.ts`: "a cashier session with no terminal fails as no_terminals" | scripted `{cashierTicket, terminals: [], requestId}` | the same with `redirectUrl` and `paymentId` | players' description says the start answers both, and it does; the hand-written parser did not read them |
+
+## For ankka
+
+A draft of one issue, not filed: it is filed on the person's word.
+
+**`ankka openapi`: five things a repository of single-service builds met (0.18.0)**
+
+1. **A directory under `services/` is taken as a member of one root build.**
+   `OpenApiCommand.locate` runs `sbt <service>/run` at the repository root when the service's
+   parent directory is named `services`. Here each service is its own sbt build
+   (`services/<name>/build.sbt`, from `ankka init`) and the root build has no such project, so
+   `ankka openapi services/wallet` fails. We run the service's build ourselves with
+   `-Dankka.document=openapi`. Asked: look for a `build.sbt` in the directory first.
+2. **A stream's events have no shape.** A route answering `text/event-stream` gets a `200` with
+   that content type and no schema, and `described` has nowhere to say what events it sends. Our
+   push connection and chat are parsed by hand for that reason. Asked: `streams[E]` (or events by
+   name) written as the content's schema.
+3. **A header a route reads is not described.** A route that takes a cashier ticket or an
+   idempotency key in a header documents no header parameter, and `described` has `query` and no
+   `header`. Asked: `header[A](name)`.
+4. **A JSON answer built by hand is not `application/json`.** `Respond[Bytes]` documents
+   `application/octet-stream` and a `String` body `text/plain`, though the route sets the JSON
+   content type itself and `answers[A]` states the shape. We wrap such answers in a type of our
+   own (`contract.http.Json`, a `ToResponse` and a `FromBody`). Asked: `answers[A]` and `body[A]`
+   decide the content type documented, whatever the handler's own type.
+5. **`security` is written only for an ACL that is a `TokenAuthenticator` itself.** `OpenApi.access`
+   writes `bearer` for that case and `security: []` for an open route; an ACL that wraps an
+   authenticator in a function (ours adds the brand's check) gets no `security` at all, so a
+   signed-in route is told from an open one only by the absence of the field. Asked: a way for an
+   ACL to say it authenticates, or for `described` to say so.

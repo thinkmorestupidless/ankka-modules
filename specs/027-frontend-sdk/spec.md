@@ -593,14 +593,17 @@ that streams replies, approval requests, each refusal, and a reply that stops.
   client: per module, an interface of typed functions, one per route, and one implementation
   written by hand in this spec. A behaviour MUST depend on the interface only, so that a client
   generated from a service's own description (a later spec) replaces the implementation and no
-  behaviour changes.
+  behaviour changes. *Amended by spec 031 (FR-017 to FR-019):* the implementation's route table
+  and wire shapes are generated from the services' kept descriptions and each module's selection;
+  the mapping to this interface stays by hand, and the interface is unchanged.
 - **FR-035**: This spec's module clients MUST cover the routes its behaviours call and no others:
   in core, `players` (registration, verification, sign-in, refresh, sign-out, password reset
   request, profile read and change, deposit start, unread count, game session read and end, the
   visitor's country), `wallet` (balance), `responsible-gambling` (status, reality check
   acknowledgement), the cashier's submit, abandon and payment read; in casino, `game-provider`
   (launch, the catalogue's games and one game) and `rewards` (free rounds held); in engagement, the
-  push connection; in support, the support agent's turn and decision.
+  push connection; in support, the support agent's turn and decision. *Amended by spec 031:* the
+  rows are unchanged, 27 of them, and are now each module's `selection.ts`.
 - **FR-036**: Each module client MUST be tested against its running service on the development
   installation, one test per function, so that a route's change is caught where the client is.
 

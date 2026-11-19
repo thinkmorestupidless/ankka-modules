@@ -210,6 +210,8 @@ jobs:
               - package.json
               - package-lock.json
               - sdk/**
+              # the module clients are generated from the kept descriptions (spec 031)
+              - services/*/openapi.player.json
               - features/player-site/**
               - contract/schemas/currencies.v1.json
             player-site:
@@ -850,6 +852,8 @@ jobs:
       - run: npm ci
       - name: The currency table is the contract's
         run: cmp contract/schemas/currencies.v1.json sdk/player/src/currencies.v1.json
+      - name: The module clients are what the kept descriptions and the selections generate (spec 031)
+        run: npm run generate:check -w sdk/player
       - name: Typecheck
         run: npm run typecheck -w sdk/player
       - name: Lint

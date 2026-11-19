@@ -34,9 +34,14 @@ private[api] object Described:
   final case class PasswordChangeVerify(token: String, newPassword: String)
 
   // ── the player's own record ───────────────────────────────────────────────────────────────────
+  /** `ProfileRoutes.profileOf`: the record, then each of `player.Profile.all` the player holds. */
   final case class Profile(playerId: String, status: String, email: Option[String], emailVerified: Boolean, currency: String,
       registeredAt: Option[String], vipTier: Option[String], profileComplete: Boolean, missingProfileFields: Vector[String],
-      erasureHoldUntil: Option[String])
+      erasureHoldUntil: Option[String], displayName: Option[String], firstName: Option[String], lastName: Option[String],
+      dateOfBirth: Option[String], phone: Option[String], addressLine1: Option[String], city: Option[String],
+      stateProv: Option[String], postalCode: Option[String], country: Option[String], language: Option[String],
+      mobile: Option[String], province: Option[String], bankAccount: Option[String], institutionCode: Option[String],
+      transitNumber: Option[String])
   final case class ProfileEdit(firstName: Option[String], lastName: Option[String], phone: Option[String],
       addressLine1: Option[String], city: Option[String], stateProv: Option[String], postalCode: Option[String],
       dateOfBirth: Option[String], country: Option[String], mobile: Option[String], province: Option[String],
@@ -62,8 +67,9 @@ private[api] object Described:
   final case class Promoted(status: String, newPrimary: String)
   final case class EmailChange(newEmail: String, currentPassword: String)
   final case class Deposit(amount: Long, currency: String, method: Option[String], requestId: Option[String])
-  /** A terminal is as ingest gave it; its fields are ingest's. */
-  final case class Terminal()
+  /** A terminal as ingest gave it (`available_terminals`): what a site reads of it; ingest's other fields pass. */
+  final case class Terminal(terminalEntityId: String, scheme: String, name: Option[String], gateway: Option[String],
+      supportedCurrencies: Vector[String])
   final case class Cashier(redirectUrl: String, paymentId: String, cashierTicket: String, terminals: Vector[Terminal], requestId: String)
   final case class Erasure(correlationId: String, holdUntil: Option[String])
   final case class ExportStarted(exportId: String, statusUrl: String)

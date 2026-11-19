@@ -91,7 +91,7 @@ describe("the deposit behaviour", () => {
 
   it("a cashier session with no terminal fails as no_terminals", async () => {
     const { clock, d, dep } = await setup();
-    d.script("startDeposit", { status: 200, body: { cashierTicket: "ticket-x", terminals: [], requestId: "r" } });
+    d.script("startDeposit", { status: 200, body: { redirectUrl: "", paymentId: "r", cashierTicket: "ticket-x", terminals: [], requestId: "r" } });
     dep.actions.confirm(5000n);
     await clock.settle();
     expect(dep.step()).toMatchObject({ kind: "failed", code: "no_terminals" });

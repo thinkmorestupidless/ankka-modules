@@ -505,9 +505,15 @@ exchange-perf:
 
 # The player SDK's typecheck, lint, unit and site-server suites (spec 027). `npm ci` at the root first.
 player-sdk-test:
+    npm run generate:check -w sdk/player
     npm run typecheck -w sdk/player
     npm run lint -w sdk/player
     npm test -w sdk/player
+
+# The module clients' route tables and shapes, written from services/*/openapi.player.json and each
+# module's selection.ts (spec 031). Run it after `just describe <service>` changed a kept description.
+player-sdk-generate:
+    npm run generate -w sdk/player
 
 # features/player-site/*.feature over the behaviours and the service doubles, with no browser (spec 027).
 player-sdk-features:

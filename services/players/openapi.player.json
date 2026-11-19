@@ -3612,6 +3612,102 @@
               "string",
               "null"
             ]
+          },
+          "displayName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "firstName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lastName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "dateOfBirth": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "addressLine1": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stateProv": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "postalCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "country": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mobile": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "province": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "bankAccount": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "institutionCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "transitNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -3962,7 +4058,37 @@
         ]
       },
       "Terminal": {
-        "type": "object"
+        "type": "object",
+        "properties": {
+          "terminalEntityId": {
+            "type": "string"
+          },
+          "scheme": {
+            "type": "string"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "gateway": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "supportedCurrencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "terminalEntityId",
+          "scheme"
+        ]
       },
       "Token": {
         "type": "object",

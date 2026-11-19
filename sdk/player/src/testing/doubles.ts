@@ -196,6 +196,9 @@ export function fakeBrand(overrides: Partial<FakeBrand> = {}): FakeBrand {
   };
 }
 
+/** A game as the catalogue answers it: the fields every game has, which a fake game need not say. */
+const asCatalogued = (g: FakeGame) => ({ category: "slots", developerId: g.provider, developerName: g.provider, enabled: true, funMode: g.demo === true, ...g });
+
 const id = (b: FakeBrand, prefix: string) => `${prefix}-${b.next++}`;
 
 /** The default answer of each route, by id. */
@@ -217,7 +220,7 @@ const defaults: Record<string, (a: Asked, b: FakeBrand) => Reply> = {
     return { status: 200, body: { status: "verified" } };
   },
   resendVerification: () => ({ status: 200, body: { result: "sent" } }),
-  requestPasswordReset: () => ({ status: 200, body: {} }),
+  requestPasswordReset: () => ({ status: 200, body: { status: "ok" } }),
   signIn(a, b) {
     const body = (a.body ?? {}) as { email?: string; password?: string };
     const p = b.players.find((x) => x.email === body.email);
@@ -232,7 +235,7 @@ const defaults: Record<string, (a: Asked, b: FakeBrand) => Reply> = {
         playerId: p.playerId,
         currency: p.currency,
         country: p.country,
-        pendingBonusCode: null,
+        pendingBonusCode: "",
       },
     };
   },
@@ -242,11 +245,11 @@ const defaults: Record<string, (a: Asked, b: FakeBrand) => Reply> = {
     if (!p) return { status: 401, body: { error: "refresh_expired" } };
     return { status: 200, body: { accessToken: fakeToken(p.playerId, 300), refreshToken: `refresh-${p.playerId}-${b.next++}`, expiresIn: 300 } };
   },
-  signOut: () => ({ status: 200, body: {} }),
+  signOut: () => ({ status: 200, body: { status: "logged_out" } }),
   profile(a, b) {
     const p = b.players.find((x) => x.playerId === a.path.player);
     if (!p) return { status: 404, body: { error: "player_not_found" } };
-    return { status: 200, body: { playerId: p.playerId, status: "active", email: p.email, currency: p.currency, ...p.profile } };
+    return { status: 200, body: { playerId: p.playerId, status: "active", email: p.email, emailVerified: p.verified, currency: p.currency, profileComplete: false, missingProfileFields: [], ...p.profile } };
   },
   changeProfile(a, b) {
     const p = b.players.find((x) => x.playerId === a.path.player);
@@ -266,11 +269,11 @@ const defaults: Record<string, (a: Asked, b: FakeBrand) => Reply> = {
     b.cashierSessions.set(ticket, { requestId, amount: body.amount!, currency: body.currency ?? b.currency });
     return { status: 200, body: { redirectUrl: "", paymentId: requestId, cashierTicket: ticket, terminals: b.terminals, requestId } };
   },
-  unread: (_a, b) => ({ status: 200, body: { messages: [], unreadCount: b.unread } }),
+  unread: (_a, b) => ({ status: 200, body: { items: [], total: b.unread, unreadCount: b.unread, page: 1, pageSize: 1 } }),
   gameSession(a, b) {
     const s = b.gameSessions.get(a.path.sessionId ?? "");
     if (!s) return { status: 404, body: { error: "session_not_found" } };
-    return { status: 200, body: { sessionId: s.sessionId, gameId: s.gameId, status: s.status, lastBetAt: s.lastBetAt } };
+    return { status: 200, body: { sessionId: s.sessionId, gameId: s.gameId, status: s.status, launchedAt: "2026-11-01T00:00:00Z", lastBetAt: s.lastBetAt } };
   },
   endGameSession(a, b) {
     const s = b.gameSessions.get(a.path.sessionId ?? "");
@@ -315,10 +318,10 @@ const defaults: Record<string, (a: Asked, b: FakeBrand) => Reply> = {
     b.gameSessions.set(sessionId, { sessionId, gameId: body.gameId, status: "active", lastBetAt: null });
     return { status: 200, body: { launchToken: "launch-secret", gameUrl: `https://games.example/${body.gameId}?s=${sessionId}`, sessionId } };
   },
-  games: (_a, b) => ({ status: 200, body: { games: b.games } }),
+  games: (_a, b) => ({ status: 200, body: { games: b.games.map(asCatalogued) } }),
   game(a, b) {
     const g = b.games.find((x) => x.gameId === a.path.gameId);
-    return g ? { status: 200, body: g } : { status: 404, body: { error: "game_not_found" } };
+    return g ? { status: 200, body: asCatalogued(g) } : { status: 404, body: { error: "game_not_found" } };
   },
   freeRounds: (_a, b) => ({ status: 200, body: b.freeRounds.map((f) => ({ ...f, gameName: f.gameId, expiresAt: "2026-12-01T00:00:00Z", providerStatus: "active" })) }),
   // A push connection stays open until the test ends it, as engagement's does, beginning with `ready`.
