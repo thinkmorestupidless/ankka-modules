@@ -7,6 +7,7 @@ import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime}
 import com.thinkmorestupidless.ankka.testkit.AnkkaTestKit
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.contract.facts.*
+import io.eitheror.casino.contract.port.HeldToPlayerRoutes
 import io.eitheror.casino.ingest.{IngestRuntime, IngestService, Json, Settings}
 import io.eitheror.casino.ingest.keys.{KeyIndex, KeyRow}
 import io.eitheror.casino.ingest.rate.{RateState, RateWindow}
@@ -46,7 +47,10 @@ final class Kit(val settings: Settings = Kit.Settings, keys: Vector[(String, Str
 
   IngestRuntime.wire(settings, () => now())
 
-  private val server = HttpServer.at("127.0.0.1", 0)(IngestService.endpoints(() => Kit.authenticate)*)
+  /** The ticket's routes held to the kept description (spec 031 FR-015); `Held` asserts it after each test. */
+  val held = HeldToPlayerRoutes(Kit.description, "")
+  private val server = held.hold(HttpServer.at("127.0.0.1", 0)(IngestService.endpoints(() => Kit.authenticate)*))
+  Kit.started.add(this): Unit
 
   val testKit: AnkkaTestKit = AnkkaTestKit.start(
     IngestService.descriptors,
@@ -60,14 +64,14 @@ final class Kit(val settings: Settings = Kit.Settings, keys: Vector[(String, Str
   def views      = testKit.service.viewClient
   def base: String = s"http://127.0.0.1:${server.boundPort.get}"
 
-  def stop(): Unit = { testKit.stop(); merchant.stop() }
+  def stop(): Unit = { Kit.started.remove(this); testKit.stop(); merchant.stop() }
 
   /** The service stopped and started again on the same database: its start refresh runs again. */
   def restart(): Unit =
     testKit.restartService()
     refreshed = IngestService.started(testKit.service)
 
-  def reset(): Unit = { merchant.reset(); clockOffset = JDuration.ZERO; fixed = None; IngestRuntime.wire(settings, () => now()) }
+  def reset(): Unit = { held.violations.clear(); merchant.reset(); clockOffset = JDuration.ZERO; fixed = None; IngestRuntime.wire(settings, () => now()) }
 
   def advance(d: JDuration): Unit = clockOffset = clockOffset.plus(d)
 
@@ -183,6 +187,18 @@ final class Kit(val settings: Settings = Kit.Settings, keys: Vector[(String, Str
   def eventually[A](what: String, within: FiniteDuration = 30.seconds)(f: => Option[A]): A = testKit.eventually(what, within)(f)
 
 object Kit:
+  /** The kept description of the ticket's routes (spec 031). */
+  val description: java.nio.file.Path =
+    java.nio.file.Paths.get(sys.props.getOrElse("casino.root", "../..")).resolve("services/ingest/openapi.player.json")
+
+  /** Every kit started and not stopped, for `Held`. */
+  private[it] val started: java.util.Set[Kit] = java.util.concurrent.ConcurrentHashMap.newKeySet[Kit]()
+
+  /** Fails, naming each answer since the last check that a kit's description does not allow; clears them all. */
+  def assertHeld(): Unit =
+    val failures = started.asScala.toVector.flatMap(k => scala.util.Try(k.held.assertHeld()).failed.toOption)
+    failures.headOption.foreach(throw _)
+
   val Settings: io.eitheror.casino.ingest.Settings =
     io.eitheror.casino.ingest.Settings(answerBound = JDuration.ofMillis(500), bodyBound = 4096, rateLimit = 600)
 

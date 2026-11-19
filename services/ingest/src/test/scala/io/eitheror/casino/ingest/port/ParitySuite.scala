@@ -11,7 +11,7 @@ import java.nio.file.Files
  * service and its answer compared field by field with the original's. Fewer than the three recordings
  * copied from spec 004's run (T005) is a failure, not an empty pass.
  */
-class ParitySuite extends munit.FunSuite with LogCapturing:
+class ParitySuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.ingest.it.Held:
   override val munitTimeout = scala.concurrent.duration.Duration(300, "s")
 
   private val found = Parity.recordings(Parity.root.resolve("tests/port/ingest"))

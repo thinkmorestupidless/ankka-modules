@@ -1,7 +1,8 @@
 package io.eitheror.casino.ingest.api
 
 import com.fasterxml.jackson.databind.JsonNode
-import com.thinkmorestupidless.ankka.http.{Bytes, Respond}
+import com.thinkmorestupidless.ankka.http.Respond
+import io.eitheror.casino.contract.http.Json as JsonBody
 import io.eitheror.casino.ingest.Json
 import io.eitheror.casino.ingest.requests.Answer
 
@@ -13,16 +14,17 @@ import java.nio.charset.StandardCharsets.UTF_8
  * passed through with its status and body as it sent them (FR-011).
  */
 object Answers:
-  type Reply = Respond[Bytes]
+  /** JSON as `contract.http.Json`, so a described answer is `application/json` in the document (spec 031). */
+  type Reply = Respond[JsonBody]
 
   /** The seconds a caller told to try again waits (FR-013). */
   val TryAgainSeconds = 5L
 
   def json(status: Int, body: JsonNode, headers: Vector[(String, String)] = Vector.empty): Reply =
-    Respond(Bytes("application/json", Json.render(body).getBytes(UTF_8)), status, headers)
+    Respond(JsonBody(Json.render(body).getBytes(UTF_8)), status, headers)
 
   def ok(body: JsonNode): Reply = json(200, body)
-  val noContent: Reply = Respond(Bytes("application/json", Array.emptyByteArray), 204)
+  val noContent: Reply = Respond(JsonBody(Array.emptyByteArray), 204)
 
   def refusal(status: Int, error: String, field: Option[String] = None, transactionId: Option[String] = None,
       retryAfterSeconds: Option[Long] = None, message: Option[String] = None): Reply =
@@ -30,7 +32,7 @@ object Answers:
       "retryAfterSeconds" -> retryAfterSeconds, "message" -> message),
       retryAfterSeconds.toVector.map(s => "Retry-After" -> s.toString))
 
-  def passThrough(a: Answer): Reply = Respond(Bytes("application/json", a.body.getBytes(UTF_8)), a.status)
+  def passThrough(a: Answer): Reply = Respond(JsonBody(a.body.getBytes(UTF_8)), a.status)
 
   val bodyTooLarge: Reply    = refusal(413, "body_too_large")
   val notJson: Reply         = refusal(400, "not_json")

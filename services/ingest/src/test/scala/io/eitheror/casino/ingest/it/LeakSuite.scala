@@ -22,7 +22,7 @@ import scala.jdk.CollectionConverters.*
  * the key's digest is in no log line (it is the index's id, so it is in the store by design). A service of
  * its own (build.sbt), so its database holds this suite's requests alone.
  */
-class LeakSuite extends munit.FunSuite with LogCapturing:
+class LeakSuite extends munit.FunSuite with LogCapturing with Held:
   override val munitTimeout: Duration = 5.minutes
 
   private lazy val kit = Kit()

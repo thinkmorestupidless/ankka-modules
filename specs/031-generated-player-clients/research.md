@@ -345,3 +345,8 @@ round; each was fixed after that round and not analysed again:
   The description check found two things the original's recordings lack: a refusal's `message` and a
   sum's `currency`. Both are optional in the description, since a field the original never sent is
   not one a client may rely on; the rebuild's answers, which have both, are held by the kit.
+- T039 (ingest): ingest relays merchant's answers, so its description vouches for what ingest
+  guarantees: a payment's `status`, a submit's `paymentId` and `status`. Every other field of the
+  read is optional. The kit's `FakeMerchant` answers reads with fewer fields than merchant, and the
+  hold failed four suites on it until then. Ingest's kits are plain classes that some suites start
+  lazily, so `it.Held` asserts on the kits started (`Kit.started`) and starts none.

@@ -8,7 +8,7 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /** T034 (US2; FR-013, FR-014): merchant unanswered at the bound is "try again"; what it made late is a lost answer. */
-class UnansweredSuite extends munit.FunSuite with LogCapturing:
+class UnansweredSuite extends munit.FunSuite with LogCapturing with Held:
   private lazy val kit = Kit()
 
   override def afterAll(): Unit = kit.stop()

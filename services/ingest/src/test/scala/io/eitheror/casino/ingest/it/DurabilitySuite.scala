@@ -7,7 +7,7 @@ import io.eitheror.casino.ingest.Json
 import scala.concurrent.duration.*
 
 /** T049: what the service decided outlives a restart over the same database; the restart's refresh adds nothing. */
-class DurabilitySuite extends munit.FunSuite with LogCapturing:
+class DurabilitySuite extends munit.FunSuite with LogCapturing with Held:
   override val munitTimeout: Duration = 5.minutes
   private lazy val kit = Kit()
 
