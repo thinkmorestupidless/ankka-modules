@@ -146,8 +146,11 @@ class DataSubjectSteps extends ProgrammeFeatures("data-subjects.feature"):
     scene.send(scene.facts.deposit(player, 3_000, kit.now)): Unit
   }
   When("a manager or an affiliate reads the player") { () =>
-    def read(r: => Reply) = kit.eventually("the player listed")(Option(r).filter(x =>
-      Option(x.json).toVector.flatMap(_.elements().asScala).exists(p => p.get("playerRef").asText == player && p.get("hasFtd").asBoolean)))
+    // Waits for what the steps after it read: the player, the first deposit and both deposits' sum,
+    // which the view folds a moment apart (a race CI met).
+    def read(r: => Reply) = kit.eventually("the player listed with both deposits")(Option(r).filter(x =>
+      Option(x.json).toVector.flatMap(_.elements().asScala).exists(p => p.get("playerRef").asText == player && p.get("hasFtd").asBoolean &&
+        Option(p.get("deposits")).flatMap(d => Option(d.get("EUR"))).flatMap(e => Option(e.get("sum"))).exists(_.asLong == 3_000L))))
     reads = Vector(read(kit.request("GET", s"/v1/affiliates/goldvibe/accounts/${scene.affiliate}/players", headers = mgr)),
       read(kit.request("GET", s"/v1/my/${scene.affiliate}/players", headers = kit.asAffiliate(scene.affiliate))))
   }
