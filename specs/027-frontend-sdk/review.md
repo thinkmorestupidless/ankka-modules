@@ -117,3 +117,160 @@ and `npm run features -w sdk/player` (757 passed, 77 skipped: the scenarios `els
 other harnesses). Not run: the Scala suites (`players`, `wallet` and `game-provider` need Docker for
 their integration kits, so they were read instead), the player site's playwright suites (a browser
 over the built site), and `just player-site-it` (a running brand).
+
+## Second round
+
+# Review: the fixes to the first round (spec 027), 448628e6...fa50e612
+
+**Verdict:** Approve with comments. The first round's blocking finding is fixed and holds. One
+should-fix is expected before merge: the session behaviour's own refreshes do not follow the
+refresh contract this round amended. The rest is optional.
+**What it does:** Seven commits answer the first round. The wallet's operator adjustments read major
+units by the currency's exponent. A refresh renews the player cookie. A call still `signed_out`
+after a refresh signs the player out. A refused refresh keeps the cookies, so a tab that loses a
+rotation race goes on with the winner's sign-in. A game session's last bet is kept to within a
+minute. `AWAITING_REDIRECT` with no address is `waiting`. The four nits are fixed, and the rollback
+limit and the reality-check fail-open are written down.
+**Should it exist:** Yes. Each hunk answers a first-round finding, and no hunk goes beyond one.
+**Read:** In full: every hunk of the range except `review.md`'s first round. Opened outside the
+diff: `sdk/player/src/server/session.ts` (whole), `transport.ts:100-215`, `core/session.ts:60-200`,
+`core/deposit.ts:60-200`, `casino/play.ts` (the bet check), `server/passThrough.ts` (where
+`signed_out` is answered), the contract's `Amounts.scala` (`exponent`, `parse`, `render`),
+merchant's `DepositWorkflow.initiateStep` (where a payment's `redirectUrl` is written),
+`release.yml`'s `web=` line, `specs/002-wallet/spec.md` FR-003.
+**Size:** 25 files, +339 −37 (119 of them the first round's report). Small; no split needed.
+
+### The first round's resolutions
+
+| First-round finding | Holds? |
+|---|---|
+| Blocking: operator adjustments read two decimals (`AudienceEndpoints.scala`) | **Holds.** Both adjustment routes pass the route's currency to `Major.parse`. `MajorSuite` covers exponents 0, 2 and 3, and a round trip against `Amounts.render` for EUR, CLP, KWD and JPY. The parser keeps its own sign handling because `Amounts.parse` refuses negatives, and a debit needs one. That choice is right. The spec record is incomplete (see Should fix 3), and there is an overflow at exponent 4 (Nit 1). |
+| Should fix: the player cookie is not renewed on refresh (`session.ts:120`) | **Holds.** `issued(..., h.player)` reissues it with `ThirtyDays`. The server test asserts its `Max-Age` equals the refresh cookie's, and fails without the fix (the cookie is absent). The second half also holds: `transport.ts:172-177` tells the listeners when the retry after a 204 is still `signed_out`, and the new transport test fails without it. A player whose cookie lapsed before this version is not restored by a refresh (`h.player` is undefined), but the new branch signs them out instead of leaving them stuck. That is acceptable. |
+| Should fix: `BetRecorded` per round doubles writes | **Holds** for the write rate: one event a minute of play. The boundary is right (`isBefore(held + 1 min)`: 59 s is dropped, 60 s is kept), and the entity suite and the bound feature were moved to match. It costs the SDK's margin, though (Should fix 2). |
+| Todo: rollback past `BetRecorded` unstated | **Holds.** `amendments.md` *Rollback* and spec 008 FR-017's amendment both say a rollback goes to this version or later. |
+| Nit: `tables[module]` answers `Object` for `constructor` | **Holds.** `Object.hasOwn`, with `constructor` and `toString` cases in the 404 test. |
+| Nit: malformed escape is a 500 | **Holds.** Caught and answered 404, with a test. |
+| Nit: built means `package.json` alone | **Holds.** It now matches `release.yml`'s `web=` rule exactly (a `build.sbt` wins in both). `KeysBuiltSuite` covers all four shapes, and `services/player-site/Dockerfile` exists. |
+| Nit: the `Intl.NumberFormat` v3 cast | **Holds.** The engines are named at the cast and in the README. |
+| Question: `submitting` cannot be closed with an empty `redirectUrl` | **Holds.** `waiting` allows `close`. A `waiting` step ignores later non-outcome reads (`deposit.ts:155`), so a later read that brought an address would never show it. Merchant writes `redirectUrl` once, at `initiateStep`, together with the status, so an empty one stays empty, and `waiting` is the right step. If a provider ever fills the address later, this line has to change. |
+| Question: two tabs racing a rotated refresh | **Holds for calls through the transport**, which is what the commit claims: the server keeps the cookies on a refused refresh (asserted: no `Set-Cookie`, all three cookies still in the jar), and the transport reads, retries, and signs out only when the retry is still refused. **It does not hold for the session behaviour's own refreshes** (Should fix 1). The new client-side race test would also have passed before the change, because the double does not model the server clearing cookies. The server test is what pins the fix. |
+| Question: sign-out ordering with `endGameSession` | Answer accepted. No code change was needed. |
+| Thought: reality-check fail-open | Recorded in research *Known limits*, as answered. |
+| Out of scope: 030's `walletMinor` | Named in `amendments.md` and research. It stays a gate on 030. |
+
+## Blocking
+
+None.
+
+## Should fix
+
+- `sdk/player/src/core/session.ts:167-170` and `:194-196` — issue (non-blocking): `stay` and
+  `notIdle` call `transport.session.refresh()` themselves. On `refresh_expired` they move straight to
+  `signed_out` and never call `signOut`. Before this range, the server's 401 also cleared the
+  cookies, so that was consistent. Now a refused refresh keeps them (contracts/site-server.md: "the
+  page calls again, and signs out when that call is still refused"), so this has two failure modes:
+  - **A race.** `notIdle` runs on every recent-bet check (`site.ts:167`), so a tab playing a game
+    refreshes every 5 minutes. When that refresh loses a rotation race to another tab, or to this
+    tab's own `refreshOnce` (the two are not shared), the page shows "your session has ended"
+    although the cookies hold a good sign-in. This is the race 2b7b780c set out to fix, still open
+    on this path.
+  - **A real expiry.** The page shows signed out, but `eo_player` and the dead `eo_refresh` stay for
+    up to 30 days. `GET /api/session` reads only cookies, so it answers signed in. A reload therefore
+    hydrates a signed-in shell until its first call signs it out.
+  Resolved: `stay` and `notIdle` refresh through `renew()`: a refused refresh is tried once more with what the cookies hold (the winner's, in a race), and refused again signs out, which removes them; tests for the won race and the expiry of both, 169075fd
+
+  Suggestion: send a refused refresh in both places through the same decision the transport makes.
+  Either expose the transport's single-flight `refreshOnce` (refresh, then `read`, then sign out
+  when the read finds no player) as what `session.refresh()` means to a behaviour, or, at the least:
+  ```ts
+  if (!r.ok && r.refusal.code === "refresh_expired") {
+    const now = await transport.session.read();
+    if (now.ok && now.player) return tell(signedIn(now.player)); // another tab refreshed
+    await transport.session.signOut();
+    tell(signedOut({ reason: "refresh_expired" }));
+  }
+  ```
+  Add a session-behaviour case for each branch. The doubles' `refresh` (`testing/doubles.ts:442`)
+  would need to model "refused, but the read still finds the player" for the race to be testable.
+- `services/players/src/main/scala/io/eitheror/casino/players/sessions/GameSessionEntity.scala:102`
+  with `sdk/player/src/casino/play.ts:53-54,96` — suggestion (non-blocking, if-minor): the SDK checks
+  every 5 minutes whether `now − lastBetAt ≤ 6 minutes`, using the browser's clock against the
+  fact's `occurredAt`. The extra minute was the margin for the `casino.rounds` consumer's lag and for
+  clock skew. With `BetPrecision` at one minute, the held time can trail the real last bet by up to
+  59 s, which uses that whole margin. A player who played a short burst just after one check can
+  then be judged not recent at the next. The cost is small, because one missed check only delays the
+  idle reset, but it costs nothing to restore the margin. Either set `BetPrecision` to 30 s (still
+  one event per half-minute of play, not per round), or say in FR-057 and at `RecentBetMs` that the
+  margin is now about one second plus lag.
+  Resolved: `BetPrecision` is 30 seconds, leaving half the SDK's minute of margin; FR-057, spec 008 and amendments.md say so, 17f72d19
+- `specs/002-wallet/spec.md` (FR-003) and `features/wallet/adjustments.feature` — todo: the operator
+  input change is recorded only in spec 027's `amendments.md` and research. Spec 002's FR-003
+  amendment covers only the replies, and spec 001 FR-026, the parse's cited rule, is untouched. Spec
+  027's FR-058 says only "write", while `MajorSuite` cites FR-058 for the read. The wallet's living
+  spec and its features are what the next reader of the wallet holds. Add the input to FR-003's
+  amendment (and to FR-058, or a new FR), and add a CLP or KWD adjustment row to the adjustments
+  feature, so the behaviour is bound above the unit level.
+  Resolved: spec 002 FR-003 and spec 027 FR-058 state the operator's reads by exponent, and `reads.feature` has the operator's adjustment by EUR, CLP and KWD at the route, bound in `RouteFeatures`, 662696ee
+
+## Nits
+
+- `services/wallet/src/main/scala/io/eitheror/casino/wallet/api/AudienceEndpoints.scala:347-348` —
+  nitpick (non-blocking): `whole.toLong * math.pow(10, exp).toLong` overflows silently when the
+  exponent is 4: CLF and UYW report 4, and a 15-digit whole number times 10^4 is past `Long.MaxValue`.
+  No brand trades either today. Either use `Math.multiplyExact` and `Math.addExact` and refuse on
+  `ArithmeticException`, or reuse the contract's parser for the magnitude:
+  `Amounts.parse(text.trim.stripPrefix("-"), currency)` with the sign applied afterwards. The second
+  also drops the second copy of the decimal rule.
+  Resolved: exact arithmetic, an amount past a `Long` refused, with a CLF row, 662696ee
+- `sdk/player/src/transport.ts:172-177` — nitpick (non-blocking): `refreshOnce` makes concurrent
+  calls share one refresh, but the new still-refused branch is not shared in the same way. K calls in
+  flight each send `/api/session/sign-out` and each notify every listener. On a real expiry, each
+  sign-out also asks `players` for a refresh that is refused. The session listener ignores repeats,
+  so nothing breaks. Share it with a `signingOut ??=` like `refreshing`.
+  Resolved: one shared `signOutOnce`, sent once and told once, tested with three calls in flight, 169075fd
+
+## Questions
+
+- `sdk/player/src/transport.ts:172-177` — thought: a narrow race remains. Tab B's retry is refused,
+  then tab A refreshes, then B's sign-out is sent. B's sign-out then carries A's new access token and
+  logs the player out at `players`, so both tabs are signed out. B makes two round trips (the read and
+  the retry) after its refused refresh, so A's 204 almost always lands first. No change is asked for.
+  If it is ever seen, have the server's sign-out skip `players` when it receives a session cookie
+  different from the one the refused call carried.
+  Answered: accepted as the reviewer says; the narrow race signs out both tabs, which is safe, and the player signs in again.
+
+## Praise
+
+- `sdk/player/tests/server/session.test.ts:155-156` — praise: the refused-refresh case asserts both
+  that no `Set-Cookie` is sent and that all three cookies survive in the jar. That pins the
+  server-side half of the race fix, which the client double cannot.
+- `services/wallet/src/test/scala/io/eitheror/casino/wallet/api/MajorSuite.scala:28-32` — praise: the
+  round trip through `Amounts.render` for each exponent tests the property the blocking finding was
+  about (what an operator reads is what is credited), not just a table of examples.
+- `tools/modules/src/test/scala/io/eitheror/casino/modules/KeysBuiltSuite.scala` — praise: one test
+  states the release's rule in all four shapes, including the half-built one, so the two sides cannot
+  drift again unnoticed.
+
+## Checks applied
+
+General checklist: Correctness, Design and scope, Error handling, Concurrency and state (the refresh
+race, concurrent sign-outs), Security (cookie lifetime and clearing on the site server's session
+routes), Data and migrations (the `BetRecorded` rate and rollback note), Tests, API and compatibility
+(the amended `refresh` contract, the stricter operator amount input), Documentation, Commit and PR
+hygiene. Skipped: Performance beyond the event rate (no other hot path changed), Observability
+(nothing new to log or measure), Dependencies and build (no dependency change; `Keys.built` was read
+as build logic under Correctness).
+
+`pr-review-typescript`: promises and async (the `.catch` on sign-out, the listener loops), error
+handling, security at the trust boundary, types and nullability, tests. `pr-review-scala`: types and
+totality (the parse regex and guard, `toLong` on an empty fraction, which the guard rules out),
+arithmetic overflow, munit tests. Items owned by `tsc --strict`, eslint, `-Werror` and scalafmt were
+not reviewed.
+
+Project rules: `CLAUDE.md` (repository and parent). No `REVIEW.md` and no `.claude/rules/`.
+
+Tests run: `npm test -w sdk/player` (28 files, 301 passed), `npm run features -w sdk/player` (757
+passed, 77 skipped), `npm run typecheck -w sdk/player` and `npm run lint -w sdk/player` (clean). Not
+run, read instead: the Scala suites (`MajorSuite`, `SessionEntitiesSuite`, `SessionsFeatures`,
+`KeysBuiltSuite`). Running them publishes the contract snapshot into the shared `~/.ivy2`, which
+other worktrees overwrite, and the features and integration kits need Docker.
