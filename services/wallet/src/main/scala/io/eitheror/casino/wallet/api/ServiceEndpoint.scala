@@ -21,6 +21,7 @@ import io.eitheror.casino.wallet.wire.*
 import io.eitheror.casino.wallet.wire.Wire.given
 
 import java.time.Instant
+import io.eitheror.casino.contract.http.Json
 
 /**
  * The routes of the project's own services (`Routes.service()`, no token: the caller's identity is
@@ -55,13 +56,13 @@ final class ServiceEndpoint(
   private def brandConfig = client.forKeyValueEntity(BrandConfigEntity.Id).call(BrandConfigEntity.get).invoke()
 
   /** The boundary: a currency code, a key, a whole amount; then the command, rendered. */
-  private def money(currency: String)(command: => Either[Respond[Bytes], Outcome]): Respond[Bytes] =
+  private def money(currency: String)(command: => Either[Respond[Json], Outcome]): Respond[Json] =
     Currency.from(currency) match
       case Left(message) => Wire.refusal("INVALID_REQUEST", message)
       case Right(_)      => command.fold(identity, Wire.outcome(_, currency))
 
-  private def key(k: Option[String]): Either[Respond[Bytes], String] = Key.from(k).map(_.value).left.map(_ => Wire.missingKey)
-  private def amount(a: AmountText): Either[Respond[Bytes], Long]   = a.minorUnits.map(_.value).left.map(Wire.invalidAmount)
+  private def key(k: Option[String]): Either[Respond[Json], String] = Key.from(k).map(_.value).left.map(_ => Wire.missingKey)
+  private def amount(a: AmountText): Either[Respond[Json], Long]   = a.minorUnits.map(_.value).left.map(Wire.invalidAmount)
 
   /** A label for the facts (spec 016 G4); an empty one is none. */
   private def label(value: Option[String]): Option[String] = value.map(_.trim).filter(_.nonEmpty)
@@ -220,7 +221,7 @@ final class ServiceEndpoint(
   // ── spec 022: reservations (the exchange) ─────────────────────────────────
 
   /** A spec 022 amount: whole minor units and above zero (spec 001 FR-026). */
-  private def positive(a: AmountText): Either[Respond[Bytes], Long] =
+  private def positive(a: AmountText): Either[Respond[Json], Long] =
     amount(a).flatMap(v => if v > 0 then Right(v) else Left(Wire.refusal("INVALID_REQUEST", s"the amount ${a.text} is not above zero",
       Map("amount" -> a.text))))
 
@@ -267,12 +268,12 @@ final class ServiceEndpoint(
 
   // ── spec 022: non-player accounts (FR-005 to FR-008, FR-012) ──────────────
 
-  private def accountKind(kind: String): Either[Respond[Bytes], String] =
+  private def accountKind(kind: String): Either[Respond[Json], String] =
     Either.cond(AccountState.Kinds(kind), kind, Wire.refusal("INVALID_REQUEST", s"an account is pool or clearing, not '$kind'"))
 
   /** A move as its flow: claimed under the caller's key, then answered from the flow (research R4). */
   private def move(kind: String, name: String, currency: String, direction: String, purpose: String, player: String, amount: Long,
-      k: String, reference: String, orderId: Option[String] = None, unused: Long = 0L): Respond[Bytes] =
+      k: String, reference: String, orderId: Option[String] = None, unused: Long = 0L): Respond[Json] =
     val accountId = s"$kind/$name/$currency"
     val start     = AccountMoveStart(accountId, direction, purpose, player, amount, k, reference, principal.subject, clock(), orderId, unused)
     val flow      = client.forWorkflow(AccountMoveWorkflow.id(accountId, k))
@@ -284,20 +285,20 @@ final class ServiceEndpoint(
     else Wire.json(200, AccountMoveReply(MoveWallet(o.realBalance, o.reserved.getOrElse(0L), o.available.getOrElse(0L), o.transactionId),
       MoveAccount(o.accountBalance.getOrElse(0L), o.counterpartyTransactionId), currency))
 
-  private def onPool(kind: String)(answer: => Respond[Bytes]): Respond[Bytes] =
+  private def onPool(kind: String)(answer: => Respond[Json]): Respond[Json] =
     accountKind(kind).flatMap(k => Either.cond(k == AccountState.Pool, k,
       Wire.refusal("INVALID_REQUEST", "splits, merges and resolution payments are on a pool account"))).fold(identity, _ => answer)
 
   /** Only a split is charged from a reservation (FR-008a); a merge or a clearing move naming an order is a mistake. */
-  private def noOrder(r: AccountMoveRequest): Either[Respond[Bytes], Unit] =
+  private def noOrder(r: AccountMoveRequest): Either[Respond[Json], Unit] =
     Either.cond(r.orderId.isEmpty && r.unused.isEmpty, (), Wire.refusal("INVALID_REQUEST", "only a split is charged from a reservation"))
 
   /** What a reservation gives up, the amount and the unused part, fits in a Long; past it the entity would throw. */
-  private def drawn(amount: Long, unused: Long): Either[Respond[Bytes], Unit] =
+  private def drawn(amount: Long, unused: Long): Either[Respond[Json], Unit] =
     Either.cond(amount <= Long.MaxValue - unused, (), Wire.refusal("INVALID_REQUEST", "the amount and the unused part together are too large"))
 
   /** A split's order and unused part: `unused` only with an order, and an order named by a key. */
-  private def charged(r: AccountMoveRequest): Either[Respond[Bytes], (Option[String], Long)] =
+  private def charged(r: AccountMoveRequest): Either[Respond[Json], (Option[String], Long)] =
     (r.orderId, r.unused) match
       case (None, None)    => Right((None, 0L))
       case (None, Some(_)) => Left(Wire.refusal("INVALID_REQUEST", "unused is released from an order's reservation; name the order"))
@@ -424,7 +425,7 @@ object ServiceEndpoint:
   given JsonValueCodec[AccountBalanceReply]       = Codecs.make[AccountBalanceReply]
 
   /** An account's balance as the service route answers it; an account no one has moved money through is not found. */
-  def accountBalance(b: AccountBalance): Respond[Bytes] =
+  def accountBalance(b: AccountBalance): Respond[Json] =
     if !b.found then Wire.refusal(Refusals.AccountNotFound, Refusals.accountNotFound(b.accountId))
     else Wire.json(200, AccountBalanceReply(b.balance, b.creditLine, b.floor, b.owner, b.currency))
   given JsonValueCodec[BetRequest]            = Codecs.make[BetRequest]

@@ -1,0 +1,4 @@
+# The original's player site read these through the twin API (/twins/…), not the wallet's routes.
+GET /v1/casino/players/the-brand/wallets/{currency}/balance
+GET /v1/casino/players/the-brand/wallets/{currency}/restricted-funds
+GET /v1/casino/players/the-brand/wallets/{currency}/transactions

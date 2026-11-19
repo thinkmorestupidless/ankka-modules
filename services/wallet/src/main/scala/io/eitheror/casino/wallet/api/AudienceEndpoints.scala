@@ -4,6 +4,7 @@ import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import com.thinkmorestupidless.ankka.auth.oidc.Oidc
 import com.thinkmorestupidless.ankka.core.Codecs
 import com.thinkmorestupidless.ankka.http.*
+import com.thinkmorestupidless.ankka.http.openapi.Description
 import com.thinkmorestupidless.ankka.runtime.ViewClient
 import com.thinkmorestupidless.ankka.sdk.ComponentClient
 import io.eitheror.casino.contract.access.Routes
@@ -14,6 +15,7 @@ import io.eitheror.casino.wallet.views.*
 import io.eitheror.casino.wallet.wire.*
 
 import java.time.Instant
+import io.eitheror.casino.contract.http.Json
 
 /** The player site's and backoffice's amounts: major units by the currency's exponent (FR-003; amended by spec 027 FR-058). */
 final case class MajorBalance(realBalance: String, bonusBalance: String, currency: String, primary: Option[MajorPrimary],
@@ -96,7 +98,7 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
   private val lifetime     = views.forView(LifetimeTotalsView)
 
   private def wallet(player: String, currency: String) = client.forEventSourcedEntity(WalletEntity.id(player, currency))
-  private def checked(currency: String)(answer: Currency => Respond[Bytes]): Respond[Bytes] =
+  private def checked(currency: String)(answer: Currency => Respond[Json]): Respond[Json] =
     Currency.from(currency).fold(m => Wire.refusal("INVALID_REQUEST", m), answer)
 
   postBody("/wallets/{player}/{currency}/adjustments") { (player: String, currency: String, r: OperatorAdjustRequest) =>
@@ -146,7 +148,7 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
   private def account(kind: String, name: String, currency: String) =
     client.forEventSourcedEntity(io.eitheror.casino.wallet.accounts.AccountEntity.id(kind, name, currency))
 
-  private def accountChecked(kind: String, currency: String)(answer: Currency => Respond[Bytes]): Respond[Bytes] =
+  private def accountChecked(kind: String, currency: String)(answer: Currency => Respond[Json]): Respond[Json] =
     if !io.eitheror.casino.wallet.accounts.AccountState.Kinds(kind) then Wire.refusal("INVALID_REQUEST", s"an account is pool or clearing, not '$kind'")
     else checked(currency)(answer)
 
@@ -198,20 +200,34 @@ final class PlayerEndpoint(client: ComponentClient, views: ViewClient, brand: St
   /** The token's player (`Routes.playerId`); `checked` refuses a token naming none before this is read. */
   private def player: String = Routes.playerId(principal).getOrElse("")
   private def wallet(currency: String) = client.forEventSourcedEntity(WalletEntity.id(player, currency))
-  private def checked(currency: String)(answer: Currency => Respond[Bytes]): Respond[Bytes] =
+  private def checked(currency: String)(answer: Currency => Respond[Json]): Respond[Json] =
     if Routes.playerId(principal).isEmpty then Wire.refusal("player_id_mismatch", "the token names no player")
     else Currency.from(currency).fold(m => Wire.refusal("INVALID_REQUEST", m), answer)
 
-  get("/{currency}/balance") { (currency: String) =>
-    checked(currency)(c => Wire.json(200, Major.balance(wallet(currency).call(WalletEntity.balance).invoke(), c)))
+  // Spec 031: each route described for the player SDK; the refusals are `checked`'s.
+  override protected def description: Description = Described.refusals
+
+  described(_.summary("The signed-in player's balance in one currency, in major units")
+    .answers[MajorBalance](200).refuses(403, "player_id_mismatch").refuses(400, "INVALID_REQUEST").tag("player")) {
+    get("/{currency}/balance") { (currency: String) =>
+      checked(currency)(c => Wire.json(200, Major.balance(wallet(currency).call(WalletEntity.balance).invoke(), c)))
+    }
   }
 
-  get("/{currency}/restricted-funds") { (currency: String) =>
-    checked(currency)(_ => Wire.json(200, wallet(currency).call(WalletEntity.restrictedFundsStatus).invoke()))
+  described(_.summary("The signed-in player's restricted funds in one currency: each bonus record and the headline one")
+    .answers[RestrictedFundsStatus](200).refuses(403, "player_id_mismatch").refuses(400, "INVALID_REQUEST").tag("player")) {
+    get("/{currency}/restricted-funds") { (currency: String) =>
+      checked(currency)(_ => Wire.json(200, wallet(currency).call(WalletEntity.restrictedFundsStatus).invoke()))
+    }
   }
 
-  get("/{currency}/transactions") { (currency: String) =>
-    checked(currency)(c => Wire.json(200, Major.transactions(TransactionsQuery.page(transactions, s"$player/$currency",
-      query.optional[String]("type"), query.optional[String]("walletType"), query.optional[Long]("from"), query.optional[Long]("to"),
-      query.optional[Int]("page").getOrElse(0), query.optional[Int]("pageSize").getOrElse(50)), c)))
+  described(_.summary("One page of the signed-in player's transactions in one currency, newest first, in major units")
+    .answers[MajorTransactions](200).refuses(403, "player_id_mismatch").refuses(400, "INVALID_REQUEST")
+    .query[String]("type").query[String]("walletType").query[Long]("from").query[Long]("to")
+    .query[Int]("page").query[Int]("pageSize").tag("player")) {
+    get("/{currency}/transactions") { (currency: String) =>
+      checked(currency)(c => Wire.json(200, Major.transactions(TransactionsQuery.page(transactions, s"$player/$currency",
+        query.optional[String]("type"), query.optional[String]("walletType"), query.optional[Long]("from"), query.optional[Long]("to"),
+        query.optional[Int]("page").getOrElse(0), query.optional[Int]("pageSize").getOrElse(50)), c)))
+    }
   }

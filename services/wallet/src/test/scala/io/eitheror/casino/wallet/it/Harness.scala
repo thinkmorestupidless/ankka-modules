@@ -4,6 +4,7 @@ import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{Caller, HttpServer}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryPublisher, ProjectionRuntime}
 import com.thinkmorestupidless.ankka.testkit.{AnkkaTestKit, LogCapturing}
+import io.eitheror.casino.contract.port.HeldToPlayerRoutes
 import io.eitheror.casino.wallet.WalletService
 import io.eitheror.casino.wallet.api.{RgAnswer, ResponsibleGambling}
 import io.eitheror.casino.wallet.entity.DepositSums
@@ -60,13 +61,18 @@ trait Harness extends munit.FunSuite with LogCapturing:
   /** Other services by name, as `ankka.local-services.<name>`: a suite that runs the real client points one at a scripted server. */
   def localServices: Map[String, String] = Map.empty
 
+  /** The player routes held to the kept description (spec 031 FR-015): a test that passed fails after its body on a violation. */
+  private val held = HeldToPlayerRoutes(Harness.description, brand)
+
   override def beforeAll(): Unit =
-    server = HttpServer.at("127.0.0.1", 0)(WalletService.endpoints(brand, () => TestTokens.authenticate, project = Harness.Project)*)
+    server = held.hold(HttpServer.at("127.0.0.1", 0)(WalletService.endpoints(brand, () => TestTokens.authenticate, project = Harness.Project)*))
     kit = AnkkaTestKit.start(components, Seq(ProjectionRuntime.withPublisher(publisher), server), localServices = localServices)
 
   override def afterAll(): Unit = if kit != null then kit.stop()
 
-  override def beforeEach(context: BeforeEach): Unit = rg.allow()
+  override def beforeEach(context: BeforeEach): Unit = { rg.allow(); held.violations.clear() }
+
+  override def afterEach(context: AfterEach): Unit = held.assertHeld()
 
   /** A request as a service of the project (the testkit's local caller header). */
   def send(method: String, path: String, body: Option[String] = None, as: Caller = Caller.Service("local", "game-provider")): (Int, String) =
@@ -109,6 +115,10 @@ trait Harness extends munit.FunSuite with LogCapturing:
 object Harness:
   /** The integration kit's project: what `Caller.Service` names for a service of this one. */
   val Project = "local"
+
+  /** The wallet's kept description of its player routes (spec 031). */
+  val description: java.nio.file.Path =
+    java.nio.file.Paths.get(sys.props.getOrElse("casino.root", "../..")).resolve("services/wallet/openapi.player.json")
 
 /**
  * Tokens for the suites: a header the test authenticator reads as a verified token would be read

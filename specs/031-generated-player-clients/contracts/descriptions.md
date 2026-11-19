@@ -70,3 +70,32 @@ kit's own brand.
 A violation that shows the handler answering something the description does not allow is fixed in
 the description when the handler is right (the recordings and the service's features decide), and
 is a finding, reported and not fixed here, when the handler is wrong.
+
+## The pattern, from the wallet (T037)
+
+What the first service taught, for the other eight:
+
+1. **Answer JSON as `contract.http.Json`, never `Bytes`.** A route whose answer type leaves the
+   status to the handler (`Respond[…]`) files each described answer under the route's own content
+   type (ankka 0.18 `OpenApi.scala:254-255`), and `Bytes` gives `application/octet-stream`. A
+   service's JSON helper (`Wire.json`, `Answers`' `type Reply`) becomes `Respond[Json]`; the wire is
+   unchanged. A route that does answer bytes (a CSV, a page) keeps `Bytes` and is not a player route.
+2. **One `Described` object per service** under `api/`, holding the refusal shape
+   (`Description.none.refusalShape[<the service's refusal body>]`); each endpoint with player routes
+   sets `override protected def description` to it, so a route names only its own summary, answers,
+   refusals, query parameters and tag.
+3. **Each route in its own `described(…) { … }`**: a summary, `answers[<type>](status)` for each
+   success the handler gives, `refuses(status, "<code>")` for each refusal the handler (not the ACL)
+   gives, `query[A]` for each query parameter the handler reads, `tag("player")`. A status the
+   platform answers (an ACL's 401 or 403, a 413, a 503) is not described.
+4. **`describe.env`** names the placeholders the service's `run` needs, with `CASINO_BRAND=the-brand`.
+5. **The kit**: `HeldToPlayerRoutes(<kept file>, brand)`; `hold` wraps the `HttpServer` handed to
+   `AnkkaTestKit.start`, `violations.clear()` in `beforeEach` and `assertHeld()` in `afterEach`. A
+   route the description does not keep is not held. The wallet's hold was checked once by
+   describing the balance's 200 as a shape its body breaks: the three suites reading the balance
+   failed, naming the route and the missing fields.
+6. **`port/DescriptionSuite`**: the original's route table (method, the original's path as a
+   pattern, its host, the operation id ankka writes: the method and the path with `/`, `-`, `{`
+   and `}` as `_`), `DescriptionCheck.run` over `DescriptionCheck.recordings(root)` (every recording;
+   a JSON file with no `steps` is not one), no differences, and the unrecorded routes equal to
+   `tests/port/unrecorded-player-routes/<service>.txt`.

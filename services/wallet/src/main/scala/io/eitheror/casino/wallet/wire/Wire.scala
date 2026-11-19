@@ -2,10 +2,11 @@ package io.eitheror.casino.wallet.wire
 
 import com.github.plokhotnyuk.jsoniter_scala.core.{JsonReader, JsonValueCodec, JsonWriter, writeToArray}
 import com.thinkmorestupidless.ankka.core.Codecs
-import com.thinkmorestupidless.ankka.http.{Bytes, Respond}
+import com.thinkmorestupidless.ankka.http.Respond
 import io.eitheror.casino.contract.money.{AmountNotMinorUnits, Amounts, Currency, MinorUnits, SignedMinorUnits}
 import io.eitheror.casino.wallet.entity.{DepositSums, Outcome}
 import io.eitheror.casino.wallet.funding.Leg
+import io.eitheror.casino.contract.http.Json
 
 /**
  * The wallet's HTTP bodies (contracts/routes.md). Field names are the original's where it has the
@@ -151,14 +152,14 @@ object Wire:
     case "MISSING_BASELINE"                                                                                     => 409
     case _                                                                                                      => 409
 
-  def json[A](status: Int, body: A)(using codec: JsonValueCodec[A]): Respond[Bytes] =
-    Respond(Bytes("application/json", writeToArray(body)), status)
+  def json[A](status: Int, body: A)(using codec: JsonValueCodec[A]): Respond[Json] =
+    Respond(Json(writeToArray(body)), status)
 
-  def refusal(code: String, message: String, details: Map[String, String] = Map.empty): Respond[Bytes] =
+  def refusal(code: String, message: String, details: Map[String, String] = Map.empty): Respond[Json] =
     json(status(code), RefusalBody(code, message, details))
 
   /** An outcome as its route answers it: the reply, or the refusal with its status. */
-  def outcome(o: Outcome, currency: String): Respond[Bytes] =
+  def outcome(o: Outcome, currency: String): Respond[Json] =
     o.code match
       case Some(code) => refusal(code, o.message.getOrElse(code), o.details)
       case None =>
@@ -178,10 +179,10 @@ object Wire:
         ))
 
   /** The boundary refusal for an amount that is not whole minor units (spec 001 FR-026). */
-  def invalidAmount(e: AmountNotMinorUnits): Respond[Bytes] = refusal("INVALID_REQUEST", e.message, Map("amount" -> e.amount))
+  def invalidAmount(e: AmountNotMinorUnits): Respond[Json] = refusal("INVALID_REQUEST", e.message, Map("amount" -> e.amount))
 
   /** The boundary refusal for a money command without its key (spec 001 FR-027). */
-  val missingKey: Respond[Bytes] =
+  val missingKey: Respond[Json] =
     refusal("MISSING_KEY", io.eitheror.casino.contract.money.MissingKey.message)
 
   /**

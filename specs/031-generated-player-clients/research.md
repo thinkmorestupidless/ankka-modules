@@ -331,3 +331,11 @@ round; each was fixed after that round and not analysed again:
     an `answer <status>` whose type has no shape and none described (OA:209-211, 245-249, 315); a
     missing summary or tag is not incomplete, so the descriptions' summaries are held by T046's
     outline, not by strict mode.
+- T037 (the wallet): a `Respond[Bytes]` route's described answers came out under
+  `application/octet-stream`. With no fixed status, ankka takes the route's own content type for
+  them (`OpenApi.scala:254-255`), and `Bytes` reports octet-stream because its real type is chosen
+  per value. Fixed on our side with `contract.http.Json`, a JSON body with its own `ToResponse`
+  (`application/json`), the same bytes and header on the wire. It belongs in T062's issue draft:
+  line 256 already uses `describedContent` for a fixed status, and 255 could do the same.
+  `DescriptionCheck.recordings` skips a JSON file with no `steps`, such as the programme's
+  `import/bundle.json`.
