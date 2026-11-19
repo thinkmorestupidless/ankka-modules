@@ -1,0 +1,973 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "responsible-gambling",
+    "version": "0.0.0"
+  },
+  "paths": {
+    "/v1/casino/rg/the-brand/{player}/cooling-off": {
+      "put": {
+        "operationId": "put_v1_casino_rg_the_brand_player_cooling_off",
+        "summary": "Take a break until an instant",
+        "tags": [
+          "player"
+        ],
+        "parameters": [
+          {
+            "name": "player",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetBreak"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Protection"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_body, until_required, invalid_until, break_too_short, break_too_long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "player_id_mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "break_active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      }
+    },
+    "/v1/casino/rg/the-brand/{player}/history": {
+      "get": {
+        "operationId": "get_v1_casino_rg_the_brand_player_history",
+        "summary": "The signed-in player's protection history, newest first",
+        "tags": [
+          "player"
+        ],
+        "parameters": [
+          {
+            "name": "player",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HistoryEntry"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "player_id_mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "service_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      }
+    },
+    "/v1/casino/rg/the-brand/{player}/limits": {
+      "get": {
+        "operationId": "get_v1_casino_rg_the_brand_player_limits",
+        "summary": "The signed-in player's protection: limits, staged changes, sums used, break and reality check",
+        "tags": [
+          "player"
+        ],
+        "parameters": [
+          {
+            "name": "player",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Protection"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "player_id_mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "service_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      }
+    },
+    "/v1/casino/rg/the-brand/{player}/limits/{type}": {
+      "put": {
+        "operationId": "put_v1_casino_rg_the_brand_player_limits_type",
+        "summary": "Set one of the signed-in player's limits; a loosening is staged",
+        "tags": [
+          "player"
+        ],
+        "parameters": [
+          {
+            "name": "player",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetLimit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Protection"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_body, unknown_limit_type, value_required, invalid_value, below_minimum_session_minutes, invalid_currency",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "player_id_mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      },
+      "delete": {
+        "operationId": "delete_v1_casino_rg_the_brand_player_limits_type",
+        "summary": "Remove one of the signed-in player's limits; the removal is staged",
+        "tags": [
+          "player"
+        ],
+        "parameters": [
+          {
+            "name": "player",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Protection"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "unknown_limit_type, invalid_currency",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "player_id_mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      }
+    },
+    "/v1/casino/rg/the-brand/{player}/permanent-exclusion": {
+      "put": {
+        "operationId": "put_v1_casino_rg_the_brand_player_permanent_exclusion",
+        "summary": "Exclude the signed-in player permanently",
+        "tags": [
+          "player"
+        ],
+        "parameters": [
+          {
+            "name": "player",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Excluded"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "player_id_mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "already_excluded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      }
+    },
+    "/v1/casino/rg/the-brand/{player}/reality-check": {
+      "put": {
+        "operationId": "put_v1_casino_rg_the_brand_player_reality_check",
+        "summary": "Set the signed-in player's reality-check interval: 15, 30, 45 or 60 minutes",
+        "tags": [
+          "player"
+        ],
+        "parameters": [
+          {
+            "name": "player",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetRealityCheck"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Protection"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_body, interval_required, invalid_interval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "player_id_mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      },
+      "delete": {
+        "operationId": "delete_v1_casino_rg_the_brand_player_reality_check",
+        "summary": "Turn off the signed-in player's reality checks",
+        "tags": [
+          "player"
+        ],
+        "parameters": [
+          {
+            "name": "player",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Protection"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "player_id_mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      }
+    },
+    "/v1/casino/rg/the-brand/{player}/reality-check/acknowledge": {
+      "post": {
+        "operationId": "post_v1_casino_rg_the_brand_player_reality_check_acknowledge",
+        "summary": "Acknowledge a reality check in one of the player's game sessions of today or yesterday",
+        "tags": [
+          "player"
+        ],
+        "parameters": [
+          {
+            "name": "player",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Acknowledge"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Acknowledged"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "player_id_mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "session_not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      }
+    },
+    "/v1/casino/rg/the-brand/{player}/return": {
+      "post": {
+        "operationId": "post_v1_casino_rg_the_brand_player_return",
+        "summary": "Ask to return from an ended self-exclusion; the player is reinstated after the cooling period",
+        "tags": [
+          "player"
+        ],
+        "parameters": [
+          {
+            "name": "player",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReturnRequested"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "player_id_mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "not_excluded, exclusion_permanent, exclusion_not_ended, return_requested",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Acknowledge": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sessionId"
+        ]
+      },
+      "Acknowledged": {
+        "type": "object",
+        "properties": {
+          "acknowledged": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "acknowledged"
+        ]
+      },
+      "Excluded": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "HistoryEntry": {
+        "type": "object",
+        "properties": {
+          "eventType": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "description": {
+            "type": "string"
+          },
+          "limitType": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "previousValue": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "newValue": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "eventType",
+          "actor",
+          "occurredAt",
+          "description"
+        ]
+      },
+      "LimitRow": {
+        "type": "object",
+        "properties": {
+          "limitType": {
+            "type": "string"
+          },
+          "value": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currency": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "limitType",
+          "value"
+        ]
+      },
+      "PendingChange": {
+        "type": "object",
+        "properties": {
+          "limitType": {
+            "type": "string"
+          },
+          "pendingValue": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "appliesAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "currency": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "limitType",
+          "appliesAt"
+        ]
+      },
+      "Protection": {
+        "type": "object",
+        "properties": {
+          "limits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LimitRow"
+            }
+          },
+          "pendingChanges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PendingChange"
+            }
+          },
+          "usedAmounts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UsedAmount"
+            }
+          },
+          "isCoolingOff": {
+            "type": "boolean"
+          },
+          "activeRestrictions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "coolingOffUntil": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "realityCheckIntervalMinutes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "isCoolingOff"
+        ]
+      },
+      "Refusal": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "ReturnRequested": {
+        "type": "object",
+        "properties": {
+          "reinstatesAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "SetBreak": {
+        "type": "object",
+        "properties": {
+          "until": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "until"
+        ]
+      },
+      "SetLimit": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "currency": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "SetRealityCheck": {
+        "type": "object",
+        "properties": {
+          "intervalMinutes": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "intervalMinutes"
+        ]
+      },
+      "UsedAmount": {
+        "type": "object",
+        "properties": {
+          "limitType": {
+            "type": "string"
+          },
+          "currency": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "usedAmount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "limitType",
+          "usedAmount"
+        ]
+      }
+    }
+  }
+}

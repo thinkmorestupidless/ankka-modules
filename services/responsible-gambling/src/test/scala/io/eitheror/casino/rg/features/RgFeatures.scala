@@ -28,6 +28,10 @@ abstract class RgFeatures(file: String) extends GherkinSuite(s"../../features/re
 
   protected def kit: Kit = SharedKit.kit
 
+  override def afterEach(context: AfterEach): Unit =
+    kit.assertHeld()
+    super.afterEach(context)
+
   protected var player   = ""
   protected var currency = "EUR"
   protected var last: Reply = null

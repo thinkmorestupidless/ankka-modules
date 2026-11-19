@@ -3,6 +3,8 @@ package io.eitheror.casino.rg.api
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.http.*
+import com.thinkmorestupidless.ankka.http.openapi.Description
+import io.eitheror.casino.contract.http.Json as JsonBody
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.rg.Json
 import io.eitheror.casino.rg.Json.*
@@ -28,16 +30,59 @@ final class PlayerEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/rg/${ctx.
     if !Routes.playerId(principal).contains(playerId) then refusal(403, "player_id_mismatch", "Authenticated player does not match requested player ID")
     else f
 
-  get("/{player}/limits") { (p: String) => mine(p)(profileRoutes.status(p, query.raw("currency"))) }
-  putBody("/{player}/limits/{type}") { (p: String, t: String, text: String) => mine(p)(profileRoutes.setLimit(p, t, text, Actor.Player)) }
-  delete("/{player}/limits/{type}") { (p: String, t: String) => mine(p)(profileRoutes.removeLimit(p, t, query.raw("currency"), Actor.Player)) }
-  putBody("/{player}/cooling-off") { (p: String, text: String) => mine(p)(profileRoutes.setBreak(p, text, Actor.Player)) }
-  put("/{player}/permanent-exclusion") { (p: String) => mine(p)(profileRoutes.exclude(p, "permanent", Actor.Player)) }
-  post("/{player}/return") { (p: String) => mine(p)(profileRoutes.requestReturn(p, Actor.Player)) }
-  get("/{player}/history") { (p: String) => mine(p)(profileRoutes.history(p)) }
-  putBody("/{player}/reality-check") { (p: String, text: String) => mine(p)(profileRoutes.setRealityCheck(p, text)) }
-  delete("/{player}/reality-check") { (p: String) => mine(p)(profileRoutes.removeRealityCheck(p)) }
-  postBody("/{player}/reality-check/acknowledge") { (p: String, text: String) => mine(p)(profileRoutes.acknowledge(p, text)) }
+  // Spec 031: each route described for the player SDK (contracts/routes.md's player table); the
+  // refusal shape is `Answers.refusal`'s, and `mine`'s 403 is every route's.
+  override protected def description: Description = Described.refusals
+
+  described(_.summary("The signed-in player's protection: limits, staged changes, sums used, break and reality check")
+    .answers[Described.Protection](200).refuses(403, Described.mine).refuses(503, "service_unavailable")
+    .query[String]("currency").tag("player")) {
+    get("/{player}/limits") { (p: String) => mine(p)(profileRoutes.status(p, query.raw("currency"))) }
+  }
+  described(_.summary("Set one of the signed-in player's limits; a loosening is staged")
+    .body[Described.SetLimit].answers[Described.Protection](200).refuses(403, Described.mine)
+    .refuses(400, "invalid_body, unknown_limit_type, value_required, invalid_value, below_minimum_session_minutes, invalid_currency")
+    .tag("player")) {
+    putBody("/{player}/limits/{type}") { (p: String, t: String, body: JsonBody) => mine(p)(profileRoutes.setLimit(p, t, body.text, Actor.Player)) }
+  }
+  described(_.summary("Remove one of the signed-in player's limits; the removal is staged")
+    .answers[Described.Protection](200).refuses(403, Described.mine).refuses(400, "unknown_limit_type, invalid_currency")
+    .query[String]("currency").tag("player")) {
+    delete("/{player}/limits/{type}") { (p: String, t: String) => mine(p)(profileRoutes.removeLimit(p, t, query.raw("currency"), Actor.Player)) }
+  }
+  described(_.summary("Take a break until an instant")
+    .body[Described.SetBreak].answers[Described.Protection](200).refuses(403, Described.mine)
+    .refuses(400, "invalid_body, until_required, invalid_until, break_too_short, break_too_long").refuses(409, "break_active")
+    .tag("player")) {
+    putBody("/{player}/cooling-off") { (p: String, body: JsonBody) => mine(p)(profileRoutes.setBreak(p, body.text, Actor.Player)) }
+  }
+  described(_.summary("Exclude the signed-in player permanently")
+    .answers[Described.Excluded](200).refuses(403, Described.mine).refuses(409, "already_excluded").tag("player")) {
+    put("/{player}/permanent-exclusion") { (p: String) => mine(p)(profileRoutes.exclude(p, "permanent", Actor.Player)) }
+  }
+  described(_.summary("Ask to return from an ended self-exclusion; the player is reinstated after the cooling period")
+    .answers[Described.ReturnRequested](202).refuses(403, Described.mine)
+    .refuses(409, "not_excluded, exclusion_permanent, exclusion_not_ended, return_requested").tag("player")) {
+    post("/{player}/return") { (p: String) => mine(p)(profileRoutes.requestReturn(p, Actor.Player)) }
+  }
+  described(_.summary("The signed-in player's protection history, newest first")
+    .answers[Vector[Described.HistoryEntry]](200).refuses(403, Described.mine).refuses(503, "service_unavailable").tag("player")) {
+    get("/{player}/history") { (p: String) => mine(p)(profileRoutes.history(p)) }
+  }
+  described(_.summary("Set the signed-in player's reality-check interval: 15, 30, 45 or 60 minutes")
+    .body[Described.SetRealityCheck].answers[Described.Protection](200).refuses(403, Described.mine)
+    .refuses(400, "invalid_body, interval_required, invalid_interval").tag("player")) {
+    putBody("/{player}/reality-check") { (p: String, body: JsonBody) => mine(p)(profileRoutes.setRealityCheck(p, body.text)) }
+  }
+  described(_.summary("Turn off the signed-in player's reality checks")
+    .answers[Described.Protection](200).refuses(403, Described.mine).tag("player")) {
+    delete("/{player}/reality-check") { (p: String) => mine(p)(profileRoutes.removeRealityCheck(p)) }
+  }
+  described(_.summary("Acknowledge a reality check in one of the player's game sessions of today or yesterday")
+    .body[Described.Acknowledge].answers[Described.Acknowledged](200).refuses(403, Described.mine)
+    .refuses(400, "invalid_body").refuses(404, "session_not_found").tag("player")) {
+    postBody("/{player}/reality-check/acknowledge") { (p: String, body: JsonBody) => mine(p)(profileRoutes.acknowledge(p, body.text)) }
+  }
 
 /** `/v1/casino/backoffice/<slug>/rg`: the brand's operators (FR-004, FR-016, FR-019, FR-025, FR-026, FR-029). */
 final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoffice/${ctx.slug}/rg"):

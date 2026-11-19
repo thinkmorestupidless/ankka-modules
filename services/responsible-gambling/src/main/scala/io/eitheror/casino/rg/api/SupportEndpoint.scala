@@ -3,6 +3,7 @@ package io.eitheror.casino.rg.api
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.http.*
 import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.http.Json as JsonBody
 import io.eitheror.casino.rg.Json
 import io.eitheror.casino.rg.Json.*
 import io.eitheror.casino.rg.profile.*
@@ -24,7 +25,7 @@ final class SupportEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/rg-servi
 
   private def keys(playerId: String) = ctx.clients.componentClient.forKeyValueEntity(RgKeys.id(playerId))
 
-  private def replay(r: KeptReply): Reply = Respond(Bytes("application/json", r.body.getBytes(UTF_8)), r.status, Vector.empty)
+  private def replay(r: KeptReply): Reply = Respond(JsonBody(r.body.getBytes(UTF_8)), r.status, Vector.empty)
 
   /** Runs `change` once under the body's key; `command` names it and the body's fields it reads, for the hash. */
   private def keyed(playerId: String, text: String, command: JsonNode => Seq[String])(change: => Reply): Reply =
@@ -40,7 +41,7 @@ final class SupportEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/rg-servi
             case KeyCheck.Fresh =>
               val reply = change
               if reply.status >= 500 then reply
-              else replay(keys(playerId).call(RgKeys.record).invoke(KeyEntry(key, hash, KeptReply(reply.status, String(reply.body.body, UTF_8)))))
+              else replay(keys(playerId).call(RgKeys.record).invoke(KeyEntry(key, hash, KeptReply(reply.status, reply.body.text))))
     }
 
   private def field(b: JsonNode, name: String): String = b.text(name).getOrElse("")
@@ -60,6 +61,6 @@ final class SupportEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/rg-servi
   putBody("/{player}/permanent-exclusion") { (p: String, text: String) =>
     keyed(p, text, _ => Seq("permanent-exclusion")) {
       val r = profileRoutes.exclude(p, "permanent", Actor.Player)
-      if r.status == 409 && String(r.body.body, UTF_8).contains("\"already_excluded\"") then ok(Json.obj("status" -> "self_excluded")) else r
+      if r.status == 409 && r.body.text.contains("\"already_excluded\"") then ok(Json.obj("status" -> "self_excluded")) else r
     }
   }

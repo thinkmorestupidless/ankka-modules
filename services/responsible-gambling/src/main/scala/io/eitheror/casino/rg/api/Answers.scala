@@ -3,7 +3,8 @@ package io.eitheror.casino.rg.api
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.thinkmorestupidless.ankka.core.EntityId
-import com.thinkmorestupidless.ankka.http.{Acl, Bytes, EndpointClients, Respond}
+import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, Respond}
+import io.eitheror.casino.contract.http.Json as JsonBody
 import io.eitheror.casino.rg.{Json, RgRuntime, Settings}
 import io.eitheror.casino.rg.profile.*
 import io.eitheror.casino.rg.settings.{BrandSettings, BrandSettingsEntity}
@@ -18,11 +19,12 @@ import scala.util.Try
  * fields}`. The 401s and 403s of a caller the ACL refuses are the ACL's, written before a handler runs.
  */
 object Answers:
-  type Reply = Respond[Bytes]
+  /** JSON as `contract.http.Json`, so a described answer is `application/json` in the document (spec 031). */
+  type Reply = Respond[JsonBody]
 
-  def json(status: Int, body: JsonNode): Reply = Respond(Bytes("application/json", Json.render(body).getBytes(UTF_8)), status, Vector.empty)
+  def json(status: Int, body: JsonNode): Reply = Respond(JsonBody(Json.render(body).getBytes(UTF_8)), status, Vector.empty)
   def ok(body: JsonNode): Reply             = json(200, body)
-  def noContent: Reply                       = Respond(Bytes("application/json", Array.emptyByteArray), 204, Vector.empty)
+  def noContent: Reply                       = Respond(JsonBody(Array.emptyByteArray), 204, Vector.empty)
 
   def refusal(status: Int, error: String, message: String, fields: (String, Any)*): Reply =
     json(status, Json.obj((Seq[(String, Any)]("error" -> error, "message" -> message) ++ fields)*))

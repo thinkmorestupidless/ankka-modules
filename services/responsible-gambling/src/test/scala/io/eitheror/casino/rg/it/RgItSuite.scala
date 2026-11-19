@@ -18,6 +18,7 @@ class RgItSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout = 3.minutes
 
   private lazy val kit = SharedKit.kit
+  override def afterEach(context: AfterEach): Unit = kit.assertHeld()
   override def beforeEach(context: BeforeEach): Unit = kit.reset()
 
   private def player() = s"p-${UUID.randomUUID().toString.take(8)}"

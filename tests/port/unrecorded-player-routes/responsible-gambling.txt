@@ -1,0 +1,6 @@
+# engagement's and reporting's recordings set limits, breaks and exclusions; none sets a reality
+# check or asks to return.
+DELETE /v1/casino/rg/the-brand/{player}/reality-check
+POST /v1/casino/rg/the-brand/{player}/reality-check/acknowledge
+POST /v1/casino/rg/the-brand/{player}/return
+PUT /v1/casino/rg/the-brand/{player}/reality-check

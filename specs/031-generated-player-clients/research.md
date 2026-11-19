@@ -339,3 +339,9 @@ round; each was fixed after that round and not analysed again:
   line 256 already uses `describedContent` for a fixed status, and 255 could do the same.
   `DescriptionCheck.recordings` skips a JSON file with no `steps`, such as the programme's
   `import/bundle.json`.
+- T038 (responsible gambling): a route reading its own JSON as `String` files a described body
+  under `text/plain` (`FromBody[String]`), so `contract.http.Json` is a `FromBody` too
+  (`application/json`). ankka reads the bytes whatever the request's type, so callers are unaffected.
+  The description check found two things the original's recordings lack: a refusal's `message` and a
+  sum's `currency`. Both are optional in the description, since a field the original never sent is
+  not one a client may rely on; the rebuild's answers, which have both, are held by the kit.
