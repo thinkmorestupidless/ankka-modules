@@ -16,7 +16,7 @@ import scala.collection.mutable
 import scala.concurrent.duration.*
 import scala.jdk.CollectionConverters.*
 
-abstract class SharedKitSuite extends munit.FunSuite with LogCapturing:
+abstract class SharedKitSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.gameprovider.it.Held:
   override val munitTimeout: Duration = 300.seconds
   protected def kit: Kit = SharedKit.kit
   protected var run      = ""

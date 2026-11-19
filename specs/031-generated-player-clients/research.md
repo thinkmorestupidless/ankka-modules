@@ -350,3 +350,8 @@ round; each was fixed after that round and not analysed again:
   read is optional. The kit's `FakeMerchant` answers reads with fewer fields than merchant, and the
   hold failed four suites on it until then. Ingest's kits are plain classes that some suites start
   lazily, so `it.Held` asserts on the kits started (`Kit.started`) and starts none.
+- T040 (game-provider): a route that checks the brand (`ownBrand`, `?brand=`) refuses another
+  brand with ankka's problem (`{status, error, details?}`). Its `error` is the service's
+  refusal shape's one required field, so each such route names `404 wrong_brand` and needs no shape
+  of its own. The launch and the popular games keep `{brand}` as a path parameter, not the literal:
+  their prefixes do not hold the brand.

@@ -13,7 +13,7 @@ import java.time.Instant
 import scala.concurrent.duration.*
 
 /** A suite with a service of its own, started and stopped with it, the shared wiring handed back after. */
-abstract class OwnKitSuite extends munit.FunSuite with LogCapturing:
+abstract class OwnKitSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.gameprovider.it.Held:
   override val munitTimeout: Duration = 300.seconds
   protected var kit: Kit = null
   protected def startKit(): Kit

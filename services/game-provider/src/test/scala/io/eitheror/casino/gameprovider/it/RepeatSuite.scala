@@ -7,7 +7,7 @@ import io.eitheror.casino.gameprovider.features.SharedKit
 import java.util.UUID
 
 /** SC-004: a repeated callback never calls the wallet, nor `may-bet` (research R18). 1,000 repeats of debits, credits and cancels. */
-class RepeatSuite extends munit.FunSuite with LogCapturing:
+class RepeatSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.gameprovider.it.Held:
   override val munitTimeout = scala.concurrent.duration.Duration(600, "s")
   private def kit = SharedKit.kit
 

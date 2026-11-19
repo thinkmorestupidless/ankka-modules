@@ -3,6 +3,7 @@ package io.eitheror.casino.gameprovider.api
 import com.github.plokhotnyuk.jsoniter_scala.core.writeToString
 import com.thinkmorestupidless.ankka.core.{Codecs, EntityId}
 import com.thinkmorestupidless.ankka.http.*
+import com.thinkmorestupidless.ankka.http.openapi.Description
 import com.thinkmorestupidless.ankka.runtime.SqlSyntax.*
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.gameprovider.{Json, Metrics}
@@ -21,13 +22,14 @@ import io.eitheror.casino.gameprovider.views.*
 import java.nio.charset.StandardCharsets.UTF_8
 import java.time.LocalDate
 import java.util.concurrent.ConcurrentHashMap
+import io.eitheror.casino.contract.http.Json as JsonBody
 
 /**
  * The callbacks, at whichever prefix they arrive (FR-002, research R2): verified on the raw body before
  * anything is read (FR-003), a body that is not a JSON object refused 400 (FR-004), then handled.
  */
 object CallbackRoute:
-  def serve(ctx: Context, provider: String, callbackName: String, raw: String, signature: Option[String]): Respond[Bytes] =
+  def serve(ctx: Context, provider: String, callbackName: String, raw: String, signature: Option[String]): Respond[JsonBody] =
     Callback.from(callbackName) match
       case None => refuse(404, "unknown_callback", "callback" -> callbackName)
       case Some(callback) =>
@@ -200,10 +202,20 @@ final class SessionsEndpoint(ctx: Context) extends HttpEndpoint("/v1/casino/sess
   val acl: Acl = Acl.DenyAll
   private val launch = Launch(ctx)
 
+  override protected def description: Description = Described.refusals
+
+  // Spec 031: described for the player SDK. A brand other than this one is ankka's 404 problem.
   withAcl(Routes.player(ctx.brand, ctx.settings.authenticate())) {
-    postBody("/{brand}/launch") { (segment: String, body: String) =>
-      ctx.ownBrand(segment)
-      launch(body, Routes.playerId(principal))
+    described(_.summary("Launch a game for the signed-in player: the provider's game address and the session opened")
+      .body[Described.Launch].answers[Described.Launched](200)
+      .refuses(400, "playerId required, gameId required, provider_required, free_spins_grant_invalid")
+      .refuses(403, "player_id_mismatch, account_restricted, PLAY_BLOCKED_KYC, cooling_off_active, session_limit_reached")
+      .refuses(404, "wrong_brand").refuses(429, "RATE_LIMITED").refuses(500, "launch_failed").refuses(503, "st8_not_configured, service_unavailable")
+      .tag("player")) {
+      postBody("/{brand}/launch") { (segment: String, body: JsonBody) =>
+        ctx.ownBrand(segment)
+        launch(body.text, Routes.playerId(principal))
+      }
     }
   }
 
@@ -218,7 +230,15 @@ final class CatalogEndpoint(ctx: Context) extends HttpEndpoint("/v1/casino/catal
   private def brandParameter(): Unit =
     query.optional[String]("brand").foreach(b => if b != ctx.brand then throw HttpProblem.notFound(s"${Routes.Refusal.WrongBrand}: this is brand ${ctx.brand}"))
 
+  override protected def description: Description = Described.refusals
+
+  // Spec 031: the lobby's reads, described for the player SDK; public, so a visitor reads them too.
   withAcl(Routes.public) {
+    described(_.summary("The lobby: the games listed, filtered, or the ones named by id")
+      .answers[Described.Games](200).refuses(404, "wrong_brand")
+      .query[String]("brand").query[String]("ids").query[String]("category").query[String]("themes").query[String]("features")
+      .query[String]("bonusTypes").query[String]("tag").query[String]("developer").query[String]("search")
+      .query[String]("country").query[Int]("limit").query[Int]("offset").tag("player")) {
     get("/games") { () =>
       brandParameter()
       query.optional[String]("ids") match
@@ -233,7 +253,11 @@ final class CatalogEndpoint(ctx: Context) extends HttpEndpoint("/v1/casino/catal
           paging.foreach { (total, next) => Json.set(body, "total", total); Json.set(body, "nextOffset", next) }
           ok(body)
     }
+    }
 
+    described(_.summary("One listed game, by its code")
+      .answers[Described.Game](200).refuses(400, "ambiguous_game_code").refuses(404, "game_not_found, wrong_brand")
+      .query[String]("brand").query[String]("provider").tag("player")) {
     get("/games/{gameCode}") { (gameCode: String) =>
       brandParameter()
       ctx.catalogue.one(gameCode, query.optional[String]("provider")) match
@@ -241,17 +265,24 @@ final class CatalogEndpoint(ctx: Context) extends HttpEndpoint("/v1/casino/catal
         case Right(None)     => refuse(404, "game_not_found")
         case Right(Some(g))  => ok(CatalogueReads.toJson(g))
     }
+    }
 
+    described(_.summary("The developers of the games listed")
+      .answers[Described.Developers](200).refuses(404, "wrong_brand").query[String]("brand").query[String]("country").tag("player")) {
     get("/developers") { () =>
       brandParameter()
       ok(Json.obj("developers" -> Json.arr(ctx.catalogue.developers(query.optional[String]("country")).map((id, name) =>
         Json.obj("developerId" -> id, "developerName" -> name))*)))
     }
+    }
 
+    described(_.summary("The brand's most played games, most played first")
+      .answers[Described.Popular](200).refuses(404, "wrong_brand").query[Int]("limit").tag("player")) {
     get("/{brand}/games/popular") { (segment: String) =>
       ctx.ownBrand(segment)
       val limit = query.raw("limit").flatMap(_.toIntOption).filter(n => n >= 1 && n <= 100).getOrElse(20)
       ok(Json.obj("gameIds" -> ctx.catalogue.popular(limit).map(_.code)))
+    }
     }
   }
 

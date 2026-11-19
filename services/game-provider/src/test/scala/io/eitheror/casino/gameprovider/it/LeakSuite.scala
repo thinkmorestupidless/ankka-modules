@@ -13,7 +13,7 @@ import scala.collection.mutable
  * SC-003: after a debit, a credit, a zero credit or a cancel, the wallet holds no open bet for the round,
  * over 1,000 rounds including multi-debit ones; and SC-002's timing report over the money callbacks.
  */
-class LeakSuite extends munit.FunSuite with LogCapturing:
+class LeakSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.gameprovider.it.Held:
   override val munitTimeout = scala.concurrent.duration.Duration(900, "s")
   private def kit = SharedKit.kit
 

@@ -1,7 +1,7 @@
 package io.eitheror.casino.gameprovider.api
 
 import com.thinkmorestupidless.ankka.core.EntityId
-import com.thinkmorestupidless.ankka.http.{Bytes, Respond}
+import com.thinkmorestupidless.ankka.http.Respond
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.gameprovider.Json
 import io.eitheror.casino.gameprovider.Json.*
@@ -13,6 +13,7 @@ import io.eitheror.casino.gameprovider.provider.LaunchRequest
 import io.eitheror.casino.gameprovider.tickets.*
 
 import java.util.UUID
+import io.eitheror.casino.contract.http.Json as JsonBody
 
 /**
  * A player's launch (FR-007 to FR-009, research R9), in the original's order (`SessionRoutes.scala:257-565`):
@@ -25,7 +26,7 @@ final class Launch(ctx: Context):
   private val Restricted = Set("suspended", "self_excluded", "blocked", "closed")
 
   /** `caller` is the player the token names (`Routes.playerId`); a token naming none matches no player. */
-  def apply(body: String, caller: Option[String]): Respond[Bytes] =
+  def apply(body: String, caller: Option[String]): Respond[JsonBody] =
     val node     = Json.parseObject(body).getOrElse(badRequest("the body is not a JSON object"))
     val playerId = node.text("playerId").getOrElse(return refuse(400, "playerId required"))
     val gameId   = node.text("gameId").getOrElse(return refuse(400, "gameId required"))
@@ -99,5 +100,5 @@ final class Launch(ctx: Context):
         ctx.players.recentlyPlayed(playerId, gameId)
         ok(Json.obj("launchToken" -> token, "gameUrl" -> gameUrl, "sessionId" -> sessionId, "freeSpinsGrantRef" -> grant))
 
-  private def unavailable(down: ServiceUnavailable): Respond[Bytes] =
+  private def unavailable(down: ServiceUnavailable): Respond[JsonBody] =
     refuse(503, "service_unavailable", "service" -> down.service)

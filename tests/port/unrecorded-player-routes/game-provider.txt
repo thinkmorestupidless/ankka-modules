@@ -1,0 +1,5 @@
+# The recordings launch games by id; none reads the lobby.
+GET /v1/casino/catalog/developers
+GET /v1/casino/catalog/games
+GET /v1/casino/catalog/games/{gameCode}
+GET /v1/casino/catalog/{brand}/games/popular
