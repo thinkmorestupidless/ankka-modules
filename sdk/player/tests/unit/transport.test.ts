@@ -99,6 +99,36 @@ describe("the page's transport (FR-001, FR-005)", () => {
     expect(count("POST /api/session/refresh")).toBe(1);
   });
 
+  it("a refresh refused because another tab won the race goes on with that tab's sign-in (review)", async () => {
+    // The losing tab's refresh is refused, but the cookies now hold the winner's sign-in.
+    const { transport, count } = site((s, n) => {
+      if (s.url === "/api/session/refresh") return answer(401, { error: "refresh_expired" });
+      if (s.url === "/api/session") return answer(200, { playerId: "p-ana", brand: "guyanabet", currency: "EUR", country: "GF" });
+      return n === 1 ? answer(401, { error: "signed_out" }) : answer(200, { real: "1.00" });
+    });
+    const signedOut: string[] = [];
+    transport.onSignedOut((r) => signedOut.push(r));
+    const r = await transport.call(balance);
+    expect(r.ok).toBe(true);
+    expect(signedOut).toEqual([]);
+    expect(count("POST /api/session/sign-out")).toBe(0);
+  });
+
+  it("a refused refresh whose call is still refused signs out, which removes the cookies, and tells the page", async () => {
+    const { transport, count } = site((s) => {
+      if (s.url === "/api/session/refresh") return answer(401, { error: "refresh_expired" });
+      if (s.url === "/api/session") return answer(200, { playerId: "p-ana", brand: "guyanabet", currency: "EUR", country: "GF" });
+      if (s.url === "/api/session/sign-out") return new Response(null, { status: 204 });
+      return answer(401, { error: "signed_out" });
+    });
+    const signedOut: string[] = [];
+    transport.onSignedOut((r) => signedOut.push(r));
+    const r = await transport.call(balance);
+    expect(r).toEqual({ ok: false, refusal: { status: 401, code: "signed_out", fields: {} } });
+    expect(count("POST /api/session/sign-out")).toBe(1);
+    expect(signedOut).toEqual(["refresh_expired"]);
+  });
+
   it("a refresh the brand did not answer keeps the player signed in and refuses the call as unavailable", async () => {
     const { transport } = site((s) => {
       if (s.url === "/api/session/refresh") return answer(503, { error: "service_unavailable", service: "players" });

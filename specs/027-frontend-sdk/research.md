@@ -361,6 +361,13 @@ the brand's onboarding on the installation; the task order.
   would and a real-money game session; then `reference-site.feature`'s end-to-end scenario in a
   French browser, playing after 10.6 s (SC-007: within 3 minutes).
 
+- **Review, two tabs refreshing at once**: the brands' realms rotate refresh tokens with revocation
+  (`revokeRefreshToken`, no reuse, `Realm.scala`), so of two tabs refreshing together one is
+  refused, and the site server then cleared the cookies the other had just set. The person chose:
+  a refused refresh keeps the cookies; the transport calls once more with what they hold (the
+  winner's sign-in, in a race), and when that call is still refused it signs out, which removes
+  them, and tells the page. `contracts/site-server.md` amended.
+
 ## Design finished
 
 2026-11-18: the person proceeded with 4 findings above LOW from the third analysis round, each

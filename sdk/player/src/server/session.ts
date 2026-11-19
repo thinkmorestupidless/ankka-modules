@@ -116,7 +116,10 @@ export function sessionRoutes(deps: ServerDeps): Hono {
     if (!h.refresh) return json(401, { error: "refresh_expired" }, cleared(deps));
     const r = await refreshWith(deps, c.req.raw, h.refresh);
     if (r === undefined) return json(503, { error: "service_unavailable", service: "players" });
-    if (r === "expired") return json(401, { error: "refresh_expired" }, cleared(deps));
+    // The cookies are kept: with rotation, a second tab's refresh racing this one's is refused, and
+    // clearing would remove what the winner has just set. The page decides by calling again, and
+    // signs out (which clears them) when that call is still refused (contracts/site-server.md).
+    if (r === "expired") return json(401, { error: "refresh_expired" });
     // The player cookie is renewed with the refresh cookie, or it lapses 30 days after the sign-in
     // while the refresh cookie lives on (review).
     return noContent(issued(deps, r.access, r.refresh, h.player));

@@ -169,8 +169,10 @@ export function pageTransport(fetchImpl: Fetch = (input, init) => fetch(input, i
         if (after === "signed_out") return refused(refusal("signed_out", 401));
         return refused(after);
       }
-      // Still signed out after a refresh that worked: the sign-in is gone all the same (review).
+      // Still signed out after the refresh: the sign-in is gone. A refused refresh keeps the cookies
+      // (another tab may have refreshed them), so they are removed here, then the page is told.
       if (tries > 0 && signedOut(r, route, body)) {
+        await session.signOut().catch(() => undefined);
         for (const listener of [...listeners]) listener("refresh_expired");
         return refused(refusal("signed_out", 401));
       }

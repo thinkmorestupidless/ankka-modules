@@ -61,7 +61,7 @@ describe("the site server holds the sign-in (FR-002, FR-003, FR-005 to FR-007)",
     expect(asked.headers["user-agent"]).toBe("Firefox/140");
   });
 
-  it("a refresh issues new cookies, and a refused one removes them", async () => {
+  it("a refresh issues new cookies, and a refused one keeps them, for another tab may have refreshed (review)", async () => {
     const s = await site();
     const browser = jar();
     browser.take(await s.post("/api/session/sign-in", ana));
@@ -76,7 +76,8 @@ describe("the site server holds the sign-in (FR-002, FR-003, FR-005 to FR-007)",
     const refused = browser.take(await s.post("/api/session/refresh", {}, browser.header()));
     expect(refused.status).toBe(401);
     expect(await refused.json()).toEqual({ error: "refresh_expired" });
-    expect(browser.names()).toEqual([]);
+    expect(setCookies(refused).size).toBe(0);
+    expect(browser.names()).toEqual(["__Host-eo_player", "__Host-eo_session", "__Secure-eo_refresh"]);
   });
 
   it("a refresh players does not answer keeps the cookies and says players was unavailable", async () => {

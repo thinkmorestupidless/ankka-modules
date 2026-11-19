@@ -7,7 +7,7 @@ What a page may ask of the site server of its own origin. Every answer is JSON u
 | Route | Body | Answer |
 |---|---|---|
 | `POST /api/session/sign-in` | `{email, password, deviceFingerprint?}` | `200 {playerId, brand, currency, country}` and the cookies; or `players`' refusal, unchanged in status and body |
-| `POST /api/session/refresh` | — | `204` and new cookies; `401 {error: "refresh_expired"}` and the cookies removed; `503 {error: "service_unavailable", service: "players"}` and the cookies kept |
+| `POST /api/session/refresh` | — | `204` and new cookies; `401 {error: "refresh_expired"}` and the cookies kept (another tab may have refreshed them: the realm rotates refresh tokens; the page calls again, and signs out when that call is still refused); `503 {error: "service_unavailable", service: "players"}` and the cookies kept |
 | `POST /api/session/sign-out` | — | `204`, the cookies removed, whatever `players` answered |
 | `GET /api/session` | — | `200 {playerId, brand, currency, country}` or `200 {signedOut: true}`; asks no service |
 | `GET /api/site` | — | `200 {brand, languages, currency, modules: ["core", …]}`; never cached |
