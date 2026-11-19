@@ -9,6 +9,7 @@ build:
 # Every unit suite: the contract, the modules tool, the bound features and the Go stubs.
 test:
     sbt test
+    bash scripts/describe-diff.test.sh
     cd tests && go test ./...
 
 # Regenerate contract/schemas/<topic>.v1.json from the families; CI fails if this leaves a diff.

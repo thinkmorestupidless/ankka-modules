@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import scala.util.Try
 
 /**
- * Whether the installation's platform can run the runtimes an apply names (spec 031 FR-024,
+ * Whether the installation's platform can run the runtimes an apply names (spec 031 FR-004,
  * contracts/runtime-check.md). The rule is ankka's: a platform runs a runtime of its own major
  * version whose minor is its own or the one below; patch versions are not compared. A platform
  * whose version is not reported runs nothing, as a fact not reported is unmet (Readiness).
