@@ -16,7 +16,7 @@ import scala.jdk.CollectionConverters.*
  * The operator's queue (FR-035, FR-024): each filter lists its players with a count equal to its rows, and
  * a flag leaves the queue on verification or dismissal, a source of funds flag on clearance.
  */
-class QueueSuite extends munit.FunSuite with LogCapturing:
+class QueueSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.kyc.it.Held:
   override def munitTimeout = scala.concurrent.duration.Duration(180, "s")
 
   private lazy val kit = SharedKit.kit

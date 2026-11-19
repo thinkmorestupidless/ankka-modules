@@ -1,0 +1,2 @@
+# The recordings read the requirements as a signed-in player (/v1/casino/players/{id}/kyc/requirements) only where
+# they read them at all; a line here is a route no recorded step translates onto.

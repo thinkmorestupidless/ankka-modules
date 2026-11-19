@@ -22,7 +22,7 @@ import scala.jdk.CollectionConverters.*
  * the journal excepted (R15: until ankka 042 the journal keeps earlier events' values, as 008's R8).
  * Spans are not scanned: the integration kit exposes none, and the log lines carry their ids only.
  */
-class LeakSuite extends munit.FunSuite with LogCapturing:
+class LeakSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.kyc.it.Held:
   override def munitTimeout = scala.concurrent.duration.Duration(180, "s")
 
   private lazy val kit = SharedKit.kit

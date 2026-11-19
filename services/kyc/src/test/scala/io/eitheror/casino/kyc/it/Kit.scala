@@ -87,7 +87,10 @@ final class Kit(base: Settings = Kit.Base):
   LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).asInstanceOf[Logger].addAppender(log)
 
   private val timers = TimerRuntime(200.millis)
-  private val server = HttpServer.at("127.0.0.1", 0)(KycService.endpoints(() => Kit.authenticate)*)
+  /** The player's routes held to the kept description (spec 031 FR-015); `Held` asserts it after each test. */
+  val held = io.eitheror.casino.contract.port.HeldToPlayerRoutes(Kit.description, slug)
+  private val server = held.hold(HttpServer.at("127.0.0.1", 0)(KycService.endpoints(() => Kit.authenticate)*))
+  Kit.started.add(this): Unit
 
   val testKit: AnkkaTestKit = AnkkaTestKit.start(
     KycService.descriptors,
@@ -103,6 +106,7 @@ final class Kit(base: Settings = Kit.Base):
   def baseUrl    = s"http://127.0.0.1:${server.boundPort.get}"
 
   def stop(): Unit =
+    Kit.started.remove(this)
     LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).asInstanceOf[Logger].detachAppender(log): Unit
     testKit.stop()
     players.stop()
@@ -110,6 +114,7 @@ final class Kit(base: Settings = Kit.Base):
 
   /** Back to the kit's own clock, settings and store, and the brand's default policy (Curaçao), for the next suite. */
   def reset(s: Store = store): Unit =
+    held.violations.clear()
     players.reset()
     clockOffset = JDuration.ZERO
     KycRuntime.wire(settings, () => now())
@@ -186,6 +191,19 @@ final class Kit(base: Settings = Kit.Base):
   def eventually[A](what: String, within: FiniteDuration = 30.seconds)(f: => Option[A]): A = testKit.eventually(what, within)(f)
 
 object Kit:
+  /** The kept description of the player routes (spec 031). */
+  val description: java.nio.file.Path =
+    java.nio.file.Paths.get(sys.props.getOrElse("casino.root", "../..")).resolve("services/kyc/openapi.player.json")
+
+  /** Every kit started and not stopped, for `Held`. */
+  private[kyc] val started: java.util.Set[Kit] = java.util.concurrent.ConcurrentHashMap.newKeySet[Kit]()
+
+  /** Fails, naming each answer since the last check that a kit's description does not allow; clears them all. */
+  def assertHeld(): Unit =
+    import scala.jdk.CollectionConverters.*
+    val failures = started.asScala.toVector.flatMap(k => scala.util.Try(k.held.assertHeld()).failed.toOption)
+    failures.headOption.foreach(throw _)
+
   // A small upload limit, so a scenario can pass it without sending megabytes.
   val Base: Settings = Settings(brand = "goldvibe", maxUploadBytes = 64 * 1024)
 

@@ -22,7 +22,7 @@ import scala.concurrent.duration.*
  * sets the scene for another story (an operator's review before the review routes are the story) is made
  * through the record itself.
  */
-abstract class KycFeatures(file: String) extends GherkinSuite(s"../../features/kyc/$file") with LogCapturing:
+abstract class KycFeatures(file: String) extends GherkinSuite(s"../../features/kyc/$file") with LogCapturing with io.eitheror.casino.kyc.it.Held:
   override val munitTimeout: scala.concurrent.duration.Duration = 300.seconds
 
   protected def kit: Kit = SharedKit.kit

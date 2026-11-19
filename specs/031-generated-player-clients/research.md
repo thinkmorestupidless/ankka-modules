@@ -355,3 +355,9 @@ round; each was fixed after that round and not analysed again:
   refusal shape's one required field, so each such route names `404 wrong_brand` and needs no shape
   of its own. The launch and the popular games keep `{brand}` as a path parameter, not the literal:
   their prefixes do not hold the brand.
+- T041 (kyc): `WireTranslation` runs from the original's requests to the rebuild's and from the
+  rebuild's answers to the original's, never back, so the original's recorded answers (`docType`,
+  `kycStatus`) cannot be read as the rebuild's. `port/DescriptionSuite` therefore checks each
+  translated step's status only; the bodies are checked by `ParitySuite`, which replays the same
+  steps through the held kit, so the rebuild's own answers to the original's requests meet the
+  description. All five routes are recorded (the unrecorded list is empty).

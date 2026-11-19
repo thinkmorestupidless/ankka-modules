@@ -7,7 +7,7 @@ import java.nio.charset.StandardCharsets.UTF_8
 import java.time.Duration
 
 /** The plumbing: the components start against Postgres, and the store signs, reads and deletes against Garage (R7). */
-class KitSuite extends munit.FunSuite:
+class KitSuite extends munit.FunSuite with io.eitheror.casino.kyc.it.Held:
   private lazy val kit = SharedKit.kit
 
   override def munitTimeout = scala.concurrent.duration.Duration(180, "s")

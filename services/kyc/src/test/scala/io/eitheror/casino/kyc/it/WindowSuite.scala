@@ -14,7 +14,7 @@ import scala.concurrent.duration.DurationInt
  * sweeper with no help from the kit, `players` told to suspend once, retried while it fails and not again
  * after it answered.
  */
-class WindowSuite extends munit.FunSuite with LogCapturing:
+class WindowSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.kyc.it.Held:
   override def munitTimeout = scala.concurrent.duration.Duration(300, "s")
 
   private lazy val kit = SharedKit.kit
