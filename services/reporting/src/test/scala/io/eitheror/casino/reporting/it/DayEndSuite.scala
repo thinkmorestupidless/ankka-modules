@@ -168,7 +168,7 @@ class DayEndSuite extends munit.FunSuite with LogCapturing:
     // The status says so: while a consumer catches up, every view of the generation is rebuilding.
     val status = kit.get("/status", kit.asOperator).json
     assertEquals(status.path("views").elements.asScala.map(_.path("rebuilding").asBoolean).toSet, Set(true), status.toString)
-    r.settle()
+    r.settle(recordBalance = 19_00)
     // The close reads the rounds from the views as they stand, and the liability and the pending holds as of the day's
     // end, so it is made once the replay has reached what the old generation's close read: every currency, each one's
     // liability and pending holds, and the rounds' differences. (The kit's clock is moved past CLOSE_IDLE at once, where a brand's consumers

@@ -55,8 +55,11 @@ final class DayEnded(kit: Kit, val day: LocalDate, val currency: String = DayEnd
 
   private def g = kit.settings.generation
 
-  /** Every fact folded into the views the close reads, so none of them arrives after it as a correction. */
-  def settle(): this.type =
+  /**
+   * Every fact folded into the views the close reads, so none of them arrives after it as a correction. `recordBalance`
+   * is the open record's balance as the facts published so far leave it: the award's 20.00, unless a later fact moved it.
+   */
+  def settle(recordBalance: Long = 20_00): this.type =
     val want = set.figures(day, currency)
     kit.eventually(s"$day folded", 60.seconds)(DaysView.row(kit.views, g, day).flatMap(_.currencies.get(currency)).map(_.total)
       .filter(s => s.money.stakes == want.stakes && s.money.wins == want.wins && s.money.bonusCost == want.bonus &&
@@ -69,7 +72,7 @@ final class DayEnded(kit: Kit, val day: LocalDate, val currency: String = DayEnd
       WithdrawalsView.pending(kit.views, g, end).count(_.player == player) == 2)(()))
     // the record with its balance, not only its row: the liability is that balance, which CI read as 0.00 once
     kit.eventually("the open record and its balance", 60.seconds)(Option.when(
-      Wallets.open(kit.views, g, currency).exists(r => r.player == player && r.records.values.map(_.balance).sum == 20_00))(()))
+      Wallets.open(kit.views, g, currency).exists(r => r.player == player && r.records.values.map(_.balance).sum == recordBalance))(()))
     this
 
   def end: java.time.Instant = Days.endOf(day.toString, kit.zone)

@@ -117,8 +117,13 @@ class CloseSuite extends munit.FunSuite with LogCapturing:
     assertEquals(close("2025-05").status, 200)
     val paid = payout(aff, "2025-05")(_.get("status").asText == "paid")
     assertEquals(paid.get("totalPayable").asLong, 5_000L)
-    closed("2025-06"): Unit // a close already running when asked joins it, and may not hold the late fact
-    assertEquals(payout(aff, "2025-06")().get("totalPayable").asLong, 1_000L)
+    // A close already running when asked joins it, and may have read before the late fact: close again until one
+    // has claimed it, as each close claims what is still unclaimed (seen on CI).
+    val june = kit.eventually(s"$aff's late fact claimed by a June close", 60.seconds) {
+      closed("2025-06"): Unit
+      payoutsOf(aff, "2025-06").find(_.get("currency").asText == "EUR")
+    }
+    assertEquals(june.get("totalPayable").asLong, 1_000L)
   }
 
   test("facts in two currencies close as two payouts") {
