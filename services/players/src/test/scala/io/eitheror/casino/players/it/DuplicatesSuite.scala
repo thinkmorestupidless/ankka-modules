@@ -97,7 +97,8 @@ class DuplicatesSuite extends munit.FunSuite with LogCapturing:
     val whole = cases("status=OPEN")
     assertEquals((idsOf(whole).take(3), whole.get("total").asLong, whole.has("page")), (Vector(ids(1), ids(2), ids(3)), idsOf(whole).size.toLong, false))
     assertEquals(cases("status=OPEN&pageSize=500").get("pageSize").asInt, 25)
-    assertEquals(idsOf(cases(s"status=OPEN&page=${total + 1}&pageSize=1")), Vector.empty)
+    // Past the end: other tests open cases meanwhile, so the total read above may already be short (seen on CI).
+    assertEquals(idsOf(cases("status=OPEN&page=1000000&pageSize=1")), Vector.empty)
     // Every status at once stays newest first, so these, the oldest of all, are not on its first page of three.
     val all = cases("page=1&pageSize=3")
     assert(all.get("total").asLong >= total, all.toString)
