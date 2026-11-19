@@ -12,7 +12,7 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit.DAYS
 
 /** data-model.md's `Reward` command table, row by row, through `Transitions`, with repeats and the clocks it sets (R10). */
-class RewardSuite extends munit.FunSuite:
+class RewardSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private val at  = Instant.parse("2026-11-01T12:00:00Z")
   private val eur = Currency.unsafe("EUR")
   private type Kit = EventSourcedTestKit[Reward, RewardState, RewardEvent]

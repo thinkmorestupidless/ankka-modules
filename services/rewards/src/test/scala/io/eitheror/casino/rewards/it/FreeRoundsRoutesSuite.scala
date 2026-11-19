@@ -16,7 +16,7 @@ import java.util.UUID
  * The free-rounds reads (task T057; contracts/routes.md): the player's own free rounds, `game-provider`'s read at a
  * launch by identity, and the operator's spin values.
  */
-class FreeRoundsRoutesSuite extends munit.FunSuite:
+class FreeRoundsRoutesSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit = SharedKit.kit
   override def munitTimeout = scala.concurrent.duration.Duration(120, "s")
   override def beforeEach(context: BeforeEach): Unit = kit.reset()

@@ -9,7 +9,7 @@ import io.eitheror.casino.rewards.player.PlayerChange
 import java.time.Instant
 
 /** data-model.md's `PlayersConsumer` (research R9): what each family of `casino.players` changes, and the detection switch. */
-class PlayersConsumerSuite extends munit.FunSuite with LogCapturing:
+class PlayersConsumerSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.rewards.it.Held:
   private val at  = Instant.parse("2026-11-01T12:00:00Z")
   private val reg = Instant.parse("2026-11-01T11:55:00Z")
 

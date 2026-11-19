@@ -16,7 +16,7 @@ import java.time.temporal.ChronoUnit
  * evaluation, G1's game check and the spin-value check in the original's order, then the reward opened `ACTIVE` and
  * `FreeRounds` asked, the answer given once the provider answered the create.
  */
-class FreeRoundsGrantSuite extends munit.FunSuite:
+class FreeRoundsGrantSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit   = SharedKit.kit
   private lazy val paths = ClaimPaths(kit)
   override def munitTimeout = scala.concurrent.duration.Duration(120, "s")

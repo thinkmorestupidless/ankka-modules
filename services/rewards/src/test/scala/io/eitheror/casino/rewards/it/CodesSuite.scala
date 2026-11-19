@@ -11,7 +11,7 @@ import java.time.Instant
  * the programme's document holds whose offer is not live; the document unreachable, its last copy serving; and the
  * preview, which records nothing.
  */
-class CodesSuite extends munit.FunSuite:
+class CodesSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit   = SharedKit.kit
   private lazy val paths = ClaimPaths(kit)
   override def munitTimeout = scala.concurrent.duration.Duration(180, "s")

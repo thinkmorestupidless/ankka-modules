@@ -361,3 +361,11 @@ round; each was fixed after that round and not analysed again:
   translated step's status only; the bodies are checked by `ParitySuite`, which replays the same
   steps through the held kit, so the rebuild's own answers to the original's requests meet the
   description. All five routes are recorded (the unrecorded list is empty).
+- T042 (rewards): a 409 is either a refusal `{error}` or the evaluator's decline as the original
+  answered it, `{status: "ineligible", reason}`, so the select and the code entry give their 409 a
+  shape of its own (`refuses[Conflict]`). As for kyc, the recordings are read through
+  `WireTranslation` for their statuses and the parity replay holds the bodies. An operator's
+  recorded offer or grant body holds `{captures}` where amounts go, which the translation cannot
+  parse outside a replay; such a step is translated by its path alone, since no player route's
+  translation reads an amount. `/free-rounds/eligible` is game-provider's and is not described.
+  rewards, engagement and support-agent run their kit suites only under `-Dit=true`.

@@ -13,7 +13,7 @@ import java.time.temporal.ChronoUnit.{DAYS, HOURS}
  * data-model.md's `PlayerRewards`: each command evaluates over the record and reserves or declines in one event, a
  * repeat writes nothing, and two claims at once see each other.
  */
-class PlayerRewardsSuite extends munit.FunSuite:
+class PlayerRewardsSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private val at  = Instant.parse("2026-11-01T12:00:00Z")
   private val Eur = Currency.unsafe("EUR")
   private type Kit = EventSourcedTestKit[PlayerRewards, PlayerRewardsState, PlayerEvent]

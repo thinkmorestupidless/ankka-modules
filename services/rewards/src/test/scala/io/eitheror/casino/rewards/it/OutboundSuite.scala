@@ -20,7 +20,7 @@ import scala.jdk.CollectionConverters.*
  * and the configured address only. What the runtime itself reaches (the token issuer's keys, the telemetry
  * collector, the broker and the database) is the platform's, the same for every service, and not counted here.
  */
-class OutboundSuite extends munit.FunSuite:
+class OutboundSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit   = SharedKit.kit
   private lazy val paths = ClaimPaths(kit)
   override def munitTimeout = 300.seconds

@@ -11,7 +11,7 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit.DAYS
 
 /** data-model.md's `OfferBook`: each command through `OfferRules` over the whole book, one event or the first refusal. */
-class OfferBookSuite extends munit.FunSuite:
+class OfferBookSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private val at  = Instant.parse("2026-11-01T12:00:00Z")
   private val Eur = Currency.unsafe("EUR")
   private type Kit = EventSourcedTestKit[OfferBook, OfferBookState, OfferEvent]

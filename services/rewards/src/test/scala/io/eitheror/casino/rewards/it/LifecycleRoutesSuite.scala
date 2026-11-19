@@ -16,7 +16,7 @@ import java.util.UUID
  * The player's cancel, switch and history (FR-016; contracts/routes.md) beside lifecycle.feature's scenarios: the
  * primary cancelled with no grant named, the refusals each route answers, and the history of closed rewards.
  */
-class LifecycleRoutesSuite extends munit.FunSuite:
+class LifecycleRoutesSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit = SharedKit.kit
   override def munitTimeout = scala.concurrent.duration.Duration(120, "s")
   override def beforeEach(context: BeforeEach): Unit = kit.reset()

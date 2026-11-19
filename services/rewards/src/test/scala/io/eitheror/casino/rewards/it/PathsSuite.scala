@@ -15,7 +15,7 @@ import java.time.Duration as JDuration
  * and is awarded nothing (FR-012), or expires it for the claim window; the campaign's award route `422 {error}`, `503`
  * for `ELIGIBILITY_CHECK_UNAVAILABLE`; the operator's award `409 {status: "ineligible", reason}`, held to rules 1 to 4.
  */
-class PathsSuite extends munit.FunSuite:
+class PathsSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit   = SharedKit.kit
   private lazy val paths = ClaimPaths(kit)
   override def munitTimeout = scala.concurrent.duration.Duration(300, "s")

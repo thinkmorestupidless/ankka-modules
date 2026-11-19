@@ -1,0 +1,6 @@
+# The original had no deselect, switch, history, free rounds or grants route a recording calls.
+GET /v1/casino/brands/the-brand/rewards/{playerId}/free-rounds
+GET /v1/casino/brands/the-brand/rewards/{playerId}/grants
+GET /v1/casino/brands/the-brand/rewards/{playerId}/history
+POST /v1/casino/brands/the-brand/rewards/{playerId}/deselect
+POST /v1/casino/brands/the-brand/rewards/{playerId}/switch

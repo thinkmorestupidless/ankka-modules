@@ -18,7 +18,7 @@ import scala.concurrent.duration.*
  * events, fires within a minute of its deadline (never before it) and does what FR-015 says through `WalletStep`;
  * a timer due on a terminal reward, or for a deadline the reward no longer holds, does nothing.
  */
-class ClockSuite extends munit.FunSuite:
+class ClockSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit = SharedKit.kit
   override def munitTimeout = Duration(120, "s")
   override def beforeEach(context: BeforeEach): Unit = kit.reset()

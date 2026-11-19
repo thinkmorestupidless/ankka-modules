@@ -9,7 +9,7 @@ import io.eitheror.casino.rewards.clients.*
 import java.time.{Duration, Instant}
 
 /** The plumbing: the service starts against Postgres, the broker carries facts, every fake answers through the clients. */
-class KitSuite extends munit.FunSuite:
+class KitSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit = SharedKit.kit
 
   override def munitTimeout = scala.concurrent.duration.Duration(180, "s")

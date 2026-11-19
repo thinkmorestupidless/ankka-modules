@@ -7,7 +7,7 @@ import io.eitheror.casino.rewards.Json.*
 import java.util.UUID
 
 /** `/offers` through the whole service (contracts/routes.md): who may call, the create's order of checks, edit, delete, order, audit. */
-class OffersSuite extends munit.FunSuite:
+class OffersSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit = SharedKit.kit
   override def munitTimeout = scala.concurrent.duration.Duration(120, "s")
   override def beforeEach(context: BeforeEach): Unit = kit.reset()

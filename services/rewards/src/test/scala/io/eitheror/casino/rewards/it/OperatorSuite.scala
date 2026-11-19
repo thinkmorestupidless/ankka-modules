@@ -13,7 +13,7 @@ import scala.jdk.CollectionConverters.*
  * list for any operator of the brand, filtered and paged; a player's every reward with the primary and the wagering
  * from the wallet; one reward; and the award in its three shapes, each the operator's override (rules 1 to 4).
  */
-class OperatorSuite extends munit.FunSuite:
+class OperatorSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit   = SharedKit.kit
   private lazy val paths = ClaimPaths(kit)
   override def munitTimeout = scala.concurrent.duration.Duration(300, "s")

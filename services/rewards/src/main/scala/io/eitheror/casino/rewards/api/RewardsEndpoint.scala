@@ -14,6 +14,8 @@ import io.eitheror.casino.rewards.reads.RewardsView
 import io.eitheror.casino.rewards.steps.{StepRequest, StepState, WalletAnswer}
 
 import Answers.*
+import com.thinkmorestupidless.ankka.http.openapi.Description
+import io.eitheror.casino.contract.http.Json as JsonBody
 
 /**
  * `/v1/casino/brands/<slug>/rewards` (contracts/routes.md): the player's own rewards, `{playerId}` the token's
@@ -30,27 +32,65 @@ final class RewardsEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/$
 
   private def body(text: String)(f: JsonNode => Reply): Reply = Json.parseObject(text).fold(badBody)(f)
 
-  get("/{playerId}/state") { (p: String) => mine(p)(ok(PlayerState.of(ctx, p))) }
+  // Spec 031: the player's routes described for the player SDK; the eligibility read is game-provider's, not described.
+  override protected def description: Description = Described.refusals
 
-  postBody("/{playerId}/select") { (p: String, text: String) => mine(p)(body(text)(Selection.select(ctx, p, _))) }
-
-  post("/{playerId}/deselect") { (p: String) => mine(p)(Selection.deselect(ctx, p)) }
-
-  // The lifecycle (US4): the cancel's body may be empty, which cancels the primary.
-  postBody("/{playerId}/cancel") { (p: String, text: String) =>
-    mine(p)(body(if text.isBlank then "{}" else text)(PlayerLifecycle.cancel(ctx, p, _)))
+  described(_.summary("The signed-in player's rewards: the active bonuses, the pending selection, or the offers to select")
+    .answers[Described.State](200).refuses(403, Described.mine).tag("player")) {
+    get("/{playerId}/state") { (p: String) => mine(p)(ok(PlayerState.of(ctx, p))) }
   }
 
-  postBody("/{playerId}/switch") { (p: String, text: String) => mine(p)(body(text)(PlayerLifecycle.switch(ctx, p, _))) }
+  described(_.summary("Select an offer the player holds: claimed now, or pending until the deposit")
+    .body[Described.Select].answers[Described.SelectedOffer](200).refuses(400, "offerId required, invalid_body")
+    .refuses(403, Described.mine).refuses(404, "offer_not_visible")
+    .refuses[Described.Conflict](409, "ineligible, ALREADY_CLAIMED, player_currency_unresolved, the wallet's code")
+    .refuses(503, "service_unavailable").tag("player")) {
+    postBody("/{playerId}/select") { (p: String, b: JsonBody) => mine(p)(body(b.text)(Selection.select(ctx, p, _))) }
+  }
 
-  get("/{playerId}/history") { (p: String) => mine(p)(PlayerLifecycle.history(ctx, p)) }
+  described(_.summary("Withdraw the pending selection").answers[Described.Ok](200).refuses(403, Described.mine).tag("player")) {
+    post("/{playerId}/deselect") { (p: String) => mine(p)(Selection.deselect(ctx, p)) }
+  }
 
-  postBody("/{playerId}/codes") { (p: String, text: String) => mine(p)(body(text)(Codes.enter(ctx, p, _))) }
+  // The lifecycle (US4): the cancel's body may be empty, which cancels the primary.
+  described(_.summary("Cancel an active bonus, the primary when none is named: the clawback and the real balance after")
+    .body[Described.Cancel].answers[Described.Cancelled](200).refuses(400, "invalid_body").refuses(403, Described.mine)
+    .refuses(404, "grant_not_found").refuses(409, "no_active_bonus").refuses(503, "cancel_failed").tag("player")) {
+    postBody("/{playerId}/cancel") { (p: String, b: JsonBody) =>
+      val text = b.text
+      mine(p)(body(if text.isBlank then "{}" else text)(PlayerLifecycle.cancel(ctx, p, _)))
+    }
+  }
 
-  postBody("/{playerId}/codes/preview") { (p: String, text: String) => mine(p)(body(text)(Codes.preview(ctx, _))) }
+  described(_.summary("Make another of the player's active bonuses the primary")
+    .body[Described.Switch].answers[Described.Ok](200).refuses(400, "grantRef_required, invalid_body").refuses(403, Described.mine)
+    .refuses(409, "switch_failed").refuses(503, "service_unavailable").tag("player")) {
+    postBody("/{playerId}/switch") { (p: String, b: JsonBody) => mine(p)(body(b.text)(PlayerLifecycle.switch(ctx, p, _))) }
+  }
+
+  described(_.summary("The player's closed rewards, the newest twenty")
+    .answers[Vector[Described.Closed]](200).refuses(403, Described.mine).tag("player")) {
+    get("/{playerId}/history") { (p: String) => mine(p)(PlayerLifecycle.history(ctx, p)) }
+  }
+
+  described(_.summary("Enter a code: the offer it names, made visible and selected")
+    .body[Described.Code].answers[Described.Offer](200).refuses(400, "code is required, invalid_body").refuses(403, Described.mine)
+    .refuses(404, "offer_not_visible").refuses[Described.Conflict](409, "ineligible, ALREADY_CLAIMED, the wallet's code")
+    .refuses(422, "invalid_code").refuses(503, "service_unavailable").tag("player")) {
+    postBody("/{playerId}/codes") { (p: String, b: JsonBody) => mine(p)(body(b.text)(Codes.enter(ctx, p, _))) }
+  }
+
+  described(_.summary("The terms of the offer a code names, recording nothing; a code that names none is valid false")
+    .body[Described.Code].answers[Described.Preview](200).refuses(400, "code is required, invalid_body").refuses(403, Described.mine)
+    .tag("player")) {
+    postBody("/{playerId}/codes/preview") { (p: String, b: JsonBody) => mine(p)(body(b.text)(Codes.preview(ctx, _))) }
+  }
 
   // Free rounds (US5): the player's own, and `game-provider`'s read at a launch, by identity (FR-022b).
-  get("/{playerId}/free-rounds") { (p: String) => mine(p)(FreeRoundsReads.list(ctx, p, query.optional[String]("currency"))) }
+  described(_.summary("The player's live free rounds, oldest first")
+    .answers[Vector[Described.FreeRounds]](200).refuses(403, Described.mine).query[String]("currency").tag("player")) {
+    get("/{playerId}/free-rounds") { (p: String) => mine(p)(FreeRoundsReads.list(ctx, p, query.optional[String]("currency"))) }
+  }
 
   withAcl(Routes.serviceOf("game-provider")) {
     get("/{playerId}/free-rounds/eligible") { (p: String) =>
@@ -60,8 +100,11 @@ final class RewardsEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/$
 
   // FR-022a: the player's grants, to the player and to `support-agent` by its identity (US6).
   withAcl(PlayerGrants.acl(ctx)) {
-    get("/{playerId}/grants") { (p: String) =>
-      if PlayerGrants.supportAgent(ctx, caller) then PlayerGrants.list(ctx, p) else mine(p)(PlayerGrants.list(ctx, p))
+    described(_.summary("Every reward of the player, newest first, with its wagering and expiry")
+      .answers[Vector[Described.Grant]](200).refuses(403, Described.mine).tag("player")) {
+      get("/{playerId}/grants") { (p: String) =>
+        if PlayerGrants.supportAgent(ctx, caller) then PlayerGrants.list(ctx, p) else mine(p)(PlayerGrants.list(ctx, p))
+      }
     }
   }
 

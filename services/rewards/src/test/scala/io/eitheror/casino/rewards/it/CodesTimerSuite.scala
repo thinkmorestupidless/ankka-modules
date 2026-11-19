@@ -10,7 +10,7 @@ import java.time.Instant
  * refresh bound (2 s in the kit) and served by `GET /offers/code-document`; a failure keeps the last copy, reported
  * stale once the staleness bound (6 s in the kit) has passed since its fetch.
  */
-class CodesTimerSuite extends munit.FunSuite:
+class CodesTimerSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit = SharedKit.kit
   override def munitTimeout = scala.concurrent.duration.Duration(120, "s")
   override def beforeEach(context: BeforeEach): Unit = kit.reset()

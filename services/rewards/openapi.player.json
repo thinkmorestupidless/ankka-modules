@@ -1,0 +1,1302 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "rewards",
+    "version": "0.0.0"
+  },
+  "paths": {
+    "/v1/casino/brands/the-brand/rewards/{playerId}/cancel": {
+      "post": {
+        "operationId": "post_v1_casino_brands_the_brand_rewards_playerId_cancel",
+        "summary": "Cancel an active bonus, the primary when none is named: the clawback and the real balance after",
+        "tags": [
+          "player"
+        ],
+        "parameters": [
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cancel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cancelled"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "player_id_mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "grant_not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "no_active_bonus",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "cancel_failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      }
+    },
+    "/v1/casino/brands/the-brand/rewards/{playerId}/codes": {
+      "post": {
+        "operationId": "post_v1_casino_brands_the_brand_rewards_playerId_codes",
+        "summary": "Enter a code: the offer it names, made visible and selected",
+        "tags": [
+          "player"
+        ],
+        "parameters": [
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Code"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Offer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "code is required, invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "player_id_mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "offer_not_visible",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "ineligible, ALREADY_CLAIMED, the wallet's code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Conflict"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "invalid_code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "service_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      }
+    },
+    "/v1/casino/brands/the-brand/rewards/{playerId}/codes/preview": {
+      "post": {
+        "operationId": "post_v1_casino_brands_the_brand_rewards_playerId_codes_preview",
+        "summary": "The terms of the offer a code names, recording nothing; a code that names none is valid false",
+        "tags": [
+          "player"
+        ],
+        "parameters": [
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Code"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Preview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "code is required, invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "player_id_mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      }
+    },
+    "/v1/casino/brands/the-brand/rewards/{playerId}/deselect": {
+      "post": {
+        "operationId": "post_v1_casino_brands_the_brand_rewards_playerId_deselect",
+        "summary": "Withdraw the pending selection",
+        "tags": [
+          "player"
+        ],
+        "parameters": [
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "player_id_mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      }
+    },
+    "/v1/casino/brands/the-brand/rewards/{playerId}/free-rounds": {
+      "get": {
+        "operationId": "get_v1_casino_brands_the_brand_rewards_playerId_free_rounds",
+        "summary": "The player's live free rounds, oldest first",
+        "tags": [
+          "player"
+        ],
+        "parameters": [
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FreeRounds"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "player_id_mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      }
+    },
+    "/v1/casino/brands/the-brand/rewards/{playerId}/grants": {
+      "get": {
+        "operationId": "get_v1_casino_brands_the_brand_rewards_playerId_grants",
+        "summary": "Every reward of the player, newest first, with its wagering and expiry",
+        "tags": [
+          "player"
+        ],
+        "parameters": [
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Grant"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "player_id_mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      }
+    },
+    "/v1/casino/brands/the-brand/rewards/{playerId}/history": {
+      "get": {
+        "operationId": "get_v1_casino_brands_the_brand_rewards_playerId_history",
+        "summary": "The player's closed rewards, the newest twenty",
+        "tags": [
+          "player"
+        ],
+        "parameters": [
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Closed"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "player_id_mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      }
+    },
+    "/v1/casino/brands/the-brand/rewards/{playerId}/select": {
+      "post": {
+        "operationId": "post_v1_casino_brands_the_brand_rewards_playerId_select",
+        "summary": "Select an offer the player holds: claimed now, or pending until the deposit",
+        "tags": [
+          "player"
+        ],
+        "parameters": [
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Select"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SelectedOffer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "offerId required, invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "player_id_mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "offer_not_visible",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "ineligible, ALREADY_CLAIMED, player_currency_unresolved, the wallet's code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Conflict"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "service_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      }
+    },
+    "/v1/casino/brands/the-brand/rewards/{playerId}/state": {
+      "get": {
+        "operationId": "get_v1_casino_brands_the_brand_rewards_playerId_state",
+        "summary": "The signed-in player's rewards: the active bonuses, the pending selection, or the offers to select",
+        "tags": [
+          "player"
+        ],
+        "parameters": [
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/State"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "player_id_mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      }
+    },
+    "/v1/casino/brands/the-brand/rewards/{playerId}/switch": {
+      "post": {
+        "operationId": "post_v1_casino_brands_the_brand_rewards_playerId_switch",
+        "summary": "Make another of the player's active bonuses the primary",
+        "tags": [
+          "player"
+        ],
+        "parameters": [
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Switch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "grantRef_required, invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "player_id_mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "switch_failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "service_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "x-ankka-admission": "not-open"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ActiveBonus": {
+        "type": "object",
+        "properties": {
+          "recordId": {
+            "type": "string"
+          },
+          "grantRef": {
+            "type": "string"
+          },
+          "bonusBalance": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "wageringRequirement": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "wageredAmount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "maxWin": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "offer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Offer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "recordId",
+          "grantRef",
+          "bonusBalance",
+          "currency",
+          "wageringRequirement",
+          "wageredAmount",
+          "maxWin"
+        ]
+      },
+      "Cancel": {
+        "type": "object",
+        "properties": {
+          "grantRef": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "Cancelled": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "clawbackAmount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "newRealBalance": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "status",
+          "clawbackAmount",
+          "newRealBalance"
+        ]
+      },
+      "Closed": {
+        "type": "object",
+        "properties": {
+          "grantRef": {
+            "type": "string"
+          },
+          "faceValue": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "grantedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "closedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "grantRef",
+          "faceValue",
+          "currency",
+          "status"
+        ]
+      },
+      "Code": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "Conflict": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "FreeRounds": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "gameId": {
+            "type": "string"
+          },
+          "gameName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "spinsRemaining": {
+            "type": "integer"
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "providerStatus": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "gameId",
+          "spinsRemaining"
+        ]
+      },
+      "Grant": {
+        "type": "object",
+        "properties": {
+          "rewardId": {
+            "type": "string"
+          },
+          "offerName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "wageringRequirement": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "releaseProgress": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "currency": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "rewardId",
+          "offerName",
+          "status",
+          "wageringRequirement",
+          "releaseProgress",
+          "currency"
+        ]
+      },
+      "Offer": {
+        "type": "object",
+        "properties": {
+          "offerId": {
+            "type": "string"
+          },
+          "role": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "claimWindowDays": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "type": {
+            "type": "string"
+          },
+          "bonusPercentage": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "maxBonusValue": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "minDepositAmount": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "wageringMultiplier": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "wageringWindowDays": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "noDepositRequired": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "offerId",
+          "source",
+          "name",
+          "description",
+          "type",
+          "bonusPercentage",
+          "wageringMultiplier",
+          "noDepositRequired"
+        ]
+      },
+      "Ok": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
+      "Preview": {
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "offerName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "offerType": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "preview": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "firesImmediately": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "minDepositAmount": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "isAffiliate": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "valid"
+        ]
+      },
+      "Refusal": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "Select": {
+        "type": "object",
+        "properties": {
+          "offerId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "offerId"
+        ]
+      },
+      "Selected": {
+        "type": "object",
+        "properties": {
+          "offerId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "selectedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "offerId",
+          "name"
+        ]
+      },
+      "SelectedOffer": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
+      "State": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string"
+          },
+          "activeBonuses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActiveBonus"
+            }
+          },
+          "bonusBalance": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "currency": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "wageringRequirement": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "wageredAmount": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "maxWin": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "offer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Offer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "selected": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Selected"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "competingOffers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Offer"
+            }
+          },
+          "visibleOffers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Offer"
+            }
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "Switch": {
+        "type": "object",
+        "properties": {
+          "grantRef": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "grantRef"
+        ]
+      }
+    }
+  }
+}

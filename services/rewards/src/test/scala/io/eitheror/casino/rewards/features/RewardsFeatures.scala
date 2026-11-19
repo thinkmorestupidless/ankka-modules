@@ -18,7 +18,7 @@ import scala.concurrent.duration.*
  * scenarios. A scenario a later story binds is reported ignored naming its task (`pending`), never passed: the
  * story's task removes it from `pending` as it binds it.
  */
-abstract class RewardsFeatures(file: String) extends GherkinSuite(s"../../features/rewards/$file") with LogCapturing:
+abstract class RewardsFeatures(file: String) extends GherkinSuite(s"../../features/rewards/$file") with LogCapturing with io.eitheror.casino.rewards.it.Held:
   override val munitTimeout: Duration = 300.seconds
 
   protected def kit: Kit = SharedKit.kit
