@@ -49,7 +49,7 @@ described(
 | Recipe | Does |
 |---|---|
 | `just describe <service>` | `sbt contract/publishLocal`, then in `services/<service>/`, with `describe.env` exported: `JAVA_TOOL_OPTIONS="-Dankka.document=openapi -Dankka.document.out=$PWD/openapi.player.json -Dankka.document.tags=player -Dankka.document.strict=true -Dankka.service.name=<service>" sbt run` |
-| `just describe-check <service>` | the same to a temporary file, then `cmp` with the kept one; on a difference prints `diff -u` and exits 1 |
+| `just describe-check <service>` | the same to a temporary file, then `cmp` with the kept one; on a difference prints one line per operation added, removed or changed, as `added GET /path`, then `diff -u`, and exits 1 (`scripts/describe-diff.py`, comparing the two files' `paths`) |
 | `just descriptions` | `describe` for all nine, then `npm run generate -w sdk/player` |
 
 `describe.env` holds every variable the service's settings demand, as placeholders, with
@@ -61,9 +61,10 @@ that job with the diff (FR-011).
 
 ## Holding the tests
 
-Each service's one kit wraps its server: `HeldToDocument.server(server, violations)`. When the kit
-closes it fails, listing each, on every violation whose method and path are an operation of
-`openapi.player.json` (read from the service's directory). `the-brand` in a kept path matches the
+Each service's one kit wraps its server with `contract.port.HeldToPlayerRoutes`, which calls
+`HeldToDocument.server(server, violations)`. When the kit closes it fails, listing each, on every
+violation whose method and path are an operation of `openapi.player.json` (read from the
+service's directory). `the-brand` in a kept path matches the
 kit's own brand.
 
 A violation that shows the handler answering something the description does not allow is fixed in

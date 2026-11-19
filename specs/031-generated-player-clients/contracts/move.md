@@ -33,6 +33,6 @@ repository builds at every commit (FR-005).
 
 After group 6: `brew upgrade thinkmorestupidless/tap/ankka` (0.18.0), `just local-images`, `just
 local-project`, `ankka local up` in `local/guyanabet/`, `just local-onboard`, `just
-player-site-it`. Expected: the contract tests pass 24 of 24 with the hand-written clients, as on
+player-site-it` (T030). Expected: the contract tests pass 24 of 24 with the hand-written clients, as on
 `main`. `local/README.md`'s note on 0.13 services showing running and not ready is removed if it
 is no longer true.

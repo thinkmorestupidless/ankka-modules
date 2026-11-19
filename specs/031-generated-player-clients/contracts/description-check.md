@@ -28,8 +28,8 @@ def run(
 
 1. `run(...)` over every recording under `tests/port/`.
 2. `differences` is empty, else the suite fails listing them.
-3. `unrecorded` equals this service's lines of `tests/port/unrecorded-player-routes.txt`, else the
-   suite fails listing what was added and what was removed.
+3. `unrecorded` equals `tests/port/unrecorded-player-routes/<service>.txt` (lines beginning `#`
+   skipped), else the suite fails listing what was added and what was removed.
 4. `matched` is above zero for a service the table below gives recordings.
 
 | Service | Its recordings lie in | Read through |
@@ -41,7 +41,7 @@ def run(
 | ingest | `ingest/`, `merchant/` (host `merchant`) | as recorded |
 | game-provider | `players/`, `rewards/`, `game-provider/`, `engagement/`, `kyc/` (the launch) | as recorded |
 | support-agent | `support-agent/` | as recorded; status only |
-| responsible-gambling | `engagement/` (scenarios 26, 27), `reporting/` | as recorded (V4) |
+| responsible-gambling | `engagement/` (23 recordings), `reporting/` (1) | as recorded (V4) |
 | wallet | none | — : all three on the unrecorded list |
 
 A step the service's parity test skips or reads through a named divergence is read the same way
@@ -49,7 +49,8 @@ here: `read` is built from the service's own `Parity` where it has one.
 
 ## The unrecorded list
 
-`tests/port/unrecorded-player-routes.txt`. Written once from the first run, then reviewed: a route
+`tests/port/unrecorded-player-routes/<service>.txt`, one file per service, so that services
+described in parallel do not write one file. Written once from the first run, then reviewed: a route
 on it that a recording does call under a path the table missed is a missing row in the table, not
 an unrecorded route. Of the SDK's rows it is expected to hold: resendVerification,
 requestPasswordReset, startDeposit, country, acknowledgeRealityCheck, abandonCashier, games, game,

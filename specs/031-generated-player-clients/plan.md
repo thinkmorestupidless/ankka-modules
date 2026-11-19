@@ -8,7 +8,7 @@
 
 Two pull requests.
 
-**The first moves everything to ankka 0.18.0** (story 1): the root build, 22 services, every
+**The first moves everything to ankka 0.18.0** (story 1): the root build, 21 services, every
 module and shared manifest, `local/`, and the tool's suites, in six groups with each group's suites
 green before the next; `exchange` and `markets` take ankka-predictions 0.3.0; the modules tool
 gains a check that refuses a runtime an installation's platform cannot run. Nothing a caller
@@ -61,7 +61,7 @@ nine services, a generator in a TypeScript library, and one check in a command-l
 - the generated files are committed and compared byte for byte (FR-021);
 - each module client's interface is spec 027's, function for function (FR-019).
 
-**Scale/Scope**: 22 service builds; 79 player routes in 9 services; 590 recordings; 27 client rows
+**Scale/Scope**: 21 service builds on ankka; 79 player routes in 9 services; 590 recordings; 27 client rows
 in 4 modules.
 
 ## Constitution Check
@@ -81,9 +81,9 @@ in 4 modules.
 
 **Recordings replayed**: every existing parity suite, unchanged, on 0.18.0 (story 1). **Left
 behind**: `port/DescriptionSuite.scala` in each of the nine services, reading every recording under
-`tests/port/` for calls of that service's player routes; `tests/port/unrecorded-player-routes.txt`.
+`tests/port/` for calls of that service's player routes; `tests/port/unrecorded-player-routes/`.
 
-Post-design re-check: no violation; nothing in *Complexity Tracking*.
+Post-design re-check: one deviation from *Workflow*, in *Complexity Tracking*.
 
 ## Project Structure
 
@@ -109,7 +109,9 @@ specs/031-generated-player-clients/
 ```text
 build.sbt                                   # ankka.version default 0.18.0
 contract/src/main/scala/io/eitheror/casino/contract/port/
-└── DescriptionCheck.scala                  # new: recordings against a kept description
+├── DescriptionCheck.scala                  # new: recordings against a kept description
+└── HeldToPlayerRoutes.scala                # new: a kit's violations, limited to player routes
+                                            #   (ankka-testkit as a Provided dependency of the contract)
 tools/modules/src/main/scala/io/eitheror/casino/modules/
 └── Runtimes.scala                          # new: the runtime check; called from every apply
 tools/modules/src/test/…                    # RenderSuite, Spec001RenderSuite, fixtures: 0.18.0
@@ -127,7 +129,7 @@ services/<each of 9>/
 ├── src/test/scala/…/it/Kit.scala           # held to the description (wallet: it/Harness.scala)
 └── src/test/scala/…/port/DescriptionSuite.scala
 
-tests/port/unrecorded-player-routes.txt     # the kept list
+tests/port/unrecorded-player-routes/<service>.txt   # the kept list, one file per service
 
 sdk/player/
 ├── scripts/generate.ts                     # new
@@ -145,11 +147,19 @@ CLAUDE.md                                   # the specs table; Working here
 ```
 
 **Structure Decision**: nothing is restructured. Each service gains four files beside what it has;
-the contract gains one file in the package that already holds the recording replayer; the SDK's
+the contract gains two files in the package that already holds the recording replayer; the SDK's
 module directories keep their file names, so nothing that imports `routes.ts` or `client.ts`
 changes its import.
 
 ## Phases and gates
+
+Tasks: A is phases 1 and 2 of `tasks.md`; B and C are phase 3; D and E are phases 4 and 5 (the
+check is built before the descriptions it reads, and each service's suite is written with its
+description); F is phase 6; G is phase 7.
+
+Tasks: A is phases 1 and 2 of `tasks.md`; B and C are phase 3; D and E are phases 4 and 5 (the
+check is built before the descriptions it reads, and each service's suite is written with its
+description); F is phase 6; G is phase 7.
 
 | Phase | Pull request | Holds | Gate |
 |---|---|---|---|
@@ -166,4 +176,9 @@ local brand, before and after generation.
 
 ## Complexity Tracking
 
-No violation to justify.
+| Deviation | Why needed | Simpler alternative rejected because |
+|---|---|---|
+| A second branch, `031-ankka-0-18`, for one spec, where *Workflow* has one feature per branch named after its spec directory | The person's decision (Clarifications, 2026-11-19): the move of 21 services is the riskiest step and must be reviewable and revertible without the rest | One pull request: a regression from the move could not be reverted without the descriptions and the generated clients. Two specs: the move exists only so the descriptions can be written, and has no scenarios of its own beyond story 1 |
+
+The second branch holds no work of its own: it is `031-generated-player-clients` at the move's
+last commit, so the spec directory's branch remains where the feature is built.

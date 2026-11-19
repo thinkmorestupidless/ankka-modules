@@ -15,7 +15,7 @@ What `described(…)` states round one player route.
 | refusals | `refuses(status, reason)` | every status the handler answers outside 400, 401, 403, 413, 500, 503, 504 of the platform; the reason is the refusal's code |
 | refusal body | `refusalShape[R]` on the endpoint's `description` | the service's own refusal body, once per endpoint |
 | query | `query[A](name)`, `queryRequired[A](name)` | every parameter the handler reads |
-| marks | `tag("player")`, and `tag("player", "ticket")` on ingest's three | `player` selects the route into the kept description; the second mark is an audience its admission does not show |
+| marks | `tag("player")`; `tag("player", "ticket")` on ingest's three; `tag("player", "signed-in")` on the push connection if V5 fails | `player` selects the route into the kept description; the second mark is an audience its admission does not show |
 
 ## Service description (kept file)
 
@@ -30,9 +30,10 @@ mode with the tag `player`, strict, the brand `the-brand`, `info.version` `0.0.0
 
 ## Unrecorded list (kept file)
 
-`tests/port/unrecorded-player-routes.txt`: one line per player route no recording calls,
-`<service> <METHOD> <path as the description has it>`, sorted. Each service's `DescriptionSuite`
-compares its own lines.
+`tests/port/unrecorded-player-routes/<service>.txt`, one file per service: one line per player
+route no recording calls, `<METHOD> <path as the description has it>`, sorted; a line beginning
+`#` is a comment. Each service's `DescriptionSuite` compares its own file; a service with every
+route recorded has an empty file.
 
 ## Original route table (Scala, in a service's test)
 

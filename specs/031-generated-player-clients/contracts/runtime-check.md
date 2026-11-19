@@ -22,7 +22,9 @@ takes real money, in local mode and before a push to the vendor, after validatio
 anything is deployed.
 
 **The platform's version**: `GET /installation`'s `platformVersion` when the control plane is
-asked; else `PLATFORM_VERSION` in `installation/overlays/<name>/settings.env`.
+asked; else `PLATFORM_VERSION` in `installation/overlays/<name>/settings.env`, which states what
+that installation runs today (`dev-kind`: 0.16.3 until it is rebuilt). An overlay is never set to
+0.18.0 to make an apply pass.
 
 **The refusal** (exit 1, nothing deployed):
 

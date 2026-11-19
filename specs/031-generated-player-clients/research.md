@@ -3,13 +3,13 @@
 Read 2026-11-19: ankka at the tags `v0.13.0`, `v0.16.3` and `v0.18.0` (`docs/build/openapi.md`,
 `docs/deploy/upgrading.md`, `modules/http/.../openapi/`, `modules/testkit/.../HeldToDocument.scala`,
 `cli/.../openapi/OpenApiCommand.scala`, `controlplane-api/.../Compatibility.scala`, ankka specs 066
-and 067); this repository's 22 service builds, the nine services' endpoints and test kits,
+and 067); this repository's 21 service builds on ankka, the nine services' endpoints and test kits,
 `tests/port/` (590 recordings), `tools/modules/`, `.github/workflows/ci.yml`, the `Justfile`,
 `local/`, and the SDK's four route tables and clients.
 
 ## R1. Every service moves, because the platform runs two minor versions
 
-- **Decision**: all 22 services, the root build and every manifest name ankka 0.18.0.
+- **Decision**: all 21 services on ankka, the root build and every manifest name ankka 0.18.0.
 - **Rationale**: `Compatibility.supports` (and `upgrading.md`): a platform runs a runtime of its
   own major version whose minor is its own or one below. Platform 0.18.0 runs 0.17.x and 0.18.x; a
   descriptor naming 0.16.x or 0.13.x is `Unavailable` and no instance starts. A platform at 0.16
@@ -122,9 +122,10 @@ and 067); this repository's 22 service builds, the nine services' endpoints and 
   `assertHeld()`. It has no tag limit: its document is every served endpoint's, so an operator's
   or a service's route with an undescribed refusal is a violation too.
 - **Decision**: each of the nine kits (one `HttpServer.at` and one `AnkkaTestKit.start` each, in
-  `it/Kit.scala` or the wallet's `it/Harness.scala`) wraps its server with
-  `HeldToDocument.server(server, violations)` and, when it closes, fails on the violations whose
-  route is a player route of the kept description, listing each. Violations on other routes are
+  `it/Kit.scala` or the wallet's `it/Harness.scala`) wraps its server through
+  `contract.port.HeldToPlayerRoutes` (the contract's main scope, with `ankka-testkit` as a
+  `Provided` dependency: every service has it on its test class path) and, when it closes, fails
+  on the violations whose route is a player route of the kept description, listing each. Violations on other routes are
   dropped: describing 200 service and operator routes is not this spec.
 - **V1** decides how the filter reads a violation's route. If a violation does not carry its
   method and path, the fallback is the endpoint's own `description` with the refusals every route
@@ -138,8 +139,8 @@ and 067); this repository's 22 service builds, the nine services' endpoints and 
   `request{method, path, service, body}` and `response{status, body}`), loaded by
   `io.eitheror.casino.contract.port.Recording`. `request.service` is the original's host. 590
   recordings in 14 directories; calls of one service's player routes lie in many directories
-  (players' registration is in 294 recordings; responsible gambling's routes are in
-  `tests/port/engagement/` and nowhere else).
+  (players' registration is in 294 recordings; responsible gambling's routes are in 23
+  recordings of `tests/port/engagement/` and one of `tests/port/reporting/`).
 - **Decision**: `contract.port.DescriptionCheck` (beside `Recording` and `Replay`), given a kept
   description, a table of the original's routes (`method`, a path pattern, the operation it is),
   and an optional translation of a step: for every recording under `tests/port/` and every step
@@ -147,12 +148,12 @@ and 067); this repository's 22 service builds, the nine services' endpoints and 
   answer's schema. It returns the differences and the operations no step matched. Each of the
   nine services has `port/DescriptionSuite.scala`: its table, its translation where it has one
   (`WireTranslation` in players, kyc, rewards, engagement), and two assertions: no difference, and
-  the unmatched operations equal that service's lines of `tests/port/unrecorded-player-routes.txt`.
+  the unmatched operations equal `tests/port/unrecorded-player-routes/<service>.txt`.
 - **A named divergence**: where the service's `Parity.divergences` names a step, the check reads
   the step as the parity test does (translated, or skipped where the parity test skips it).
   ingest, game-provider and support-agent have no `WireTranslation`: their recordings are read as
   recorded. responsible-gambling has no parity package at all: its suite reads
-  `tests/port/engagement/`'s scenarios 26 and 27 with the original's paths (`/v1/casino/rg/…`,
+  `tests/port/engagement/`'s and `tests/port/reporting/`'s recordings with the original's paths (`/v1/casino/rg/…`,
   the same as the rebuilt ones) and no translation; a difference found there is either a missing
   refusal in the description or a divergence, which is then named in spec 010's plan and in the
   suite (V4).
@@ -175,7 +176,7 @@ and 067); this repository's 22 service builds, the nine services' endpoints and 
 |---|---|
 | open to a visitor / a signed-in player | the document's `security`: `[]` is public, `bearer` is player |
 | admitted by a cashier ticket (ingest's three, served under `Routes.public`) | the route description's second tag, `ticket` |
-| the push connection (a custom ACL, `Stream.acl`) | `bearer` if the ACL holds an authenticator; else the tag `signed-in` (V5) |
+| the push connection (a custom ACL, `Stream.acl`) | `bearer` if the ACL holds an authenticator; else the tag `signed-in`, which the generator reads as a signed-in player before it reads `security` (V5) |
 | a stream | the operation's `200` content is `text/event-stream` |
 | query parameters | the operation's parameters |
 | a header a route reads (the payment read's ticket header) | nowhere: ankka 067 describes no header. The site server sends the ticket by the row's audience, as today |
@@ -221,7 +222,8 @@ and 067); this repository's 22 service builds, the nine services' endpoints and 
   apply (brand and shared project, real money or not, local mode and vendor mode) before anything
   is deployed. The platform version is `GET /installation`'s when the control plane is asked, else
   the overlay's `PLATFORM_VERSION` in `installation/overlays/<name>/settings.env`, a new setting
-  (V6 checks no existing one says it). Not reported is refused. It lands in the first pull
+  (V6 checks no existing one says it), set to what that installation runs today and never to
+  what this spec would like it to run. Not reported is refused. It lands in the first pull
   request, with the scenario it implements.
 
 ## R12. Where things run
@@ -244,7 +246,7 @@ and 067); this repository's 22 service builds, the nine services' endpoints and 
 | V1 | a `HeldToDocument` violation carries its route's method and path | R7's fallback: endpoint-wide descriptions on the non-player endpoints |
 | V2 | each of the nine `main`s reaches `start` in document mode under `describe.env` | move what runs before `start` behind it, in that service |
 | V3 | `DocumentCheck` validates a JSON value against a document's schema from outside ankka | `json-schema-validator` in the contract |
-| V4 | scenarios 26 and 27 pass against responsible gambling's description untranslated | name the divergence in spec 010's plan and the suite |
+| V4 | the recorded calls of responsible gambling's routes pass against its description untranslated | name the divergence in spec 010's plan and the suite |
 | V5 | the push connection's ACL yields `bearer` in the document | the tag `signed-in` |
 | V6 | no overlay setting already states the platform's version | use it, add none |
 | V7 | ankka-predictions 0.3.0 changes nothing `exchange` and `markets` serve or store | a finding; stop and ask |

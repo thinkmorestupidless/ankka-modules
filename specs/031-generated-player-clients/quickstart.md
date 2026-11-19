@@ -7,7 +7,7 @@ Needs Docker, `uv`, Node 24, sbt, and the ankka command-line client 0.18.0
 
 ```bash
 just test                                   # the contract, the modules tool, the bound features
-just service wallet test                    # and so for each of the 22; contracts/move.md has the groups
+just service wallet test                    # and so for each of the 21; contracts/move.md has the groups
 just modules validate --all
 just modules render guyanabet               # every service: runtime 0.18.0
 grep -rnE '0\.1[3-7]\.[0-9]+' services/*/build.sbt services/*/service.json modules shared local build.sbt
@@ -55,12 +55,14 @@ just player-sdk-test && just player-sdk-features && just player-site-features
 ```
 
 Expected: nothing out of date; every suite green; `git diff main -- sdk/player/tests/features
-services/player-site` shows no test changed.
+services/player-site` shows no test changed other than the new `generated-clients.steps.ts` and
+its line in `elsewhere.ts`.
 
 ## 6. Acceptance
 
 ```bash
 just local-images && (cd local/guyanabet && ankka local up)
+just local-onboard                          # a no-op where step 3's realm and keys are still there
 just player-site-it
 just features
 ```

@@ -42,8 +42,8 @@ The four selections hold the 27 rows of spec 027 FR-035, in the order the tables
 
 - `method`, `path`: the operation's, with the segment `the-brand` as `{brand}`, renames and fixes
   applied, `?` and the fixed query appended.
-- `audience`: `ticket` if the operation is tagged `ticket`; else `public` for `security: []`;
-  else `player`.
+- `audience`: `ticket` if the operation is tagged `ticket`; else `player` if it is tagged
+  `signed-in`; else `public` for `security: []`; else `player`.
 - `stream: true` where the `200` content is `text/event-stream`.
 - `brandQuery`, `serverOnly`, `visitor`: the selection's.
 

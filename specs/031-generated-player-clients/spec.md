@@ -37,13 +37,14 @@ What that reading found, which the description above did not have:
   0.16.2 (support-agent), two on 0.14.2 (exchange, markets), and six on 0.13.0 (affiliate-programme,
   ingest, merchant, psp-gateway, provider, game-provider-simulator), as is the root build of the
   contract and the modules tool.
-- The SDK's clients call nine services, not six: `rewards` (the free rounds a player holds),
+- The SDK's clients call eight services, not five of the six named: `rewards` (the free rounds a player holds),
   `engagement` (the push connection) and `support-agent` (the chat's turn and decision) beside the
-  six named. No function of the SDK calls `kyc` yet.
+  five. No function of the SDK calls `kyc` yet; it is described for the behaviour that will.
 - `tests/port/` has a directory for players, ingest, kyc, game-provider, rewards, engagement and
   support-agent, and none for the wallet or responsible gambling. Recorded calls of responsible
-  gambling's player routes are in `tests/port/engagement/` (the original suite's scenarios 26 and
-  27); the wallet's parity suite names `tests/port/wallet/`, which does not exist.
+  gambling's player routes are in `tests/port/engagement/` (23 recordings) and one recording of
+  `tests/port/reporting/`; the wallet's parity suite names `tests/port/wallet/`, which does not
+  exist.
 
 Three decisions of 2026-11-19 bind the spec (Clarifications).
 
@@ -88,7 +89,7 @@ recording replays as it did. A brand's values name no runtime, so a brand takes 
 with the modules' next release and changes nothing of its own.
 
 **Why this priority**: The service description exists only from 0.18.0, so nothing else in this
-spec can start before it; and it is the riskiest step, because 22 services move at once, nine of
+spec can start before it; and it is the riskiest step, because 21 services move at once, six of
 them across five minor versions.
 
 **Independent Test**: Every service's unit, feature, parity and integration suites pass on 0.18.0
@@ -161,8 +162,9 @@ passes.
 ### User Story 4 - The module clients are generated from the service descriptions (Priority: P1)
 
 The player SDK's four module clients take their route tables and their wire shapes from the kept
-service descriptions. Nobody writes a route's path, its method, its audience or the shape of its
-answer by hand in the SDK any more. Each module client's interface is the one spec 027 wrote, so no
+service descriptions. Nobody states a route's method, its audience or the shape of its answer by hand in the SDK any
+more; a path appears by hand only where a selection names the route it means, and generation
+checks that name against the description. Each module client's interface is the one spec 027 wrote, so no
 behaviour, no component and no site changes. The 24 contract tests of spec 027 pass against the
 local brand as they did, and they are the proof that a generated client behaves as the hand-written
 one did. When a service's description changes, the generated part of the SDK is out of date and the
@@ -198,13 +200,13 @@ the SDK's build fails until it is generated again.
   one item of one page): the fixed values are the module's, the parameters' names and types are the
   description's.
 - A route reads the brand from a query parameter and not from its path (the catalogue): the
-  description says so, and the generated row says so from it.
+  selection says so, and the parameter it names is checked to be one the description has.
 - The cashier's routes are in the shared payments project, reached at its public address under a
   cashier ticket: their description comes from `ingest`, and the audience is the ticket's holder.
-- Two routes of one service would have the same operation name: the service description is
-  refused naming both, and the service does not start serving one.
+- Two routes of one service would have the same operation name: ankka refuses the service
+  description naming both. That is the platform's behaviour and is not tested here.
 - A service that registers a route only under some configuration gives a description that depends
-  on it: the kept description is written under the configuration a brand with every module runs.
+  on it: the kept description is written under one fixed configuration, kept beside the service.
 - The original answers a status the rebuilt service never does, by a divergence a spec names: the
   description holds the rebuilt service's answer, and the recording is read through the parity
   test's translation (story 3).
@@ -220,7 +222,8 @@ the SDK's build fails until it is generated again.
 
 **One ankka version**
 
-- **FR-001**: Every service's build, every `service.json`, every module manifest, every shared
+- **FR-001**: Every service's build (21 services run on ankka; `player-site` is web-hosted and
+  names no runtime), every `service.json`, every module manifest, every shared
   project's manifest, the local brand's service files and the root build of the contract and the
   modules tool MUST name ankka 0.18.0. No service is left on an earlier version, and the
   workarounds that let a contract built on one version run on another are removed. `exchange` and
@@ -270,7 +273,8 @@ the SDK's build fails until it is generated again.
   route and what it lacks.
 - **FR-011**: Each service's description MUST be kept in the repository beside the service, and
   the build of that service MUST fail when its routes and its kept description disagree, naming
-  each route added, removed or changed. Continuous integration MUST run that check for all nine.
+  each route added, removed or changed by its method and path. Continuous integration MUST run
+  that check for all nine.
 - **FR-012**: A service description MUST state who may call each route as the service enforces
   it: open to a visitor, a signed-in player's token, or a cashier ticket. Where the route's
   admission is a rule its admission alone does not show (the cashier's routes are open to the
@@ -282,15 +286,15 @@ the SDK's build fails until it is generated again.
   it holds of a player route MUST be checked against that route's description: the status and the
   answer's fields, after the translation the owning service's parity tests apply. A call the
   description does not allow fails the check, naming the recording, the route and what differed.
-- **FR-014**: The check MUST report the player routes no recording calls. This spec keeps that
-  list by name (planned in `contracts/`), and the check fails when the reported list and the kept
-  list differ, in either direction.
+- **FR-014**: The check MUST report the player routes no recording calls. That list is kept by name
+  under `tests/port/`, one file per service, and the check fails when the reported list and the
+  kept list differ, in either direction.
 - **FR-015**: Each of the nine services' test kits MUST be held to its service description, in
-  its unit, feature and integration suites alike: an answer whose status or shape the description
-  does not allow fails the run, listing each.
-- **FR-016**: Where the wallet's parity suite names recordings that do not exist
-  (`tests/port/wallet/`), the spec MUST say what that suite replays, and the wallet's player
-  routes are checked by FR-015 and by whatever recordings hold a call of them.
+  every suite that serves the service's routes through that kit: an answer of a player route whose
+  status or shape the description does not allow fails the run, listing each.
+- **FR-016**: The wallet's parity suite replays nothing, because `tests/port/wallet/` does not
+  exist, and the original has no wallet route a player calls. The wallet's three player routes
+  MUST be on the kept list of FR-014 and held by FR-015.
 
 **Generated clients**
 
@@ -363,16 +367,16 @@ the SDK's build fails until it is generated again.
   held tests.
 - **Selection**: per module, the rows its client has, by id, each naming one route of one service
   description, with what a description cannot say.
-- **Generated client**: a module client's route table and wire shapes, produced from the
+- **Generated module client**: a module client's route table and wire shapes, produced from the
   selections and the service descriptions, under the hand-written mapping and the interface of
   spec 027.
-- **Unrecorded list**: the player routes no recording calls, kept by name.
+- **The kept list of player routes no recording calls**: by name, one file per service.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: All 22 services and the contract build on one ankka version; a search of the
+- **SC-001**: All 21 services on ankka and the contract build on one ankka version; a search of the
   repository's builds and manifests finds no other.
 - **SC-002**: Every suite that passed before the move passes after it, with 0 expectations
   changed and 0 recordings changed.
@@ -382,8 +386,9 @@ the SDK's build fails until it is generated again.
   their route descriptions, and the unrecorded list matches the kept one exactly.
 - **SC-005**: Spec 027's contract tests pass 24 of 24 on the local brand with the generated
   clients.
-- **SC-006**: The SDK holds 0 hand-written route rows and 0 hand-written wire shapes; 0 tests of
-  a behaviour, a component or the reference site were changed.
+- **SC-006**: The SDK holds 0 hand-written route rows and 0 hand-written wire shapes (a
+  selection's reference to a route, which generation checks, is not a row); 0 tests of a
+  behaviour, a component or the reference site were changed.
 - **SC-007**: A change to a player route's path, method, shape or refusals that is not carried
   into the kept description and the generated clients fails the build of the same pull request.
 - **SC-008**: Adding a client function for an already described route needs a change to one
@@ -400,9 +405,9 @@ the SDK's build fails until it is generated again.
   real-money installation takes the modules' 0.18.0 release only after its platform is at 0.18.0
   (story 1). The other worktrees' services stay on their versions until they are rebased on the
   first pull request.
-- The ankka command-line client on the developer's machine is upgraded to 0.18.0, and continuous
-  integration installs 0.18.0; where a client is absent, the same description is written by the
-  service's own build, and both give the same file.
+- The ankka command-line client on the developer's machine is upgraded to 0.18.0, for the local
+  brand. Continuous integration installs no client: a description is written and checked by the
+  service's own build (research R4).
 - ankka-predictions 0.3.0 is built on ankka 0.18.0 (Clarifications). What it changed since 0.1.1
   that `exchange` and `markets` must follow is found when they are moved, and a change to what
   either serves or stores is a finding (FR-002, FR-003).
