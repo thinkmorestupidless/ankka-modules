@@ -648,7 +648,7 @@ backoffice-run +args="":
 # the currency table) into src/shared/generated; CI fails when the copy differs.
 backoffice-contract:
     mkdir -p services/backoffice/src/shared/generated
-    cp contract/schemas/access/operator-permissions.v1.json contract/schemas/money/currencies.v1.json services/backoffice/src/shared/generated/
+    cp contract/schemas/access/operator-permissions.v1.json contract/schemas/currencies.v1.json services/backoffice/src/shared/generated/
 
 # backoffice-state's integration kit over Postgres and a Keycloak container (Docker).
 backoffice-state-it:

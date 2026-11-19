@@ -9,7 +9,7 @@ import { installation, minorOfShown, Operator, operators, readSeed, seeded, Seed
 import { amountsShown, openSignedIn, settle, type Signed } from "./page.ts";
 
 const exponent = (c: string): number => {
-  const e = (currencies.currencies as Record<string, number>)[c];
+  const e = (currencies as Record<string, number>)[c];
   if (e === undefined) throw new Error(`the contract has no ${c}`);
   return e;
 };

@@ -22,8 +22,7 @@ object Topics:
 
 /**
  * `sbt contract/schemas`: writes `<dir>/<topic>.v1.json` for every topic, the currency table (spec 027
- * FR-037), and the two files the backoffice reads (spec 030 research R5, R6):
- * `access/operator-permissions.v1.json` and `money/currencies.v1.json`.
+ * FR-037, spec 030 research R6) and `access/operator-permissions.v1.json` (spec 030 research R5).
  */
 object WriteSchemas:
   def main(args: Array[String]): Unit =
@@ -34,7 +33,8 @@ object WriteSchemas:
       java.nio.file.Files.writeString(file, topic.schema.render() + "\n")
       println(s"wrote $file")
     }
-    // The currency table beside the topics (spec 027 FR-037), and its copy in the player SDK.
+    // The one currency table beside the topics, and its copy in the player SDK; the backoffice copies it
+    // with `just backoffice-contract`.
     val currencies = dir.resolve("currencies.v1.json")
     java.nio.file.Files.writeString(currencies, io.eitheror.casino.contract.money.Currencies.render())
     println(s"wrote $currencies")
@@ -53,7 +53,6 @@ object WriteSchemas:
 object Published:
   import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
   import io.eitheror.casino.contract.access.OperatorPermissions
-  import io.eitheror.casino.contract.money.{Amounts, Currency}
 
   private val json = ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT)
 
@@ -70,40 +69,6 @@ object Published:
     }
     json.writeValueAsString(root) + "\n"
 
-  /**
-   * The ISO 4217 codes published, current and withdrawn, as JDK 25 lists them. A list of the contract's
-   * own, so the file is the same whichever JDK writes it; add a code here when ISO adds one.
-   */
-  val CurrencyCodes: Vector[String] = """
-    ADP AED AFA AFN ALL AMD ANG AOA ARS ATS AUD AWG AYM AZM AZN BAM BBD BDT BEF BGL BGN BHD BIF
-    BMD BND BOB BOV BRL BSD BTN BWP BYB BYN BYR BZD CAD CDF CHE CHF CHW CLF CLP CNY COP COU CRC
-    CSD CUC CUP CVE CYP CZK DEM DJF DKK DOP DZD EEK EGP ERN ESP ETB EUR FIM FJD FKP FRF GBP GEL
-    GHC GHS GIP GMD GNF GRD GTQ GWP GYD HKD HNL HRK HTG HUF IDR IEP ILS INR IQD IRR ISK ITL JMD
-    JOD JPY KES KGS KHR KMF KPW KRW KWD KYD KZT LAK LBP LKR LRD LSL LTL LUF LVL LYD MAD MDL MGA
-    MGF MKD MMK MNT MOP MRO MRU MTL MUR MVR MWK MXN MXV MYR MZM MZN NAD NGN NIO NLG NOK NPR NZD
-    OMR PAB PEN PGK PHP PKR PLN PTE PYG QAR ROL RON RSD RUB RUR RWF SAR SBD SCR SDD SDG SEK SGD
-    SHP SIT SKK SLE SLL SOS SRD SRG SSP STD STN SVC SYP SZL THB TJS TMM TMT TND TOP TPE TRL TRY
-    TTD TWD TZS UAH UGX USD USN USS UYI UYU UZS VEB VED VEF VES VND VUV WST XAD XAF XAG XAU XBA
-    XBB XBC XBD XCD XCG XDR XFO XFU XOF XPD XPF XPT XSU XTS XUA XXX YER YUM ZAR ZMK ZMW ZWD ZWG
-    ZWL ZWN ZWR
-  """.trim.split("\\s+").toVector
-
-  /**
-   * Each code with its minor-unit count as `Amounts.exponent` reads it (research R6). A code
-   * `Currency.from` refuses is an error in [[CurrencyCodes]], never written with a guessed exponent.
-   */
-  def currencies: String =
-    val root = json.createObjectNode()
-    root.put("version", 1)
-    val cs = root.putObject("currencies")
-    CurrencyCodes.foreach { code =>
-      val exponent = Currency.from(code).map(Amounts.exponent)
-        .fold(why => throw IllegalStateException(s"$code is in CurrencyCodes but Currency.from refuses it: $why"), identity)
-      cs.put(code, exponent)
-    }
-    json.writeValueAsString(root) + "\n"
-
   val files: Vector[(String, String)] = Vector(
-    "access/operator-permissions.v1.json" -> operatorPermissions,
-    "money/currencies.v1.json"            -> currencies
+    "access/operator-permissions.v1.json" -> operatorPermissions
   )

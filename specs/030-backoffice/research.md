@@ -987,6 +987,10 @@ seeded brand fills in the rest.
 - **The constitution's amendment is 1.4.0.** Spec 027 took 1.3.0 for the player site; 030's
   amendment of the same *Scope* bullet keeps both sentences, as 027's note asked of whichever merged
   second.
-- **Two currency tables.** The contract now publishes 027's `currencies.v1.json` (code to exponent,
-  from the JDK it is written on) and 030's `money/currencies.v1.json` (a fixed list of codes, so the
-  same on every JDK). Both come from `Amounts.exponent`. One should go; which is left open here.
+- **One currency table.** The rebase left two: 027's `currencies.v1.json` (code to exponent, its codes
+  from the JDK it is written on) and 030's `money/currencies.v1.json` (the same exponents in a
+  `{version, currencies}` object, its codes a fixed list). Both held the same 233 codes. Decided
+  2026-11-19 (Trevor): one table, at 027's path and in 027's flat shape, which the player SDK reads on
+  main; its codes are 030's fixed list (`Currencies.Codes`), so the file is the same whichever JDK
+  writes it. `money/currencies.v1.json` is gone; the backoffice copies `currencies.v1.json`. Contract
+  C2 is amended to match.

@@ -920,7 +920,7 @@ jobs:
       - name: The contract's files, as the contract publishes them
         run: |
           mkdir -p src/shared/generated
-          cp ../../contract/schemas/access/operator-permissions.v1.json ../../contract/schemas/money/currencies.v1.json src/shared/generated/
+          cp ../../contract/schemas/access/operator-permissions.v1.json ../../contract/schemas/currencies.v1.json src/shared/generated/
           git diff --exit-code -- src/shared/generated
       - run: npm run typecheck
       - name: Unit tests

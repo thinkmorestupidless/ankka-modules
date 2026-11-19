@@ -16,7 +16,7 @@ Three kinds recur and are named by letter:
 | # | Change |
 |---|---|
 | C1 | `access/OperatorPermissions.scala`: the permissions' names and the role matrix (the default bags); `access/RoleBags.scala`: the kept copy of the brand's roles, refreshed every 10 seconds through a fetch the service supplies, `Unavailable` until first read; `Routes.operatorMay(slug, permission)`; `Routes.operatorHolding` and bare `Routes.operator` leave the brand services |
-| C2 | `WriteSchemas` writes `schemas/access/operator-permissions.v1.json` and `schemas/money/currencies.v1.json` |
+| C2 | `WriteSchemas` writes `schemas/access/operator-permissions.v1.json`; the backoffice reads spec 027's `schemas/currencies.v1.json`, whose codes become the contract's fixed list (`Currencies.Codes`) so the file is the same on every JDK |
 | C3 | `Layout`: the module `backoffice` and its two services (`backoffice`, `backoffice-state`); the grant a brand makes for merchant's role-setting route (P13, H6) |
 | C4 | `facts`: `adjustment` gains optional `cause {kind, ref}` |
 | C5 | `brands/_realm/eitheror-operators.json`: role `brand_support`. Each brand gets its own confidential client `backoffice-<slug>` (audience `eitheror-casino`, standard flow, PKCE, the brand's backoffice address), made by `Realm.ensure` with the brand (D3) |

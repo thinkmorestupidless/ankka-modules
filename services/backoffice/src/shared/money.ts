@@ -3,7 +3,7 @@
 // never through a float.
 import table from "./generated/currencies.v1.json" with { type: "json" };
 
-const exponents: Record<string, number> = table.currencies;
+const exponents: Record<string, number> = table;
 
 /** An amount as an owner answers it: minor units (a string in JSON, so no float), and its currency. */
 export interface Money {
