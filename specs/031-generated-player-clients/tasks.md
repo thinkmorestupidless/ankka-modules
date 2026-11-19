@@ -40,7 +40,7 @@ No kind installation is used by any task (FR-025). What runs locally runs under 
 
 ### Group 1: the root build
 
-- [ ] T004 [US1] `build.sbt`: the default of `ankka.version` becomes `0.18.0` (from here until its own task, a service not yet moved builds against a contract newer than its ankka and may not pass: FR-005 holds the root build and the moved services at every commit, and all of CI at T031); fix what the contract, `provider-core` and the modules tool need to compile on it; `sbt test`, `sbt "modules/run validate --all"` and `sbt contract/schemas` (no diff) green. Fixtures and suites that still name an earlier runtime for a service not yet moved stay as they are until T025
+- [X] T004 [US1] `build.sbt`: the default of `ankka.version` becomes `0.18.0` (from here until its own task, a service not yet moved builds against a contract newer than its ankka and may not pass: FR-005 holds the root build and the moved services at every commit, and all of CI at T031); fix what the contract, `provider-core` and the modules tool need to compile on it; `sbt test`, `sbt "modules/run validate --all"` and `sbt contract/schemas` (no diff) green. Fixtures and suites that still name an earlier runtime for a service not yet moved stay as they are until T025
 
 ### Group 2: the nine on 0.16.3
 
