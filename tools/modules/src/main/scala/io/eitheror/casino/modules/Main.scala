@@ -153,8 +153,13 @@ object Main:
       case Right((inst, v, plan, organization, supplied, unbuilt)) =>
         val cp = controlPlane()
         val refusals = BrandCommands.realMoney(v, plan.project, Some(inst), BrandCommands.facts(Some(inst), Some(cp)))
+        // Held modules too: they are applied once their keys are set, on the same platform.
+        val runtimes = Runtimes.refusal(inst, Runtimes.platform(inst, Some(cp)),
+          plan.inOrder.flatMap(m => m.services.flatMap(d => d.service.runtime.map(s"${m.name}/${d.name}" -> _))))
         if refusals.nonEmpty then
           refusals.foreach(r => out.line(s"refused $r")); 1
+        else if runtimes.nonEmpty then
+          runtimes.foreach(out.line); out.line("calls: 0"); 1
         else
           val admin = realms.orElse(KeycloakAdmin.fromEnvironment(v.issuerBase).toOption)
           val realm = admin.map(a => a -> (() => Realm.withPlayers(Realm.render(Realm.template(root), v.slug, BrandCommands.frontend(v, Some(inst))),
@@ -349,8 +354,13 @@ object Main:
         val cp = controlPlane()
         val plan = Render.plan(manifest, inst, brandSlugs(root))
         val secrets = args.flags.get("--secrets").map(f => SecretsFile.load(root.resolve(f))).getOrElse(Right(Map.empty))
+        // `checked` loaded the installation, which `apply` requires.
+        val runtimes = inst.fold(Vector.empty[String])(i => Runtimes.refusal(i, Runtimes.platform(i, Some(cp)),
+          plan.descriptors.flatMap(d => d.service.runtime.map(s"${manifest.projectId}/${d.name}" -> _))))
         secrets match
           case Left(problem) => out.err(problem); 2
+          case Right(_) if runtimes.nonEmpty =>
+            runtimes.foreach(out.line); out.line("calls: 0"); 1
           case Right(values) =>
             val organization = args.flags.get("--organization").orElse(sys.env.get("ANKKA_ORGANIZATION")).getOrElse("eitheror")
             val result = Apply.run(plan, cp, Apply.Options(organization, values))

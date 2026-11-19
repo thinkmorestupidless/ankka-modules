@@ -3,7 +3,7 @@ package io.eitheror.casino.modules
 /** `apply <slug>` in local mode: the agent's order played by the tool (spec 021 T022, contracts/modules-tool.md). */
 class LocalApplySuite extends munit.FunSuite:
 
-  private val root    = Fixtures.root
+  private val root    = Fixtures.applyRoot // dev-kind at platform 0.18.0 (spec 031 T029)
   private val secrets = "tools/modules/src/test/resources/secrets/goldvibe.secrets"
 
   private val realms = scala.collection.mutable.Map.empty[InMemoryControlPlane, InMemoryRealms]
@@ -190,4 +190,29 @@ class LocalApplySuite extends munit.FunSuite:
     assertEquals(code, 1)
     assert(out.lines.exists(_.contains("a brand is applied from its values")))
     assertEquals(cp.calls, Vector.empty)
+  }
+
+  /** `apply` against a root whose dev-kind overlay states `version` (spec 031 T029). */
+  private def applyAt(version: String, cp: InMemoryControlPlane): (Int, Output.Collected) =
+    val out  = Output.Collected()
+    val code = Main.run(Main.parse(Seq("apply", "goldvibe", "--installation", "dev-kind", "--allow-unbuilt", "--modules", "casino")),
+      Fixtures.withPlatform(version), out, () => cp, Some(InMemoryRealms()), () => fail("no vendor in local mode"), Map.empty)
+    (code, out)
+
+  test("a platform that cannot run the services' runtime refuses the apply before anything is deployed (spec 031)") {
+    val cp = withSecrets()
+    val before = cp.writes.size
+    val (code, out) = applyAt("0.16.3", cp)
+    assertEquals(code, 1, out.lines.mkString("\n"))
+    assertEquals(out.lines.head, "refused: the installation dev-kind runs platform 0.16.3, which cannot run runtime 0.18.0")
+    assert(out.lines(1).startsWith("  (named by: core/wallet, core/players,"), out.lines(1))
+    assertEquals(out.lines(2), "  a platform runs runtimes of its own minor version and the one below")
+    assertEquals(cp.writes.drop(before), Vector.empty)
+  }
+
+  test("a platform that runs the services' runtime applies them (spec 031)") {
+    val cp = withSecrets()
+    val (code, out) = applyAt("0.18.0", cp)
+    assertEquals(code, 0, out.lines.mkString("\n"))
+    assert(cp.services("goldvibe").nonEmpty)
   }

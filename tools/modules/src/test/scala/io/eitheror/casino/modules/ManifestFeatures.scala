@@ -28,7 +28,7 @@ class ManifestFeatures extends GherkinSuite("features/brands/manifest.feature"):
 
   private def run(args: String*): Int =
     out = Output.Collected()
-    code = Main.run(Main.parse(args), Fixtures.root, out, () => cp, Some(realms))
+    code = Main.run(Main.parse(args), Fixtures.applyRoot, out, () => cp, Some(realms)) // dev-kind at platform 0.18.0 (spec 031 T029)
     code
 
   private def applyShared(): Unit =
