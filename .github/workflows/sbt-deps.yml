@@ -1,0 +1,36 @@
+name: sbt-deps
+
+# Saves every sbt build's dependencies on `main`, where a pull request's jobs can restore them.
+#
+# ci.yml does not run on `main`, and a pull request may restore only caches saved on its own ref or
+# on `main`: without this, every pull request's first run resolved everything from Maven Central,
+# in every job. It runs when a build file changes on `main`, and weekly, because GitHub evicts a
+# cache unused for 7 days.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**/*.sbt"
+      - "**/project/build.properties"
+      - scripts/ci-sbt-deps.sh
+      - .github/workflows/sbt-deps.yml
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sbt-deps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
+        with:
+          resolve: "true"

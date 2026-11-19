@@ -189,7 +189,12 @@ jobs:
               - *player-sdk
               - services/player-site/**
 
-  check:
+  # Every sbt build's dependencies, resolved once for the run (.github/actions/sbt-deps): restored
+  # from this pull request's cache or `main`'s (.github/workflows/sbt-deps.yml), and when the build
+  # files differ from both, resolved here and saved for the pull request's later runs. The other sbt
+  # jobs only restore, so they meet Maven Central only for what this job could not fetch; they run
+  # even when it fails (`!cancelled()`), resolving for themselves as before.
+  sbt-deps:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -197,8 +202,23 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
+        with:
+          resolve: "true"
+
+  check:
+    needs: sbt-deps
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - uses: actions/setup-go@v5
         with:
           go-version: "1.22"
@@ -226,8 +246,8 @@ jobs:
   # game-provider (spec 003): its own sbt build against the contract published from this commit; its
   # integration suites start Postgres in Docker.
   game-provider:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.game-provider == 'true'
+    needs: [changes, sbt-deps]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.game-provider == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -235,8 +255,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - name: Publish the contract and the provider core locally
         run: sbt contract/publishLocal providerCore/publishLocal
       - name: game-provider's suites
@@ -246,8 +266,8 @@ jobs:
   # The wallet (spec 002): its own sbt build against the contract published from this commit. The
   # integration suites start Postgres in Docker, which the hosted runner provides.
   wallet:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.wallet == 'true'
+    needs: [changes, sbt-deps]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.wallet == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -255,8 +275,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
       - name: The wallet's suites
@@ -267,8 +287,8 @@ jobs:
   # contract published from this commit; its integration suites start Postgres in Docker. The merchant
   # driver's offline checks run in the check job's `go test ./...`.
   merchant:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.merchant == 'true'
+    needs: [changes, sbt-deps]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.merchant == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -276,8 +296,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
       - name: merchant's suites
@@ -289,8 +309,8 @@ jobs:
   # tests/stubs/psp-stub/Dockerfile) in Docker. The stubs' and the gateway driver's offline checks run
   # in the check job's `go test ./...`.
   psp-gateway:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.psp-gateway == 'true'
+    needs: [changes, sbt-deps]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.psp-gateway == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -298,8 +318,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
       - name: psp-gateway's suites
@@ -310,8 +330,8 @@ jobs:
   # contract published from this commit; its integration suites start Postgres in Docker. The ingest
   # driver's offline checks run in the check job's `go test ./...`.
   ingest:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.ingest == 'true'
+    needs: [changes, sbt-deps]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.ingest == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -319,8 +339,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
       - name: ingest's suites
@@ -331,8 +351,8 @@ jobs:
   # from this commit; its integration suites start Postgres in Docker. The players driver's offline
   # checks run in the check job's `go test ./...`.
   players:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.players == 'true'
+    needs: [changes, sbt-deps]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.players == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -340,8 +360,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
       - name: players' suites
@@ -353,8 +373,8 @@ jobs:
   # suites start Postgres in Docker and run with -Dit=true. The driver's offline checks run in the check
   # job's `go test ./...`.
   attribution:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.attribution == 'true'
+    needs: [changes, sbt-deps]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.attribution == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -362,8 +382,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
       - name: attribution's unit suites
@@ -377,8 +397,8 @@ jobs:
   # published from this commit. `sbt test` runs the unit suites; the integration, parity and feature
   # suites start Postgres in Docker and run with -Dit=true.
   affiliate-programme:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.affiliate-programme == 'true'
+    needs: [changes, sbt-deps]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.affiliate-programme == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -386,8 +406,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
       - name: affiliate-programme's unit suites
@@ -400,8 +420,8 @@ jobs:
   # The game provider simulator (spec 020): its own sbt build against the contract published from this
   # commit; its suites start Postgres in Docker and run the features of features/simulator.
   simulator:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.simulator == 'true'
+    needs: [changes, sbt-deps]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.simulator == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -409,8 +429,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - name: Publish the contract and the provider core locally
         run: sbt contract/publishLocal providerCore/publishLocal
       - name: The simulator's suites
@@ -421,8 +441,8 @@ jobs:
   # published from this commit; its suites start Postgres in Docker and run the features of
   # features/games.
   provider:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.provider == 'true'
+    needs: [changes, sbt-deps]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.provider == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -430,8 +450,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - name: Publish the contract and the provider core locally
         run: sbt contract/publishLocal providerCore/publishLocal
       - name: The provider's suites
@@ -451,8 +471,8 @@ jobs:
   # responsible-gambling (spec 010): its own sbt build against the contract published from this commit;
   # its integration suites start Postgres in Docker.
   responsible-gambling:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.responsible-gambling == 'true'
+    needs: [changes, sbt-deps]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.responsible-gambling == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -460,8 +480,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
       - name: responsible-gambling's suites
@@ -471,8 +491,8 @@ jobs:
   # kyc (spec 009): its own sbt build against the contract published from this commit; its integration
   # suites start Postgres and Garage in Docker.
   kyc:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.kyc == 'true'
+    needs: [changes, sbt-deps]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.kyc == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -480,8 +500,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
       - name: kyc's suites
@@ -491,8 +511,8 @@ jobs:
   # payouts (spec 007): its own sbt build against the contract published from this commit; its integration
   # suites start Postgres in Docker.
   payouts:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.payouts == 'true'
+    needs: [changes, sbt-deps]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.payouts == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -500,8 +520,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
       - name: payouts' suites
@@ -511,8 +531,8 @@ jobs:
   # rewards (spec 011): its own sbt build against the contract published from this commit. `sbt test` runs
   # the unit suites; the integration, parity and feature suites start Postgres in Docker and run with -Dit=true.
   rewards:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.rewards == 'true'
+    needs: [changes, sbt-deps]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.rewards == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -520,8 +540,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
       - name: rewards' suites
@@ -535,8 +555,8 @@ jobs:
   # commit. `sbt test` runs the unit suites; the integration, parity and feature suites start Postgres in
   # Docker and run with -Dit=true. crm-stub's checks run in the check job's `go test ./...`.
   engagement:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.engagement == 'true'
+    needs: [changes, sbt-deps]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.engagement == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -544,8 +564,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
       - name: engagement's suites
@@ -559,8 +579,8 @@ jobs:
   # contract published from this commit. `sbt test` runs the unit suites; the integration, parity and
   # feature suites start Postgres in Docker and run with -Dit=true.
   audit:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.audit == 'true'
+    needs: [changes, sbt-deps]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.audit == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -568,8 +588,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
       - name: audit's suites
@@ -582,8 +602,8 @@ jobs:
   # reporting (spec 015): its own sbt build on ankka 0.16.0, against the contract published from this commit.
   # `sbt test` runs the unit suites; the integration, parity and feature suites start Postgres in Docker.
   reporting:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.reporting == 'true'
+    needs: [changes, sbt-deps]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.reporting == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -591,8 +611,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
       - name: reporting's suites
@@ -606,8 +626,8 @@ jobs:
   # commit. `sbt test` runs the unit suites; the integration, parity and feature suites start Postgres in
   # Docker and run with -Dit=true. Every model and judge is scripted: no key is needed.
   support-agent:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.support-agent == 'true'
+    needs: [changes, sbt-deps]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.support-agent == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -615,8 +635,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
       - name: support-agent's suites
@@ -629,8 +649,8 @@ jobs:
   # public-api (spec 016): its own sbt build on ankka 0.16.0, against the contract published from this commit.
   # `sbt test` runs the unit suites; the integration, parity and feature suites start Postgres in Docker.
   public-api:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.public-api == 'true'
+    needs: [changes, sbt-deps]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.public-api == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -638,8 +658,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
       - name: public-api's suites
@@ -652,8 +672,8 @@ jobs:
   # markets (spec 023): its own sbt build against the contract published from this commit, on
   # ankka-predictions from Maven Central; its integration suites run on the runner's Docker.
   markets:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.markets == 'true'
+    needs: [changes, sbt-deps]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.markets == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -661,8 +681,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
       - name: markets's suites
@@ -672,8 +692,8 @@ jobs:
   # exchange (spec 023): its own sbt build against the contract published from this commit, on
   # ankka-predictions from Maven Central; its integration suites run on the runner's Docker.
   exchange:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.exchange == 'true'
+    needs: [changes, sbt-deps]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.exchange == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -681,8 +701,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
       - name: exchange's suites
