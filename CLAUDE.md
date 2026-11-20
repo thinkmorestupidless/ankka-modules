@@ -58,6 +58,7 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
 | 026 | shared `games` | provider: eitheror's own game provider, ST8's protocol, on the `provider-core` library it shares with 020 (amends 001, 003, 009, 020) | Scala |
 | 027 | brand | the player SDK (`sdk/player`) and the reference player site, the module `player-site` (web-hosted; amends 002, 003, 008, 021) | TypeScript |
 | 030 | brand (the `backoffice` module) | the backoffice, one per brand: every operator capability of the original, reworked from its use; calls the owning services as the signed-in operator; permissions, and roles as bags of them kept by the brand (amends the constitution) | TypeScript (web), Scala (sign-in, preferences) |
+| 032 | all | per-brand realm roles: a role holds in one brand, named `<role>@<slug>` (`contract.access.BrandRoles`); a brand's giving is recorded by merchant and put in force by its `BrandRolesApplier`; applying a brand carries old roles over (amends 013, 016, 019, 023, 030) | Scala, TypeScript |
 
 ## Working here
 

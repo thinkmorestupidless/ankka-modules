@@ -37,7 +37,7 @@ Three kinds recur and are named by letter:
 | P10 | `players/{p}/bets`: filters `roundId`, `transactionId`, `type`, `status`; `summary` gains `staked`, `won`, `net` in minor units |
 | P11 | `fraud-cases`: L, oldest first for `status=open` |
 | P12 | the brand's roles: a `Role` entity per role (name, description, permissions, default or the brand's own), seeded from the role matrix when the brand first starts; `roles` GET (every service of the project, and `roles.read`), `roles/{name}` PUT, DELETE and `roles/{name}/reset` POST (`roles.change`), with the rules of roles.md and an audit record per change |
-| P13 | `role-assignments/{operator}` PUT (`roles.give`): refuses when the giver lacks a permission the roles carry, then asks merchant (H6) to set them; audit record |
+| P13 | `role-assignments/{operator}` PUT (`roles.give`): refuses when the giver lacks a permission the roles carry, then asks merchant (H6) to set them; audit record. *Amended by spec 032:* answers `202` with the giving's state, gives `api_keys` and `markets`; P13r (GET) reads it back (`specs/032-per-brand-roles/contracts/amendments.md`) |
 | P14 | `GET /v1/casino/brands/<slug>/players/modules` on the service endpoint (the project's services, as `roles`): the brand's enabled modules, what `…/modules` answers an operator holding `modules.read`; the backoffice's server reads it for `/api/me` (research, *Found during implementation*, T037) |
 
 ## wallet (spec 002)
@@ -111,7 +111,7 @@ Three kinds recur and are named by letter:
 | H3 | `/v1/sub-brands/{id}/deposit-bounds` GET, PUT: the deposit bounds per method and currency, in minor units; enforced by the deposit workflow before a provider is asked, refused as `DEPOSIT_BELOW_MINIMUM` or `DEPOSIT_ABOVE_MAXIMUM` |
 | H4 | `/v1/sub-brands/{id}/psp-credentials/{provider}/test-payment` POST: one payment of the provider's smallest amount on the provider's test mode, through psp-gateway; answers the provider's outcome; never credits a wallet |
 | H5 | `/v1/operators`: L |
-| H6 | `/v1/operators/{id}/brand-roles/{brand}` PUT, admitted only to that brand's `players` service under the brand's grant: sets the operator's roles for the brand (adds `brand_<slug>`, creates a realm role that does not exist, removes the brand-given roles no longer asked for); refuses a payments role, `platform_admin` and another brand's `brand_<slug>`; changes no role another brand's request gave |
+| H6 | `/v1/operators/{id}/brand-roles/{brand}` PUT, admitted only to that brand's `players` service under the brand's grant: sets the operator's roles for the brand (adds `brand_<slug>`, creates a realm role that does not exist, removes the brand-given roles no longer asked for); refuses a payments role, `platform_admin` and another brand's `brand_<slug>`; changes no role another brand's request gave. *Amended by spec 032:* records the giving and answers `202`; a consumer puts it in force; roles are named for the brand; H6r reads it back (`specs/032-per-brand-roles/contracts/amendments.md`) |
 
 ## psp-gateway (spec 005)
 
