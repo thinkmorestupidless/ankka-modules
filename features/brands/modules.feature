@@ -74,3 +74,10 @@ Feature: A brand runs its core and the modules it is entitled to
   Scenario: a module's every change is a fact on the brand's platform topic
     When eitheror staff enable the module "casino" for brand "goldvibe"
     Then a fact naming the module "casino", the change, the version and the actor is written on the brand's platform modules topic
+
+  Scenario: a role held with no brand in its name is carried over to every brand the operator works in, then removed
+    Given an operator whose roles name the brands "goldvibe" and "spinvibe"
+    And the operator holds the finance role with no brand in its name
+    When the brands "goldvibe" and "spinvibe" are applied
+    Then the operator holds the finance role in "goldvibe" and in "spinvibe"
+    And no longer holds the finance role with no brand in its name

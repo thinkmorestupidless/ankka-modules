@@ -85,12 +85,13 @@ brands give the same operator at once. Both end with exactly the sets asked.
 
 **Acceptance Scenarios**:
 
-- added `features/backoffice/roles.feature`: a giving ends as asked when the realm stops answering part-way through it
-- added `features/backoffice/roles.feature`: two brands giving one operator roles at the same moment each end as their own brand asked
-- added `features/backoffice/roles.feature`: a brand's later giving replaces its earlier one, even before the earlier is in force
+- added `features/payments/operators.feature`: a giving ends as asked when the realm stops answering part-way through it
+- added `features/payments/operators.feature`: two brands giving one operator roles at the same moment each end as their own brand asked
+- added `features/payments/operators.feature`: a brand's later giving replaces its earlier one, even before the earlier is in force
 - added `features/backoffice/roles.feature`: a giving not yet in force is read as asked and as not yet in force
-- added `features/backoffice/roles.feature`: a role held with no brand in its name is carried over to every brand the operator works in, then removed
-- added `features/backoffice/roles.feature`: a giving the realm refuses ends as failed, with the realm's reason shown to the brand
+- added `features/brands/modules.feature`: a role held with no brand in its name is carried over to every brand the operator works in, then removed
+- added `features/backoffice/roles.feature`: a giving the realm refuses is shown to the brand as failed, with the realm's reason
+- added `features/payments/operators.feature`: a giving the realm refuses ends as failed and is not tried again
 - added `features/backoffice/roles.feature`: a brand gives the access keys and markets roles as it gives its other roles, in that brand only
 
 ---
