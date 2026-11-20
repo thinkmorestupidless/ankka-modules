@@ -41,8 +41,8 @@ parallel; never touch `services/backoffice/src/web/areas/affiliates/account.tsx`
 - [X] T013 [US1] Bind the 3 US1 scenarios of `features/backoffice/access.feature` in `services/backoffice/tests/features/steps/access.steps.ts`, the doubles' tokens carrying named roles (`services/backoffice/tests/features/world.ts`); `just backoffice-features`
 - [X] T014 [P] [US1] Bind "the markets permission given in one brand opens no other brand's markets" in `services/markets/src/test/scala/io/eitheror/casino/markets/features/LifecycleFeatures.scala`; the kit's markets operator holds `markets@<brand>`; check `services/exchange` the same way (`just service exchange test`)
 - [X] T015 [P] [US1] Public API: `KeysFeatures.scala:27`'s operator holds `api_keys@spinvibe` and `brand_goldvibe` (`services/public-api/src/test/scala/io/eitheror/casino/publicapi/features/KeysFeatures.scala`); `asKeyManager` holds `api_keys@<brand>` in `services/public-api/src/test/scala/io/eitheror/casino/publicapi/it/Kit.scala`
-- [ ] T016 [US1] Programme managers (research R8): `services/affiliate-programme/src/main/scala/io/eitheror/casino/programme/api/Managers.scala` gives, lists and revokes `affiliate_manager@<slug>`; `Access.ManagerAdminRoles` checks `brand_admin@<path brand>` in `api/Access.scala`
-- [ ] T017 [US1] Bind "the manager role given for one brand manages no other brand the operator's roles name" in `services/affiliate-programme/src/test/scala/io/eitheror/casino/programme/features/ManagerSteps.scala`; the programme's suites green
+- [X] T016 [US1] Programme managers (research R8): `services/affiliate-programme/src/main/scala/io/eitheror/casino/programme/api/Managers.scala` gives, lists and revokes `affiliate_manager@<slug>`; `Access.ManagerAdminRoles` checks `brand_admin@<path brand>` in `api/Access.scala`
+- [X] T017 [US1] Bind "the manager role given for one brand manages no other brand the operator's roles name" in `services/affiliate-programme/src/test/scala/io/eitheror/casino/programme/features/ManagerSteps.scala`; the programme's suites green
 
 **Checkpoint**: 030's blocking finding is closed.
 

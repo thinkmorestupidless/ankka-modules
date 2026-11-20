@@ -67,10 +67,10 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
       attempt(withBody[EmailBody](body)(b => member(brand, aff)(_ => wholeAccount(aff)(subjects.updateEmail(brand, aff, b, principal.subject)))))
     }
     post("/{brand}/accounts/{affiliate}/close") { (brand: String, aff: String) =>
-      attempt(member(brand, aff)(_ => subjects.close(brand, aff, principal.subject, Routes.brandsOf(principal).holds)))
+      attempt(member(brand, aff)(_ => subjects.close(brand, aff, principal.subject, Routes.managedBrands(principal).holds)))
     }
     post("/{brand}/accounts/{affiliate}/erasure") { (brand: String, aff: String) =>
-      attempt(member(brand, aff)(_ => subjects.erasure(brand, aff, principal.subject, Routes.brandsOf(principal).holds)))
+      attempt(member(brand, aff)(_ => subjects.erasure(brand, aff, principal.subject, Routes.managedBrands(principal).holds)))
     }
     get("/{brand}/accounts/{affiliate}/players") { (brand: String, aff: String) =>
       attempt(member(brand, aff)(_ => subjects.players(aff, Vector(brand), network = false)))
@@ -137,7 +137,7 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
     }
     get("/{brand}/settings") { (brand: String) => attempt(backoffice.settings(brand)) }
     putBody("/{brand}/settings") { (brand: String, body: String) =>
-      attempt(withBody[BackofficeAnswers.SettingsBody](body)(backoffice.putSettings(brand, _, principal.subject, principal.roles.exists(Access.ManagerAdminRoles))))
+      attempt(withBody[BackofficeAnswers.SettingsBody](body)(backoffice.putSettings(brand, _, principal.subject, Access.administers(principal, brand))))
     }
     get("/{brand}/programme") { (brand: String) => attempt(backoffice.programme(brand)) }
     putBody("/{brand}/programme") { (brand: String, body: String) =>
@@ -270,7 +270,7 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
 
   /** An account-wide write, for a caller who holds every brand of the account (FR-041, `DataSubjects.whole`). */
   private def wholeAccount(aff: String)(f: => Respond[Bytes]): Respond[Bytes] =
-    subjects.whole(aff, Routes.brandsOf(principal).holds)(_ => f)
+    subjects.whole(aff, Routes.managedBrands(principal).holds)(_ => f)
 
   /** O20: the account as seen from one brand, its other memberships left out (FR-041). */
   private def accountAt(affiliate: String, m: MembershipState): Respond[Bytes] =

@@ -213,15 +213,15 @@ class ManagersSuite extends munit.FunSuite with LogCapturing:
     val made  = send("POST", "/goldvibe/managers", s"""{"email":"$email","name":"Pat Manager"}""", admin())
     assertEquals(made.status, 201, made.text)
     val user = made.json.get("keycloakUserId").asText
-    assertEquals(kit.realm.user(user).get.roles, Set("affiliate_manager", "brand_goldvibe"))
+    assertEquals(kit.realm.user(user).get.roles, kit.managerRoles("goldvibe"))
     assertEquals(send("POST", "/goldvibe/managers", s"""{"email":"$email"}""", admin()).status, 409)
     assertEquals(items(get("/goldvibe/managers", admin())).map(_.get("keycloakUserId").asText), Vector(user))
     assertEquals(kit.request("POST", s"/v1/affiliates/goldvibe/managers/$user/reset-password", headers = admin()).status, 204)
     assertEquals(kit.request("POST", "/v1/affiliates/goldvibe/managers/nobody/reset-password", headers = admin()).status, 404)
     // A manager of two brands revoked at one keeps the manager role for the other.
-    kit.realm.assignRole(user, "brand_silvervibe"): Unit
+    kit.managerRoles("silvervibe").foreach(kit.realm.assignRole(user, _): Unit)
     assertEquals(kit.request("DELETE", s"/v1/affiliates/goldvibe/managers/$user", headers = admin()).status, 204)
-    assertEquals(kit.realm.user(user).get.roles, Set("affiliate_manager", "brand_silvervibe"))
+    assertEquals(kit.realm.user(user).get.roles, kit.managerRoles("silvervibe"))
     assertEquals(kit.request("DELETE", s"/v1/affiliates/silvervibe/managers/$user", headers = admin(Seq("silvervibe"))).status, 204)
     assertEquals(kit.realm.user(user).get.roles, Set.empty[String])
     kit.eventually("audited")(Option(Seq("MANAGER_ADDED", "MANAGER_PASSWORD_RESET", "MANAGER_REVOKED").forall(audited(_, "goldvibe", "userId" -> user))).filter(identity)): Unit

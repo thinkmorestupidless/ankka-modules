@@ -6,7 +6,7 @@ import com.thinkmorestupidless.ankka.core.Metadata
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, HttpServer, LocalCallers, Principal}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.{AnkkaTestKit, MovableClock, TimerProbe}
-import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.access.{BrandRoles, Routes}
 import io.eitheror.casino.contract.facts.{AffiliatesAttribution, AttributionFact}
 import io.eitheror.casino.programme.{ProgrammeService, Settings}
 import com.thinkmorestupidless.ankka.core.EntityId
@@ -109,9 +109,17 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "silvervibe"), b
   /** A request from the internet, through the gateway, with no token. */
   def fromInternet: Seq[(String, String)] = Seq(LocalCallers.header(Caller.Gateway))
 
-  /** A manager holding `brand_<slug>` for each brand named, through the gateway. */
-  def asManager(brands: Seq[String] = Seq("goldvibe"), id: String = "mgr-1", role: String = "affiliate_manager"): Seq[(String, String)] =
-    fromInternet :+ ("Authorization" -> s"Bearer staff|$id|${(role +: brands.map(b => s"brand_$b")).mkString(",")}")
+  /**
+   * A manager holding `brand_<slug>` for each brand named and `role` named for each brand of `roleIn`
+   * (`<role>@<slug>`, spec 032), every brand named unless given, through the gateway.
+   */
+  def asManager(brands: Seq[String] = Seq("goldvibe"), id: String = "mgr-1", role: String = "affiliate_manager",
+      roleIn: Option[Seq[String]] = None): Seq[(String, String)] =
+    val roles = roleIn.getOrElse(brands).map(BrandRoles.nameIn(_, role)) ++ brands.map(b => s"brand_$b")
+    fromInternet :+ ("Authorization" -> s"Bearer staff|$id|${roles.mkString(",")}")
+
+  /** The realm roles a programme manager of `brand` is given: the manager role named for it and `brand_<slug>`. */
+  def managerRoles(brand: String): Set[String] = Set(BrandRoles.nameIn(brand, "affiliate_manager"), s"brand_$brand")
 
   def asPlatformAdmin(id: String = "admin-1"): Seq[(String, String)] =
     fromInternet :+ ("Authorization" -> s"Bearer staff|$id|platform_admin")

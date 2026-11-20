@@ -41,7 +41,7 @@ class HostingSteps extends ProgrammeFeatures("hosting.feature"):
       .filter(_.json.elements().asScala.exists(_.get("brandId").asText == slug))): Unit
   }
   Then("its first manager is provisioned with the manager role and the role of brand {string}") { (_: String) =>
-    assertEquals(kit.realm.byEmail(managerEmail).map(_.roles), Some(Set("affiliate_manager", s"brand_$slug")))
+    assertEquals(kit.realm.byEmail(managerEmail).map(_.roles), Some(kit.managerRoles(slug)))
   }
   Then("brand {string} is given the address and shared secret of its network webhook") { (_: String) =>
     assertEquals(hosted.reply.json.get("webhookUrl").asText, s"${kit.settings.publicUrl}/v1/programme/inbound/$slug")
