@@ -14,7 +14,7 @@
       "descriptor": {
         "image": "europe-west1-docker.pkg.dev/eitheror/casino/markets:0.0.0",
         "expose": true,
-        "runtime": "0.14.2",
+        "runtime": "0.18.0",
         "resources": {
           "instanceType": "medium"
         },
@@ -103,7 +103,7 @@
       "descriptor": {
         "image": "europe-west1-docker.pkg.dev/eitheror/casino/exchange:0.0.0",
         "expose": true,
-        "runtime": "0.14.2",
+        "runtime": "0.18.0",
         "resources": {
           "instanceType": "medium"
         },

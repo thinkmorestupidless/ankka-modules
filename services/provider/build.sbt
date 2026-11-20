@@ -3,7 +3,7 @@
 //
 // ankka's libraries come from Maven Central. The same version is declared in service.json as
 // `runtime`: change both together when upgrading.
-val ankkaVersion = "0.13.0"
+val ankkaVersion = "0.18.0"
 
 // The casino's contract and the provider core, published from the repository root with
 // `sbt contract/publishLocal providerCore/publishLocal` (`just service provider …` does both).

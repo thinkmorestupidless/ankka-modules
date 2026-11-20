@@ -58,12 +58,10 @@ class RenderSuite extends munit.FunSuite:
   )
 
   /**
-   * Services that run on a later ankka than spec 001's 0.13.0: engagement and reporting for the `Personal`
-   * they store, support-agent for its sessions' data subject (spec 017 R2), the rest of core and casino since
-   * platform 0.16.3 runs no 0.13 runtime.
+   * Every service runs on a later ankka than spec 001's 0.13.0: one version for all since spec 031, because a
+   * platform runs only its own minor version and the one below (research R1).
    */
-  private val NewRuntimes = Map("engagement" -> "0.16.0", "reporting" -> "0.16.0", "support-agent" -> "0.16.2") ++
-    Seq("wallet", "players", "kyc", "responsible-gambling", "payouts", "attribution", "game-provider", "rewards").map(_ -> "0.16.3")
+  private val Runtime = "0.18.0"
 
   /**
    * Sizes spec 001 did not set: players and attribution outgrow `small`'s 512Mi on kind (spec 008 T077,
@@ -88,11 +86,9 @@ class RenderSuite extends munit.FunSuite:
         assertEquals(d.service.resources.instanceType, size, d.name)
         d.copy(service = d.service.copy(resources = before.service.resources))
       }
-      // A later runtime than spec 001's 0.13.0 (NewRuntimes).
-      val runtime = NewRuntimes.get(d.name).fold(resized) { v =>
-        assertEquals(resized.service.runtime, Some(v), d.name)
-        resized.copy(service = resized.service.copy(runtime = before.service.runtime))
-      }
+      // A later runtime than spec 001's 0.13.0 (Runtime).
+      assertEquals(resized.service.runtime, Some(Runtime), d.name)
+      val runtime = resized.copy(service = resized.service.copy(runtime = before.service.runtime))
       val now = comparable(runtime, NewIdentity ++ NewOwnKeys.getOrElse(d.name, Set.empty))
       assertEquals(now, comparable(before, Set("SUPPORT_AGENT_ENABLED")), d.name)
       assertEquals(d.service.env.map(_.name).filter(NewIdentity), Vector("PLAYER_SITE_BASE", "KEYCLOAK_ISSUER_BASE", "KEYCLOAK_JWKS_BASE"), d.name)
@@ -225,7 +221,7 @@ class RenderSuite extends munit.FunSuite:
     val d   = p.services.find(_.name == "public-api").get.service
     val env = d.env.map(e => e.name -> e.value).toMap
     assertEquals(d.hosting, ServiceSpec.Embedded)
-    assertEquals(d.runtime, Some("0.16.3"))
+    assertEquals(d.runtime, Some(Runtime))
     assertEquals(env.get("ANKKA_AUTH_ISSUERS"), Some(Some("staff")))
     assertEquals(env.get("CASINO_BRAND"), Some(Some("goldvibe")))
     assert(!env.keySet.exists(_.startsWith("ANKKA_AUTH_PLAYER_")), env.keySet.toString)

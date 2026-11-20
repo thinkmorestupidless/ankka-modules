@@ -11,7 +11,7 @@ The installation's shared audit, the one service of the `reasoner` project (spec
   role, and role grants, each a record of its own;
 - retention per brand, a daily sweep, and a re-read after a restore.
 
-An ankka 0.16 service in Scala, one sbt build. It holds no `Personal` value: the registry's `Identity`
+An ankka 0.18 service in Scala, one sbt build. It holds no `Personal` value: the registry's `Identity`
 is the one place a real id is kept.
 
 ## Components

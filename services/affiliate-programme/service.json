@@ -2,7 +2,7 @@
   "name": "affiliate-programme",
   "service": {
     "image": "affiliate-programme:latest",
-    "runtime": "0.13.0",
+    "runtime": "0.18.0",
     "env": {
       "ANKKA_HTTP_PORT": "9018",
       "PROGRAMME_BRANDS": "goldvibe",

@@ -50,7 +50,7 @@ The suites cover three levels:
 
 ## The endpoints
 
-There are five, each at its own prefix (ankka 0.13: no two endpoints share a prefix). The full
+There are five, each at its own prefix (ankka: no two endpoints share a prefix). The full
 table is `specs/026-games-provider/contracts/provider-routes.md`.
 
 | Prefix | Class | What |

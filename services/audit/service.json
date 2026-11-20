@@ -2,7 +2,7 @@
   "name": "audit",
   "service": {
     "image": "audit:latest",
-    "runtime": "0.16.0",
+    "runtime": "0.18.0",
     "buckets": [
       {
         "name": "exports",

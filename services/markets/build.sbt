@@ -3,12 +3,12 @@
 // ankka's libraries come from Maven Central (or ~/.ivy2/local while the platform is being
 // developed). The same version is declared in service.json as `runtime`: change both together
 // when upgrading — see README.md, "Upgrading ankka".
-val ankkaVersion = "0.14.2"
+val ankkaVersion = "0.18.0"
 
-// ankka-predictions' components (spec 023 R1). Their pin is ankka 0.14.2, hence this service's; the
-// contract, built on 0.13.0, is evicted to it (T001 proved it on 0.14.2). 0.1.1, as exchange's, from
-// Maven Central once tagged; until then PREDICTIONS_VERSION names a local publish.
-val predictionsVersion = sys.env.getOrElse("PREDICTIONS_VERSION", "0.1.1")
+// ankka-predictions' components (spec 023 R1), from Maven Central. 0.3.0 is built on ankka 0.18.0,
+// this service's and the contract's version (spec 031); PREDICTIONS_VERSION names another, such as a
+// local publish of the library's main.
+val predictionsVersion = sys.env.getOrElse("PREDICTIONS_VERSION", "0.3.0")
 
 // The casino's contract (facts, money, route classes, personal markers, the recording replayer),
 // published from the repository root with `sbt contract/publishLocal`.
@@ -29,12 +29,6 @@ val serviceNameChecked: String = {
     )
   serviceName
 }
-
-// The contract is built on ankka 0.13.0 and runs here on 0.14.2 (spec 023 R1): sbt's early-semver
-// check calls that a conflict, so it is lifted for ankka's artifacts alone. T001 built and passed the
-// contract's suites on 0.14.2, and this service's suites run the contract's classes on it.
-ThisBuild / libraryDependencySchemes ++= Seq("core", "sdk", "http", "runtime", "auth-oidc", "telemetry-otlp", "testkit")
-  .map(m => "com.thinkmorestupidless" %% s"ankka-$m" % VersionScheme.Always)
 
 // For the whole build, so a subproject added beside the service — the generated code of a gRPC
 // service definition, say — is built with the same Scala version.

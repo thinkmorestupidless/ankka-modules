@@ -2,7 +2,7 @@
   "name": "merchant",
   "service": {
     "image": "merchant:latest",
-    "runtime": "0.13.0",
+    "runtime": "0.18.0",
     "env": {
       "MERCHANT_BRANDS": "[{\"slug\":\"goldvibe\",\"name\":\"Goldvibe\"}]",
       "PAYMENT_DEADLINE": "30m",

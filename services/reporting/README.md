@@ -3,7 +3,7 @@
 A brand's reports (spec 015): the revenue report, the dashboard, the player report and the ledger, the
 bonus and provider reports, the dispute report, the day-end with its reconciliation, the compliance
 exports and the prediction markets' reports. Every figure is a fold of the brand's facts, read from
-views, never a sample (constitution II). An ankka 0.16 service in Scala, one sbt build.
+views, never a sample (constitution II). An ankka 0.18 service in Scala, one sbt build.
 
 ## What it is
 

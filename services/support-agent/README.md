@@ -1,6 +1,6 @@
 # support-agent
 
-Motoko, a brand's player support agent (spec 017), on ankka 0.16's agent model:
+Motoko, a brand's player support agent (spec 017), on ankka's agent model:
 - answers a signed-in player about their account from the parts that own the answer (`players`,
   `wallet`, `payouts`, `responsible-gambling`, `rewards`), never from a figure of its own;
 - asks the owning part to act (a withdrawal, a deposit limit, a break, an exclusion) only once the
@@ -8,7 +8,7 @@ Motoko, a brand's player support agent (spec 017), on ankka 0.16's agent model:
 - keeps each turn inside its remit with guardrails, a turn rate and a daily budget per brand;
 - hands the player to the brand's live chat when it cannot help.
 
-An ankka 0.16.2 service in Scala, one sbt build. It is off for a brand until an operator turns it on.
+An ankka 0.18.0 service in Scala, one sbt build. It is off for a brand until an operator turns it on.
 The transcript, the approvals and their decisions are ankka's session memory, held under the player's
 subject and sealed by the keyring (feature 042); this service's own entities hold no message text.
 

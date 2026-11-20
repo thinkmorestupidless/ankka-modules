@@ -33,7 +33,8 @@ second provider configuration `st8`. Nothing here reaches ST8 or any payment pro
 - 13 JVMs need more than Postgres's default 100 connections. Once, with the project up:
   `docker exec <postgres container> psql -U ankka -d postgres -c "alter system set max_connections = 400"`,
   then `ankka local down` and `up`.
-- The services on ankka 0.13 (merchant, psp-gateway, ingest, provider, the simulator) show
-  "running, not ready": the CLI asks a readiness port that runtime does not serve. They work.
+- Every service is on ankka 0.18.0 (spec 031), so `ankka local up` needs the 0.18 CLI. Before it,
+  the services on 0.13 (merchant, psp-gateway, ingest, provider, the simulator) showed "running, not
+  ready", because that runtime served no readiness port; check that none still does.
 - The local proxy has no gateway in front of it, so it passes on no visitor address and players
   finds no country: the registration form asks for one.

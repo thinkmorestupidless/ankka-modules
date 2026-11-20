@@ -22,6 +22,11 @@ The shared projects are not modules: `payments`, `programme`, `reasoner`, `games
 provider, spec 026) and `tools` (the simulator, spec 020) are each one `shared/<project>/manifest.json`, applied
 with `just modules apply shared/<project>/manifest.json --installation <name>` (`shared/README.md`).
 
+Every apply, of a brand or a shared project, is refused before anything is deployed when the
+installation's platform cannot run a runtime the manifests name: a platform runs its own minor
+version and the one below (spec 031). The platform's version is `GET /installation`'s
+`platformVersion`, else the overlay's `PLATFORM_VERSION`; `dev-kind` states 0.16.3 until it is rebuilt.
+
 ## What a manifest carries
 
 Services with their descriptors, topics, the grants the module makes and receives, its dependencies

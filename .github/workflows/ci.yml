@@ -551,7 +551,7 @@ jobs:
         working-directory: services/rewards
         run: sbt -Dit=true "testOnly io.eitheror.casino.rewards.it.* io.eitheror.casino.rewards.port.* io.eitheror.casino.rewards.features.*"
 
-  # engagement (spec 014): its own sbt build, on ankka 0.16.0, against the contract published from this
+  # engagement (spec 014): its own sbt build, on ankka 0.18.0, against the contract published from this
   # commit. `sbt test` runs the unit suites; the integration, parity and feature suites start Postgres in
   # Docker and run with -Dit=true. crm-stub's checks run in the check job's `go test ./...`.
   engagement:
@@ -575,7 +575,7 @@ jobs:
         working-directory: services/engagement
         run: sbt -Dit=true "testOnly io.eitheror.casino.engagement.it.* io.eitheror.casino.engagement.port.* io.eitheror.casino.engagement.features.*"
 
-  # audit (spec 018), the shared reasoner's service: its own sbt build, on ankka 0.16.0, against the
+  # audit (spec 018), the shared reasoner's service: its own sbt build, on ankka 0.18.0, against the
   # contract published from this commit. `sbt test` runs the unit suites; the integration, parity and
   # feature suites start Postgres in Docker and run with -Dit=true.
   audit:
@@ -599,7 +599,7 @@ jobs:
         working-directory: services/audit
         run: sbt -Dit=true "testOnly io.eitheror.casino.audit.it.* io.eitheror.casino.audit.port.* io.eitheror.casino.audit.features.*"
 
-  # reporting (spec 015): its own sbt build on ankka 0.16.0, against the contract published from this commit.
+  # reporting (spec 015): its own sbt build on ankka 0.18.0, against the contract published from this commit.
   # `sbt test` runs the unit suites; the integration, parity and feature suites start Postgres in Docker.
   reporting:
     needs: [changes, sbt-deps]
@@ -622,7 +622,7 @@ jobs:
         working-directory: services/reporting
         run: sbt -Dit=true "testOnly io.eitheror.casino.reporting.it.* io.eitheror.casino.reporting.port.* io.eitheror.casino.reporting.features.*"
 
-  # support-agent (spec 017): its own sbt build, on ankka 0.16.2, against the contract published from this
+  # support-agent (spec 017): its own sbt build, on ankka 0.18.0, against the contract published from this
   # commit. `sbt test` runs the unit suites; the integration, parity and feature suites start Postgres in
   # Docker and run with -Dit=true. Every model and judge is scripted: no key is needed.
   support-agent:
@@ -646,7 +646,7 @@ jobs:
         working-directory: services/support-agent
         run: sbt -Dit=true "testOnly io.eitheror.casino.support.it.* io.eitheror.casino.support.port.* io.eitheror.casino.support.features.*"
 
-  # public-api (spec 016): its own sbt build on ankka 0.16.0, against the contract published from this commit.
+  # public-api (spec 016): its own sbt build on ankka 0.18.0, against the contract published from this commit.
   # `sbt test` runs the unit suites; the integration, parity and feature suites start Postgres in Docker.
   public-api:
     needs: [changes, sbt-deps]

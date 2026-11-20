@@ -3,7 +3,7 @@
   "service": {
     "image": "europe-west1-docker.pkg.dev/eitheror/casino/psp-gateway:0.0.0",
     "port": 9213,
-    "runtime": "0.13.0",
+    "runtime": "0.18.0",
     "resources": {
       "instanceType": "medium"
     }
