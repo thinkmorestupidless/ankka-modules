@@ -14,9 +14,11 @@ import { affiliateProgramme as programme } from "../../../shared/owners/index.ts
 import { Actions } from "../../actions/index.ts";
 import { Action } from "../../components/action/index.ts";
 import { DateTime, ZoneNote, useZone } from "../../components/date.tsx";
+import { moneyText } from "../../components/money.tsx";
 import { Status } from "../../components/status.tsx";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { useBags } from "../bags.ts";
+import { useKeyed } from "../corrections/shared.tsx";
 import { word } from "../word.ts";
 import { ProgrammeHeading, SectionNav } from "./area.tsx";
 import { LinksTable } from "./links.tsx";
@@ -293,41 +295,43 @@ function EmailChange({ a, done }: { a: Account; done(): void }) {
   );
 }
 
-const newKey = () => `programme-adjust/${crypto.randomUUID()}`;
-
 /**
  * An adjustment of the affiliate's balance, sent under an `Idempotency-Key` of its own (the programme's
- * Settlement.adjust): the key is kept while the programme's answer is not known, so trying the same
- * adjustment again cannot make it twice; an answer, or a change to what is composed, takes a new key.
+ * Settlement.adjust), by the rule the corrections screens keep (`useKeyed`): while the programme's answer
+ * is not known (any 5xx, a 408 or 429, or no answer) the key and the adjustment first sent are kept and the
+ * fields are locked, so confirming again sends that adjustment under that key and the programme makes it
+ * at most once; an answer that settles it takes a new key.
  */
-function Adjustment({ a, done }: { a: Account; done(): void }) {
+export function Adjustment({ a, done }: { a: Account; done(): void }) {
   const me = useOperator();
   const bags = useBags();
   const id = { type: useId(), amount: useId(), currency: useId() };
-  const [f, setFields] = useState({ type: "CREDIT", amount: "", currency: "" });
-  const [key, setKey] = useState(newKey);
-  const setF = (change: (x: typeof f) => typeof f) => {
-    setFields(change);
-    setKey(newKey());
-  };
+  const [f, setF] = useState({ type: "CREDIT", amount: "", currency: "" });
+  const keyed = useKeyed<{ type: string; amount: number; currency: string; reason: string }>("programme-adjust");
+  const locked = useReadOnlyMode() || keyed.unknown;
   const currency = f.currency.trim().toUpperCase();
   const amount = isCurrency(currency) ? amountOf(f.amount, currency) : undefined;
   return (
     <div className="bo-aff-form" data-adjustment>
+      {keyed.unknown ? (
+        <p role="status" className="bo-aff-recorded bo-field-wide" data-unknown>
+          {t("affiliates.adjustment.unknown")}
+        </p>
+      ) : null}
       <div className="bo-field">
         <label htmlFor={id.type}>{t("affiliates.adjustment.type")}</label>
-        <select id={id.type} value={f.type} onChange={(e) => setF((x) => ({ ...x, type: e.target.value }))}>
+        <select id={id.type} value={f.type} disabled={locked} onChange={(e) => setF((x) => ({ ...x, type: e.target.value }))}>
           <option value="CREDIT">{t("affiliates.adjustment.credit")}</option>
           <option value="DEBIT">{t("affiliates.adjustment.debit")}</option>
         </select>
       </div>
       <div className="bo-field">
         <label htmlFor={id.currency}>{t("affiliates.figure.currency")}</label>
-        <input id={id.currency} value={f.currency} maxLength={3} onChange={(e) => setF((x) => ({ ...x, currency: e.target.value }))} />
+        <input id={id.currency} value={f.currency} maxLength={3} disabled={locked} onChange={(e) => setF((x) => ({ ...x, currency: e.target.value }))} />
       </div>
       <div className="bo-field">
         <label htmlFor={id.amount}>{t("affiliates.adjustment.amount")}</label>
-        <input id={id.amount} inputMode="decimal" value={f.amount} onChange={(e) => setF((x) => ({ ...x, amount: e.target.value }))} />
+        <input id={id.amount} inputMode="decimal" value={f.amount} disabled={locked} onChange={(e) => setF((x) => ({ ...x, amount: e.target.value }))} />
       </div>
       <div className="bo-aff-actions bo-field-wide">
         <Action
@@ -335,13 +339,19 @@ function Adjustment({ a, done }: { a: Account; done(): void }) {
           me={me}
           bags={bags}
           ready={amount !== undefined && amount > 0}
-          subject={<p>{t(f.type === "CREDIT" ? "affiliates.adjustment.crediting" : "affiliates.adjustment.debiting", { amount: f.amount.trim(), currency, name: accountName(a) })}</p>}
-          run={async (reason) => {
-            const answer = await programme.postAccountsAdjustments({ affiliate: a.affiliateId }, { body: { type: f.type, amount, currency, reason: reason ?? "" }, idempotencyKey: key });
-            // the programme answered (made or refused): the next adjustment is another; not answered: the same key again
-            if (answer.status !== 503) setKey(newKey());
-            return answer;
-          }}
+          subject={
+            <p>
+              {t(f.type === "CREDIT" ? "affiliates.adjustment.crediting" : "affiliates.adjustment.debiting", {
+                amount: amount === undefined ? `${f.amount.trim()} ${currency}` : moneyText({ minor: amount, currency }),
+                name: accountName(a),
+              })}
+            </p>
+          }
+          run={(reason) =>
+            keyed.send({ type: f.type, amount: amount!, currency, reason: reason ?? "" }, (key, body) =>
+              programme.postAccountsAdjustments({ affiliate: a.affiliateId }, { body, idempotencyKey: key }),
+            )
+          }
           onDone={() => {
             setF((x) => ({ ...x, amount: "" }));
             done();
@@ -560,7 +570,7 @@ function ViewAsAffiliate({ a }: { a: Account }) {
       case "links":
         return <LinksTable links={data as Link[]} />;
       case "payouts":
-        return <PayoutsTable payouts={data as Payout[]} names={new Map()} done={() => undefined} />;
+        return <PayoutsTable payouts={data as Payout[]} names={new Map()} done={() => undefined} readOnly />;
       default:
         return <AsGiven value={data} />;
     }
