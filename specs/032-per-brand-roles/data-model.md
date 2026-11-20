@@ -48,7 +48,7 @@ none carries `@`; `brand_<slug>` is this brand's; no payments role, no `platform
 ## Role assignment (players' `RoleAssignment`, unchanged in shape)
 
 Keeps what the brand gave, by names without the brand, as in 030. Its GET answer gains the giving's
-`state`, `reason` and `version`, read from merchant's H6r.
+`state`, `reason`, `version` and `held` (the realm roles named for the brand), read from merchant's H6r.
 
 ## The applier's realm view
 

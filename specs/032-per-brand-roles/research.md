@@ -66,8 +66,11 @@ references are to this branch (`032-per-brand-roles`, cut from `030-backoffice` 
   one brand would then need their own serialising: a second workflow, or a claim on the entity. A
   consumer has it already. A timer per giving: also retried with backoff, but unordered between
   givings.
-- **Backoff**: the consumer's restart backoff (the projection's). A realm that stays unreachable
-  holds back that slice's later changes, which is right: nothing can be applied until it answers.
+- **Backoff**: the consumer's restart backoff (the projection's), from 1 s doubling to a ceiling of
+  10 s, so a giving is in force within 30 s of the realm answering again (SC-002). A realm that
+  stays unreachable holds back that slice's later changes, which is right: nothing can be applied
+  until it answers.
+- **Its own events**: the applier acts only on `BrandRolesAsked`; `Applied` and `Failed` pass by.
 
 ## R5. Unreachable or refused
 
@@ -81,7 +84,9 @@ references are to this branch (`032-per-brand-roles`, cut from `030-backoffice` 
 ## R6. Where the giving's state is read
 
 - **Decision**: merchant answers `GET /v1/operators/{id}/brand-roles/{brand}`
-  (`{roles, version, state: pending | in_force | failed, reason?, at}`), admitted as H6 is. players'
+  (`{roles, version, state: pending | in_force | failed, reason?, at, held}`), admitted as H6 is;
+  `held` is the realm roles named for the brand now, so a carried-over role no giving asked for is
+  seen, and can be taken away. players'
   `role-assignments/{operator}` GET adds it to what it answers. The backoffice shows it beside the
   operator's roles (FR-009).
 - **Rationale**: the realm, and the record of what reached it, are merchant's; players keeps what
@@ -154,3 +159,7 @@ references are to this branch (`032-per-brand-roles`, cut from `030-backoffice` 
 - A manager's revoke removes `brand_<slug>` (`Managers.scala:84`), which an operator of that brand
   also holds. 032 keeps that behaviour; whether a revoke should only remove the manager role is the
   programme's question.
+
+## Design finished
+
+2026-11-20: analyze reported nothing above LOW (round 2: one LOW, applied; T002 is a confirmation task, left).
