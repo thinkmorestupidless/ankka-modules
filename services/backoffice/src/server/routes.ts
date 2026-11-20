@@ -143,6 +143,7 @@ export const table: readonly Row[] = [
   r("DELETE", "players", "/roles/{name}", `${P}/roles/{name}`, "roles.change"),
   r("POST", "players", "/roles/{name}/reset", `${P}/roles/{name}/reset`, "roles.change"),
   r("PUT", "players", "/role-assignments/{operator}", `${P}/role-assignments/{operator}`, "roles.give"),
+  r("GET", "players", "/role-assignments/{operator}", `${P}/role-assignments/{operator}`, "roles.read"),
   r("GET", "players", "/modules", `${B}/modules`, "modules.read"),
   r("POST", "players", "/modules/requests", `${B}/modules/requests`, "modules.request"),
 

@@ -5,6 +5,23 @@
 import permissions from "../../src/shared/generated/operator-permissions.v1.json" with { type: "json" };
 import type { Answer } from "./owner.ts";
 
+/** How the double's realm ends the next giving to an operator: in force (the default), not yet, or refused. */
+export interface GivingOutcome {
+  state: "pending" | "in_force" | "failed";
+  reason?: string;
+}
+
+interface Giving {
+  roles: string[];
+  version: number;
+  state: GivingOutcome["state"];
+  reason?: string;
+  at: string;
+}
+
+/** The roles routes check by name that a brand gives as it gives its others (spec 032 FR-012). */
+const NamedRoles = new Set(["api_keys", "markets"]);
+
 interface Role {
   name: string;
   description: string;
@@ -19,9 +36,11 @@ const Service = /^\/v1\/casino\/brands\/([^/]+)\/players\/roles$/;
 export class Brands {
   private brands = new Map<string, BrandRoles>();
   private readonly give: (operator: string, brand: string, roles: string[]) => void;
+  private readonly held: (operator: string, brand: string) => string[];
 
-  constructor(give: (operator: string, brand: string, roles: string[]) => void) {
+  constructor(give: (operator: string, brand: string, roles: string[]) => void, held: (operator: string, brand: string) => string[] = () => []) {
     this.give = give;
+    this.held = held;
   }
 
   reset(): void {
@@ -30,7 +49,7 @@ export class Brands {
 
   of(brand: string): BrandRoles {
     let b = this.brands.get(brand);
-    if (!b) this.brands.set(brand, (b = new BrandRoles((operator, roles) => this.give(operator, brand, roles))));
+    if (!b) this.brands.set(brand, (b = new BrandRoles((operator, roles) => this.give(operator, brand, roles), (operator) => this.held(operator, brand))));
     return b;
   }
 
@@ -44,13 +63,24 @@ export class Brands {
 export class BrandRoles {
   private roles = new Map<string, Role>();
   private readonly give: (operator: string, roles: string[]) => void;
+  private readonly held: (operator: string) => string[];
+  private givings = new Map<string, Giving>();
+  private outcomes = new Map<string, GivingOutcome>();
 
-  constructor(give: (operator: string, roles: string[]) => void) {
+  constructor(give: (operator: string, roles: string[]) => void, held: (operator: string) => string[] = () => []) {
     this.give = give;
+    this.held = held;
     this.reset();
   }
 
+  /** How the realm ends the next giving to `operator` (a scenario's "not yet in force" or "refused"). */
+  outcome(operator: string, o: GivingOutcome): void {
+    this.outcomes.set(operator, o);
+  }
+
   reset(): void {
+    this.givings.clear();
+    this.outcomes.clear();
     this.roles = new Map(Object.entries(permissions.defaults).map(([name, ps]) => [name, { name, description: "", permissions: [...ps].sort(), default: true }]));
   }
 
@@ -86,10 +116,19 @@ export class BrandRoles {
     }
     if (what === "role-assignments" && name && method === "PUT") {
       const roles = [...((given().roles as string[]) ?? [])].sort();
-      const unknown = roles.find((r) => !this.roles.has(r));
+      const unknown = roles.find((r) => !this.roles.has(r) && !NamedRoles.has(r));
       if (unknown) return { status: 404, body: { error: "no_such_role", role: unknown } };
-      this.give(name, roles);
-      return { body: { operator: name, brand, roles } };
+      // spec 032: players answers 202 once merchant recorded the giving; the realm sets it after, or refuses it
+      const o = this.outcomes.get(name) ?? { state: "in_force" };
+      const giving: Giving = { roles, version: (this.givings.get(name)?.version ?? 0) + 1, state: o.state, reason: o.reason, at: new Date().toISOString() };
+      this.givings.set(name, giving);
+      if (o.state === "in_force") this.give(name, roles);
+      return { status: 202, body: { operator: name, brand, roles, version: giving.version, state: "pending", at: giving.at } };
+    }
+    if (what === "role-assignments" && name && method === "GET") {
+      const g = this.givings.get(name);
+      const held = this.held(name);
+      return { body: { operator: name, brand, roles: g?.roles ?? [], ...(g ? { version: g.version, state: g.state, at: g.at } : {}), ...(g?.reason ? { reason: g.reason } : {}), held } };
     }
     return { status: 405, body: { error: "method_not_allowed" } };
   }

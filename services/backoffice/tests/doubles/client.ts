@@ -74,6 +74,11 @@ export class DoublesClient {
     return this.script(owner, { ...fits, fixture: name });
   }
 
+  /** How the realm ends `brand`'s next giving to `operator` (spec 032): not yet in force, or refused with a reason. */
+  giving(brand: string, operator: string, outcome: { state: "pending" | "in_force" | "failed"; reason?: string }): Promise<unknown> {
+    return this.ask("PUT", `/givings/${encodeURIComponent(brand)}/${encodeURIComponent(operator)}`, outcome);
+  }
+
   /** Fixtures added over an owner's files for this scenario: `{"GET /v1/…/{x}": entry}`. */
   fixtures(owner: string, entries: Record<string, Entry>): Promise<unknown> {
     return this.ask("PUT", `/fixtures/${encodeURIComponent(owner)}`, entries);

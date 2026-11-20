@@ -101,6 +101,13 @@ export class Realm {
     this.givings.set(subject, of);
   }
 
+  /** The roles held for `brand` that a brand's giving or a test set, without the brand (a giving's `held`). */
+  heldIn(subject: string, brand: string): string[] {
+    const given = this.givings.get(subject)?.get(brand);
+    if (given) return [...given].sort();
+    return (this.roles.get(subject) ?? []).filter((r) => r.endsWith(`@${brand}`)).map((r) => r.slice(0, -`@${brand}`.length)).sort();
+  }
+
   /** The roles a subject's next token carries: as signed in or set, then each brand's giving over them. */
   rolesOf(subject: string, base: readonly string[]): string[] {
     let roles = [...(this.roles.get(subject) ?? base)];

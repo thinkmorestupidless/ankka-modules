@@ -6,7 +6,7 @@
 import type { Browser, Page } from "@playwright/test";
 import { t } from "../../../src/shared/messages/index.ts";
 import { describePermission } from "../../../src/shared/permissions.ts";
-import { operator } from "../../doubles/env.ts";
+import { backofficeUrlOf, DoublesUrl, operator, OtherBrand } from "../../doubles/env.ts";
 import type { Identity } from "../../doubles/realm.ts";
 import { signIn } from "../../doubles/sign-in.ts";
 import { expect, Given, Then, When, type World } from "../world.ts";
@@ -119,4 +119,87 @@ Then("the support operator has not signed in again", async ({ world }) => {
   expect(await world.page.evaluate(() => (window as unknown as { __kept?: string }).__kept)).toBe(state(world).marker);
   // since the support operator signed in, one session was opened: the admin's
   expect(await sessionsOpened(world)).toBe(state(world).sessions! + 1);
+});
+
+// --- spec 032: a giving's state, and the roles routes check by name ------------------------------
+
+const Desk: Identity = { sub: "op-desk", name: "Dana Desk", roles: [] };
+const Refusal = "role brand_finance@goldvibe: 403 the role mapping is refused";
+
+/** `brand`'s giving as its backoffice asks players for it (P13); the double's realm ends it as the scenario set. */
+async function giveDirectly(brand: string, operatorId: string, roles: string[]) {
+  const r = await fetch(`${DoublesUrl}/players/v1/casino/backoffice/${brand}/role-assignments/${operatorId}`, {
+    method: "PUT",
+    headers: { authorization: "Bearer giver", "content-type": "application/json" },
+    body: JSON.stringify({ roles }),
+  });
+  expect(r.status, await r.clone().text()).toBe(202);
+}
+
+/** What players answers `brand` of the operator's giving (P13r). */
+async function givingOf(brand: string, operatorId: string): Promise<{ roles: string[]; state?: string; held: string[] }> {
+  const r = await fetch(`${DoublesUrl}/players/v1/casino/backoffice/${brand}/role-assignments/${operatorId}`, { headers: { authorization: "Bearer reader" } });
+  return (await r.json()) as { roles: string[]; state?: string; held: string[] };
+}
+
+Given("{string} has given an operator the finance role, not yet in force", async ({ world }, brand: string) => {
+  await world.doubles.giving(brand, Desk.sub, { state: "pending" });
+  await giveDirectly(brand, Desk.sub, ["brand_finance"]);
+  state(world).other = Desk;
+});
+
+Given("{string} has given an operator the finance role, and the realm refused it", async ({ world }, brand: string) => {
+  await world.doubles.giving(brand, Desk.sub, { state: "failed", reason: Refusal });
+  await giveDirectly(brand, Desk.sub, ["brand_finance"]);
+  state(world).other = Desk;
+});
+
+When("an admin operator of {string} reads the operator's roles", async ({ world, browser }, brand: string) => {
+  expect(brand).toBe(world.brand.slug);
+  const page = await adminPage(world, browser);
+  await page.getByLabel(t("assign.operator")).fill(state(world).other!.sub);
+});
+
+const givingShown = (world: World) => state(world).admin!.getByRole("group", { name: t("assign.giving.title") });
+
+Then("the finance role is shown as asked and not yet in force", async ({ world }) => {
+  const shown = givingShown(world);
+  await expect(shown).toContainText(t("assign.giving.asked", { roles: "brand_finance" }));
+  await expect(shown).toContainText(t("assign.giving.pending"));
+});
+
+Then("the finance role is shown as failed, with the realm's reason", async ({ world }) => {
+  const shown = givingShown(world);
+  await expect(shown).toContainText(t("assign.giving.asked", { roles: "brand_finance" }));
+  await expect(shown).toContainText(t("assign.giving.failed", { reason: Refusal }));
+});
+
+Given("an admin operator of {string}", async ({ world, browser }, brand: string) => {
+  expect(brand).toBe(world.brand.slug);
+  await adminPage(world, browser);
+});
+
+When("the operator gives another operator of {string} the role {string}", async ({ world, browser }, brand: string, role: string) => {
+  expect(brand).toBe(world.brand.slug);
+  const page = await adminPage(world, browser);
+  const other: Identity = { sub: "op-keys-desk", name: "Kai Keys", roles: [`brand_${brand}`, `brand_${OtherBrand}`] };
+  state(world).other = other;
+  await page.getByLabel(t("assign.operator")).fill(other.sub);
+  await page.getByRole("checkbox", { name: new RegExp(`^${role}$`) }).click();
+  await page.getByRole("button", { name: t("action.role.give.label") }).click();
+  await page.getByRole("dialog").getByRole("button", { name: t("action.confirm") }).click();
+  await expect(page.getByRole("status").filter({ hasText: other.sub })).toContainText(role);
+});
+
+Then("that operator holds the role {string} in {string} only", async ({ world }, role: string, brand: string) => {
+  const other = state(world).other!;
+  expect((await givingOf(brand, other.sub)).held).toEqual([role]);
+  expect((await givingOf(OtherBrand, other.sub)).held).toEqual([]);
+  // the brand's backoffice shows it; the other brand's does not
+  await world.signInAs(other);
+  const me = (await (await world.page.request.get(`${backofficeUrlOf(brand)}/api/me`)).json()) as { roles: string[] };
+  expect(me.roles).toContain(role);
+  await world.signInAs(other, { brand: OtherBrand });
+  const there = (await (await world.page.request.get(`${backofficeUrlOf(OtherBrand)}/api/me`)).json()) as { roles: string[] };
+  expect(there.roles).not.toContain(role);
 });
