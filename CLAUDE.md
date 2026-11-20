@@ -104,7 +104,7 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
   permissions and currencies into the page), `backoffice-state-it` and `backoffice-spike` (the V1
   probe) drive them; `backoffice-seed`, `backoffice-it` and `backoffice-record-original` seed a
   running brand, run the integration suites against it and record the original's screens; the suites
-  wait on spec 031's ephemeral GKE installation, as kind on one machine is too small for a brand.
+  wait on spec 033's ephemeral GKE installation, as kind on one machine is too small for a brand.
 - The module model (spec 021, decision 0055): a brand project runs `core` and the modules its
   entitlement at ankka-vendor names. Each module is one manifest, `modules/<module>/module.json`, in
   the vendor's format (the schema is vendored in `tools/modules/src/main/resources/`); a brand

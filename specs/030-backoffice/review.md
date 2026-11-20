@@ -97,15 +97,15 @@ backoffice-state and the modules tool:
 
 The branch:
 
-- `Description` — todo: T123 to T128, T133 and T136's cluster half are unticked. research.md:928 says they are written but not run, waiting on spec 031's GKE installation. So SC-004 to SC-007 and R20's targets are unproven against a running brand. The pull request must say so, as research.md promises, and name what still gates a real-money brand on them.
-  - Resolved: the pull request's body says T123 to T128, T133 and T136's cluster half have not run, that they wait on spec 031's ephemeral GKE installation, and that SC-004 to SC-007 and R20's targets are unproven against a running brand until then; and that 030 also waits on spec 032 (per-brand realm roles).
+- `Description` — todo: T123 to T128, T133 and T136's cluster half are unticked. research.md:928 says they are written but not run, waiting on spec 033's GKE installation. So SC-004 to SC-007 and R20's targets are unproven against a running brand. The pull request must say so, as research.md promises, and name what still gates a real-money brand on them.
+  - Resolved: the pull request's body says T123 to T128, T133 and T136's cluster half have not run, that they wait on spec 033's ephemeral GKE installation, and that SC-004 to SC-007 and R20's targets are unproven against a running brand until then; and that 030 also waits on spec 032 (per-brand realm roles).
 - `Commit 3c5652ad` (branch head) — todo: the branch is 2 commits behind `origin/main`. `9a922c4f` changes `WalletEntity`'s adjustment handler (an operator's credit opens the wallet) and `features/wallet/adjustments.feature`, the same code W2 amends. The merge is textually clean; rebase, and run the wallet suites and features again on the result.
   - Resolved: rebased onto origin/main (9a922c4f, c975ca20), clean; on the result wallet's suite passes 813 of 813 and `just features` reports 0 findings in 1477 scenarios.
 
 ## Nits
 
 - `CLAUDE.md:86` — nitpick (non-blocking): it still says `backoffice-seed`, `backoffice-it` and `backoffice-record-original` are "declared for scripts not yet written (T123 to T128, T131)". `tests/it/*.it.ts`, `seed.ts` and `tests/original/backoffice-screens/record.ts` exist, and T131 is ticked.
-  - Resolved: CLAUDE.md says what the three recipes do and that the suites wait on spec 031, d3df8127
+  - Resolved: CLAUDE.md says what the three recipes do and that the suites wait on spec 033, d3df8127
 - `services/backoffice-state/src/main/scala/io/eitheror/casino/backoffice/session/RealmClient.scala:81` — nitpick (non-blocking): `revoke` short-circuits, so a failed revoke skips the logout that ends the realm's SSO session. Attempt both and report the first failure.
   - Resolved: revoke attempts both the revocation and the logout and reports the first failure, 3dfe27b4
 - `services/backoffice-state/src/main/scala/io/eitheror/casino/backoffice/session/Tokens.scala:54` — nitpick (non-blocking): the endpoint polls with `Thread.sleep(50ms)` for up to 20 s. That is fine on virtual threads; otherwise it holds a shared thread. Confirm ankka 0.16's endpoint threading.
