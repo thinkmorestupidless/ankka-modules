@@ -1007,7 +1007,7 @@ A brand's credential for the public API, created by an operator holding the acce
 Avoid: API key, partner, partner token, partner entitlement, partner grant, client secret
 
 ### access keys permission
-The realm role (`api_keys`) an operator holds beside the brand's own role to create, list, change, disable, enable and delete that brand's access keys; ordinary operator access is not enough.
+The role (`api_keys`, held in one brand) an operator holds beside the brand's own role to create, list, change, disable, enable and delete that brand's access keys; ordinary operator access is not enough.
 
 ### public API
 A brand's read-only API over its players, their activity, its games and its statistics, reached with an access key at the brand's own hostname.
@@ -1227,7 +1227,7 @@ Of a market: resolved or void and past its review window; its positions are paid
 Of a market: cancelled after opening; each share is paid its equal part.
 
 ### markets permission
-The permission on the brand_<slug> role that lets an operator draft, change, approve, open, suspend, resume, close, move the close of, resolve, correct and void markets.
+The role (`markets`, held in one brand) that lets an operator draft, change, approve, open, suspend, resume, close, move the close of, resolve, correct and void markets.
 
 ### share
 One unit of a position in an outcome; pays one major unit of the market's currency (100 minor units) if the market resolves to that outcome.
@@ -1506,7 +1506,10 @@ A placeholder in an operator's send, such as the player's first name, that the b
 What one operator action on a brand requires: making an adjustment, reviewing a withdrawal request, reading a player. Every operator route of a brand requires exactly one, named by the contract. A sign-in never carries one; it carries roles.
 
 ### operator role
-A bag of permissions that a brand keeps and its administrators change while the brand runs; what an operator's sign-in carries. A brand starts with the default roles (`brand_support`, `brand_finance`, `brand_compliance`, `brand_admin`) and may create its own. `platform_admin` carries every permission and is not the brand's to change.
+A bag of permissions that a brand keeps and its administrators change while the brand runs; what an operator's sign-in carries. An operator holds a role in one brand: the realm names it for that brand, and a role held in another brand, or one with no brand in its name, carries nothing here. A brand starts with the default roles (`brand_support`, `brand_finance`, `brand_compliance`, `brand_admin`) and may create its own. `platform_admin` carries every permission and is not the brand's to change.
+
+### giving
+*Proposed.* A brand's choice of the operator roles one operator holds in it: the set asked, and whether the realm holds it yet (in force). A brand's later giving replaces its earlier ones; it changes only the roles held in that brand. Avoid: assignment, grant
 
 ### role matrix
 The default roles and the permissions each carries when a brand is first applied: held by the contract, and the starting point a default role is reset to. What a role carries afterwards is the brand's own.

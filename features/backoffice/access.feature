@@ -53,3 +53,28 @@ Feature: Who works in a brand's backoffice, and what they may do
       | brand_compliance | refused    | admitted |
       | brand_admin      | admitted   | admitted |
       | platform_admin   | admitted   | admitted |
+
+  Scenario: a role one brand gives an operator admits nothing in another brand the operator works in
+    Given an operator whose roles name the brands "goldvibe" and "spinvibe"
+    And the operator holds the support role in "spinvibe"
+    When "goldvibe" gives the operator its finance role
+    Then in "spinvibe" approving a withdrawal request is refused, naming the permission it needs
+    And in "goldvibe" approving a withdrawal request is admitted
+
+  Scenario: two brands' roles of the same name each carry their own brand's permissions only
+    Given the brands "goldvibe" and "spinvibe" each have a role "vip_host" carrying different permissions
+    And an operator whose roles name the brands "goldvibe" and "spinvibe"
+    When "goldvibe" gives the operator its role "vip_host"
+    Then in "spinvibe" the operator is offered nothing that the role "vip_host" of "spinvibe" carries
+
+  Scenario: a role held in a brand admits nothing when the operator's roles do not name the brand
+    Given an operator who holds the finance role in "goldvibe" and whose roles do not name the brand "goldvibe"
+    When the operator approves a withdrawal request in "goldvibe"
+    Then the operator is told the role for "goldvibe" is needed
+
+  Scenario: an operator is shown only the roles they hold in the brand of the backoffice
+    Given the backoffice of the brand "goldvibe"
+    And an operator who holds the finance role in "goldvibe" and the support role in "spinvibe"
+    When the operator signs in to the backoffice
+    Then the operator is shown the finance role and offered what it carries
+    And no role of "spinvibe" is shown

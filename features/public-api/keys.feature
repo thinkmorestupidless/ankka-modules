@@ -24,7 +24,7 @@ Feature: An operator of a brand creates and manages the brand's access keys
     Examples:
       | who                                                  |
       | whose roles name brand "goldvibe" without the access keys permission |
-      | holding the access keys permission on brand "spinvibe" only           |
+      | holding the access keys permission in brand "spinvibe" only           |
 
   Scenario: the brand's keys are listed with their name, the start of the key, their settings, who created them, when, and when each was last used
     Given brand "goldvibe" holds two access keys

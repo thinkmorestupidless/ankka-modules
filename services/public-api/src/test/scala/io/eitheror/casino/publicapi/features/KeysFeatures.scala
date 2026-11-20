@@ -24,7 +24,7 @@ class KeysFeatures extends PublicApiFeatures("keys.feature"):
   Given("an operator whose roles name brand {string} without the access keys permission") { (brand: String) =>
     assertEquals(brand, kit.brand); operator = kit.asStaff(Nil)
   }
-  Given("an operator holding the access keys permission on brand {string} only") { (brand: String) =>
+  Given("an operator holding the access keys permission in brand {string} only") { (brand: String) =>
     operator = kit.asStaff(Seq("api_keys", s"brand_$brand"), brandRole = false)
   }
   When("they create an access key named {string}") { (name: String) =>
