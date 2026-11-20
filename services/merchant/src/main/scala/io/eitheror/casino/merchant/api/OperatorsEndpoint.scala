@@ -219,7 +219,10 @@ final class OperatorsEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/operators"):
         }
     refusal match
       case Some((by, answer, code)) =>
-        operator(id).call(OperatorEntity.rejectBrandRoles).invoke(RejectBrandRoles(brand, by, asked, code, ctx.now())): Unit
+        // recorded on an operator that exists (FR-014); a refusal naming no operator writes no entity
+        if operator(id).call(OperatorEntity.get).invoke().exists then
+          operator(id).call(OperatorEntity.rejectBrandRoles).invoke(RejectBrandRoles(brand, by, asked.take(64), code, ctx.now())): Unit
+        else log.info("a giving by {} for no operator {} was refused: {}", by, id, code)
         answer
       case None =>
         val giving = operator(id).call(OperatorEntity.askBrandRoles).invoke(AskBrandRoles(brand, asked - s"brand_$brand", ctx.now()))
@@ -242,12 +245,9 @@ object BrandRoles:
   def refused(brand: String, asked: Set[String]): Option[(String, String)] =
     asked.toVector.sorted.collectFirst {
       case r if r.contains(io.eitheror.casino.contract.access.BrandRoles.Separator) => (NamedForBrand, r)
-      case r if r != s"brand_$brand" && !Given(r) && (!OperatorPermissions.validRoleName(r) || OperatorPermissions.reserved(r)) =>
+      case r if r != s"brand_$brand" && !io.eitheror.casino.contract.access.BrandRoles.Given(r) && (!OperatorPermissions.validRoleName(r) || OperatorPermissions.reserved(r)) =>
         ("RESERVED_ROLE", r)
     }
-
-  /** The roles routes check by name that a brand gives as it gives its others (spec 032 FR-012). */
-  val Given: Set[String] = Set("api_keys", "markets")
 
   /** A giving as H6 and H6r answer it: `{roles, version, state, reason?, at}`, and `held` when it was read. */
   def answer(brand: String, giving: Option[io.eitheror.casino.merchant.operators.Giving], held: Option[Set[String]]): com.fasterxml.jackson.databind.node.ObjectNode =

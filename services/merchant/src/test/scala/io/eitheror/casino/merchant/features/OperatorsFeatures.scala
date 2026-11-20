@@ -139,9 +139,9 @@ class OperatorsFeatures extends MerchantFeatures("operators.feature"):
     Thread.sleep(500)
     assertEquals(held, Set("resource_viewer"))
     assert(giving("goldvibe").json.get("state") == null, "a refused giving is not recorded as one")
-    // each refusal is an audit record (FR-014)
-    val events = kit.components.forEventSourcedEntity(EntityId(id)).call(Operator.get).invoke()
-    assert(events.givings.isEmpty, events.givings.toString)
+    // a refusal records no giving; its audit record is AuditFactsSuite's (FR-014)
+    val state = kit.components.forEventSourcedEntity(EntityId(id)).call(Operator.get).invoke()
+    assert(state.givings.isEmpty, state.givings.toString)
   }
 
   Given("an operator holding the role naming the brand {string}") { (brand: String) =>

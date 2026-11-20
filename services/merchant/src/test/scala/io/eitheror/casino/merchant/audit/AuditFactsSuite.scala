@@ -17,6 +17,22 @@ class AuditFactsSuite extends munit.FunSuite with LogCapturing:
 
   private def one(r: ConsumerTestKit.Result[?]): AuditRecord = r.payloads.collect { case a: AuditRecord => a }.head
 
+  test("a giving, its outcome and a refusal are each one record in the brand that gave (spec 032 FR-014)") {
+    import io.eitheror.casino.merchant.operators.OperatorEvent
+    def rec(e: OperatorEvent) = one(ConsumerTestKit.of(OperatorAudit).onMessage(e, subject = "op-1", sequenceNumber = 2))
+    val asked = rec(OperatorEvent.BrandRolesAsked("goldvibe", Set("brand_support", "api_keys"), 3, at))
+    assertEquals((asked.action, asked.brand, asked.actorKind, asked.actorId, asked.outcome),
+      ("operator brand roles asked", "goldvibe", "service", "goldvibe/players", "accepted"))
+    assertEquals(asked.changes.map(c => c.field -> c.after), Vector("roles" -> Some("api_keys,brand_support"), "version" -> Some("3")))
+    val applied = rec(OperatorEvent.BrandRolesApplied("goldvibe", 3, at))
+    assertEquals((applied.action, applied.brand, applied.actorId, applied.outcome), ("operator brand roles applied", "goldvibe", "brand-roles-applier", "accepted"))
+    val failed = rec(OperatorEvent.BrandRolesFailed("goldvibe", 3, "role brand_support@goldvibe: 403", at))
+    assertEquals((failed.action, failed.outcome, failed.reasonCode), ("operator brand roles failed", "refused", Some("role brand_support@goldvibe: 403")))
+    val refused = rec(OperatorEvent.BrandRolesRejected("goldvibe", "spinvibe", Set("brand_admin"), "FORBIDDEN", at))
+    assertEquals((refused.action, refused.brand, refused.actorId, refused.outcome, refused.reasonCode),
+      ("operator brand roles refused", "goldvibe", "spinvibe/players", "refused", Some("FORBIDDEN")))
+  }
+
   test("a holding created is one record naming the operator, the subject and the change") {
     val r = one(ConsumerTestKit.of(HoldingAudit).onMessage(OrgEvent.Created("Acme", None, op, at), subject = "h-1", sequenceNumber = 1))
     assertEquals((r.service, r.brand, r.action, r.actorKind, r.actorId, r.subjectKind, r.subjectId, r.recordId),
