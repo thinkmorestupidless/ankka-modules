@@ -27,3 +27,19 @@ object BrandRoles:
 
   /** Whether `roles` holds `role` named for `slug`. */
   def holds(slug: String, roles: Set[String], role: String): Boolean = roles.contains(nameIn(slug, role))
+
+  /** Roles a brand may give although they are reserved: routes check them by name (FR-012). */
+  val Given: Set[String] = Set("api_keys", "markets")
+
+  /**
+   * Roles named for a brand that the programme gives outside any giving (research R8). A brand cannot
+   * give them (they are reserved), and a giving never takes them away.
+   */
+  val ProgrammeGiven: Set[String] = Set("affiliate_manager")
+
+  /** The roles, beyond the default ones, that are named for a brand: made at apply and carried over. */
+  val Named: Set[String] = Given ++ ProgrammeGiven
+
+  /** Whether a giving for `slug` puts `realmRole` in or takes it away: named for `slug`, and not the programme's. */
+  def givenBy(slug: String, realmRole: String): Boolean =
+    brandOf(realmRole).exists((role, s) => s == slug && !ProgrammeGiven(role))

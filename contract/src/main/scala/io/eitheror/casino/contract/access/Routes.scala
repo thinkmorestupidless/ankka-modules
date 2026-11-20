@@ -197,7 +197,7 @@ object Routes:
   /**
    * A manager of the shared affiliate programme (spec 013 FR-004): signed in at the `eitheror` realm
    * holding `affiliate_manager`, `brand_admin` or `platform_admin`. Which brands they manage is
-   * [[brandsOf]], checked by the route.
+   * [[managedBrands]], checked by the route.
    */
   def affiliateManager(authenticate: => Acl = Oidc.authenticate()): Acl =
     refine(authenticate) { p =>

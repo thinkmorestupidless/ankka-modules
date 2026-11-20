@@ -67,6 +67,9 @@ object Published:
       val a = defaults.putArray(role)
       OperatorPermissions.All.filter(bag).foreach(a.add)
     }
+    // spec 032 FR-012: the reserved roles a brand gives as it gives its others
+    val givenRoles = root.putArray("given")
+    io.eitheror.casino.contract.access.BrandRoles.Given.toVector.sorted.foreach(givenRoles.add)
     json.writeValueAsString(root) + "\n"
 
   val files: Vector[(String, String)] = Vector(

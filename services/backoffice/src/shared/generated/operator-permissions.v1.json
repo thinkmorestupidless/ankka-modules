@@ -6,5 +6,6 @@
     "brand_compliance" : [ "player.read", "wallet.read", "withdrawal.read", "reward.read", "identity.read", "protection.read", "note.write", "message.send", "presence.read", "standing.change", "profile.change", "session.end", "flag.clear", "fraud.review", "identity.review", "protection.change", "erasure.request", "export.player", "dashboard.read", "report.compliance", "roles.read" ],
     "brand_finance" : [ "player.read", "wallet.read", "withdrawal.read", "reward.read", "identity.read", "protection.read", "note.write", "message.send", "presence.read", "adjustment.make", "turnover.override", "withdrawal.review", "reward.grant", "reward.revoke", "export.player", "dashboard.read", "report.read", "report.dayEnd", "roles.read" ],
     "brand_support" : [ "player.read", "wallet.read", "withdrawal.read", "reward.read", "identity.read", "protection.read", "note.write", "message.send", "presence.read", "dashboard.read", "roles.read" ]
-  }
+  },
+  "given" : [ "api_keys", "markets" ]
 }
