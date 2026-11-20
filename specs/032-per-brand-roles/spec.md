@@ -35,6 +35,15 @@ that brand, and each brand reads only the roles named for it.
 - Q: What happens to today's roles with no brand in their name on installations? → A: Carried over
   as the role named for every brand the operator holds when each brand is applied, then removed
   (FR-013).
+- Q: Does the term "giving" stand? → A: Yes: a brand's choice of the roles one operator holds in
+  it, refusing "assignment"; it is not a grant (glossary).
+- Q: How does a giving end when the realm refuses a change outright, rather than being
+  unreachable? → A: An unreachable realm is retried with backoff for as long as it takes; an
+  outright refusal ends the giving as failed, with the realm's reason, shown to the brand, audited
+  and not tried again. The brand can give again (FR-007, FR-009).
+- Q: Who gives `api_keys` and `markets` per brand? → A: The brand, in a giving, as it gives its
+  other roles: only a giver holding `roles.give`, and both stay out of the brand's bags and the
+  role matrix (FR-012).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -81,6 +90,8 @@ brands give the same operator at once. Both end with exactly the sets asked.
 - added `features/backoffice/roles.feature`: a brand's later giving replaces its earlier one, even before the earlier is in force
 - added `features/backoffice/roles.feature`: a giving not yet in force is read as asked and as not yet in force
 - added `features/backoffice/roles.feature`: a role held with no brand in its name is carried over to every brand the operator works in, then removed
+- added `features/backoffice/roles.feature`: a giving the realm refuses ends as failed, with the realm's reason shown to the brand
+- added `features/backoffice/roles.feature`: a brand gives the access keys and markets roles as it gives its other roles, in that brand only
 
 ---
 
@@ -132,6 +143,8 @@ shown are only those named for this brand.
   `reidentify_<slug>`) and payments administration's roles are unchanged.
 - A brand's slug that is also the name of a default role (for example `admin`) is never read as a
   brand.
+- The realm refuses a giving outright (it no longer knows the operator): the giving ends as failed,
+  with the realm's reason, and is not tried again.
 
 ## Requirements *(mandatory)*
 
@@ -155,14 +168,17 @@ shown are only those named for this brand.
 - **FR-006**: A brand's giving MUST change only the roles named for that brand and the brand's own
   role (`brand_<slug>`): never a role named for another brand, and never a role with no brand in its name.
 - **FR-007**: A giving MUST be recorded as the set asked before the realm is changed. The realm MUST
-  then be brought to the last set recorded for that brand and operator, and retried until it holds,
-  without anyone asking again. A role named for the brand that is held but not in that set MUST be
-  taken away, whoever gave it, the cutover included.
+  then be brought to the last set recorded for that brand and operator. While the realm cannot be
+  reached, this MUST be retried, with backoff, until it holds, without anyone asking again. When the
+  realm refuses a change outright (for example, it no longer knows the operator), the giving MUST end
+  as failed, with the realm's reason, and not be tried again; the brand may give again. A role named
+  for the brand that is held but not in that set MUST be taken away, whoever gave it, the cutover
+  included.
 - **FR-008**: Two brands' givings to one operator MUST each end as their brand asked, whatever their
   order. A brand's second giving MUST replace its first, even when the first is not yet in the
   realm.
 - **FR-009**: The brand MUST be able to read, for each operator, the set its last giving asked and
-  whether it is in force in the realm yet.
+  whether it is in force in the realm yet, or failed and why.
 - **FR-010**: When a brand is applied, the realm MUST hold that brand's default roles named for it,
   beside `brand_<slug>`, as that role and the brand's audit roles are made today. A role the brand
   made MUST be made in the realm, named for the brand, when it is first given.
@@ -173,7 +189,9 @@ shown are only those named for this brand.
   (spec 016, a brand's access keys), `markets@<slug>` (spec 023, the predictions desk's operator
   routes) and `affiliate_manager@<slug>` (spec 013). The shared programme MUST read which brands an
   operator manages from `affiliate_manager@<slug>` and `brand_admin@<slug>`, each for its own brand
-  only.
+  only. A brand MUST give `api_keys` and `markets` in a giving, as it gives its other roles, and
+  only a giver holding `roles.give` may. Neither is in the brand's bags or the role matrix, and
+  neither carries a permission of a bag.
 - **FR-013**: When a brand is applied, an operator of that brand who holds a role with no brand in
   its name that this spec names per brand MUST be given that role named for the brand. Once every
   brand the operator holds has been carried over, the role with no brand in its name MUST be

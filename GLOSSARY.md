@@ -1509,7 +1509,9 @@ What one operator action on a brand requires: making an adjustment, reviewing a 
 A bag of permissions that a brand keeps and its administrators change while the brand runs; what an operator's sign-in carries. An operator holds a role in one brand: the realm names it for that brand, and a role held in another brand, or one with no brand in its name, carries nothing here. A brand starts with the default roles (`brand_support`, `brand_finance`, `brand_compliance`, `brand_admin`) and may create its own. `platform_admin` carries every permission and is not the brand's to change.
 
 ### giving
-*Proposed.* A brand's choice of the operator roles one operator holds in it: the set asked, and whether the realm holds it yet (in force). A brand's later giving replaces its earlier ones; it changes only the roles held in that brand. Avoid: assignment, grant
+A brand's choice of the operator roles one operator holds in it: the set asked, and whether the realm holds it yet (in force), or why the realm refused it (failed). A brand's later giving replaces its earlier ones; it changes only the roles held in that brand. Not a grant, which a brand makes to a shared project.
+
+Avoid: assignment, role assignment
 
 ### role matrix
 The default roles and the permissions each carries when a brand is first applied: held by the contract, and the starting point a default role is reset to. What a role carries afterwards is the brand's own.

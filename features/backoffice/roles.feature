@@ -45,3 +45,19 @@ Feature: A brand's administrators decide what each role may do
     When the brands "goldvibe" and "spinvibe" are applied
     Then the operator holds the finance role in "goldvibe" and in "spinvibe"
     And no longer holds the finance role with no brand in its name
+
+  Scenario: a giving the realm refuses ends as failed, with the realm's reason shown to the brand
+    Given an operator of "goldvibe" the realm no longer knows
+    When "goldvibe" gives the operator the finance role
+    Then the giving is shown to "goldvibe" as failed, with the realm's reason
+    And it is not tried again
+
+  Scenario Outline: a brand gives the access keys and markets roles as it gives its other roles, in that brand only
+    Given an admin operator of "goldvibe"
+    When the operator gives another operator of "goldvibe" the role "<role>"
+    Then that operator holds the role "<role>" in "goldvibe" only
+
+    Examples:
+      | role     |
+      | api_keys |
+      | markets  |
