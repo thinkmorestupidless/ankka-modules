@@ -28,6 +28,9 @@ export const describePermission = (p: string): MessageKey => `permission.${p}` a
 /** What a default role is reset to. */
 export const DefaultBags: Readonly<Record<string, readonly string[]>> = (defaultsFile as { defaults: Record<string, string[]> }).defaults;
 
+/** The roles routes check by name that a brand gives as it gives its others (spec 032 FR-012), as the contract publishes them. */
+export const GivenRoles: readonly string[] = (defaultsFile as { given: string[] }).given;
+
 /** What a change to a role's bag gives and takes away. */
 export function difference(before: readonly string[], after: readonly string[]): { gained: string[]; lost: string[] } {
   const b = new Set(before);

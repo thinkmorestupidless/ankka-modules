@@ -12,13 +12,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { holds, type Me } from "../../../shared/access.ts";
 import { t } from "../../../shared/messages/index.ts";
 import { Actions } from "../../actions/index.ts";
-import { difference } from "../../../shared/permissions.ts";
+import { difference, GivenRoles } from "../../../shared/permissions.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { bagsOf, send, useRoles, type Role } from "./roles.tsx";
 
 /** The roles routes check by name that a brand gives as it gives its others (spec 032 FR-012); in no bag. */
-export const NamedRoles = ["api_keys", "markets"] as const;
+export const NamedRoles = GivenRoles;
 
 /** The brand's last giving to an operator, as players answers it (P13r). */
 export interface Giving {
@@ -93,31 +93,37 @@ export function AssignPage({ operator: initial = "", held: listed }: { operator?
   const roles = useRoles();
   const operatorId = useId();
   const [operator, setOperator] = useState(initial);
-  const [chosen, setChosen] = useState<Set<string>>(() => new Set(listed ?? []));
+  // the ticks as the person changed them; until then, the brand's last giving, or the roles merchant listed
+  const [ticked, setChosen] = useState<Set<string> | undefined>(undefined);
   const [given, setGiven] = useState<{ operator: string; roles: string[] } | undefined>(undefined);
-  const who_ = operator.trim();
+  const who = operator.trim();
   const giving = useQuery({
-    queryKey: ["roles", "giving", who_],
-    queryFn: () => readGiving(who_),
-    enabled: who_ !== "",
+    queryKey: ["roles", "giving", who],
+    queryFn: () => readGiving(who),
+    enabled: who !== "",
     staleTime: 2_000,
     // a giving not yet in force is read again until it is, or fails
     refetchInterval: (q) => (q.state.data?.state === "pending" ? 2_000 : false),
   });
   if (roles.isError) return <RefusalNotice refusal={roles.error} />;
   if (!roles.data) return <p role="status">{t("roles.loading")}</p>;
-  const who = operator.trim();
   const brandRoles = new Set([...roles.data.map((r) => r.name), ...NamedRoles]);
+  // a giving the brand made says what it holds them to; else what is held is known only for the operator the list opened
+  const asked = giving.data?.state !== undefined ? giving.data.roles : undefined;
+  const listedHere = listed !== undefined && who === initial.trim() ? listed : undefined;
+  const held = (asked ?? listedHere)?.filter((r) => brandRoles.has(r)).sort();
+  const chosen = ticked ?? new Set(held ?? []);
   const picked = [...chosen].filter((r) => brandRoles.has(r)).sort();
-  // what they hold is known only for the operator the list opened, as it listed them
-  const held = listed !== undefined && who === initial.trim() ? listed.filter((r) => brandRoles.has(r)).sort() : undefined;
 
   return (
     <section>
       <h2>{t("assign.title")}</h2>
       <div className="bo-field">
         <label htmlFor={operatorId}>{t("assign.operator")}</label>
-        <input id={operatorId} value={operator} onChange={(e) => setOperator(e.target.value)} aria-describedby={`${operatorId}-hint`} />
+        <input id={operatorId} value={operator} onChange={(e) => {
+            setOperator(e.target.value);
+            setChosen(undefined);
+          }} aria-describedby={`${operatorId}-hint`} />
         <span id={`${operatorId}-hint`} className="bo-muted">
           {t("assign.operatorHint")}
         </span>

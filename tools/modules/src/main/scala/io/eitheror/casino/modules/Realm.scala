@@ -238,13 +238,9 @@ object Realm:
   def operators(root: Path): String =
     Files.readString(root.resolve("brands").resolve("_realm").resolve("eitheror-operators.json"))
 
-  /**
-   * Creates what is missing; changes nothing that exists. Returns one line per change. The operators' realm is
-   * imported first when the installation lacks it and one is given, so the brand's role has a realm to go in.
-   */
   /** The roles that hold in one brand and are named for it (spec 032): the default roles, and those routes check by name. */
   val BrandRoleNames: Vector[String] =
-    (io.eitheror.casino.contract.access.OperatorPermissions.DefaultRoles.keys.toVector ++ Vector("api_keys", "markets", "affiliate_manager")).sorted
+    (io.eitheror.casino.contract.access.OperatorPermissions.DefaultRoles.keys.toVector ++ BrandRoles.Named).sorted
 
   /** `brand_<b>` names a brand; a default role (`brand_admin`) does not. */
   private def brandOfRole(role: String): Option[String] =
@@ -273,6 +269,10 @@ object Realm:
         made += s"role $base of user $user removed: held named for ${brands.toVector.sorted.mkString(", ")}"
     made.toVector
 
+  /**
+   * Creates what is missing; changes nothing that exists. Returns one line per change. The operators' realm is
+   * imported first when the installation lacks it and one is given, so the brand's role has a realm to go in.
+   */
   def ensure(admin: RealmAdmin, slug: String, realmJson: => String, operators: Option[String] = None,
       backoffice: Option[(String, Option[String])] = None): Vector[String] =
     val realm = s"casino-$slug"

@@ -19,16 +19,16 @@ object RoleRules:
   /** The permission that may change roles: a brand keeps at least one role carrying it. */
   val Change = "roles.change"
 
-  /** Why `name` may not be a role the brand makes or changes, if it may not. */
   /**
    * The roles routes check by name that a brand gives as it gives its others (spec 032 FR-012): reserved
    * from being made or changed, in no bag, and given by a giver holding `roles.give`.
    */
-  val Given: Set[String] = Set("api_keys", "markets")
+  val Given: Set[String] = io.eitheror.casino.contract.access.BrandRoles.Given
 
   /** Why `name` may not be given: none for a role a brand gives, its bags' or [[Given]]. */
   def givingRefusal(name: String): Option[(String, String)] = if Given(name) then None else nameRefusal(name)
 
+  /** Why `name` may not be a role the brand makes or changes, if it may not. */
   def nameRefusal(name: String): Option[(String, String)] =
     if !OperatorPermissions.validRoleName(name) then Some(InvalidName -> s"'$name' is not a role's name: lower case letters, digits and _, at most 40")
     else if OperatorPermissions.reserved(name) then Some(ReservedRole -> s"$name is not a role the brand makes, changes or gives")
