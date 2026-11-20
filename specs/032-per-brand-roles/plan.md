@@ -25,7 +25,7 @@ exchange, kyc, reporting, the modules tool); TypeScript (the backoffice server a
 **Primary Dependencies**: ankka SDK as each build pins it (merchant 0.13.0, players 0.16.3; 031
 moves them to 0.18.0, no change here depends on it); Keycloak 26.0.7 admin REST API.
 
-**Storage**: merchant's `Operator` event-sourced entity gains three events (data-model.md). No new
+**Storage**: merchant's `Operator` event-sourced entity gains four events (data-model.md). No new
 store.
 
 **Testing**: munit and the testkit's `GherkinSuite` per service; the contract's unit suite and the

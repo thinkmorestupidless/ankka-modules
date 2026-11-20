@@ -174,7 +174,8 @@ shown are only those named for this brand.
   realm refuses a change outright (for example, it no longer knows the operator), the giving MUST end
   as failed, with the realm's reason, and not be tried again; the brand may give again. A role named
   for the brand that is held but not in that set MUST be taken away, whoever gave it, the cutover
-  included.
+  included, except the programme's manager role (`affiliate_manager@<slug>`), which the programme
+  gives and takes away outside any giving (research R8) and no giving touches.
 - **FR-008**: Two brands' givings to one operator MUST each end as their brand asked, whatever their
   order. A brand's second giving MUST replace its first, even when the first is not yet in the
   realm.
@@ -194,7 +195,9 @@ shown are only those named for this brand.
   only a giver holding `roles.give` may. Neither is in the brand's bags or the role matrix, and
   neither carries a permission of a bag.
 - **FR-013**: When a brand is applied, an operator of that brand who holds a role with no brand in
-  its name that this spec names per brand MUST be given that role named for the brand. Once every
+  its name that this spec names per brand (the default roles, `api_keys`, `markets` and
+  `affiliate_manager`) MUST be given that role named for the brand. A brand's own roles are not
+  carried over: no installation gave one before this spec, and a brand gives them again. Once every
   brand the operator holds has been carried over, the role with no brand in its name MUST be
   removed. Carrying over a second time changes nothing. No operator loses an action they had, and
   each brand can then take the carried role away (FR-007).
@@ -229,11 +232,11 @@ shown are only those named for this brand.
 - **SC-002**: A giving holds in the realm within 30 seconds of being recorded when the realm
   answers. When the realm stops answering part-way, the giving holds within 30 seconds of the realm
   answering again, with nobody asking again.
-- **SC-003**: In 100 runs of two brands giving one operator roles at the same moment, all 100 end
-  with each brand's roles exactly as asked.
+- **SC-003**: Of 100 givings made at the same moment by two brands to one operator, every one ends
+  with each brand's roles exactly as its last giving asked.
 - **SC-004**: Every role the cutover gives can be taken away by its brand's next giving.
-- **SC-005**: After a brand is applied, no operator holds a role with no brand in its name that a
-  brand's bags hold.
+- **SC-005**: After a brand is applied, no operator holds a default role, `api_keys`, `markets` or
+  `affiliate_manager` with no brand in its name while holding it named for every brand they work in.
 
 ## Assumptions
 
@@ -243,6 +246,8 @@ shown are only those named for this brand.
   name and in a token, and picks another separator if it does not.
 - An operator's token carries their realm roles as today. A giving is in force for an operator from
   their next token, as spec 030's giving is today.
-- The permissions, the role matrix's default bags, and RoleChangers are unchanged.
+- The permissions, the role matrix's default bags, and RoleChangers are unchanged. Spec 030 carried
+  two RoleChangers items here (refusing a giving that leaves no holder of `roles.change`, and the
+  role's version on its claim); they stay open, for the spec that next changes RoleChangers.
 - Taking an operator out of a brand altogether (their `brand_<slug>`) stays as merchant's operator
   administration does it today, outside the brand's giving.

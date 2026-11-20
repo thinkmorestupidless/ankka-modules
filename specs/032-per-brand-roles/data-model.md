@@ -30,6 +30,7 @@ Events:
 | `BrandRolesAsked` | brand, roles, version, at | `givings(brand) = Giving(roles, version, Pending, at)`; `version` is the brand's last + 1 |
 | `BrandRolesApplied` | brand, version | when `version` is the brand's current: state `InForce`, `brandRoles(brand) = roles`; otherwise nothing |
 | `BrandRolesFailed` | brand, version, reason | when `version` is current: state `Failed(reason)`; otherwise nothing |
+| `BrandRolesRejected` | brand, caller, roles, code, at | nothing: the audit record of a refused giving (FR-014), on an operator that exists |
 
 `SetBrandRoles` (030's event) stays readable: replayed, it sets `brandRoles` and a giving `InForce`
 at version 0. Codecs: new manifests in `MerchantCodecs`; no stored type changes shape.
