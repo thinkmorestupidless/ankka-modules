@@ -141,24 +141,27 @@ describe("the owner's answer", () => {
     });
 
   test("a body that keeps arriving is passed whole, though it takes longer than the bound", async () => {
-    // a real owner over a real connection, as fetch's own timeout would cut it
+    // a real owner over a real connection, as fetch's own timeout would cut it: eight parts 100 ms apart,
+    // 800 ms in all against a 500 ms bound. The slack is wide in time, not only in ratio: with the whole
+    // unit suite running at once a worker stalls for over 150 ms (20 ms gaps were cut at 60 ms, and 30 ms
+    // gaps at 150 ms).
     const owner = http.createServer((_req, res) => {
       res.writeHead(200, { "Content-Type": "text/csv" });
       let n = 0;
       const tick = setInterval(() => {
-        res.write("abcdef"[n]!);
-        if (++n === 6) {
+        res.write("abcdefgh"[n]!);
+        if (++n === 8) {
           clearInterval(tick);
           res.end();
         }
-      }, 20);
+      }, 100);
     });
     await new Promise<void>((r) => owner.listen(0, "127.0.0.1", r));
     try {
-      const h = harness({ timeoutMs: 60, fetch, servicesUrl: `http://127.0.0.1:${(owner.address() as AddressInfo).port}` });
+      const h = harness({ timeoutMs: 500, fetch, servicesUrl: `http://127.0.0.1:${(owner.address() as AddressInfo).port}` });
       const r = await h.ask("GET", "/api/s/reporting/exports/e-1", { session: "s-1" });
       expect(r.status).toBe(200);
-      expect(await r.text()).toBe("abcdef");
+      expect(await r.text()).toBe("abcdefgh");
     } finally {
       owner.closeAllConnections();
       await new Promise((r) => owner.close(r));
