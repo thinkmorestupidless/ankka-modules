@@ -34,7 +34,8 @@ roles_of() {
     payments)       echo "brand_$brand resource_operator" ;;
     other_brand)    echo "brand_it_other" ;;
     made)           echo "brand_$brand" ;;
-    *)              echo "brand_$brand $1" ;;
+    # spec 032: a default role holds in one brand, named for it
+    *)              echo "brand_$brand $1@$brand" ;;
   esac
 }
 
