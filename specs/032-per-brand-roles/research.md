@@ -169,6 +169,17 @@ references are to this branch (`032-per-brand-roles`, cut from `030-backoffice` 
   roles)` and `OperatorPermissions.permissionsOf(slug, roles, bags)` rather than a slug given when a
   `RoleBags` is made. Every reader states its brand where it decides, the compiler finds every caller,
   and no construction in a service or test kit changes. `contracts/brand-roles.md` amended.
+- **The applier keeps its own backoff** (T021): ankka 0.13 has no restart setting for a consumer; a
+  handler that throws is given the same change again at once. On an unreachable realm the applier
+  waits 1 s, doubling to 10 s, per operator and brand, then throws, which holds back that slice as R4
+  intends. A realm with no admin credentials yet (`NotConfigured`) is waited on as unreachable, not
+  recorded as refused: it is this installation's to fix, and the giving goes on once it is.
+- **H6's refusals are recorded on the entity** (T020): `BrandRolesRejected`, which changes no state, so
+  the operator audit consumer makes each refusal an audit record (FR-014) as it does every other
+  operator change. An id not of the realm's shape is refused before any entity is named and is not
+  audited: it names no operator.
+- **H6r without `held`** when the realm cannot be read: it still answers the giving, so the brand sees
+  its state while the realm is down.
 
 ## Design finished
 

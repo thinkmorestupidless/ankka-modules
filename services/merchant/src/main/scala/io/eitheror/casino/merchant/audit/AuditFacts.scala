@@ -80,7 +80,19 @@ object AuditFacts:
     case OperatorEvent.Removed(actor, at)                   => Some(Audited("operator removed", actor, at))
     case OperatorEvent.BrandRolesSet(brand, before, after, at) =>
       Some(Audited("operator brand roles set", Actor("service", s"$brand/players"), at,
-        Vector(AuditChange("roles", Some(before.toVector.sorted.mkString(",")), Some(after.toVector.sorted.mkString(","))))))
+        Vector(AuditChange("roles", Some(before.toVector.sorted.mkString(",")), Some(after.toVector.sorted.mkString(",")))), brand = Some(brand)))
+    // spec 032 FR-014: a giving, what the realm did with it, and a refusal, each in the brand that gave
+    case OperatorEvent.BrandRolesAsked(brand, roles, version, at) =>
+      Some(Audited("operator brand roles asked", Actor("service", s"$brand/players"), at,
+        change("roles", roles.toVector.sorted.mkString(",")) ++ change("version", version.toString), brand = Some(brand)))
+    case OperatorEvent.BrandRolesApplied(brand, version, at) =>
+      Some(Audited("operator brand roles applied", Actor("system", "brand-roles-applier"), at, change("version", version.toString), brand = Some(brand)))
+    case OperatorEvent.BrandRolesFailed(brand, version, reason, at) =>
+      Some(Audited("operator brand roles failed", Actor("system", "brand-roles-applier"), at, change("version", version.toString),
+        outcome = "refused", reason = Some(reason.take(200)), brand = Some(brand)))
+    case OperatorEvent.BrandRolesRejected(brand, caller, roles, code, at) =>
+      Some(Audited("operator brand roles refused", Actor("service", s"$caller/players"), at, change("roles", roles.toVector.sorted.mkString(",")),
+        outcome = "refused", reason = Some(code), brand = Some(brand)))
 
   def payment(e: PaymentEvent, brand: Option[String]): Option[Audited] =
     val flow = Actor.workflow

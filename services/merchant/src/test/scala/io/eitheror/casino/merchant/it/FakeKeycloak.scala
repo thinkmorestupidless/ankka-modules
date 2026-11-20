@@ -35,6 +35,19 @@ final class FakeKeycloak extends FakeServer:
     val u = User(UUID.randomUUID().toString, email); u.roles ++= roles; users.update(u.id, u); u.id
   }
   def disable(id: String): Unit = synchronized(users.get(id).foreach(_.enabled = false))
+  /** The user deleted from the realm by other means: the realm no longer knows them. */
+  def forget(id: String): Unit = synchronized(users.remove(id): Unit)
+
+  // spec 032: a realm that stops answering part-way, and one that refuses a user's role changes
+  private var answering: Option[Int] = None
+  private val refusing = mutable.Set.empty[String]
+  /** After `n` more admin calls, every admin call answers 503 until [[answerAgain]]. */
+  def stopAnsweringAfter(n: Int): Unit = synchronized { answering = Some(n) }
+  def answerAgain(): Unit = synchronized { answering = None }
+  /** Every change to the user's realm roles is refused with 403. */
+  def refuseRolesOf(id: String): Unit = synchronized(refusing += id)
+  /** The admin calls made for a user's roles since the last [[clearReceived]]. */
+  def roleCalls(id: String): Vector[Received] = received.filter(_.path.contains(s"/users/$id/role-mappings"))
   def attribute(id: String, name: String): Vector[String] =
     user(id).flatMap(u => Option(u.attributes.get(name))).map(_.elements.asScala.map(_.asText).toVector).getOrElse(Vector.empty)
 
@@ -54,6 +67,17 @@ final class FakeKeycloak extends FakeServer:
         if r.body.contains("username=admin") && r.body.contains("password=admin") then Answer.ok(Json.obj("access_token" -> "admin-token"))
         else Answer(401, """{"error":"invalid_grant"}""")
       case _ if !r.headers.get("authorization").contains("Bearer admin-token") => Answer(401, """{"error":"unauthorized"}""")
+      case _ if answering.contains(0) => Answer(503, """{"error":"unavailable"}""")
+      case ("POST" | "DELETE", Mapping(_, id)) if refusing(id) =>
+        Answer(403, """{"error":"forbidden","error_description":"the role mapping is refused"}""")
+      case _ if answering.isDefined =>
+        answering = answering.map(_ - 1)
+        answer(r)
+      case _ => answer(r)
+  }
+
+  private def answer(r: Received): Answer =
+    (r.method, r.path) match
       case ("POST", Users(_)) =>
         val b = r.json.get
         val email = b.textOr("email", "")
@@ -95,4 +119,3 @@ final class FakeKeycloak extends FakeServer:
         }
       case ("DELETE", One(_, id)) => if users.remove(id).isDefined then Answer(204, "") else Answer(404, "{}")
       case _ => Answer(404, """{"error":"NO_ROUTE"}""")
-  }

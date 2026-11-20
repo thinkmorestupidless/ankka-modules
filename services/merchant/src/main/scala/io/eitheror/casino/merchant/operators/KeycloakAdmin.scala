@@ -13,12 +13,27 @@ import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 import scala.util.Try
 
-/** Why a call to the realm did not do what was asked. */
+/**
+ * Why a call to the realm did not do what was asked. `Unreachable` (no answer, a timeout, a 5xx or a
+ * 429) may succeed when tried again; `Refused` (any other 4xx) and `NotFound` will not (spec 032 R5).
+ */
 enum RealmError:
   case AlreadyExists(email: String)
   case NotFound(userId: String)
   case NotConfigured(why: String)
-  case Failed(why: String)
+  case Unreachable(why: String)
+  case Refused(status: Int, reason: String)
+
+object RealmError:
+  /** What an answer that is not a success says: worth trying again, or refused. */
+  def of(status: Int, body: String, what: String): RealmError =
+    if status >= 500 || status == 429 then Unreachable(s"$what: $status")
+    else Refused(status, s"$what: $status ${body.take(200)}".trim)
+
+  /** Whether trying again may succeed: the realm did not answer, or this service has no credentials yet. */
+  def retryable(e: RealmError): Boolean = e match
+    case _: Unreachable | _: NotConfigured => true
+    case _                                 => false
 
 /** A user of the operators' realm, as the sync reads it back. */
 final case class RealmUser(id: String, email: String, enabled: Boolean)
@@ -75,13 +90,13 @@ private final class HttpKeycloak(base: String, realm: String, credentials: () =>
         send(HttpRequest.newBuilder(URI.create(s"$base/realms/master/protocol/openid-connect/token"))
           .header("Content-Type", "application/x-www-form-urlencoded").POST(HttpRequest.BodyPublishers.ofString(form)))
           .flatMap { (status, body) =>
-            if status / 100 == 2 then Json.parse(body).flatMap(_.text("access_token")).toRight(RealmError.Failed("no access token"))
-            else Left(RealmError.Failed(s"admin token: $status"))
+            if status / 100 == 2 then Json.parse(body).flatMap(_.text("access_token")).toRight(RealmError.Unreachable("no access token"))
+            else Left(RealmError.of(status, "", "admin token"))
           }
 
   private def send(b: HttpRequest.Builder): Either[RealmError, (Int, String)] =
     Try(http.send(b.timeout(Duration.ofSeconds(10)).build(), HttpResponse.BodyHandlers.ofString()))
-      .toEither.left.map(e => RealmError.Failed(s"${e.getClass.getSimpleName}: ${e.getMessage}"))
+      .toEither.left.map(e => RealmError.Unreachable(s"${e.getClass.getSimpleName}: ${e.getMessage}"))
       .map(r => (r.statusCode, r.body))
 
   private def call(method: String, path: String, body: Option[JsonNode] = None): Either[RealmError, (Int, String)] =
@@ -95,7 +110,7 @@ private final class HttpKeycloak(base: String, realm: String, credentials: () =>
   private def ok(userId: String)(r: (Int, String)): Either[RealmError, Unit] = r match
     case (s, _) if s / 100 == 2 => Right(())
     case (404, _)               => Left(RealmError.NotFound(userId))
-    case (s, b)                 => Left(RealmError.Failed(s"$s ${b.take(200)}"))
+    case (s, b)                 => Left(RealmError.of(s, b, s"user $userId"))
 
   def createUser(email: String, firstName: Option[String], lastName: Option[String]): Either[RealmError, String] =
     val user = Json.obj("username" -> email, "email" -> email, "enabled" -> true, "emailVerified" -> false,
@@ -103,44 +118,45 @@ private final class HttpKeycloak(base: String, realm: String, credentials: () =>
     token.flatMap { t =>
       Try(http.send(HttpRequest.newBuilder(URI.create(s"$admin/users")).header("Authorization", s"Bearer $t")
         .header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(Json.render(user))).build(),
-        HttpResponse.BodyHandlers.ofString())).toEither.left.map(e => RealmError.Failed(e.getMessage)).flatMap { r =>
+        HttpResponse.BodyHandlers.ofString())).toEither.left.map(e => RealmError.Unreachable(e.getMessage)).flatMap { r =>
         r.statusCode match
-          case 201 => r.headers.firstValue("Location").toScala.map(_.split('/').last).toRight(RealmError.Failed("no Location"))
+          case 201 => r.headers.firstValue("Location").toScala.map(_.split('/').last).toRight(RealmError.Unreachable("no Location"))
           case 409 => Left(RealmError.AlreadyExists(email))
-          case s   => Left(RealmError.Failed(s"create user: $s ${r.body.take(200)}"))
+          case s   => Left(RealmError.of(s, r.body, "create user"))
       }
     }
 
   def assignRole(userId: String, role: String): Either[RealmError, Unit] =
-    call("GET", s"/roles/${enc(role)}").flatMap {
-      case (200, body) => Json.parse(body).toRight(RealmError.Failed(s"role $role: not JSON")).flatMap(r =>
+    call("GET", s"/roles/${seg(role)}").flatMap {
+      case (200, body) => Json.parse(body).toRight(RealmError.Unreachable(s"role $role: not JSON")).flatMap(r =>
         call("POST", s"/users/${seg(userId)}/role-mappings/realm", Some(Json.arr(r)))).flatMap(ok(userId))
-      case (s, b)      => Left(RealmError.Failed(s"role $role: $s ${b.take(200)}"))
+      case (404, _)    => Left(RealmError.Refused(404, s"role $role does not exist"))
+      case (s, b)      => Left(RealmError.of(s, b, s"role $role"))
     }
 
   def realmRoles(userId: String): Either[RealmError, Set[String]] =
     call("GET", s"/users/${seg(userId)}/role-mappings/realm").flatMap {
       case (200, body) => Right(Json.parse(body).filter(_.isArray).map(_.elements.asScala.map(_.textOr("name", "")).toSet).getOrElse(Set.empty))
       case (404, _)    => Left(RealmError.NotFound(userId))
-      case (s, b)      => Left(RealmError.Failed(s"roles of $userId: $s ${b.take(200)}"))
+      case (s, b)      => Left(RealmError.of(s, b, s"roles of $userId"))
     }
 
   def ensureRole(role: String): Either[RealmError, Unit] =
-    call("GET", s"/roles/${enc(role)}").flatMap {
+    call("GET", s"/roles/${seg(role)}").flatMap {
       case (200, _) => Right(())
       case (404, _) => call("POST", "/roles", Some(Json.obj("name" -> role))).flatMap {
           case (s, _) if s / 100 == 2 || s == 409 => Right(())
-          case (s, b)                             => Left(RealmError.Failed(s"create role $role: $s ${b.take(200)}"))
+          case (s, b)                             => Left(RealmError.of(s, b, s"create role $role"))
         }
-      case (s, b) => Left(RealmError.Failed(s"role $role: $s ${b.take(200)}"))
+      case (s, b) => Left(RealmError.of(s, b, s"role $role"))
     }
 
   def removeRole(userId: String, role: String): Either[RealmError, Unit] =
-    call("GET", s"/roles/${enc(role)}").flatMap {
-      case (200, body) => Json.parse(body).toRight(RealmError.Failed(s"role $role: not JSON")).flatMap(r =>
+    call("GET", s"/roles/${seg(role)}").flatMap {
+      case (200, body) => Json.parse(body).toRight(RealmError.Unreachable(s"role $role: not JSON")).flatMap(r =>
         call("DELETE", s"/users/${seg(userId)}/role-mappings/realm", Some(Json.arr(r)))).flatMap(ok(userId))
       case (404, _)    => Right(())
-      case (s, b)      => Left(RealmError.Failed(s"role $role: $s ${b.take(200)}"))
+      case (s, b)      => Left(RealmError.of(s, b, s"role $role"))
     }
 
   def setScope(userId: String, scopeId: String, scopeLevel: String, ancestors: Vector[String]): Either[RealmError, Unit] =
@@ -153,7 +169,7 @@ private final class HttpKeycloak(base: String, realm: String, credentials: () =>
         user.set("attributes", attrs): Unit
         call("PUT", s"/users/${seg(userId)}", Some(user)).flatMap(ok(userId))
       case (404, _) => Left(RealmError.NotFound(userId))
-      case (s, b)   => Left(RealmError.Failed(s"$s ${b.take(200)}"))
+      case (s, b)   => Left(RealmError.of(s, b, s"user $userId"))
     }
 
   def resetPassword(userId: String, password: String): Either[RealmError, Unit] =
@@ -168,7 +184,7 @@ private final class HttpKeycloak(base: String, realm: String, credentials: () =>
         user.set("requiredActions", Json.arr(pending.filterNot(_ == "VERIFY_EMAIL")*)): Unit
         call("PUT", s"/users/${seg(userId)}", Some(user)).flatMap(ok(userId))
       case (404, _) => Left(RealmError.NotFound(userId))
-      case (s, b)   => Left(RealmError.Failed(s"$s ${b.take(200)}"))
+      case (s, b)   => Left(RealmError.of(s, b, s"user $userId"))
     }
 
   def listUsers(): Either[RealmError, Vector[RealmUser]] =
@@ -176,7 +192,7 @@ private final class HttpKeycloak(base: String, realm: String, credentials: () =>
       case (200, body) =>
         Right(Json.parse(body).filter(_.isArray).map(_.elements.asScala.toVector).getOrElse(Vector.empty)
           .map(u => RealmUser(u.textOr("id", ""), u.textOr("email", ""), u.bool("enabled").getOrElse(true))))
-      case (s, b) => Left(RealmError.Failed(s"$s ${b.take(200)}"))
+      case (s, b) => Left(RealmError.of(s, b, "users"))
     }
 
   def deleteUser(userId: String): Either[RealmError, Unit] = call("DELETE", s"/users/${seg(userId)}").flatMap(ok(userId))

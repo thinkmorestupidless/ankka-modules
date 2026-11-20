@@ -8,7 +8,7 @@ import io.eitheror.casino.merchant.Json
 import io.eitheror.casino.merchant.Json.*
 import io.eitheror.casino.merchant.api.Answers.*
 import io.eitheror.casino.merchant.keys.RawKeys
-import io.eitheror.casino.merchant.operators.{Invitation, InvitationToken, Invitations, IssueInvitation, KeycloakAdmin, Level, OperatorsRuntime, OperatorsView, OperatorRow, OperatorState, Privilege, RealmError, Scope, CreateOperator, ChangeScope, OperatorChange, SetBrandRoles}
+import io.eitheror.casino.merchant.operators.{Invitation, InvitationToken, Invitations, IssueInvitation, KeycloakAdmin, Level, OperatorsRuntime, OperatorsView, OperatorRow, OperatorState, Privilege, RealmError, Scope, CreateOperator, ChangeScope, OperatorChange, AskBrandRoles, RejectBrandRoles}
 import io.eitheror.casino.merchant.operators.Operator as OperatorEntity
 
 /**
@@ -28,7 +28,8 @@ final class OperatorsEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/operators"):
     case RealmError.AlreadyExists(_) => refuse(409, "USER_ALREADY_EXISTS")
     case RealmError.NotFound(_)      => refuse(404, "OPERATOR_NOT_FOUND")
     case RealmError.NotConfigured(w) => refuse(503, "KEYCLOAK_NOT_CONFIGURED", w)
-    case RealmError.Failed(w)        => refuse(500, "KEYCLOAK_ERROR", w)
+    case RealmError.Unreachable(w)   => refuse(503, "KEYCLOAK_UNREACHABLE", w)
+    case RealmError.Refused(_, w)    => refuse(500, "KEYCLOAK_ERROR", w)
 
   /** The entity's parents an operator placed at it records (the original's `resolveAncestors`). */
   private def ancestors(level: Level, id: String): Either[Respond[Bytes], Vector[String]] = level match
@@ -170,46 +171,59 @@ final class OperatorsEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/operators"):
   }
 
   /**
-   * Spec 030 H6: a brand's `players` sets the realm roles that brand gives an operator. Admitted to any
-   * project's `players` (the brand's grant names it); the handler holds the caller to its own brand. It
-   * adds `brand_<slug>`, creates a realm role that does not exist, and removes only roles this brand gave
-   * before and no longer asks for, never one another brand's request gave. A reserved name (every realm
-   * role but the default roles, `platform_admin`, a payments role, another brand's `brand_<slug>`) is
-   * refused and the realm is not touched.
+   * H6 (spec 030, amended by 032): a brand's `players` gives an operator its roles, by the brand's names
+   * without the brand. Admitted to any project's `players` (the brand's grant names it); the handler holds
+   * the caller to its own brand. It validates, records the giving as the brand's next and answers `202`
+   * with it pending; `BrandRolesApplier` brings the realm to it. Every refusal is an audit record (FR-014).
+   * H6r answers the brand's last giving, how far it got, and the realm roles held for the brand now.
    */
   withAcl(BrandRoles.acl) {
     putBody("/{id}/brand-roles/{brand}") { (id: String, brand: String, text: String) =>
       guarded {
-        caller match
-          case com.thinkmorestupidless.ankka.http.Caller.Service(project, _) if project != brand =>
-            refuse(403, "FORBIDDEN", s"$project sets the roles of its own brand only")
-          case _ if !KeycloakAdmin.validUserId(id) =>
-            refuse(400, "INVALID_OPERATOR_ID", "an operator is named by the realm's id: letters, digits, - and _, at most 64")
-          case _ =>
-            body(text).fold(identity, b => setBrandRoles(id, brand, b.strings("roles").toSet))
+        if !KeycloakAdmin.validUserId(id) then
+          refuse(400, "INVALID_OPERATOR_ID", "an operator is named by the realm's id: letters, digits, - and _, at most 64")
+        else body(text).fold(identity, b => askBrandRoles(id, brand, b.strings("roles").toSet))
+      }
+    }
+    get("/{id}/brand-roles/{brand}") { (id: String, brand: String) =>
+      guarded {
+        if !KeycloakAdmin.validUserId(id) then
+          refuse(400, "INVALID_OPERATOR_ID", "an operator is named by the realm's id: letters, digits, - and _, at most 64")
+        else callerProject.filter(_ != brand) match
+          case Some(project) => refuse(403, "FORBIDDEN", s"$project reads the roles of its own brand only")
+          case None          => ok(BrandRoles.answer(brand, operator(id).call(OperatorEntity.get).invoke().givings.get(brand), held(id, brand)))
       }
     }
   }
 
-  private def setBrandRoles(id: String, brand: String, asked: Set[String]): Respond[Bytes] =
-    val own = s"brand_$brand"
-    BrandRoles.refused(brand, asked) match
-      case Some(role) => refuse(400, "RESERVED_ROLE", s"$role is not a role a brand gives", "role" -> role)
+  /** The project a calling `players` belongs to; none for a local run. */
+  private def callerProject: Option[String] = caller match
+    case com.thinkmorestupidless.ankka.http.Caller.Service(project, _) => Some(project)
+    case _                                                             => None
+
+  /** The realm roles named for `brand` the operator holds now, without the brand; none when the realm cannot be read. */
+  private def held(id: String, brand: String): Option[Set[String]] =
+    realm.realmRoles(id) match
+      case Right(roles) => Some(io.eitheror.casino.contract.access.BrandRoles.heldIn(brand, roles))
+      case Left(e) =>
+        log.warn("the realm roles of {} could not be read for {}: {}", id, brand, e)
+        None
+
+  private def askBrandRoles(id: String, brand: String, asked: Set[String]): Respond[Bytes] =
+    val refusal = callerProject.filter(_ != brand) match
+      case Some(project) => Some((project, refuse(403, "FORBIDDEN", s"$project sets the roles of its own brand only"), "FORBIDDEN"))
+      case None => BrandRoles.refused(brand, asked).map { (code, role) =>
+          val message = if code == BrandRoles.NamedForBrand then s"$role names a brand: a giving names roles without the brand"
+                        else s"$role is not a role a brand gives"
+          (brand, refuse(400, code, message, "role" -> role), code)
+        }
+    refusal match
+      case Some((by, answer, code)) =>
+        operator(id).call(OperatorEntity.rejectBrandRoles).invoke(RejectBrandRoles(brand, by, asked, code, ctx.now())): Unit
+        answer
       case None =>
-        realm.realmRoles(id).fold(realmFailure, held =>
-          val state  = operator(id).call(OperatorEntity.get).invoke()
-          val before = state.brandRoles.getOrElse(brand, Set.empty)
-          val others = (state.brandRoles - brand).values.flatten.toSet
-          val target = asked + own
-          val gone   = (before -- target -- others).intersect(held)
-          val done = for
-            _ <- target.toVector.sorted.foldLeft[Either[RealmError, Unit]](Right(()))((acc, r) => acc.flatMap(_ => realm.ensureRole(r)))
-            _ <- (target -- held).toVector.sorted.foldLeft[Either[RealmError, Unit]](Right(()))((acc, r) => acc.flatMap(_ => realm.assignRole(id, r)))
-            _ <- gone.toVector.sorted.foldLeft[Either[RealmError, Unit]](Right(()))((acc, r) => acc.flatMap(_ => realm.removeRole(id, r)))
-          yield ()
-          done.fold(realmFailure, _ =>
-            operator(id).call(OperatorEntity.setBrandRoles).invoke(SetBrandRoles(brand, target, ctx.now())): Unit
-            ok(Json.obj("operatorId" -> id, "brand" -> brand, "roles" -> Json.arr(target.toVector.sorted*)))))
+        val giving = operator(id).call(OperatorEntity.askBrandRoles).invoke(AskBrandRoles(brand, asked - s"brand_$brand", ctx.now()))
+        Answers.json(202, BrandRoles.answer(brand, Some(giving), None))
 
 object BrandRoles:
   /** Any project's `players`, or a local run. */
@@ -217,6 +231,39 @@ object BrandRoles:
     case Caller.Service(_, "players") | Caller.Local => true
     case _                                           => false)
 
-  /** The first role `brand` may not give: not a role's name, or reserved, but its own `brand_<slug>`. */
-  def refused(brand: String, asked: Set[String]): Option[String] =
-    asked.toVector.sorted.find(r => r != s"brand_$brand" && (!OperatorPermissions.validRoleName(r) || OperatorPermissions.reserved(r)))
+  /** The refusal for a role a giving names with a brand (`brand_admin@goldvibe`): a giving names roles without it. */
+  val NamedForBrand = "role_named_for_brand"
+
+  /**
+   * The first role `brand` may not give, and why: one named for a brand; not a role's name; or reserved
+   * (every realm role but the default roles, `platform_admin`, a payments role, another brand's
+   * `brand_<slug>`), but its own `brand_<slug>`. `api_keys` and `markets` are a brand's to give (FR-012).
+   */
+  def refused(brand: String, asked: Set[String]): Option[(String, String)] =
+    asked.toVector.sorted.collectFirst {
+      case r if r.contains(io.eitheror.casino.contract.access.BrandRoles.Separator) => (NamedForBrand, r)
+      case r if r != s"brand_$brand" && !Given(r) && (!OperatorPermissions.validRoleName(r) || OperatorPermissions.reserved(r)) =>
+        ("RESERVED_ROLE", r)
+    }
+
+  /** The roles routes check by name that a brand gives as it gives its others (spec 032 FR-012). */
+  val Given: Set[String] = Set("api_keys", "markets")
+
+  /** A giving as H6 and H6r answer it: `{roles, version, state, reason?, at}`, and `held` when it was read. */
+  def answer(brand: String, giving: Option[io.eitheror.casino.merchant.operators.Giving], held: Option[Set[String]]): com.fasterxml.jackson.databind.node.ObjectNode =
+    import io.eitheror.casino.merchant.operators.GivingState
+    val o = Json.obj("brand" -> brand)
+    giving.foreach { g =>
+      o.set("roles", Json.arr(g.roles.toVector.sorted*)): Unit
+      o.put("version", g.version)
+      o.put("state", g.state match
+        case GivingState.Pending   => "pending"
+        case GivingState.InForce   => "in_force"
+        case GivingState.Failed(_) => "failed")
+      g.state match
+        case GivingState.Failed(reason) => o.put("reason", reason): Unit
+        case _                          => ()
+      o.put("at", g.at.toString)
+    }
+    held.foreach(h => o.set("held", Json.arr(h.toVector.sorted*)): Unit)
+    o

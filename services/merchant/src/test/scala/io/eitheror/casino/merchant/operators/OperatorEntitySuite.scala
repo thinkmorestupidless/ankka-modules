@@ -48,3 +48,36 @@ class OperatorEntitySuite extends munit.FunSuite with LogCapturing:
     assertEquals(late.call(InvitationToken.consume)(at.plusSeconds(72 * 3600)).replyValue, None, "an expired token is refused")
     assertEquals(KeyValueEntityTestKit.of(InvitationToken, "nope").call(InvitationToken.consume)(at).replyValue, None)
   }
+
+  // spec 032: a brand's giving, asked, then in force or refused
+  test("a giving is asked as the brand's next version, pending, and in force once applied") {
+    val kit = EventSourcedTestKit.of(Operator, "u-9")
+    val g1  = kit.call(Operator.askBrandRoles)(AskBrandRoles("goldvibe", Set("brand_finance"), at)).replyValue
+    assertEquals((g1.version, g1.state, g1.roles), (1L, GivingState.Pending, Set("brand_finance")))
+    assert(kit.call(Operator.brandRolesApplied)(BrandRolesDone("goldvibe", 1, at)).persisted)
+    assertEquals(kit.currentState.givings("goldvibe").state, GivingState.InForce)
+    assertEquals(kit.currentState.brandRoles("goldvibe"), Set("brand_finance@goldvibe", "brand_goldvibe"))
+    assert(!kit.call(Operator.brandRolesApplied)(BrandRolesDone("goldvibe", 1, at)).persisted, "a second report records nothing")
+    val g2 = kit.call(Operator.askBrandRoles)(AskBrandRoles("goldvibe", Set("brand_finance"), at)).replyValue
+    assertEquals((g2.version, g2.state), (2L, GivingState.Pending), "the same roles again are a new giving")
+  }
+
+  test("a stale outcome changes nothing: the later giving stays pending") {
+    val kit = EventSourcedTestKit.of(Operator, "u-10")
+    kit.call(Operator.askBrandRoles)(AskBrandRoles("goldvibe", Set("brand_support"), at)): Unit
+    kit.call(Operator.askBrandRoles)(AskBrandRoles("goldvibe", Set("brand_admin"), at)): Unit
+    assert(!kit.call(Operator.brandRolesApplied)(BrandRolesDone("goldvibe", 1, at)).persisted)
+    assert(!kit.call(Operator.brandRolesFailed)(BrandRolesRefused("goldvibe", 1, "403", at)).persisted)
+    assertEquals(kit.currentState.givings("goldvibe"), Giving(Set("brand_admin"), 2, GivingState.Pending, at))
+  }
+
+  test("a refused giving ends failed with the realm's reason; another brand's giving is its own") {
+    val kit = EventSourcedTestKit.of(Operator, "u-11")
+    kit.call(Operator.askBrandRoles)(AskBrandRoles("goldvibe", Set("brand_admin"), at)): Unit
+    kit.call(Operator.askBrandRoles)(AskBrandRoles("spinvibe", Set("brand_support"), at)): Unit
+    assert(kit.call(Operator.brandRolesFailed)(BrandRolesRefused("goldvibe", 1, "role: 403 forbidden", at)).persisted)
+    assert(!kit.call(Operator.brandRolesApplied)(BrandRolesDone("goldvibe", 1, at)).persisted, "a failed giving is not put in force")
+    assertEquals(kit.currentState.givings("goldvibe").state, GivingState.Failed("role: 403 forbidden"))
+    assertEquals(kit.currentState.givings("spinvibe").state, GivingState.Pending)
+    assertEquals(kit.call(Operator.askBrandRoles)(AskBrandRoles("spinvibe", Set.empty, at)).replyValue.version, 2L)
+  }
