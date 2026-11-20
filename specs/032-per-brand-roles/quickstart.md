@@ -13,7 +13,7 @@ No kind and no running installation is needed; every check below runs on one mac
 
 | Step | Command | Expected |
 |---|---|---|
-| 1. The name survives Keycloak (R1) | `just service backoffice-state "testOnly *RealmRoleNameIt"` | a role `brand_finance@goldvibe` is created, assigned, and in the token's `realm_access.roles` unchanged |
+| 1. The name survives Keycloak (R1) | `just service backoffice-state -Dit=true '"testOnly *RealmRoleNameIt"'` | a role `brand_finance@goldvibe` is created, assigned, and in the token's `realm_access.roles` unchanged |
 | 2. The rule | `just test` (contract) | `BrandRolesSuite` passes every row of `brand-roles.cases.json` |
 | 3. The backoffice's twin | `just backoffice-test` | `roles.test.ts` passes the same rows |
 | 4. The giving | `just service merchant "testOnly *OperatorsFeatures *BrandRolesApplierSuite"` | the four `payments/operators.feature` scenarios pass; the applier suite's 100 concurrent runs end as asked (SC-003) |

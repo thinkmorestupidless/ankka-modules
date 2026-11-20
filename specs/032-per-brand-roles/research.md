@@ -15,6 +15,9 @@ references are to this branch (`032-per-brand-roles`, cut from `030-backoffice` 
   creates a realm role named `brand_finance@goldvibe` through the admin API, assigns it, and puts
   it in an access token's `realm_access.roles` unchanged. If it refuses, the separator becomes `:`,
   changed only in `BrandRoles`.
+- **Proven** (T001, 2026-11-20): `RealmRoleNameIt` in `services/backoffice-state` creates, finds,
+  assigns and signs in with `brand_finance@goldvibe` on Keycloak 26.0.7; the token carries it
+  unchanged. The separator stays `@`.
 - **Alternatives**: a role per brand under a prefix (`goldvibe_brand_finance`): ambiguous where
   slugs and role names both contain `_`. Client roles of a per-brand client: a token then carries
   them under `resource_access.<client>`, a second claim every reader would need; rejected as the

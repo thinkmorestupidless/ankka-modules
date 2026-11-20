@@ -14,8 +14,8 @@ parallel; never touch `services/backoffice/src/web/areas/affiliates/account.tsx`
 
 ## Phase 1: Setup
 
-- [ ] T001 Prove research R1: add `RealmRoleNameIt` in `services/backoffice-state/src/test/scala/io/eitheror/casino/backoffice/it/RealmRoleNameIt.scala` on `StateIt`'s Keycloak 26.0.7 container: create realm role `brand_finance@goldvibe` through the admin API, assign it to a user, sign the user in, and assert the access token's `realm_access.roles` holds it unchanged. If Keycloak refuses `@`, stop and record the separator `:` in research R1 before any other task
-- [ ] T002 Set `CASINO_VERSION=0.2.0-032-SNAPSHOT` for every `just service` run of this branch and note it in `specs/032-per-brand-roles/quickstart.md` (already there; confirm it is honoured by `just service` in `justfile`)
+- [X] T001 Prove research R1: add `RealmRoleNameIt` in `services/backoffice-state/src/test/scala/io/eitheror/casino/backoffice/it/RealmRoleNameIt.scala` on `StateIt`'s Keycloak 26.0.7 container: create realm role `brand_finance@goldvibe` through the admin API, assign it to a user, sign the user in, and assert the access token's `realm_access.roles` holds it unchanged. If Keycloak refuses `@`, stop and record the separator `:` in research R1 before any other task
+- [X] T002 Set `CASINO_VERSION=0.2.0-032-SNAPSHOT` for every `just service` run of this branch and note it in `specs/032-per-brand-roles/quickstart.md` (already there; confirm it is honoured by `just service` in `justfile`)
 
 ## Phase 2: Foundational (the rule, once)
 
