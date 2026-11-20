@@ -61,8 +61,8 @@ parallel; never touch `services/backoffice/src/web/areas/affiliates/account.tsx`
 - [X] T024 [US2] Players' P13 and P13r (contracts/amendments.md): record `RoleAssignment` after H6's `202`, answer the giving's state, and read H6r into the GET, in `services/players/src/main/scala/io/eitheror/casino/players/api/RolesRoutes.scala`; `RoleRules.nameRefusal` gives `api_keys` and `markets` (research R9) in `services/players/src/main/scala/io/eitheror/casino/players/roles/RoleRules.scala`; players' suites green
 - [X] T025 [US2] The backoffice's operators area shows each giving's state, a failed giving's reason, and any held role no giving asked for (`services/backoffice/src/web/areas/team/`), and lets `api_keys` and `markets` be given; the players double in `services/backoffice/tests/` answers the giving's state
 - [X] T026 [US2] Bind the 3 added scenarios of `features/backoffice/roles.feature` in `services/backoffice/tests/features/steps/roles.steps.ts`; `just backoffice-features`, `just backoffice-a11y`
-- [ ] T027 [US2] The modules tool's `Realm.ensureBrandRole` makes the named roles and carries over (research R7) in `tools/modules/src/main/scala/io/eitheror/casino/modules/Realm.scala`, its admin client gaining `usersWithRole`, `assign`, `remove` and the in-memory admin the same; each change in the plan output
-- [ ] T028 [US2] Bind the carry-over scenario of `features/brands/modules.feature` in `tools/modules/src/test/scala/io/eitheror/casino/modules/ModulesFeatures.scala`, including a second apply that changes nothing; `just test`
+- [X] T027 [US2] The modules tool's `Realm.ensureBrandRole` makes the named roles and carries over (research R7) in `tools/modules/src/main/scala/io/eitheror/casino/modules/Realm.scala`, its admin client gaining `usersWithRole`, `assign`, `remove` and the in-memory admin the same; each change in the plan output
+- [X] T028 [US2] Bind the carry-over scenario of `features/brands/modules.feature` in `tools/modules/src/test/scala/io/eitheror/casino/modules/ModulesFeatures.scala`, including a second apply that changes nothing; `just test`
 
 **Checkpoint**: 030's declined findings are closed.
 
@@ -73,7 +73,7 @@ parallel; never touch `services/backoffice/src/web/areas/affiliates/account.tsx`
 **Independent test**: the cutover's mapping for one operator, then a smaller giving; the left-out roles are gone.
 
 - [ ] T029 [US3] Amend spec 019's role step to give `<mapped>@<slug>` through H6 per brand (research R10): edit `specs/019-spinvibe-migration/` where it states the cutover's role mapping, and spec 030's `contracts/roles.md` cutover mapping
-- [ ] T030 [US3] Cover a cutover-given role taken away by a later giving in `BrandRolesApplierSuite` (a role `<x>@<slug>` held, not asked, removed); `features/migration/operator-roles.feature` stays unbound (plan)
+- [X] T030 [US3] Cover a cutover-given role taken away by a later giving in `BrandRolesApplierSuite` (a role `<x>@<slug>` held, not asked, removed); `features/migration/operator-roles.feature` stays unbound (plan)
 
 ## Phase 6: User Story 4 - An operator sees their roles in this brand (P3)
 

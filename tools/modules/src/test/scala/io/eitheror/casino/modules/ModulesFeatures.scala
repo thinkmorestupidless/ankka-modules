@@ -367,3 +367,35 @@ class ModulesFeatures extends GherkinSuite("features/brands/modules.feature"):
     assert(schema.validate(mapper.readTree(writeToString(fact.copy(change = "moved")))).asScala.nonEmpty, "the schema refuses a change it does not list")
   }
 
+  // ── spec 032 FR-013: a role with no brand in its name carried over at apply ─────────────────────────
+
+  private var realm: InMemoryRealms = InMemoryRealms()
+  private val Desk = "op-desk"
+
+  Given("an operator whose roles name the brands {string} and {string}") { (a: String, b: String) =>
+    realm = InMemoryRealms()
+    realm.realms(Realm.OperatorsRealm) = """{"realm":"eitheror"}"""
+    for s <- Vector(a, b) do realm.realms(s"casino-$s") = s"""{"realm":"casino-$s"}"""
+    for r <- Vector(s"brand_$a", s"brand_$b") do realm.createRole(Realm.OperatorsRealm, r, r)
+    realm.users(Realm.OperatorsRealm -> Desk) = scala.collection.mutable.Set(s"brand_$a", s"brand_$b")
+  }
+  Given("the operator holds the finance role with no brand in its name") { () =>
+    realm.createRole(Realm.OperatorsRealm, "brand_finance", "brand_finance")
+    realm.users(Realm.OperatorsRealm -> Desk) += "brand_finance"
+  }
+  When("the brands {string} and {string} are applied") { (a: String, b: String) =>
+    val first = Realm.ensure(realm, a, "{}")
+    assert(first.exists(_.contains(s"carried over to brand_finance@$a")), first.mkString("\n"))
+    assert(realm.rolesOf(Realm.OperatorsRealm, Desk)("brand_finance"), "kept while a brand the operator works in is not carried over yet")
+    Realm.ensure(realm, b, "{}"): Unit
+    // a second apply of each changes nothing
+    assertEquals(Realm.ensure(realm, a, "{}") ++ Realm.ensure(realm, b, "{}"), Vector.empty)
+  }
+  Then("the operator holds the finance role in {string} and in {string}") { (a: String, b: String) =>
+    val held = realm.rolesOf(Realm.OperatorsRealm, Desk)
+    assert(held(s"brand_finance@$a") && held(s"brand_finance@$b"), held.toString)
+  }
+  Then("no longer holds the finance role with no brand in its name") { () =>
+    assert(!realm.rolesOf(Realm.OperatorsRealm, Desk)("brand_finance"))
+  }
+
