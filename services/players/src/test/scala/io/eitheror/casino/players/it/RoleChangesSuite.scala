@@ -40,7 +40,7 @@ class RoleChangesSuite extends munit.FunSuite with LogCapturing:
     assertEquals(set("keeper", Set("roles.read", "roles.change", "player.read"), asPlatform).status, 200)
     try
       until("the keeper role")(_.contains("keeper"))
-      val keeper = kit.asOperator(s"$brand,keeper", "op-keeper")
+      val keeper = kit.asOperator(s"$brand,${kit.in("keeper")}", "op-keeper")
       val refused = set("desk", Set("player.read", "adjustment.make"), keeper)
       assertEquals((refused.status, refused.str("error"), refused.str("permission")), (403, "forbidden", "adjustment.make"), refused.text)
       assert(!roles.contains("desk"))

@@ -55,7 +55,7 @@ class OperatorSuite extends munit.FunSuite with LogCapturing:
 
   test("the roles whose bags hold withdrawal.read are admitted to the queue; any other role is refused naming it"):
     Vector("brand_admin", "brand_finance", "brand_support", "brand_compliance").foreach { role =>
-      assertEquals(call("GET", "/", s"$brand,$role").status, 200, role)
+      assertEquals(call("GET", "/", s"$brand,${kit.in(role)}").status, 200, role)
     }
     assertEquals(call("GET", "/", "platform_admin").status, 200, "platform_admin")
     // spec 030 Y1: a payments role carries no permission of a brand
@@ -63,35 +63,35 @@ class OperatorSuite extends munit.FunSuite with LogCapturing:
     assertEquals(viewer.status, 403, viewer.text)
     assert(viewer.text.contains("forbidden: the withdrawal.read permission is needed"), viewer.text)
     val id = pending()
-    val support = call("POST", s"/$id/approve", s"$brand,brand_support")
+    val support = call("POST", s"/$id/approve", s"$brand,${kit.in("brand_support")}")
     assertEquals(support.status, 403, support.text)
     assert(support.text.contains("forbidden: the withdrawal.review permission is needed"), support.text)
-    assertEquals(call("GET", s"/$id", s"$brand,brand_finance").status, 200)
+    assertEquals(call("GET", s"/$id", s"$brand,${kit.in("brand_finance")}").status, 200)
 
   test("an operator of another brand is refused, and a player's token too"):
-    assertEquals(call("GET", "/", "brand_other,brand_admin").status, 403)
+    assertEquals(call("GET", "/", s"brand_other,${kit.in("brand_admin", "other")}").status, 403)
     val id = pending()
-    assertEquals(call("POST", s"/$id/reject", "brand_other,brand_admin").status, 403)
+    assertEquals(call("POST", s"/$id/reject", s"brand_other,${kit.in("brand_admin", "other")}").status, 403)
     assertEquals(kit.request("GET", s"/v1/casino/brands/${kit.slug}/withdrawal-requests/", None, kit.asPlayer("p-1")).status, 403)
 
   test("a second decision is refused as not pending, whichever it is"):
     val approved = pending()
-    assertEquals(call("POST", s"/$approved/approve", s"$brand,brand_finance").status, 200)
+    assertEquals(call("POST", s"/$approved/approve", s"$brand,${kit.in("brand_finance")}").status, 200)
     Vector("approve", "reject").foreach { d =>
-      val r = call("POST", s"/$approved/$d", s"$brand,brand_admin")
+      val r = call("POST", s"/$approved/$d", s"$brand,${kit.in("brand_admin")}")
       assertEquals((r.status, r.str("error")), (409, "REQUEST_NOT_PENDING"), d)
     }
     val rejected = pending()
-    assertEquals(call("POST", s"/$rejected/reject", s"$brand,brand_finance").status, 200)
-    assertEquals(call("POST", s"/$rejected/approve", s"$brand,brand_finance").status, 409)
-    assertEquals(call("POST", "/no-such-request/approve", s"$brand,brand_finance").status, 404)
+    assertEquals(call("POST", s"/$rejected/reject", s"$brand,${kit.in("brand_finance")}").status, 200)
+    assertEquals(call("POST", s"/$rejected/approve", s"$brand,${kit.in("brand_finance")}").status, 409)
+    assertEquals(call("POST", "/no-such-request/approve", s"$brand,${kit.in("brand_finance")}").status, 404)
 
   test("each decision is in platform.audit with the operator, and the reason never in clear text"):
     val approved = pending()
     val rejected = pending()
     val subject  = s"op-${UUID.randomUUID().toString.take(6)}"
-    assertEquals(call("POST", s"/$approved/approve", s"$brand,brand_finance", subject).status, 200)
-    assertEquals(call("POST", s"/$rejected/reject", s"$brand,brand_finance", subject,
+    assertEquals(call("POST", s"/$approved/approve", s"$brand,${kit.in("brand_finance")}", subject).status, 200)
+    assertEquals(call("POST", s"/$rejected/reject", s"$brand,${kit.in("brand_finance")}", subject,
       Some("""{"reason":"the holder is Mr Secret Person"}""")).status, 200)
     val records = kit.eventually("audited") {
       Some(kit.facts(PlatformAudit).collect { case r: AuditRecord if r.actorId == subject => r }).filter(_.size == 2)

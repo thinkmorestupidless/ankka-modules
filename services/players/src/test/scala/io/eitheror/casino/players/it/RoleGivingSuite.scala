@@ -20,7 +20,7 @@ class RoleGivingSuite extends munit.FunSuite with LogCapturing:
   override def beforeEach(context: BeforeEach): Unit = kit.reset()
 
   private def brand   = s"brand_${kit.slug}"
-  private def asAdmin = kit.asOperator(s"$brand,${OperatorPermissions.Admin}", "op-admin")
+  private def asAdmin = kit.asOperator(s"$brand,${kit.in(OperatorPermissions.Admin)}", "op-admin")
 
   private def give(operator: String, roles: Seq[String], headers: Seq[(String, String)]): Reply =
     kit.json("PUT", kit.operatorPath(s"/role-assignments/$operator"), Json.obj("roles" -> Json.arr(roles*)), headers)
@@ -41,7 +41,7 @@ class RoleGivingSuite extends munit.FunSuite with LogCapturing:
       assertEquals(first.status, 200, first.text)
       kit.wallet.clearReceived()
 
-      val taker = kit.asOperator(s"$brand,taker", "op-taker")
+      val taker = kit.asOperator(s"$brand,${kit.in("taker")}", "op-taker")
       val refused = give(other, Seq("taker"), taker)
       assertEquals(refused.status, 403, refused.text)
       assertEquals(refused.str("error"), "forbidden")

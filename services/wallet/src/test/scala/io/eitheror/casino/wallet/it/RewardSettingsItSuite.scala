@@ -8,8 +8,8 @@ package io.eitheror.casino.wallet.it
 class RewardSettingsItSuite extends Harness:
 
   private def config(rest: String = "") = s"/v1/casino/backoffice/$brand/wallet-config$rest"
-  private val admin   = TestTokens.operator("op-admin", s"brand_$brand,brand_admin")
-  private val finance = TestTokens.operator("op-finance", s"brand_$brand,brand_finance")
+  private val admin   = TestTokens.operator("op-admin", s"brand_$brand,${TestTokens.in("brand_admin", brand)}")
+  private val finance = TestTokens.operator("op-finance", s"brand_$brand,${TestTokens.in("brand_finance", brand)}")
 
   private val settings =
     """{"contributionRateByGameType":{"slots":100,"table":10},"bonusWageringCounts":false,"partialSplitsAllowed":false,"maxConcurrentAwards":2}"""

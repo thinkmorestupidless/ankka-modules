@@ -127,7 +127,7 @@ abstract class PayoutsFeatures(file: String) extends GherkinSuite(s"../../featur
 
   // ── the operator's routes ────────────────────────────────────────────────────────────────────
 
-  protected def finance: String = s"brand_${kit.slug},brand_finance"
+  protected def finance: String = s"brand_${kit.slug},${kit.in("brand_finance")}"
 
   protected def operator(method: String, path: String, body: Option[String] = None, roles: String = finance,
       subject: String = "op-1"): Reply =

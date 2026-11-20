@@ -303,8 +303,8 @@ object Parity:
         case WireTranslation.Caller.AsRecorded =>
           recorded.headers.collectFirst { case (k, v) if k.equalsIgnoreCase("authorization") => v } match
             // The driver's operator administered the brand: withdrawal-config asks for brand_admin.
-            case Some(Bearer("operatorToken")) => kit.asOperator(roles = s"brand_${kit.slug},brand_admin,brand_finance")
-            case Some(Bearer("outsiderToken")) => kit.asOperator("outsider", "brand_elsewhere,brand_finance")
+            case Some(Bearer("operatorToken")) => kit.asOperator(roles = s"brand_${kit.slug},${kit.in("brand_admin")},${kit.in("brand_finance")}")
+            case Some(Bearer("outsiderToken")) => kit.asOperator("outsider", s"brand_elsewhere,${kit.in("brand_finance", "elsewhere")}")
             case Some(Bearer(name)) if captured.get(name).exists(_.startsWith("player|")) =>
               kit.asPlayer(captured(name).stripPrefix("player|"))
             case _ =>

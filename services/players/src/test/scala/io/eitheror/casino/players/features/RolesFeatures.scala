@@ -37,7 +37,7 @@ class RolesFeatures extends PlayersFeatures("roles.feature"):
 
   // ── the brand's roles, through the routes ───────────────────────────────────────────────────────
 
-  private def as(roles: String, subject: String) = kit.asOperator(s"$brand,$roles", subject)
+  private def as(roles: String, subject: String) = kit.asOperator(s"$brand,${kit.in(roles)}", subject)
   private def asAdmin                            = as(OperatorPermissions.Admin, Admin)
   private def asPlatform                         = kit.asOperator(OperatorPermissions.PlatformAdmin, "op-platform")
 

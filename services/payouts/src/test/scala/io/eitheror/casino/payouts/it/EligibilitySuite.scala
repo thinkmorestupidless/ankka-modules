@@ -78,7 +78,7 @@ class EligibilitySuite extends munit.FunSuite with LogCapturing:
     val id = r.str("requestId")
     kit.gateway.initiateFor(id, FakeGateway.answer(id, "rejected", None, Some("terminal_inactive")))
     val approved = kit.request("POST", s"/v1/casino/brands/${kit.slug}/withdrawal-requests/$id/approve", Some("{}"),
-      kit.asOperator("op-1", s"brand_${kit.slug},brand_finance"))
+      kit.asOperator("op-1", s"brand_${kit.slug},${kit.in("brand_finance")}"))
     assertEquals(approved.status, 200, approved.text)
     kit.eventually("failed")(Some(kit.components.forEventSourcedEntity(EntityId(id)).call(io.eitheror.casino.payouts.request.WithdrawalRequest.get)
       .invoke()).filter(_.status == io.eitheror.casino.payouts.request.Status.Failed))

@@ -194,7 +194,7 @@ class WithdrawalWorkflowSuite extends munit.FunSuite with LogCapturing:
     approved(j)
     at(j.requestId, Flow.AwaitingManual)
     val r = kit.request("POST", s"/v1/casino/brands/${kit.slug}/withdrawal-requests/${j.requestId}/mark-payout-failed", Some("{}"),
-      kit.asOperator("op-9", s"brand_${kit.slug},brand_finance"))
+      kit.asOperator("op-9", s"brand_${kit.slug},${kit.in("brand_finance")}"))
     assertEquals((r.status, r.str("status")), (200, "FAILED"), r.text)
     assertEquals(request(j.requestId).status, Status.Failed)
     kit.eventually("published")(kit.facts(io.eitheror.casino.contract.facts.CasinoWithdrawals).collectFirst {

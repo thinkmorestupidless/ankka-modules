@@ -89,7 +89,7 @@ class RgItSuite extends munit.FunSuite with LogCapturing:
     val between = kit.now()
     kit.advance(java.time.Duration.ofMinutes(5))
     putLimit(p, "DEPOSIT_DAILY", "20000"): Unit
-    def history(query: String = "", as: Seq[(String, String)] = kit.asOperator("op-g3", s"brand_${kit.slug},brand_support")) =
+    def history(query: String = "", as: Seq[(String, String)] = kit.asOperator("op-g3", s"brand_${kit.slug},${kit.in("brand_support")}")) =
       kit.request("GET", kit.operatorPath(s"/$p/history$query"), None, as)
     val all = history()
     assertEquals(all.status, 200, all.text)

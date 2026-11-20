@@ -116,7 +116,7 @@ final class RolesRoutes(ctx: Ctx):
             refusal(400, RoleRules.ReservedRole, s"$r is not a role the brand gives", "role" -> r)
           case Some(r) => refusal(404, RoleRules.NoSuchRole, s"the brand has no role $r", "role" -> r)
           case None =>
-            val holds  = OperatorPermissions.permissionsOf(p.roles, bags)
+            val holds  = OperatorPermissions.permissionsOf(ctx.slug, p.roles, bags)
             val before = components.forEventSourcedEntity(RoleAssignment.id(operator)).call(RoleAssignment.get).invoke().roles
             RoleRules.givingLacks(holds, bags, before, asked) match
               case Some(missing) =>
@@ -143,7 +143,7 @@ final class RolesRoutes(ctx: Ctx):
    * `roles.change` is not holding every permission, so a role is given only what its changer may do.
    */
   private def changerLacks(p: Principal, added: Set[String]): Option[String] =
-    RoleRules.escalation(OperatorPermissions.permissionsOf(p.roles, Roles.bags(views)), added)
+    RoleRules.escalation(OperatorPermissions.permissionsOf(ctx.slug, p.roles, Roles.bags(views)), added)
 
   private def lacks(missing: String): Reply =
     refusal(403, RoleRules.GiverLacks, s"the $missing permission is needed to put it into a role", "permission" -> missing)

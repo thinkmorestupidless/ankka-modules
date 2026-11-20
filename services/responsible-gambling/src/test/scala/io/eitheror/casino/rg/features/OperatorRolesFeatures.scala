@@ -59,8 +59,8 @@ class OperatorRolesFeatures extends RgFeatures("operator-roles.feature"):
   Given("operators of the brand holding each of the roles {string}, {string}, {string} and {string}, each carrying its default permissions") {
     (a: String, b: String, c: String, d: String) =>
       assertEquals(Vector(a, b, c, d), Roles)
-      for r <- Roles do assertEquals(kit.roles.permissionsOf(Set(r)), Some(OperatorPermissions.DefaultRoles(r)))
-      tokens = Roles.map(r => r -> s"brand_${kit.slug},$r").toMap
+      for r <- Roles do assertEquals(kit.roles.permissionsOf(kit.slug, Set(kit.in(r))), Some(OperatorPermissions.DefaultRoles(r)))
+      tokens = Roles.map(r => r -> s"brand_${kit.slug},${kit.in(r)}").toMap
   }
 
   When("each asks for the action {string} on a player's protections") { (action: String) =>
