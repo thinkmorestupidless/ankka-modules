@@ -429,7 +429,8 @@ one of the conditions and check the refusal names it.
 
 - **FR-001**: Each brand MUST be exactly one ankka project whose id is the brand's slug: lowercase
   letters, digits and `-`, starting with a letter. The slugs `payments`, `programme`, `reasoner`,
-  `platform`, `local` and `machine` MUST be refused.
+  `platform`, `local` and `machine` MUST be refused. *Amended by spec 032:* so are `admin`, `support`,
+  `finance` and `compliance`, whose `brand_<slug>` would be a default role's name.
 - **FR-002**: A brand project MUST hold these services and no others: `wallet`, `payouts`, `players`,
   `kyc`, `responsible-gambling`, `rewards`, `game-provider`, `attribution`, `public-api`,
   `engagement`, `reporting`, `support-agent`. Each is specified by one spec in this repository

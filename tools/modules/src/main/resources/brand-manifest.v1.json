@@ -34,7 +34,11 @@
               "tools",
               "platform",
               "local",
-              "machine"
+              "machine",
+              "admin",
+              "support",
+              "finance",
+              "compliance"
             ]
           }
         },

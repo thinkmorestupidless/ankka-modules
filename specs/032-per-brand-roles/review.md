@@ -204,3 +204,151 @@ backoffice, modules tool, docs), so no further split is asked for. Review those 
   (they need sbt outside the sandbox and the published contract, which is more than a minute), and the
   Keycloak container suite `RealmRoleNameIt` and the merchant features over `FakeKeycloak` (they need
   Docker or a running service).
+
+## Second round
+
+# Review: Per-brand realm roles, the fixes (spec 032, b3ac63e3...HEAD)
+
+**Verdict:** Approve with comments. Nothing blocks; the three should-fix items are expected before
+the pull request, or answered with a reason.
+**What it does:** It answers the first round. The contract now names the roles a brand gives (`Given`), the programme's
+(`ProgrammeGiven`) and both (`Named`), and every reader takes them from there. The applier leaves `affiliate_manager@<slug>` in place. A 500 is now a refusal. A refusal is audited
+only on an operator that exists. The default roles' suffixes become reserved slugs. The assign page's ticks start from the last giving.
+**Should it exist:** yes. Each hunk answers a first-round finding, and none goes beyond it.
+**Read:** the whole diff, except this file's first round. Opened outside the diff: `BrandRolesApplier.scala` and
+`OperatorsEndpoint.scala` around the refusal (whole), `KeycloakAdmin.scala`'s callers of
+`RealmError.of` (the admin token at :98 among them), `Operator.scala`'s `exists`, `OperatorPermissions`
+(no reference back to `Layout`, so the new `ReservedSlugs` term has no initialisation cycle),
+`Manifest.scala`/`Values.scala` (both call `slugProblems`), `brand-manifest.v1.json`, 001's data-model
+and spec slug lists, research R5, `assign.tsx` (whole), `team.test.tsx`, and the backoffice doubles'
+`roles.ts`.
+**Size:** 22 files, about +120 −44 hand-written lines (the review file aside).
+
+### Resolutions
+
+- Blocking, the applier taking away `affiliate_manager@<slug>`: **holds**. `givenBy` excludes
+  `ProgrammeGiven`, H6 still refuses `affiliate_manager` as reserved, and the new applier case checks
+  both the end state and that no write touched the role. FR-007 and H6a say the same thing.
+- Should fix, the role sets spelled out four times: **holds**. Merchant, players and the tool read the contract, and the
+  page reads the published `given`. The backoffice's players double still spells them out (nit below).
+- Should fix, FR-014 untested: **holds for the mapping**. `AuditFactsSuite` covers all four records. But the
+  endpoint's new `exists` gate, which decides whether a refusal is recorded at all, has no test (should fix below).
+- Should fix, the reserved slugs: **holds**. `Values.rules` and the manifest path both go through
+  `slugProblems`. The rule is a change to spec 001 that nothing records (nit below).
+- Should fix, the carry-over of brand-made roles: **holds**. It is narrowed rather than built. FR-013 and SC-005
+  now name exactly the roles `BrandRoleNames` carries.
+- Should fix, the ticks: **holds in part**. The ticks now start from the last giving and reset when the operator
+  changes. But the "loses" line is computed against the roles asked, not the roles the realm holds,
+  so it can still be wrong. No test covers the new seeding (should fix below).
+- Nits (comments moved, `[[managedBrands]]`, one `who`, four events): **all hold**.
+- Question, a 500 stalling a slice: **holds for the case asked**. But it costs SC-002 when the realm as a whole answers
+  500, and research R5 now says the opposite of the code (should fix below).
+- Question, refusals for unknown operators: **holds**. The bound limits how many roles are recorded, not how long each one is (nit below).
+- Questions on SC-003 and 030's RoleChangers items: **answered**. The spec text matches the answers.
+
+### Blocking
+
+None.
+
+### Should fix
+
+- `services/merchant/src/main/scala/io/eitheror/casino/merchant/operators/KeycloakAdmin.scala:31` (and
+  `:98`, `specs/032-per-brand-roles/research.md:80`)
+  - issue (non-blocking): a 500 is now `Refused` on every path, including the admin token request. When Keycloak's
+    database is unavailable, Keycloak answers 500 to everything, not 503. In that outage every giving
+    recorded ends as failed and needs giving again, which SC-002 and FR-007 ("retried … until it holds,
+    without anyone asking again") rule out. R5 still says "5xx … Unreachable".
+  - Suggestion: there are two options.
+    - Keep 500 retryable for the token request (it is not one user's data), and on user and role paths treat a
+      500 as `Unreachable` until `failures(key)` reaches a cap (5, say), then as refused with "the realm kept
+      failing". The map already counts those failures.
+    - Or keep this behaviour, and state in FR-007 and R5 that a realm answering 500 fails the givings made meanwhile.
+  - Resolved: a 500 is `RealmError.Erring`, retried as before on every path (the token request included); a giving answered 500 thirty times in a row (about 5 minutes) fails with "the realm kept failing"; no answer, 502, 503 and 504 are tried as long as they last; FR-007 and R5 say so, b6daeefb
+- `services/backoffice/src/web/areas/team/assign.tsx:112`
+  - issue (non-blocking): `held` is the last giving's `roles`. The applier, though, diffs against what the realm holds.
+    The two differ when the last giving failed part-way, while it is pending, or when the realm holds
+    carried-over roles no giving asked for. `GivingState` already shows that last case as "held, not asked".
+    In each case the confirmation's "loses" line omits roles the giving will take away. P13r answers
+    `held`, which is the realm's roles for the brand.
+  - Suggestion: start the ticks from `asked`, and compute the effect against what the realm holds:
+    ```ts
+    const realm = giving.data?.held ?? asked ?? listedHere;
+    const held = realm?.filter((r) => brandRoles.has(r)).sort();
+    const chosen = ticked ?? new Set((asked ?? listedHere ?? []).filter((r) => brandRoles.has(r)));
+    ```
+  - `team.test.tsx` has no case for the seeding. Add two cases:
+    - a P13r answer with `roles` and `held` that differ, asserting the starting ticks and the "loses" line;
+    - an operator change, asserting the ticks reset.
+  - Resolved: the ticks start from `asked`, the effect is counted against P13r's `held`; one `team.test.tsx` case covers differing `roles` and `held`, the "loses" line, and the reset on another operator, b5bcb45c
+- `services/merchant/src/main/scala/io/eitheror/casino/merchant/api/OperatorsEndpoint.scala:223`
+  - todo: the `exists` gate is new behaviour with no test on either branch. `OperatorsFeatures`'s
+    refusal step only asserts that no giving was recorded, and `AuditFactsSuite` starts from the event.
+  - Suggestion: in the feature step, read the operator's audit output, or its entity's events through
+    the testkit, and assert one `BrandRolesRejected` for an existing operator and none for an unknown id.
+    `(if-minor)` if the testkit cannot read events in that suite.
+  - Resolved: the gate moved into the entity's command, which persists nothing for an operator that does not exist; an `OperatorEntitySuite` case asserts both branches through `allEvents`, b6daeefb
+
+### Nits
+
+- `services/merchant/src/main/scala/io/eitheror/casino/merchant/operators/BrandRolesApplier.scala:16`
+  - nitpick (non-blocking): the class doc still says it removes every role named for the brand that is
+    held and not asked, "whoever gave it". Add "but the programme's", as `apply`'s doc now says.
+  - Resolved: the class doc names the exception, b6daeefb
+- `services/merchant/src/main/scala/io/eitheror/casino/merchant/api/OperatorsEndpoint.scala:224`
+  - nitpick (non-blocking): `asked.take(64)` takes 64 arbitrary members of a `Set`, so the record can
+    leave out the role that was refused, and each name's length is still unbounded. An invalid name is
+    exactly what gets refused.
+  - Suggestion: `asked.toVector.sorted.take(64).map(_.take(64)).toSet`, or record the refused role on its own.
+  - Resolved: the entity keeps the first 64 names in order (the refused one is the first) at 128 characters each, tested, b6daeefb
+- `contract/src/main/scala/io/eitheror/casino/contract/Layout.scala:50`
+  - nitpick (non-blocking): reserving `admin`, `support`, `finance` and `compliance` amends spec 001's
+    slug rule. Neither of these records it:
+    - `specs/001-brands-and-projects/data-model.md:14` and `spec.md:432`;
+    - the enum in `tools/modules/src/main/resources/brand-manifest.v1.json:30`. It is hand-kept and already
+      lags `ReservedSlugs`, but it is what a schema-only reader sees.
+  - Suggestion: add 001 to the spec's "amends" list in `CLAUDE.md`'s table, or give one line in `amendments.md`.
+  - Resolved: 001's data-model, spec (amended by 032), its manifest schema and the tool's `brand-manifest.v1.json` list the four slugs; CLAUDE.md's row says 032 amends 001, b5bcb45c and the review commit
+- `services/backoffice/src/web/areas/team/assign.tsx:97`
+  - nitpick (non-blocking): the state is `ticked`, but its setter is still `setChosen`. Rename it
+    `setTicked` so the pair reads as one.
+  - Resolved: `setTicked`, b5bcb45c
+- `services/backoffice/tests/doubles/roles.ts:23`
+  - nitpick (non-blocking): the players double still spells out `["api_keys", "markets"]`. Have it read
+    `GivenRoles`, unless the double is meant to be independent of the page. If so, say that in a comment.
+  - Resolved: the double reads `GivenRoles`, b5bcb45c
+
+### Questions
+
+None.
+
+### Praise
+
+- `contract/src/main/scala/io/eitheror/casino/contract/access/BrandRoles.scala:49`
+  - praise: `givenBy` puts "what a giving may touch" in one predicate beside the sets it reads. The applier's
+    filter is now a single call, and the next role the programme owns needs one edit.
+- `services/merchant/src/test/scala/io/eitheror/casino/merchant/operators/BrandRolesApplierSuite.scala:316`
+  - praise: the new case asserts that the role survives, and also that no write named it. A remove-then-re-add
+    would pass the first assertion and fail the second.
+
+### Checks applied
+
+- **General checklist:** applied:
+  - Correctness;
+  - Design and scope;
+  - Error handling (the retry classification and its callers);
+  - Security (the audit record's bounds, the log line's id, which is validated by `validUserId`);
+  - Data and migrations (no stored type changes; the published permissions file gains `given`, additive);
+  - Tests;
+  - API and compatibility (the slug rule narrows what a brand may be called; no brand uses the new reserved slugs);
+  - Documentation;
+  - Commit hygiene (Conventional Commits, one commit per finding group).
+
+  Skipped: Concurrency (nothing new beyond the existing `failures` map), Performance (one extra entity
+  read on a refused request), and Dependencies (none).
+- **Language skills:** the bundled `pr-review-scala` and `pr-review-typescript` checklists, applied from the
+  first round's loading. The repository has no override of either.
+- **Project rules:** `CLAUDE.md` (root and brain), and the first round's findings as the checklist for this round.
+- **Tests run:** `tsc` over the backoffice (clean) and `vitest run --dir tests/unit team` (15 passed).
+  Not run: the sbt suites (contract, merchant, players, modules tool). They need sbt outside the sandbox and
+  take more than a minute. The author reports them passing: contract 314, modules tool 195, merchant 309
+  with `-Dit=true`, players 534, backoffice unit 737 and features 69.
