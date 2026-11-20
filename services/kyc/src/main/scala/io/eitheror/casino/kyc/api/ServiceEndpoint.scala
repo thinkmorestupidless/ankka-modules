@@ -18,6 +18,13 @@ import Answers.*
 final class ServiceEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${ctx.slug}/kyc"):
   val acl: Acl = Routes.service()
 
+  // spec 030 K4 (F): the views' freshness, for an operator who may review identities, or for the project's services
+  withAcl(Acl.anyOf(Routes.operatorMay(ctx.slug, "identity.review", ctx.bags, ctx.authenticate()), Routes.service())) {
+    get("/status") { () =>
+      io.eitheror.casino.kyc.freshness.Freshness.answer(io.eitheror.casino.kyc.freshness.Freshness.of(ctx.clients.componentClient))
+    }
+  }
+
   private def body(text: String)(f: JsonNode => Reply): Reply = Json.parseObject(text).fold(badBody)(f)
 
   /** The policy read, then the check on the record, which raises the flag a refusal names, once. */

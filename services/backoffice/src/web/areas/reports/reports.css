@@ -1,0 +1,33 @@
+/* The reports: the period and filters in one row, the export beside them, tables that scroll inside
+   their card rather than the page. */
+.bo-report,
+.bo-report-body { display: grid; gap: var(--gap-card); min-width: 0; }
+
+.bo-report-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+
+.bo-report-scroll { overflow-x: auto; }
+
+.bo-report-list {
+  display: grid;
+  gap: var(--gap-card);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bo-report-list .bo-card { gap: 6px; }
+
+.bo-report-pages { display: flex; gap: 8px; }
+
+.bo-export {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}

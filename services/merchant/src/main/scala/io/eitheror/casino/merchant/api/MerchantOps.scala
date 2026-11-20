@@ -14,6 +14,7 @@ import io.eitheror.casino.merchant.terminals.*
 import io.eitheror.casino.merchant.terminals.catalogue.Catalogue
 
 import java.util.UUID
+import scala.jdk.CollectionConverters.*
 
 /**
  * What an operator does to one sub-brand (FR-004, FR-006, FR-007, FR-009), shared by `/v1/merchants`
@@ -206,6 +207,67 @@ final class MerchantOps(ctx: Ctx):
       val o = Json.obj()
       grouped.toVector.sortBy(_._1).foreach((k, v) => Json.set(o, k, v))
       ok(Json.obj("methodGateways" -> o))
+    }
+
+  // ── the test payment (spec 030 H4) ───────────────────────────────────────────────────────────
+
+  /**
+   * One payment of the provider's smallest amount in its test mode with the named credential, through
+   * psp-gateway (spec 005 T2), answering the provider's outcome. It is no deposit: no payment, session
+   * or workflow is made, so nothing is published, counted or credited. The body may name a `currency`.
+   * The gateway's refusals are passed on, their code in this service's upper case.
+   */
+  def testPayment(op: Operator, id: String, provider: String, name: Option[String], text: String): Respond[Bytes] =
+    named(op, id, provider, name) { (_, c) =>
+      val currency = Json.parseObject(text).flatMap(_.text("currency"))
+      io.eitheror.casino.merchant.deposits.DepositRuntime.gateway(ctx.clients.services).testPayment(id, c.provider, c.name, currency) match
+        case io.eitheror.casino.merchant.gateway.Reply.Unreachable(why) => refuse(503, "UNAVAILABLE", why)
+        case io.eitheror.casino.merchant.gateway.Reply.Answered(status, Some(b: ObjectNode), _) if status / 100 == 2 =>
+          val minor = b.long("amount").getOrElse(0L)
+          val cur   = b.textOr("currency", "")
+          val decimal = io.eitheror.casino.contract.money.Currency.from(cur).toOption
+            .map(io.eitheror.casino.contract.money.Amounts.render(minor, _)).getOrElse(minor.toString)
+          val o = Json.obj("subBrandId" -> id, "credentialName" -> c.name)
+          o.setAll[ObjectNode](b)
+          Json.set(o, "amountCents", minor)
+          Json.set(o, "amount", decimal)
+          ok(o)
+        case io.eitheror.casino.merchant.gateway.Reply.Answered(status, Some(b), _) if b.text("error").isDefined =>
+          refuse(status, b.textOr("error", "").toUpperCase, b.textOr("message", ""), "provider" -> b.text("provider"))
+        case io.eitheror.casino.merchant.gateway.Reply.Answered(status, _, _) =>
+          refuse(502, "GATEWAY_ERROR", s"psp-gateway answered $status")
+    }
+
+  // ── deposit bounds (spec 030 H3) ─────────────────────────────────────────────────────────────
+
+  def depositBounds(op: Operator, id: String): Respond[Bytes] = scoped(op, id)(s => ok(Render.depositBounds(s)))
+
+  /**
+   * Replaces the sub-brand's deposit bounds: `{"bounds": [{method, currency, minimumAmountCents?,
+   * maximumAmountCents?}]}`, amounts as JSON integers of minor units; an empty list removes them all.
+   */
+  def setDepositBounds(op: Operator, id: String, text: String): Respond[Bytes] =
+    scoped(op, id) { _ =>
+      body(text).fold(identity, b =>
+        Option(b.get("bounds")).filter(_.isArray) match
+          case None => refuse(400, "INVALID_REQUEST", "the body carries `bounds`, a list", "field" -> "bounds")
+          case Some(list) =>
+            val parsed = list.elements.asScala.toVector.zipWithIndex.map { (n, i) =>
+              def amount(field: String): Either[String, Option[Long]] =
+                Option(n.get(field)).filterNot(_.isNull) match
+                  case None                                                 => Right(None)
+                  case Some(v) if v.isIntegralNumber && v.canConvertToLong => Right(Some(v.asLong))
+                  case Some(_)                                              => Left(s"bounds[$i].$field")
+              for
+                min <- amount("minimumAmountCents")
+                max <- amount("maximumAmountCents")
+              yield DepositBound(n.textOr("method", ""), n.textOr("currency", ""), min, max)
+            }
+            parsed.collectFirst { case Left(field) => field } match
+              case Some(field) => refuse(400, "INVALID_REQUEST", s"$field must be a whole number of minor units", "field" -> field)
+              case None =>
+                val s = sb(id).call(SubBrand.setDepositBounds).invoke(SetDepositBounds(parsed.collect { case Right(d) => d }, op.actor, ctx.now()))
+                ok(Render.depositBounds(s)))
     }
 
   /** Credential-named terminals and terminals together, with the directions each takes (FR-009). */

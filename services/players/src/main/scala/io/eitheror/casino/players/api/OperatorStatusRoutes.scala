@@ -19,6 +19,7 @@ import java.time.{Duration, Instant, LocalDate}
 import java.util.UUID
 import scala.concurrent.Await
 import scala.concurrent.duration.*
+import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
 import Answers.*
@@ -165,6 +166,42 @@ final class OperatorStatusRoutes(ctx: Ctx):
     }
 
   /**
+   * `GET players/{p}/devices` (spec 030 P8): each device the player logged in from, last seen first:
+   * `{devices: [{platform, browser, deviceType, country, firstSeenAt, lastSeenAt}]}`; `country` `null` when the
+   * log-in's address did not resolve. An erased player has none.
+   */
+  def devices(playerId: String): Reply = known(playerId)(s => ok(Json.obj("devices" -> OperatorStatusRoutes.devicesOf(s))))
+
+  /** `GET players/{p}/tags` (spec 030 P7): `{tags, setBy, setAt}`, `setBy` and `setAt` `null` until first set. */
+  def managerTags(playerId: String): Reply = known(playerId)(s => ok(OperatorStatusRoutes.tagsOf(s.managerTags)))
+
+  /**
+   * `PUT players/{p}/tags` (`tier.change`, spec 030 P7): `{"tags": [..]}` replaces the list, recorded with the
+   * operator and the time; each tag added or removed is also a note, as the original wrote one. A tag over 40
+   * characters is `400 invalid_tag` naming it (`tag`, `maxLength`), more than 20 `400 too_many_tags`, no
+   * `tags` array of strings `400 missing_fields`. Answers as `GET`.
+   */
+  def setManagerTags(p: Principal, playerId: String, text: String): Reply =
+    known(playerId) { before =>
+      val b = body(text)
+      Option(b.get("tags")).filter(n => n.isArray && n.elements.asScala.forall(_.isTextual)) match
+        case None => refusal(400, "missing_fields", "tags is required, an array of strings", "fields" -> Json.arr("tags"))
+        case Some(_) =>
+          val d = player(playerId).call(PlayerEntity.setManagerTags).invoke(SetManagerTags(b.strings("tags"), p.subject, now()))
+          answer(d) {
+            val after = stateOf(playerId).managerTags
+            if d.changed then
+              def lower(ts: Vector[String]) = ts.map(_.toLowerCase(java.util.Locale.ROOT)).toSet
+              val (was, is) = (before.managerTags.tags, after.tags)
+              is.filterNot(t => lower(was)(t.toLowerCase(java.util.Locale.ROOT))).foreach(t =>
+                writeNote(playerId, s"Manager tag \"$t\" added by ${author(p)}", author(p), pinned = false): Unit)
+              was.filterNot(t => lower(is)(t.toLowerCase(java.util.Locale.ROOT))).foreach(t =>
+                writeNote(playerId, s"Manager tag \"$t\" removed by ${author(p)}", author(p), pinned = false): Unit)
+            ok(OperatorStatusRoutes.tagsOf(after))
+          }
+    }
+
+  /**
    * Clears the player's flag and, as the original, dismisses every open case naming them; a dismissed
    * case clears the flag of every player it links.
    */
@@ -193,17 +230,52 @@ final class OperatorStatusRoutes(ctx: Ctx):
 
   // ── the reads ──────────────────────────────────────────────────────────────────────────────────
 
-  /** The original's list: `search`, `status`, `page` (from 1), `pageSize` (1–200, 25); `{items, total}`. */
-  def players(search: Option[String], status: Option[String], vipOnly: Option[String], page: Option[String], pageSize: Option[String]): Reply =
-    val n    = page.flatMap(_.toIntOption).filter(_ >= 1).getOrElse(1)
-    val size = pageSize.flatMap(_.toIntOption).filter(s => s >= 1 && s <= 200).getOrElse(25)
-    val all = search.map(_.trim).filter(_.nonEmpty) match
-      case Some(q) => PlayersView.find(views, q, ListLimit)
-      case None =>
-        val st = status.map(_.trim).filter(s => s.nonEmpty && s != "all" && s != "rg-flagged")
-        PlayersView.page(views, PlayersView.Filter(status = st), 0, ListLimit)
-    val seen = all.filter(r => !vipOnly.contains("true") || r.vipTier.exists(_.nonEmpty))
-    ok(Json.obj("items" -> Json.arr(seen.slice((n - 1) * size, n * size).map(row)*), "total" -> seen.size))
+  /**
+   * The operator's list (spec 030 P2), a view query with no row cap, newest registered first: `search`,
+   * `status` (`all` and `rg-flagged` for any, as before), `vipOnly`, and `country`, `currency`, `potVip`,
+   * `online` (`true` or `false`), `identity` (`verified` or `unverified`) and `birthdayWithinDays` (0 to 366,
+   * 0 today), all combined with AND; a value out of range is no filter. `page` (from 1) and `pageSize` (1 to
+   * 200, 25) are answered back beside `items` and `total`, out of range taken as their defaults. `facets=true`
+   * adds `facets`: for each filter, the players matching each of its values with every other filter applied.
+   */
+  def players(q: PlayersQuery): Reply =
+    val n    = q.page.flatMap(_.trim.toIntOption).filter(n => n >= 1 && n <= 1_000_000).getOrElse(1)
+    val size = q.pageSize.flatMap(_.trim.toIntOption).filter(s => s >= 1 && s <= 200).getOrElse(25)
+    val f    = q.filter(now())
+    val rows = PlayersView.page(views, f, (n - 1) * size, size)
+    val o    = Json.obj("items" -> Json.arr(rows.map(row)*), "total" -> PlayersView.total(views, f), "page" -> n, "pageSize" -> size)
+    if q.facets.exists(_.trim.equalsIgnoreCase("true")) then
+      facets(f) match
+        case Some(counted) => Json.set(o, "facets", counted)
+        case None          => o.put("facetsUnavailable", true): Unit
+    ok(o)
+
+  /**
+   * Each filter's values with the players matching each, every other filter applied and its own left out;
+   * none when the counts are not all in within [[FacetsBound]], so the list is answered without them. The
+   * view client counts by condition only (no `GROUP BY`), so each value is one count, run at once.
+   */
+  private def facets(f: PlayersView.Filter): Option[ObjectNode] =
+    import scala.concurrent.{ExecutionContext, Future}
+    given ExecutionContext = ExecutionContext.parasitic
+    def counts(pairs: Vector[(String, PlayersView.Filter)]): Future[ObjectNode] =
+      Future.sequence(pairs.map((k, g) => PlayersView.totalAsync(views, g).map(k -> _)))
+        .map(cs => Json.obj(cs.map((k, c) => k -> Long.box(c))*))
+    def distinct(field: String, without: PlayersView.Filter)(set: (PlayersView.Filter, String) => PlayersView.Filter) =
+      counts(PlayersView.valuesOf(views, without, field).map(v => v -> set(without, v)))
+    val bools = Vector("true" -> true, "false" -> false)
+    val windows = Vector(0, 7, 30)
+    val all = Vector(
+      "status"   -> distinct("status", f.copy(status = None))((g, v) => g.copy(status = Some(v))),
+      "country"  -> distinct("country", f.copy(country = None))((g, v) => g.copy(country = Some(v))),
+      "currency" -> distinct("currency", f.copy(currency = None))((g, v) => g.copy(currency = Some(v))),
+      "vipOnly"  -> counts(Vector("true" -> f.copy(vipOnly = true))),
+      "potVip"   -> counts(bools.map((k, b) => k -> f.copy(potVip = Some(b)))),
+      "online"   -> counts(bools.map((k, b) => k -> f.copy(online = Some(b)))),
+      "identity" -> counts(PlayersView.Identity.all.map(v => v -> f.copy(identity = Some(v)))),
+      "birthdayWithinDays" -> counts(windows.map(d => d.toString -> f.copy(birthdayWithin = Some(d))))
+    )
+    OperatorStatusRoutes.within(Future.sequence(all.map((k, fo) => fo.map(k -> _))), FacetsBound).map(Json.obj(_*))
 
   private def row(r: PlayerRow): ObjectNode =
     Json.obj("playerId" -> r.playerId, "twinId" -> s"casino-${ctx.slug}/${r.playerId}", "username" -> r.displayName.reveal,
@@ -220,32 +292,29 @@ final class OperatorStatusRoutes(ctx: Ctx):
         "currency" -> w.map(_.currency).getOrElse(s.currency)))
     }
 
-  /** The original's operator activity: `category`, `page` from 0, 50 a page, `{events, page, pageSize, hasMore}`. */
-  def activity(playerId: String, category: Option[String], page: Option[String]): Reply =
-    known(playerId) { _ =>
-      val cat  = category.map(_.trim.toLowerCase(java.util.Locale.ROOT)).filter(ActivityCategory.all.contains)
-      val n    = page.flatMap(_.toIntOption).filter(_ >= 0).getOrElse(0)
-      val rows = ActivityView.ofPlayer(views, playerId, cat, n * ActivityPage, ActivityPage + 1)
-      ok(Json.obj("events" -> Json.arr(rows.take(ActivityPage).map(ProfileRoutes.event)*), "page" -> n, "pageSize" -> ActivityPage,
-        "hasMore" -> (rows.size > ActivityPage)))
-    }
-
-  /** The settled rounds from the activity, `fromDate`/`toDate` as ISO dates; `400 invalid_date_range`. */
-  def bets(playerId: String, from: Option[String], to: Option[String], limit: Option[String], offset: Option[String]): Reply =
-    val f = from.flatMap(d => Try(LocalDate.parse(d.take(10))).toOption)
-    val t = to.flatMap(d => Try(LocalDate.parse(d.take(10))).toOption)
-    if f.zip(t).exists((a, b) => a.isAfter(b)) then refusal(400, "invalid_date_range", "fromDate is after toDate")
+  /**
+   * The original's operator activity: `category`, `page` from 0, 50 a page, `{events, page, pageSize, hasMore}`;
+   * spec 030 P3 adds `from` and `to` (ISO instants, or dates: `to`'s day is included), `after` (the `next` of an
+   * earlier page: the lines after it, `page` then unused) and `total`, the period's lines in the category.
+   * `from` after `to` is `400 invalid_date_range`; a value that does not parse is no bound.
+   */
+  def activity(playerId: String, category: Option[String], page: Option[String], from: Option[String] = None,
+      to: Option[String] = None, after: Option[String] = None): Reply =
+    val f = from.flatMap(OperatorStatusRoutes.bound(_, end = false))
+    val t = to.flatMap(OperatorStatusRoutes.bound(_, end = true))
+    if f.zip(t).exists((a, b) => a >= b) then refusal(400, "invalid_date_range", "from is not before to")
     else
       known(playerId) { _ =>
-        val lim  = limit.flatMap(_.toIntOption).filter(_ >= 1).getOrElse(50)
-        val off  = offset.flatMap(_.toIntOption).filter(_ >= 0).getOrElse(0)
-        def day(at: Long) = LocalDate.ofInstant(Instant.ofEpochMilli(at), java.time.ZoneOffset.UTC)
-        val all = ActivityView.ofPlayer(views, playerId, Some(ActivityCategory.Games), 0, ListLimit)
-          .filter(r => r.eventType == "round_settled" && f.forall(d => !day(r.at).isBefore(d)) && t.forall(d => !day(r.at).isAfter(d)))
-        val bets = all.slice(off, off + lim).map(r => Json.obj("betId" -> r.factId, "amountMinorUnits" -> r.amountMinorUnits.map(Long.box).orNull,
-          "currency" -> r.currency.orNull, "description" -> r.description, "createdAt" -> Instant.ofEpochMilli(r.at).toString))
-        ok(Json.obj("bets" -> Json.arr(bets*), "summary" -> Json.obj("totalBets" -> all.size, "fromDate" -> from.orNull, "toDate" -> to.orNull),
-          "total" -> all.size, "limit" -> lim, "offset" -> off))
+        val cat    = category.map(_.trim.toLowerCase(java.util.Locale.ROOT)).filter(ActivityCategory.all.contains)
+        val cursor = after.map(_.trim).filter(_.nonEmpty).flatMap(ActivityView.place)
+        val n      = if cursor.nonEmpty then 0 else page.flatMap(_.toIntOption).filter(_ >= 0).getOrElse(0)
+        val period = ActivityView.Period(playerId, cat, f, t, cursor)
+        val rows   = ActivityView.inPeriod(views, period, n * ActivityPage, ActivityPage + 1)
+        val shown  = rows.take(ActivityPage)
+        val more   = rows.size > ActivityPage
+        ok(Json.obj("events" -> Json.arr(shown.map(ProfileRoutes.event)*), "page" -> n, "pageSize" -> ActivityPage,
+          "hasMore" -> more, "total" -> ActivityView.total(views, period),
+          "next" -> (if more then shown.lastOption.map(ActivityView.cursor).orNull else null)))
       }
 
   def sessions(playerId: String): Reply =
@@ -272,6 +341,26 @@ final class OperatorStatusRoutes(ctx: Ctx):
       else
         val (id, n) = writeNote(playerId, content, author(p), b.bool("pinImmediately").getOrElse(false))
         json(201, Json.obj("noteId" -> id, "createdAt" -> n.createdAt.map(_.toString).orNull))
+    }
+
+  /**
+   * Spec 030 P4: the player's notes, pinned first, then newest first, each with its text and author:
+   * `{notes, total}`, and `page` (from 1) and `pageSize` (1 to 200, 25) answered back when either is given,
+   * as the fraud cases; with neither, the first 1,000.
+   */
+  def notes(playerId: String, page: Option[String], pageSize: Option[String]): Reply =
+    known(playerId) { _ =>
+      val all = NotesView.ofPlayer(views, playerId)
+      def wire(r: NoteRow): ObjectNode =
+        val n = components.forKeyValueEntity(EntityId(r.noteId)).call(NoteEntity.get).invoke()
+        Json.obj("noteId" -> r.noteId, "text" -> n.text.reveal, "author" -> r.author, "pinned" -> r.pinned,
+          "createdAt" -> n.createdAt.map(_.toString).orNull, "updatedAt" -> n.updatedAt.map(_.toString).orNull)
+      if page.forall(_.trim.isEmpty) && pageSize.forall(_.trim.isEmpty) then
+        ok(Json.obj("notes" -> Json.arr(all.map(wire)*), "total" -> all.size))
+      else
+        val n    = page.flatMap(_.trim.toIntOption).filter(n => n >= 1 && n <= 1_000_000).getOrElse(1)
+        val size = pageSize.flatMap(_.trim.toIntOption).filter(s => s >= 1 && s <= 200).getOrElse(25)
+        ok(Json.obj("notes" -> Json.arr(all.slice((n - 1) * size, n * size).map(wire)*), "total" -> all.size, "page" -> n, "pageSize" -> size))
     }
 
   def pin(playerId: String, noteId: String, pinned: Boolean): Reply =
@@ -429,6 +518,16 @@ final class OperatorStatusRoutes(ctx: Ctx):
       case Some(r)                      => json(r.status, r.body.getOrElse(Json.obj()))
 
 object OperatorStatusRoutes:
+  /** A player's seen devices, last seen first (spec 030 P8): the operator's answer, and the player's export. */
+  def devicesOf(s: PlayerState): com.fasterxml.jackson.databind.node.ArrayNode =
+    Json.arr(s.devices.sortBy(d => (-d.lastSeenAt.toEpochMilli, -d.firstSeenAt.toEpochMilli)).map(d =>
+      Json.obj("platform" -> d.platform.reveal, "browser" -> d.browser.reveal, "deviceType" -> d.deviceType.reveal,
+        "country" -> d.country.orNull, "firstSeenAt" -> d.firstSeenAt.toString, "lastSeenAt" -> d.lastSeenAt.toString))*)
+
+  /** The manager tags as `GET` and `PUT players/{p}/tags` answer them (spec 030 P7). */
+  def tagsOf(t: ManagerTags): ObjectNode =
+    Json.obj("tags" -> Json.arr(t.tags*), "setBy" -> Option(t.setBy).filter(_.nonEmpty).orNull, "setAt" -> t.setAt.map(_.toString).orNull)
+
   /** The hold a closure starts when the brand names no `retentionDays`: 5 years. */
   val DefaultRetentionDays: Int    = 1825
   val DefaultSuspendReason: String = "Suspended by operator"
@@ -437,10 +536,57 @@ object OperatorStatusRoutes:
   val ActivityPage: Int            = 50
   val ListLimit: Int               = 10000
   val AgentBound: FiniteDuration   = 5.seconds
+  val FacetsBound: FiniteDuration  = 10.seconds
 
-  /** Who may clear a no-deposit block (spec 011 FR-036): the original's clear-suspect-flag roles. */
-  val BlockRoles: Set[String] =
-    Set("brand_admin", "resource_admin", "brand_compliance", "compliance_officer", "fraud_analyst", "platform_admin")
+  /** `f`'s answer if it is in within `bound`; none if it is late or failed, which is logged. */
+  def within[A](f: scala.concurrent.Future[A], bound: FiniteDuration): Option[A] =
+    Try(scala.concurrent.Await.result(f, bound)).toEither match
+      case Right(a) => Some(a)
+      case Left(e) =>
+        org.slf4j.LoggerFactory.getLogger("io.eitheror.casino.players.api.OperatorStatusRoutes")
+          .warn(s"the player list's counts were not all in within $bound: ${e.getClass.getSimpleName}")
+        None
+
+  /**
+   * A period's bound in epoch milliseconds: an ISO instant as given, or a date's start (`from`) or the next day's
+   * start (`to`, so the day is included), in UTC; `None` for anything else.
+   */
+  def bound(text: String, end: Boolean): Option[Long] =
+    val t = text.trim
+    Try(Instant.parse(t).toEpochMilli).toOption.orElse(
+      Try(LocalDate.parse(t)).toOption.map(d => (if end then d.plusDays(1) else d).atStartOfDay(java.time.ZoneOffset.UTC).toInstant.toEpochMilli))
+
+  /** The players list's query parameters, as given (spec 030 P2). */
+  final case class PlayersQuery(
+      search: Option[String] = None,
+      status: Option[String] = None,
+      vipOnly: Option[String] = None,
+      page: Option[String] = None,
+      pageSize: Option[String] = None,
+      country: Option[String] = None,
+      currency: Option[String] = None,
+      potVip: Option[String] = None,
+      online: Option[String] = None,
+      identity: Option[String] = None,
+      birthdayWithinDays: Option[String] = None,
+      facets: Option[String] = None
+  ):
+    private def present(v: Option[String]): Option[String] = v.map(_.trim).filter(_.nonEmpty)
+    private def bool(v: Option[String]): Option[Boolean] = present(v).map(_.toLowerCase).collect { case "true" => true; case "false" => false }
+
+    def filter(at: Instant): PlayersView.Filter =
+      PlayersView.Filter(
+        status = present(status).filter(s => s != "all" && s != "rg-flagged"),
+        search = present(search),
+        vipOnly = bool(vipOnly).contains(true),
+        country = present(country),
+        currency = present(currency),
+        potVip = bool(potVip),
+        online = bool(online),
+        identity = present(identity).map(_.toLowerCase).filter(PlayersView.Identity.all.contains),
+        birthdayWithin = present(birthdayWithinDays).flatMap(_.toIntOption).filter(d => d >= 0 && d <= 366),
+        today = LocalDate.ofInstant(at, java.time.ZoneOffset.UTC)
+      )
 
   def brandJson(c: BrandConfig): ObjectNode =
     Json.obj("name" -> c.name, "legalName" -> c.legalName, "playerSiteBase" -> c.playerSiteBase, "reportingZone" -> c.reportingZone,

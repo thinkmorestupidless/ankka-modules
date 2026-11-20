@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.http.Respond
 import io.eitheror.casino.contract.money.AmountNotWhole
 import io.eitheror.casino.rewards.Json
+import io.eitheror.casino.rewards.eligibility.AllowedBy
 import io.eitheror.casino.rewards.offers.Refusal
 import io.eitheror.casino.rewards.reward.Refused
 
@@ -34,8 +35,12 @@ object Answers:
   /** A reward's refusal, with its message, at the status the endpoint's table gives its code. */
   def refused(r: Refused, table: Table): Reply = refusal(table.status(r.code), r.code, "message" -> r.message)
 
-  /** The evaluator's decline, as the original answered it (contracts/routes.md, 409). */
-  def ineligible(reason: String): Reply = json(409, Json.obj("status" -> "ineligible", "reason" -> reason))
+  /**
+   * The evaluator's decline, as the original answered it (contracts/routes.md, 409), with what would allow the grant
+   * beside the reason (spec 030 RW2, `AllowedBy`; empty when nothing it can name would).
+   */
+  def ineligible(reason: String): Reply =
+    json(409, Json.obj("status" -> "ineligible", "reason" -> reason, "allowedBy" -> AllowedBy.of(reason)))
 
   /** A code preview that matches nothing: 200, as the original's (contracts/routes.md, `POST …/codes/preview`). */
   val codeNotFound: Reply = ok(Json.obj("valid" -> false, "error" -> "code_not_found"))
@@ -43,11 +48,7 @@ object Answers:
   val badBody: Reply     = refusal(400, "invalid_body", "message" -> "The body is not a JSON object")
   val wrongBrand: Reply  = refusal(404, "wrong_brand", "message" -> "This service serves another brand")
   val notYours: Reply    = refusal(403, "player_id_mismatch", "message" -> "The player id is not the caller's")
-  val forbidden: Reply   = refusal(403, "forbidden", "message" -> "The caller's role may not do this")
   val unavailable: Reply = refusal(503, "service_unavailable", "message" -> "A neighbour did not answer in time; try again")
-
-  /** The roles that may act on offers and rewards as an operator (FR-031). */
-  val AdminRoles: Set[String] = Set("brand_admin", "resource_admin", "platform_admin")
 
   // ── amounts (FR-032) ──────────────────────────────────────────────────────
 

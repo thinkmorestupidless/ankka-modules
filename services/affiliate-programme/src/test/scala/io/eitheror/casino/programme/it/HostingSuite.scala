@@ -31,7 +31,7 @@ class HostingSuite extends munit.FunSuite with LogCapturing:
     assertEquals(h.reply.json.get("webhookUrl").asText, s"${kit.settings.publicUrl}/v1/programme/inbound/${h.slug}")
     assertEquals(h.secret.length, 64)
     val manager = kit.realm.byEmail(email).getOrElse(fail("no first manager"))
-    assertEquals(manager.roles, Set("affiliate_manager", s"brand_${h.slug}"))
+    assertEquals(manager.roles, kit.managerRoles(h.slug))
     val listed = kit.eventually("listed")(Option(kit.request("GET", "/v1/programme/brands", headers = kit.asPlatformAdmin()))
       .filter(_.json.elements().asScala.exists(_.get("brandId").asText == h.slug)))
     assert(!listed.text.contains(h.secret), "the secret is shown once")

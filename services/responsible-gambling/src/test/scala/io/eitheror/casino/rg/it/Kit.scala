@@ -6,7 +6,7 @@ import com.thinkmorestupidless.ankka.core.Metadata
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, HttpServer, Principal}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.AnkkaTestKit
-import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.access.{BrandRoles, Routes}
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.rg.{Json, RgRuntime, RgService, Settings}
 
@@ -75,9 +75,13 @@ final class Kit(base: Settings = Kit.Base):
   RgRuntime.wire(base, () => now())
 
   private val timers = TimerRuntime(200.millis)
+  /** The brand's roles the operator routes decide from: the role matrix, as a new brand starts. */
+  val roles: io.eitheror.casino.contract.access.RoleBags =
+    io.eitheror.casino.contract.access.RoleBags.fixed(io.eitheror.casino.contract.access.OperatorPermissions.DefaultRoles)
+
   /** The player routes held to the kept description (spec 031 FR-015); a suite asserts it after each test. */
   val held = HeldToPlayerRoutes(Kit.description, slug)
-  private val server = held.hold(HttpServer.at("127.0.0.1", 0)(RgService.endpoints(() => Kit.authenticate)*))
+  private val server = held.hold(HttpServer.at("127.0.0.1", 0)(RgService.endpoints(() => Kit.authenticate, bags = Some(_ => roles))*))
 
   /** Fails, naming each answer of a player route its description does not allow since the last reset. */
   def assertHeld(): Unit = held.assertHeld()
@@ -123,7 +127,9 @@ final class Kit(base: Settings = Kit.Base):
 
   private def gateway = testKit.asCaller(Caller.Gateway)
   def asPlayer(playerId: String): Seq[(String, String)] = Seq(gateway, "Authorization" -> s"Bearer player|$playerId")
-  def asOperator(subject: String = "op-1", roles: String = s"brand_$slug"): Seq[(String, String)] =
+  /** `role` named for `brand` (spec 032), this kit's brand by default: how a token carries a role a brand gives. */
+  def in(role: String, brand: String = slug): String = BrandRoles.nameIn(brand, role)
+  def asOperator(subject: String = "op-1", roles: String = s"brand_$slug,${in("brand_admin")}"): Seq[(String, String)] =
     Seq(gateway, "Authorization" -> s"Bearer staff|$subject|$roles")
   def asService(name: String): Seq[(String, String)] = Seq(testKit.asCaller(Caller.Service("local", name)))
 

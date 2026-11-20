@@ -19,13 +19,13 @@ suites alone. `MERCHANT_LEAK_COUNT=200 sbt "testOnly *LeakSuite"` runs SC-003's 
 | Kind | Name | What it holds |
 |---|---|---|
 | event sourced | `holding`, `company` | a holding, a company under it: name, status (FR-001) |
-| event sourced | `sub-brand` | its parents, type, status, brand; its merchant keys by digest; its credentials' records, never their secrets (FR-004, FR-006) |
+| event sourced | `sub-brand` | its parents, type, status, brand; its merchant keys by digest; its credentials' records, never their secrets; its deposit bounds per method and currency (FR-004, FR-006, FR-029c) |
 | event sourced | `terminal` | a gateway's scheme, name, regions, properties (secret ones by name only), status, directions; deleted is final (FR-007) |
 | event sourced | `routing-tree` | `<level>/<entityId>`: the draft, the live version, every version deployed (FR-010) |
 | key value | `session` | a cashier session by token, expiring with its deadline; the customer fields as `Personal`; the payment it made (FR-013, FR-014) |
 | event sourced | `payment` | one deposit by payment id: what the workflow decided, nothing personal (FR-016) |
 | key value | `payment-customer` | a payment's customer fields, for the provider, kept for the retention (FR-032) |
-| workflow | `deposit` | one per payment: `initiate`, `await-outcome` (the deadline), `expire` (or wait again while the gateway holds the outcome undelivered), `record-capture`, `credit` with backoff, `record-failure` (FR-020, FR-021) |
+| workflow | `deposit` | one per payment: `initiate` (refused first when outside the sub-brand's deposit bounds), `await-outcome` (the deadline), `expire` (or wait again while the gateway holds the outcome undelivered), `record-capture`, `credit` with backoff, `record-failure` (FR-020, FR-021) |
 | key value | `merchant-key-index` | a key's digest to its sub-brand, in one lookup (FR-004, SC-006) |
 | event sourced, key value | `operator`, `invitation-token` | an operator of the backoffice and an invitation's token by digest, 72 hours, used once (FR-027) |
 | view | `holdings`, `companies`, `sub-brands`, `terminals-by-sub-brand`, `payments`, `active-keys`, `operators`, `sessions-by-customer` | the listings; `payments` serves the backoffice page, the summary, the deposit count and the uncredited captures |
@@ -74,7 +74,7 @@ operator is created and the invitation is logged as not sent. A credential's sec
 |---|---|---|
 | unit | `routing/`, `payments/`, `security/`, `operators/`, `terminals/`, `keys/`, `audit/`, `deposits/` | the pure rules with the original's cases; the entities and consumers in ankka's unit kits |
 | integration | `it/` | the whole service over Postgres with `FakeGateway`, `FakeWallet`, `FakeKeycloak` and `RecordingInvitations`: the workflow, the views, the routes, the seed, the sync, erasure, durability across restarts, SC-003 (`LeakSuite`), SC-004 (`RepeatSuite`), SC-007 (`SecretLeakSuite`) |
-| features | `features/` | `features/payments/{deposits,cashier,hierarchy,summary,operators}.feature`; the cashier scenarios that are `ingest`'s are named as run by spec 006 |
+| features | `features/` | `features/payments/{deposits,cashier,hierarchy,summary,operators,deposit-bounds}.feature`; the cashier scenarios that are `ingest`'s are named as run by spec 006 |
 | parity | `port/` | one test per `tests/port/merchant/*.json`, ignored until the recording run; `ParityFixtureSuite` proves the replay on a hand-made recording |
 
 Each suite that stops or restarts its service, or shortens its timers, runs in a JVM of its own (`build.sbt`).

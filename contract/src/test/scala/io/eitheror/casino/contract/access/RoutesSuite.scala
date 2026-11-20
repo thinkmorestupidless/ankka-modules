@@ -44,7 +44,11 @@ class RoutesSuite extends munit.FunSuite:
 
   test("spec 023: an operator holding the markets role is served; a brand operator without it is refused naming it") {
     val acl = Routes.operatorHolding("goldvibe", "markets", "platform_admin")(verified)
-    assertEquals(outcome(acl, Request(token = Some(operatorWith("brand_goldvibe", "markets")))), Outcome.Served)
+    assertEquals(outcome(acl, Request(token = Some(operatorWith("brand_goldvibe", "markets@goldvibe")))), Outcome.Served)
+    // spec 032: the markets role held in another brand, or with no brand, admits nothing here
+    Seq(operatorWith("brand_goldvibe", "brand_spinvibe", "markets@spinvibe"), operatorWith("brand_goldvibe", "markets")).foreach { t =>
+      assertEquals(outcome(acl, Request(token = Some(t))).asInstanceOf[Outcome.Refused].status, 403, t)
+    }
     assertEquals(outcome(acl, Request(token = Some(operatorWith("platform_admin")))), Outcome.Served)
     val refused = outcome(acl, Request(token = Some(operatorWith("brand_goldvibe", "operator")))).asInstanceOf[Outcome.Refused]
     assertEquals(refused.status, 403)
@@ -62,7 +66,7 @@ class RoutesSuite extends munit.FunSuite:
     assertEquals(Routes.operatorRefusal(p("platform_admin"), "spinvibe"), None)
     assertEquals(Routes.operatorRefusal(p("brand_goldvibe"), "spinvibe"), Some("brand_not_in_roles: no role names brand spinvibe"))
     assertEquals(Routes.operatorRefusal(p("brand_goldvibe"), "goldvibe", "games"), Some("forbidden: the games permission is needed"))
-    assertEquals(Routes.operatorRefusal(p("brand_goldvibe", "games"), "goldvibe", "games"), None)
+    assertEquals(Routes.operatorRefusal(p("brand_goldvibe", "games@goldvibe"), "goldvibe", "games"), None)
     assert(Routes.operatorRefusal(Principal("u", roles = Set("brand_goldvibe")), "goldvibe").exists(_.startsWith("wrong_issuer")))
   }
 
@@ -119,7 +123,9 @@ class RoutesSuite extends munit.FunSuite:
   }
 
   test("spec 016: an operator of the brand holding api_keys, or a platform administrator, manages its access keys") {
-    assertEquals(outcome(Routes.accessKeys("goldvibe", verified), Request(token = Some(operatorWith("brand_goldvibe", "api_keys")))), Outcome.Served)
+    assertEquals(outcome(Routes.accessKeys("goldvibe", verified), Request(token = Some(operatorWith("brand_goldvibe", "api_keys@goldvibe")))), Outcome.Served)
+    assert(outcome(Routes.accessKeys("goldvibe", verified), Request(token = Some(operatorWith("brand_goldvibe", "brand_spinvibe", "api_keys@spinvibe")))).isInstanceOf[Outcome.Refused])
+    assert(outcome(Routes.accessKeys("goldvibe", verified), Request(token = Some(operatorWith("brand_goldvibe", "api_keys")))).isInstanceOf[Outcome.Refused])
     assertEquals(outcome(Routes.accessKeys("goldvibe", verified), Request(token = Some(operatorWith("platform_admin")))), Outcome.Served)
     outcome(Routes.accessKeys("goldvibe", verified), Request(token = Some(operatorWith("brand_goldvibe")))) match
       case Outcome.Refused(_, body) => assert(body.contains("forbidden"), body)
@@ -213,9 +219,16 @@ class RoutesSuite extends munit.FunSuite:
 
   test("spec 013: an affiliate manager holds affiliate_manager, brand_admin or platform_admin at the eitheror realm") {
     val acl = Routes.affiliateManager(verified)
-    Seq("affiliate_manager", "brand_admin", "platform_admin").foreach { role =>
+    Seq("affiliate_manager@goldvibe", "brand_admin@goldvibe", "platform_admin").foreach { role =>
       assertEquals(outcome(acl, Request(token = Some(operatorWith(role, "brand_goldvibe")))), Outcome.Served, role)
     }
+    // spec 032 FR-012: a manager role with no brand, or named for a brand the token does not hold, manages nothing
+    Seq(operatorWith("affiliate_manager", "brand_goldvibe"), operatorWith("affiliate_manager@spinvibe", "brand_goldvibe")).foreach { t =>
+      assertEquals(outcome(acl, Request(token = Some(t))).asInstanceOf[Outcome.Refused].status, 403, t)
+    }
+    def p(roles: String*) = Principal("u", roles = roles.toSet, issuer = Some(Routes.StaffIssuer))
+    assertEquals(Routes.managedBrands(p("brand_goldvibe", "brand_spinvibe", "affiliate_manager@goldvibe")), Routes.BrandSet.Only(Set("goldvibe")))
+    assertEquals(Routes.managedBrands(p("platform_admin")), Routes.BrandSet.Every)
     val refused = outcome(acl, Request(token = Some(operatorWith("brand_goldvibe", "operator")))).asInstanceOf[Outcome.Refused]
     assertEquals(refused.status, 403)
     assert(refused.toString.contains("not_affiliate_manager"), refused.toString)

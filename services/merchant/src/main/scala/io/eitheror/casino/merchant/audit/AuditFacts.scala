@@ -49,6 +49,9 @@ object AuditFacts:
     case SubBrandEvent.CredentialSecretsChanged(id, _, actor, at) => Some(Audited("credential secrets changed", actor, at, change("credentialId", id)))
     case SubBrandEvent.CredentialStatusChanged(id, s, actor, at)  => Some(Audited("credential status changed", actor, at, change("credentialId", id) ++ change("status", s)))
     case SubBrandEvent.CredentialDeleted(id, actor, at)       => Some(Audited("credential deleted", actor, at, change("credentialId", id)))
+    case SubBrandEvent.DepositBoundsSet(bounds, actor, at) =>
+      val described = bounds.map(b => s"${b.method}/${b.currency}:${b.minimum.fold("")(_.toString)}..${b.maximum.fold("")(_.toString)}")
+      Some(Audited("deposit bounds set", actor, at, change("depositBounds", described.mkString(","))))
 
   def terminal(e: TerminalEvent): Option[Audited] = e match
     case TerminalEvent.Created(_, gw, scheme, name, _, _, _, _, actor, at) =>
@@ -75,6 +78,21 @@ object AuditFacts:
     case OperatorEvent.ScopeChanged(level, id, _, actor, at) => Some(Audited("operator scope changed", actor, at, change("scopeLevel", level) ++ change("scopeId", id)))
     case OperatorEvent.EnabledMirrored(enabled, at)         => Some(Audited("operator enabled mirrored", Actor("system", "operator-sync"), at, change("enabled", enabled.toString)))
     case OperatorEvent.Removed(actor, at)                   => Some(Audited("operator removed", actor, at))
+    case OperatorEvent.BrandRolesSet(brand, before, after, at) =>
+      Some(Audited("operator brand roles set", Actor("service", s"$brand/players"), at,
+        Vector(AuditChange("roles", Some(before.toVector.sorted.mkString(",")), Some(after.toVector.sorted.mkString(",")))), brand = Some(brand)))
+    // spec 032 FR-014: a giving, what the realm did with it, and a refusal, each in the brand that gave
+    case OperatorEvent.BrandRolesAsked(brand, roles, version, at) =>
+      Some(Audited("operator brand roles asked", Actor("service", s"$brand/players"), at,
+        change("roles", roles.toVector.sorted.mkString(",")) ++ change("version", version.toString), brand = Some(brand)))
+    case OperatorEvent.BrandRolesApplied(brand, version, at) =>
+      Some(Audited("operator brand roles applied", Actor("system", "brand-roles-applier"), at, change("version", version.toString), brand = Some(brand)))
+    case OperatorEvent.BrandRolesFailed(brand, version, reason, at) =>
+      Some(Audited("operator brand roles failed", Actor("system", "brand-roles-applier"), at, change("version", version.toString),
+        outcome = "refused", reason = Some(reason.take(200)), brand = Some(brand)))
+    case OperatorEvent.BrandRolesRejected(brand, caller, roles, code, at) =>
+      Some(Audited("operator brand roles refused", Actor("service", s"$caller/players"), at, change("roles", roles.toVector.sorted.mkString(",")),
+        outcome = "refused", reason = Some(code), brand = Some(brand)))
 
   def payment(e: PaymentEvent, brand: Option[String]): Option[Audited] =
     val flow = Actor.workflow

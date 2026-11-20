@@ -71,27 +71,62 @@ class QueueSuite extends munit.FunSuite with LogCapturing:
       "status=ALL&amountRange=gt5000"      -> Vector(pending),
       "status=ALL&method=CARD"             -> Vector(pending),
       "status=ALL&method=EUBANKING"        -> Vector(completed, rejected, cancelled),
-      "status=ALL&stale=true"              -> Vector.empty)
+      "status=ALL&stale=true"              -> Vector.empty,
+      "status=ALL&sort=oldest"             -> newest.reverse,
+      "status=ALL&sort=newest"             -> newest)
     cases.foreach { (query, expected) =>
       val q = s"playerSearch=$p" + (if query.isEmpty then "" else s"&$query")
       val a = kit.eventually(query)(Some(queue(q)).filter(a => a.status == 200 && ids(a) == expected))
       assertEquals(a.json.long("total"), Some(expected.size.toLong), query)
     }
 
+    val oldestSecond = queue(s"playerSearch=$p&status=ALL&sort=oldest&pageSize=3&page=2")
+    assertEquals((ids(oldestSecond), oldestSecond.json.long("total")), (Vector(pending), Some(4L)))
     val second = queue(s"playerSearch=$p&status=ALL&pageSize=2&page=2")
     assertEquals((ids(second), second.json.long("total"), second.json.long("page")), (Vector(rejected, cancelled), Some(4L), Some(2L)))
     val row = queue(s"playerSearch=$p").json.objects("requests").head
     assertEquals((row.text("kycStatus"), row.long("amount"), row.text("method"), row.text("destinationLastFour")),
       (Some("verified"), Some(600000L), Some("CARD"), Some("3000")))
 
+  test("a player's withdrawal history holds every state, a page at a time with its total (spec 030 Y4)"):
+    scene.terminals()
+    val p = scene.player("h", balance = 1000000L)
+    def next() = kit.advance(JDuration.ofSeconds(1))
+    val cancelled = scene.request(p, amount = 1000L)
+    assertEquals(kit.request("DELETE", kit.playerPath(s"/$p/withdrawal-requests/$cancelled"), None, kit.asPlayer(p)).status, 200)
+    next()
+    val pending = scene.request(p, amount = 2000L)
+    def history(query: String) = kit.request("GET", kit.playerPath(s"/$p/withdrawal-history?$query"), None, kit.asOperator())
+    val all = kit.eventually("both")(Some(history("")).filter(_.json.long("total").contains(2L)))
+    assertEquals((ids(all), all.json.long("page"), all.json.long("pageSize")), (Vector(pending, cancelled), Some(1L), Some(50L)), all.text)
+    assertEquals(all.json.objects("requests").flatMap(_.text("status")), Vector("PENDING_REVIEW", "CANCELLED"))
+    val second = history("pageSize=1&page=2")
+    assertEquals((ids(second), second.json.long("total")), (Vector(cancelled), Some(2L)), second.text)
+    val refused = history("pageSize=0")
+    assertEquals((refused.status, refused.str("field")), (400, "pageSize"), refused.text)
+
   test("without a player, the default lists only requests pending review"):
     val a = queue("pageSize=200")
     assertEquals(a.status, 200, a.text)
     assert(a.json.objects("requests").forall(_.text("status").contains("PENDING_REVIEW")), a.text)
 
+  test("every answer counts the brand's requests pending review and its payments needing review, whatever its filter (spec 030 Y2)"):
+    val p = scene.player("c", balance = 1000000L)
+    scene.request(p, amount = 1000L): Unit
+    def counts(a: Reply) = Option(a.json.get("counts")).map(c => (c.long("pendingReview"), c.long("needsReview")))
+    val a = kit.eventually("counted")(Some(queue(s"playerSearch=$p")).filter(_.json.long("total").contains(1L)))
+    assert(counts(a).flatMap(_._1).exists(_ >= 1L), a.text)
+    // The counts are the brand's, so they are the totals of the two filters asked for themselves.
+    kit.eventually("the brand's totals") {
+      val brand = queue("pageSize=1")
+      val doubt = queue("status=APPROVED&payoutStatus=NEEDS_REVIEW&pageSize=1")
+      Option.when(counts(brand) == Some((brand.json.long("total"), doubt.json.long("total"))) && counts(doubt) == counts(brand))(())
+    }
+
   test("a filter value the queue does not know is refused, naming it"):
     Vector("status=SHIPPED" -> "status", "payoutStatus=LOST" -> "payoutStatus", "kyc=maybe" -> "kyc",
-      "amountRange=huge" -> "amountRange", "stale=often" -> "stale", "page=0" -> "page", "pageSize=201" -> "pageSize")
+      "amountRange=huge" -> "amountRange", "stale=often" -> "stale", "page=0" -> "page", "pageSize=201" -> "pageSize",
+      "sort=sideways" -> "sort")
       .foreach { (query, field) =>
         val a = queue(query)
         assertEquals((a.status, a.str("field")), (400, field), a.text)

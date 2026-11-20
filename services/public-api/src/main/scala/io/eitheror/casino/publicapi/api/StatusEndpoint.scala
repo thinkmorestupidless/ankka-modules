@@ -3,7 +3,7 @@ package io.eitheror.casino.publicapi.api
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.http.{Acl, Bytes, EndpointClients, HttpEndpoint, Respond}
-import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.access.{RoleBags, Routes}
 import io.eitheror.casino.publicapi.records.*
 import io.eitheror.casino.publicapi.stats.{StatsPointer, StatsRunner}
 
@@ -15,14 +15,18 @@ import scala.util.Try
  * `GET /public-api/{brand}/status` for the brand's operators (contracts/routes.md): when the statistics were last
  * computed, whether they are stale (older than three hours, FR-033), the current snapshot, and for each record view the
  * time of the latest record it holds. ankka reports no view's applied offset, so a view's `lastAppliedAt` is that
- * record's own time (research, Found during implementation).
+ * record's own time (research, Found during implementation). An operator of the brand whose roles carry `config.brand`
+ * (spec 030 E1, `Routes.operatorMay` over the brand's roles as `bags` last read them); `roles` says when they were.
  */
-final class StatusEndpoint(slug: String, clients: EndpointClients, authenticate: () => Acl, now: () => Instant)
+final class StatusEndpoint(slug: String, clients: EndpointClients, authenticate: () => Acl, now: () => Instant, bags: RoleBags)
     extends HttpEndpoint("/public-api"):
-  val acl: Acl = Routes.operator(slug, authenticate())
+  // the one route names its own permission; this is never reached
+  val acl: Acl = Acl.DenyAll
 
-  get("/{brand}/status") { (brand: String) =>
-    Routes.brandSegment(slug, brand).fold(p => throw p, _ => Respond(Bytes("application/json", StatusEndpoint.mapper.writeValueAsString(status()).getBytes(UTF_8)), 200))
+  withAcl(Routes.operatorMay(slug, "config.brand", bags, authenticate())) {
+    get("/{brand}/status") { (brand: String) =>
+      Routes.brandSegment(slug, brand).fold(p => throw p, _ => Respond(Bytes("application/json", StatusEndpoint.mapper.writeValueAsString(status()).getBytes(UTF_8)), 200))
+    }
   }
 
   private def status() =
@@ -48,6 +52,7 @@ final class StatusEndpoint(slug: String, clients: EndpointClients, authenticate:
     latest("transactions", q.forView(Transactions).ask(Transactions.latest, 1))(_.createdAt)
     latest("bonusAwards", q.forView(BonusAwards).ask(BonusAwards.latest, 1))(_.grantedAt)
     out.set("views", views)
+    out.put("roles", bags.status)
     out
 
 object StatusEndpoint:

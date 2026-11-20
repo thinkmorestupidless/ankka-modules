@@ -10,12 +10,19 @@ class GamesSuite extends munit.FunSuite:
   private lazy val kit = SharedKit.kit
   private def key = Seeded.none
 
-  /** Sets the provider's games and waits past the cache, so the next reads see them. */
+  /**
+   * Sets the provider's games and waits past the cache, so the next reads see them: the count available and the
+   * first game (always an available one) by its code, as the last test's catalogue can have the same count (seen on CI).
+   */
   private def catalogue(gs: String*)(available: Int = gs.size): Unit =
+    val first = """"gameId":"([^"]+)"""".r.findFirstMatchIn(gs.head).map(_.group(1)).get
     kit.provider.set(gs*)
     kit.moveClock(6.minutes)
     kit.v1("/games", Some(key.secret)): Unit
-    kit.eventually("the catalogue reloaded")(Option.when(kit.v1("/games?limit=100", Some(key.secret)).json.path("page").path("total").asInt() == available)(()))
+    kit.eventually("the catalogue reloaded")(Option.when {
+      val page = kit.v1("/games?limit=100", Some(key.secret)).json
+      page.path("page").path("total").asInt() == available && page.path("data").elements().asScala.exists(_.path("id").asText() == first)
+    }(()))
 
   test("the listing: available games in code order, paged, each the contract's Game") {
     catalogue(game("zz-b"), game("zz-a"), game("zz-c"))()

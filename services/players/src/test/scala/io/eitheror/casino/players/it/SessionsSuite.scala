@@ -121,7 +121,7 @@ class SessionsSuite extends munit.FunSuite with LogCapturing with io.eitheror.ca
     val (email, _) = kit.activePlayer()
     kit.fakes.foreach(_.clearReceived())
     assertEquals(login(email).status, 200)
-    assertEquals(kit.realm.received.flatMap(FakeRealm.callOf), Vector("grant"))
+    assertEquals(kit.realm.received.flatMap(FakeRealm.callOf).filterNot(_ == "liveSessions") /* the reconcile timer ticks every second in the kit */, Vector("grant"))
     assertEquals(kit.rg.asked("may-log-in").size, 1)
     assertEquals((kit.kyc.received, kit.engagement.received, kit.wallet.received, kit.ingest.received),
       (Vector.empty, Vector.empty, Vector.empty, Vector.empty))

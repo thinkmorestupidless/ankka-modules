@@ -45,6 +45,17 @@ object PlayersRuntime:
   @volatile var views: () => com.thinkmorestupidless.ankka.runtime.ViewClient =
     () => throw IllegalStateException("the views are not wired: PlayersService sets PlayersRuntime.views at start")
 
+  /**
+   * The brand's roles as `players` last read them from its own `Roles` view (spec 030 contracts/roles.md):
+   * every `operatorMay` route of this service decides from it. The service sets it at start.
+   */
+  @volatile var rolesRead: () => Either[String, String] =
+    () => Left("the roles are not wired: PlayersService sets PlayersRuntime.rolesRead at start")
+
+  /** One for the process, built before the endpoints' ACLs, which hold it; `rolesRead` is what it reads. */
+  val bags: io.eitheror.casino.contract.access.RoleBags =
+    io.eitheror.casino.contract.access.RoleBags(() => rolesRead(), java.time.Clock.systemUTC())
+
   def wire(s: Settings, clock: () => Instant = () => Instant.now()): Unit =
     settings = s
     now = clock

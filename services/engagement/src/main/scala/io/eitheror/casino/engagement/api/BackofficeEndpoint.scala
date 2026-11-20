@@ -16,33 +16,47 @@ import java.time.Duration
 import Answers.*
 
 /**
- * `/v1/casino/backoffice/<slug>` (contracts/routes.md): what the brand's operators read of engagement and do to it.
+ * `/v1/casino/backoffice/<slug>` (contracts/routes.md): what the brand's operators read of engagement and do to it,
+ * each route by one permission (spec 030 amendment E1): `config.crm` for the status, `presence.read` for presence and
+ * the agent stream's ticket, `player.read` for a player's sends, `send.release` for the parked sends.
  * A player's sends and the parked sends from `SendsView`, newest first, 50 a page; a parked send retried or
  * discarded on its `Send`, each an audit record naming the operator; presence from `PresenceView`; the agent stream
  * under its ticket, since `EventSource` sends no bearer. A send's id is its key, which holds a `/`: a path carries it
  * encoded (`%2F`), and the route decodes it.
  */
 final class BackofficeEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoffice/${ctx.slug}"):
-  val acl: Acl = Routes.operator(ctx.slug, ctx.authenticate())
+  // every route names its own permission (spec 030 amendment E1), or is public; this is never reached
+  val acl: Acl = Acl.DenyAll
 
+  withAcl(ctx.may("config.crm")) {
   get("/engagement/status") { () => ok(Status.of(ctx)) }
+  }
 
+  withAcl(ctx.may("presence.read")) {
   post("/agent-stream/ticket") { () => ok(AgentStream.ticket(ctx, principal.subject)) }
+  }
 
   withAcl(Routes.public) {
     sseEvents("/agent-stream") { () => AgentStream.open(ctx, request.query.raw("ticket")) }
   }
 
+  withAcl(ctx.may("player.read")) {
   get("/players/{player}/sends") { (player: String) =>
     ok(Operators.page(SendsView.byPlayer(ctx.sends, player, Operators.pageOf(request.query.raw("page")))))
   }
+  }
 
+  withAcl(ctx.may("send.release")) {
   get("/parked-sends") { () =>
     ok(Operators.page(SendsView.parked(ctx.sends, request.query.raw("search"), Operators.pageOf(request.query.raw("page")))))
   }
+  }
 
+  withAcl(ctx.may("send.release")) {
   post("/parked-sends/{sendId}/retry") { (sendId: String) => Operators.retry(ctx, Operators.key(sendId), principal.subject) }
+  }
 
+  withAcl(ctx.may("send.release")) {
   postBody("/parked-sends/{sendId}/discard") { (sendId: String, text: String) =>
     Json.parseObject(text) match
       case None => badBody
@@ -50,11 +64,14 @@ final class BackofficeEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backo
         b.text("reason").map(_.trim).filter(_.nonEmpty)
           .fold(missingFields(Seq("reason")))(reason => Operators.discard(ctx, Operators.key(sendId), principal.subject, reason))
   }
+  }
 
+  withAcl(ctx.may("presence.read")) {
   get("/presence") { () =>
     val (rows, count) = PresenceView.online(ctx.clients.viewClient.forView(PresenceView))
     ok(Json.obj("online" -> Json.arr(rows.map(r => Json.obj("playerId" -> r.playerId, "since" -> r.since.map(_.toString)))*),
       "count" -> count))
+  }
   }
 
 /** The sends routes, apart from the endpoint so a suite can read them. */
@@ -124,5 +141,6 @@ object Status:
       "parked"          -> Json.obj("count" -> parked.total, "oldestAt" -> SendsView.oldestParked(ctx.sends).flatMap(_.parkedAt).map(_.toString)),
       "lastHour"        -> Json.obj(LastHour.map(o => o -> counts.getOrElse(o, 0L))*),
       "webhookRefusals" -> Json.obj(EngagementRuntime.webhookRefusals.toVector.sortBy(_._1).map((k, v) => k -> v)*),
-      "connections"     -> Json.obj(PresenceView.connectionsByInstance(ctx.clients.viewClient.forView(PresenceView)).toVector.sorted*)
+      "connections"     -> Json.obj(PresenceView.connectionsByInstance(ctx.clients.viewClient.forView(PresenceView)).toVector.sorted*),
+      "roles"           -> ctx.bags.status
     )

@@ -1,0 +1,70 @@
+{
+  "GET /v1/casino/brands/{brand}/reporting/status": {
+    "body": {
+      "generation": 1,
+      "views": [
+        { "name": "days", "completeFrom": "2026-09-01", "rebuilding": false },
+        { "name": "players", "completeFrom": "2026-09-01", "rebuilding": false },
+        { "name": "sessions", "completeFrom": "2026-09-01", "rebuilding": false },
+        { "name": "rounds", "completeFrom": "2026-09-01", "rebuilding": false },
+        { "name": "player-days", "completeFrom": "2026-09-01", "rebuilding": false },
+        { "name": "wallets", "completeFrom": "2026-09-01", "rebuilding": false },
+        { "name": "activity", "completeFrom": "2026-09-01", "rebuilding": false },
+        { "name": "transactions", "completeFrom": "2026-09-01", "rebuilding": false },
+        { "name": "grants", "completeFrom": "2026-09-01", "rebuilding": false },
+        { "name": "compliance", "completeFrom": "2026-09-01", "rebuilding": false }
+      ],
+      "roles": "2026-11-15T09:00:00Z"
+    }
+  },
+  "GET /v1/casino/brands/{brand}/reporting/dashboard/kpis": {
+    "body": {
+      "activeSessions": { "value": 12, "yesterday": 10, "trend": "up" },
+      "activeGames": { "value": 5, "yesterday": 5, "trend": "flat" },
+      "playersOnline": { "value": 9, "yesterday": 11, "trend": "down" },
+      "ggrToday": { "value": "1250.00", "yesterday": "1100.00", "trend": "up", "currency": "BRL" },
+      "ngrToday": { "value": "1000.00", "yesterday": "900.00", "trend": "up", "currency": "BRL" },
+      "depositsToday": { "amount": "5400.00", "count": 31, "yesterdayAmount": "5000.00", "trend": "up", "currency": "BRL" },
+      "withdrawalsToday": { "amount": "1200.00", "count": 4, "yesterdayAmount": "1500.00", "trend": "down", "currency": "BRL" },
+      "registrationsToday": { "value": 3, "yesterday": 2, "trend": "up" },
+      "currency": "BRL",
+      "currencies": ["BRL"]
+    }
+  },
+  "GET /v1/casino/brands/{brand}/reporting/dashboard/trend": {
+    "body": { "range": "7d", "currency": "BRL", "currencies": ["BRL"], "dataPoints": [
+      { "label": "2026-11-09", "ggr": "900.00", "ngr": "700.00" },
+      { "label": "2026-11-10", "ggr": "1100.00", "ngr": "850.00" },
+      { "label": "2026-11-11", "ggr": "-150.00", "ngr": "-200.00" },
+      { "label": "2026-11-12", "ggr": "1300.00", "ngr": "1000.00" },
+      { "label": "2026-11-13", "ggr": "800.00", "ngr": "650.00" },
+      { "label": "2026-11-14", "ggr": "1100.00", "ngr": "900.00" },
+      { "label": "2026-11-15", "ggr": "1250.00", "ngr": "1000.00" }
+    ] }
+  },
+  "GET /v1/casino/brands/{brand}/reporting/dashboard/geo": {
+    "body": { "countries": [ { "countryCode": "BR", "playerCount": 3 }, { "countryCode": "PT", "playerCount": 1 } ] }
+  },
+  "GET /v1/casino/brands/{brand}/reporting/dashboard/rankings": {
+    "body": { "range": "7d", "currency": "BRL", "currencies": ["BRL"],
+      "games": [ { "gameId": "g-sweet", "gameName": "Sweet Bonanza", "provider": "pragmatic", "sessionCount": 42 } ],
+      "players": [ { "playerId": "p-ana", "truncatedEmail": "ana.souza@exampl…", "countryCode": "BR", "ggrAmount": "320.00", "totalWagered": "4100.00", "currency": "BRL" } ] }
+  },
+  "GET /v1/casino/brands/{brand}/reporting/dashboard/activity": {
+    "body": { "events": [
+      { "eventId": "reg-p-ana", "eventType": "registration", "playerId": "p-ana", "truncatedEmail": "ana.souza@exampl…", "amountMinorUnits": null, "currency": null, "occurredAt": "2026-11-15T12:10:00Z" }
+    ] }
+  },
+  "GET /v1/casino/brands/{brand}/reporting/dashboard/bonus-summary": {
+    "body": { "activeBonusCount": 4, "totalLiability": "800.00", "bonusCostToday": "60.00", "totalLiabilityMinorUnits": 80000, "bonusCostTodayMinorUnits": 6000, "avgWageringCompletionPct": 37, "currency": "BRL", "currencies": ["BRL"] }
+  },
+  "GET /v1/casino/brands/{brand}/reporting/dashboard/payment-health": {
+    "body": { "depositSuccessRatePct": 92.5, "avgWithdrawalHours": 6.2, "currency": "BRL", "currencies": ["BRL"], "pspBreakdown": [
+      { "pspName": "pix", "depositVolume": "4000.00", "depositCount": 25, "successRatePct": 96.0 },
+      { "pspName": "card", "depositVolume": "1400.00", "depositCount": 6, "successRatePct": 75.0 }
+    ] }
+  },
+  "GET /v1/casino/brands/{brand}/reporting/documents": {
+    "body": { "documents": [] }
+  }
+}

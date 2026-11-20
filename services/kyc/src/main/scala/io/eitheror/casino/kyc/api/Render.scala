@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.node.{ArrayNode, ObjectNode}
 import io.eitheror.casino.kyc.Json
 import io.eitheror.casino.kyc.policy.Policy
 import io.eitheror.casino.kyc.queue.QueueRow
-import io.eitheror.casino.kyc.record.{Category, Document, KycRecord, KycState}
+import io.eitheror.casino.kyc.record.{Category, Decision, Document, KycRecord, KycState}
 
 import java.time.Instant
 
@@ -30,6 +30,19 @@ object Render:
       "submittedBy" -> (if d.by.bySupport then "support" else "player"),
       "reviewedBy"  -> Option.when(operator)(d.review.map(_.operatorId)).flatten
     )
+
+  /**
+   * A decision (spec 030 K3): its kind, who made it (`{kind, id}`) and when, and the fields its kind names;
+   * a field it does not name is left out. The document's id only `withDocument`.
+   */
+  def decision(d: Decision, withDocument: Boolean): ObjectNode =
+    val category = d.category.map(c => if c == Category.Identity.wire then Category.IdentityFront.wire else c)
+    // the required categories before and after, as lists
+    def value(v: Option[String]): Option[Any] =
+      if d.kind == "required_changed" then v.map(t => Json.arr(t.split(',').filter(_.nonEmpty).toSeq*)) else v
+    val fields = Seq[(String, Option[Any])]("documentId" -> d.documentId.filter(_ => withDocument), "category" -> category, "outcome" -> d.outcome,
+      "reasonCode" -> d.reasonCode, "from" -> value(d.from), "to" -> value(d.to), "cause" -> d.cause).collect { case (k, Some(v)) => k -> v }
+    Json.obj((Seq[(String, Any)]("kind" -> d.kind, "actor" -> Json.obj("kind" -> d.actor.kind, "id" -> d.actor.id), "at" -> d.at.toString) ++ fields)*)
 
   /** The latest document of a category; the front's is a legacy `identity` while there is no front (FR-013). */
   private def latest(s: KycState, c: Category): Option[Document] =
@@ -88,8 +101,15 @@ object Render:
       "deadline"  -> s.deadline.map(_.at.toString).orNull
     )
 
-  def operator(s: KycState, policy: Policy, now: Instant): ObjectNode =
+  /**
+   * The operator's read of a player. `withDocuments` false is a reader's (spec 030 K1, `identity.read`
+   * alone): the status and what is asked of the player, without any document.
+   */
+  def operator(s: KycState, policy: Policy, now: Instant, withDocuments: Boolean = true): ObjectNode =
     val read = documents(s, policy, now, operator = true)
+    if !withDocuments then
+      read.remove("other")
+      read.get("categories").forEach(c => c.asInstanceOf[ObjectNode].remove("document"): Unit)
     Json.set(read, "playerId", s.playerId)
     Json.set(read, "readyAt", s.readyAt.map(_.toString).orNull)
     Json.set(read, "sof", s.sof.wire)

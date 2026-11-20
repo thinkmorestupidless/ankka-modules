@@ -79,9 +79,13 @@
         "expose": true,
         "runtime": "0.18.0",
         "resources": {
-          "instanceType": "medium"
+          "instanceType": "large"
         },
         "env": [
+          {
+            "name": "JAVA_TOOL_OPTIONS",
+            "value": "-XX:MaxRAMPercentage=50"
+          },
           {
             "name": "CASINO_PROJECT",
             "key": "casino-project"
@@ -324,6 +328,9 @@
         "image": "europe-west1-docker.pkg.dev/eitheror/casino/payouts:0.0.0",
         "expose": true,
         "runtime": "0.18.0",
+        "resources": {
+          "instanceType": "medium"
+        },
         "env": [
           {
             "name": "CASINO_PROJECT",

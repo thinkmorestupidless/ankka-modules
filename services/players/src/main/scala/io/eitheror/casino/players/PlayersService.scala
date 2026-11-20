@@ -26,6 +26,9 @@ object PlayersService:
     MessageEntity.descriptor,
     NoteEntity.descriptor,
     FraudCaseEntity.descriptor,
+    io.eitheror.casino.players.roles.Role.descriptor,
+    io.eitheror.casino.players.roles.RoleAssignment.descriptor,
+    io.eitheror.casino.players.roles.RoleChangers.descriptor,
     LookupIndexEntity.descriptor,
     PendingRegistration.descriptor,
     RegistrationWorkflow.descriptor,
@@ -41,6 +44,7 @@ object PlayersService:
     MessagesView.descriptor,
     NotesView.descriptor,
     FraudCasesView.descriptor,
+    io.eitheror.casino.players.roles.Roles.descriptor,
     WalletSummaryView.descriptor,
     RecentlyPlayedView.descriptor,
     ActivityView.descriptor,
@@ -51,6 +55,11 @@ object PlayersService:
     RewardsActivity.descriptor,
     PlayersActivity.descriptor,
     SessionsActivity.descriptor,
+    io.eitheror.casino.players.rounds.RoundEntry.descriptor,
+    io.eitheror.casino.players.rounds.RoundsView.descriptor,
+    io.eitheror.casino.players.rounds.RoundsRecorder.descriptor,
+    io.eitheror.casino.players.rounds.SessionWagers.descriptor,
+    io.eitheror.casino.players.rounds.WagersRecorder.descriptor,
     PlayersPublisher.descriptor,
     MessagesPublisher.descriptor,
     LoginsPublisher.descriptor,
@@ -60,6 +69,8 @@ object PlayersService:
     MessageAudit.descriptor,
     NoteAudit.descriptor,
     FraudCaseAudit.descriptor,
+    RoleAudit.descriptor,
+    RoleAssignmentAudit.descriptor,
     GameSessionAudit.descriptor,
     RgLimitsConsumer.descriptor,
     KycFactsConsumer.descriptor,
@@ -68,7 +79,7 @@ object PlayersService:
     RewardsConsumer.descriptor,
     SessionLimits.descriptor,
     RealmReconcile.descriptor
-  )
+  ) ++ io.eitheror.casino.players.freshness.ViewFollower.descriptors
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one. */
   def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] =
@@ -83,11 +94,21 @@ object PlayersService:
       c => GeoEndpoint(ctx(c))
     )
 
-  /** Once the service has started: the timers reachable from the consumers, and the realm's reconciler. */
-  def started(timers: TimerRuntime, views: com.thinkmorestupidless.ankka.runtime.ViewClient): Unit =
+  /**
+   * Once the service has started: the timers reachable from the consumers, the realm's reconciler, the
+   * role matrix's roles a brand does not yet have (spec 030 P12), and the service's own copy of the
+   * brand's roles, read from its view every 10 seconds and at once after each change.
+   */
+  def started(timers: TimerRuntime, views: com.thinkmorestupidless.ankka.runtime.ViewClient,
+      components: com.thinkmorestupidless.ankka.sdk.ComponentClient): Unit =
     PlayersRuntime.timers = () => timers.timerScheduler
     PlayersRuntime.views = () => views
     RealmReconcile.schedule(timers.timerScheduler)
+    io.eitheror.casino.players.api.RolesRoutes.seedUntilItHolds(components, PlayersRuntime.now())
+    PlayersRuntime.rolesRead = () =>
+      Right(io.eitheror.casino.contract.access.RoleBags.render(io.eitheror.casino.players.roles.Roles.bags(views)))
+    PlayersRuntime.bags.stop()
+    PlayersRuntime.bags.start(): Unit
 
 @main def run(): Unit =
   val settings = Settings.fromEnvironment().fold(e => throw IllegalStateException(e), identity)
@@ -107,6 +128,7 @@ object PlayersService:
     .withExtension(timers)
     .withExtension(HttpServer.of(PlayersService.endpoints(() => Oidc.authenticate())*))
     .start(name = "players") // the name the local console and `ankka mcp` list it under
-  PlayersService.started(timers, service.viewClient)
+  // before `started`, whose seeding of the default roles may wait: a stop asked meanwhile still ends the service
   sys.addShutdownHook(service.terminate())
+  PlayersService.started(timers, service.viewClient, service.componentClient)
   scala.concurrent.Await.result(service.whenTerminated, scala.concurrent.duration.Duration.Inf): Unit

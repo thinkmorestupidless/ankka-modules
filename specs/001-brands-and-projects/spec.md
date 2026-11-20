@@ -429,7 +429,8 @@ one of the conditions and check the refusal names it.
 
 - **FR-001**: Each brand MUST be exactly one ankka project whose id is the brand's slug: lowercase
   letters, digits and `-`, starting with a letter. The slugs `payments`, `programme`, `reasoner`,
-  `platform`, `local` and `machine` MUST be refused.
+  `platform`, `local` and `machine` MUST be refused. *Amended by spec 032:* so are `admin`, `support`,
+  `finance` and `compliance`, whose `brand_<slug>` would be a default role's name.
 - **FR-002**: A brand project MUST hold these services and no others: `wallet`, `payouts`, `players`,
   `kyc`, `responsible-gambling`, `rewards`, `game-provider`, `attribution`, `public-api`,
   `engagement`, `reporting`, `support-agent`. Each is specified by one spec in this repository
@@ -786,3 +787,7 @@ Raised by spec 012 on 2026-10-25; each is one line, and [spec 012 research](../0
 
 - FR-024: a click's address digest under a brand-held salt is not personal; the list should say so (012 finding 1).
 - FR-020: a seventh route class, the machine (`Routes.machine`), is in the contract for 012's feed (012 finding 10).
+
+## Amended by 030
+
+- Spec 030 (T026): the realm role `brand_support` beside the other default roles, and each brand's confidential client `backoffice-<slug>` (`brands/_realm/`, upserted by the modules tool into an existing realm); the module `backoffice` (`modules/backoffice/module.json`: `backoffice`, web-hosted and exposed, and `backoffice-state`); and the operator route class now decided by one permission per route from the brand's roles (`contracts/routes.md`).

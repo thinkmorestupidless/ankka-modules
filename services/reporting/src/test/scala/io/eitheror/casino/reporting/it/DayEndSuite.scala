@@ -110,9 +110,9 @@ class DayEndSuite extends munit.FunSuite with LogCapturing:
       Some(d.day.toString), "fin-1", Document.Ready))
     assertEquals(kit.get(s"/documents/$ref", DayEnded.finance(kit)).status, 200)
     val refused = kit.get(s"/documents/$ref", kit.asOperator)
-    // Review nit: the refusal names every role that admits, not the first alone.
+    // The refusal names the permission the document needs (spec 030 E3).
     assertEquals((refused.status, refused.json.path("message").asText),
-      (403, "the brand_admin, resource_admin, platform_admin or brand_finance permission is needed"))
+      (403, "the report.dayEnd permission is needed"))
   }
 
   test("a late fact leaves the day-end as it was, is a correction dated when it arrived, and opens the next day-end (FR-019)") {
@@ -168,7 +168,7 @@ class DayEndSuite extends munit.FunSuite with LogCapturing:
     // The status says so: while a consumer catches up, every view of the generation is rebuilding.
     val status = kit.get("/status", kit.asOperator).json
     assertEquals(status.path("views").elements.asScala.map(_.path("rebuilding").asBoolean).toSet, Set(true), status.toString)
-    r.settle()
+    r.settle(recordBalance = 19_00)
     // The close reads the rounds from the views as they stand, and the liability and the pending holds as of the day's
     // end, so it is made once the replay has reached what the old generation's close read: every currency, each one's
     // liability and pending holds, and the rounds' differences. (The kit's clock is moved past CLOSE_IDLE at once, where a brand's consumers

@@ -93,8 +93,17 @@ final case class OutcomeRecord(
     reasonCode: Option[String] = None,
     reference: Option[String] = None,
     note: Option[Personal[String]] = None,
-    at: Instant
+    at: Instant,
+    /** The operator who settled the payment by hand (spec 030 Y3); none from the gateway, a poll or the workflow. */
+    operatorId: Option[String] = None
 )
+
+/**
+ * One state the request passed through, when and who moved it (spec 030 Y3): `by` is `player`, `operator`
+ * (with its id), `provider` (the gateway, its outcome or a poll) or `system` (the workflow). `reason` is a
+ * code, never personal text. Derived from the request's events, so an older journal has them too.
+ */
+final case class Transition(status: String, at: Instant, by: String, operatorId: Option[String] = None, reason: Option[String] = None)
 
 /** The record of a withdrawal request (data-model.md); `opened` is false until the hold has been placed. */
 final case class RequestState(
@@ -118,7 +127,15 @@ final case class RequestState(
     createdAt: Instant = Instant.EPOCH,
     initiatedAt: Option[Instant] = None,
     settledAt: Option[Instant] = None,
-    erased: Boolean = false
+    erased: Boolean = false,
+    /**
+     * When the request was made (spec 030 Y3): the player's available real balance, the real balance less
+     * what was reserved, as the wallet's preview read it (`WithdrawalWorkflow.openStep`), and the restricted
+     * funds; none on an older request.
+     */
+    balancesAtRequest: Option[Long] = None,
+    restrictedAtRequest: Option[Long] = None,
+    transitions: Vector[Transition] = Vector.empty
 ):
   def settled: Boolean = Set(Status.Completed, Status.Rejected, Status.Cancelled, Status.Failed, Status.Reversed).contains(status)
   /** The operator's settlement routes accept these (FR-016). */
@@ -132,7 +149,9 @@ final case class RequestAnswer(state: RequestState, refusal: Option[String] = No
 sealed trait RequestEvent
 object RequestEvent:
   final case class Opened(requestId: String, playerId: String, amount: Long, paidAmount: Long, currency: String,
-      terminal: TerminalRef, payee: Payee, forfeit: Forfeit, kyc: String, at: Instant, voidedAmount: Long = 0L) extends RequestEvent
+      terminal: TerminalRef, payee: Payee, forfeit: Forfeit, kyc: String, at: Instant, voidedAmount: Long = 0L,
+      /** Spec 030 Y3: absent on a request opened before it. */
+      balancesAtRequest: Option[Long] = None, restrictedAtRequest: Option[Long] = None) extends RequestEvent
   final case class Cancelled(by: Actor, reasonCode: Option[String], at: Instant)                 extends RequestEvent
   final case class Approved(operatorId: String, at: Instant)                                    extends RequestEvent
   final case class Rejected(operatorId: String, reason: Option[Personal[String]], at: Instant)  extends RequestEvent
@@ -150,7 +169,8 @@ object RequestEvent:
   final case class Erased(at: Instant)                                                          extends RequestEvent
 
 final case class Open(requestId: String, playerId: String, amount: Long, paidAmount: Long, currency: String,
-    terminal: TerminalRef, payee: Payee, forfeit: Forfeit, kyc: String, at: Instant, voidedAmount: Long = 0L)
+    terminal: TerminalRef, payee: Payee, forfeit: Forfeit, kyc: String, at: Instant, voidedAmount: Long = 0L,
+    balancesAtRequest: Option[Long] = None, restrictedAtRequest: Option[Long] = None)
 final case class Cancel(by: Actor, reasonCode: Option[String], at: Instant)
 final case class Approve(operatorId: String, at: Instant)
 final case class Reject(operatorId: String, reason: Option[Personal[String]], at: Instant)

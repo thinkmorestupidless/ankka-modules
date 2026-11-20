@@ -75,7 +75,7 @@ class OperatorSuite extends munit.FunSuite with LogCapturing with io.eitheror.ca
     val (_, id, sid, games) = playing()
     assertEquals(kit.request("PUT", kit.servicePath(s"/$id/exclusion"), Some("{}"), kit.asOperator()).status, 403)
     assertEquals(svc("PUT", s"/$id/exclusion", "kyc").status, 403)
-    assertEquals(op("PUT", s"/players/$id/exclusion").status, 404)
+    assertEquals(op("PUT", s"/players/$id/exclusion").status, 404) // no operator route
     val r = svc("PUT", s"/$id/exclusion", "responsible-gambling", "at" -> "2026-10-25T10:00:00Z")
     assertEquals(r.status, 200, r.text)
     assertEquals((player(id).status, player(id).exclusionAt.map(_.toString)), (Status.SelfExcluded, Some("2026-10-25T10:00:00Z")))
@@ -270,6 +270,31 @@ class OperatorSuite extends munit.FunSuite with LogCapturing with io.eitheror.ca
     finally kit.agent.silent = false
   }
 
+  test("modules for the project's services (P14): the agent's answer, whatever an operator's roles; no operator") {
+    val path = s"/v1/casino/brands/${kit.slug}/players/modules"
+    val m = kit.request("GET", path, None, kit.asService("backoffice"))
+    assertEquals(m.status, 200, m.text)
+    assertEquals(m.json.get("modules").get(0).get("module").asText, "casino")
+    assert(Set(401, 403)(kit.request("GET", path, None, kit.asOperator()).status))
+  }
+
+  test("status (P2, F): each list's view with when it last applied a change, for player.read and the project's services") {
+    val path = kit.servicePath("/status")
+    val (_, id) = kit.activePlayer()
+    val players = kit.eventually("the players view marked")(
+      Option(kit.request("GET", path, None, kit.asOperator())).filter(_.status == 200).flatMap { r =>
+        val views = r.json.get("views")
+        (0 until views.size).map(views.get).find(_.get("name").asText == "players").filterNot(_.get("asOf").isNull)
+      })
+    java.time.Instant.parse(players.get("asOf").asText): Unit // an ISO instant; the shared kit moves its clock and a mark never moves back, so no bound on it
+    assertEquals(players.get("rebuilding").asBoolean, false)
+    val names = kit.request("GET", path, None, kit.asService("backoffice")).json.get("views")
+    assertEquals((0 until names.size).map(names.get(_).get("name").asText).toVector,
+      Vector("players", "sessions", "activity", "notes", "messages", "fraud-cases", "roles", "rounds"))
+    assertEquals(kit.request("GET", path, None, kit.asOperator(roles = "brand_other")).status, 403)
+    assertEquals(kit.request("GET", path, None, kit.asPlayer(id)).status, 403)
+  }
+
   test("the reads: the list finds the player, wallet, activity, bets with 400 invalid_date_range, sessions") {
     val (_, id, _, _) = playing()
     kit.eventually("the player listed")(Option(op("GET", s"/players?search=$id")).filter(_.json.get("total").asInt == 1))
@@ -297,15 +322,20 @@ class OperatorSuite extends munit.FunSuite with LogCapturing with io.eitheror.ca
 
   private def profileOf(id: String) = op("GET", s"/players/$id/profile").json.get("player")
 
-  test("clear-no-deposit-block (spec 011 FR-036): forbidden without a fraud or compliance role; with one, lifted and recorded") {
+  /** A brand's bag role is held named for the brand (spec 032); a realm role (fraud_analyst, …) is held bare. */
+  private def held(role: String): String = if role.startsWith("brand_") then kit.in(role) else role
+
+  test("clear-no-deposit-block (spec 011 FR-036, spec 030 flag.clear): forbidden without flag.clear; with it, lifted and recorded") {
     val id = blocked()
     assert(profileOf(id).get("noDepositOfferBlocked").asBoolean)
     val path = kit.operatorPath(s"/players/$id/clear-no-deposit-block")
-    val refused = kit.request("POST", path, Some("{}"), kit.asOperator(subject = "op-7"))
-    assertEquals((refused.status, refused.str("error")), (403, "forbidden"))
+    for role <- Vector("brand_support", "brand_finance", "fraud_analyst", "compliance_officer", "resource_admin") do
+      val refused = kit.request("POST", path, Some("{}"), kit.asOperator(roles = s"brand_${kit.slug},${held(role)}", subject = "op-7"))
+      assertEquals(refused.status, 403, role)
+      assert(refused.text.contains("flag.clear"), refused.text)
     assert(player(id).noDepositBlocked)
-    for role <- Vector("brand_admin", "resource_admin", "brand_compliance", "compliance_officer", "fraud_analyst") do
-      val r = kit.request("POST", path, Some("{}"), kit.asOperator(roles = s"brand_${kit.slug},$role", subject = "op-7"))
+    for role <- Vector("brand_admin", "brand_compliance") do
+      val r = kit.request("POST", path, Some("{}"), kit.asOperator(roles = s"brand_${kit.slug},${held(role)}", subject = "op-7"))
       assertEquals((r.status, r.str("playerId"), r.json.get("blockCleared").asBoolean), (200, id, true), role)
     val block = player(id).noDepositBlock.get
     assertEquals((block.active, block.clearedBy, block.signals), (false, Some("op-7"), Set("email_variant")))

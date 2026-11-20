@@ -58,9 +58,14 @@ object AttributionService:
       DocumentRefresh.descriptor
     ) ++ (if settings.casino then Seq(RewardsFacts.descriptor) else Nil)
 
-  /** The four endpoints of contracts/routes.md, one per prefix. */
-  def endpoints(settings: Settings, authenticate: () => Acl, now: () => Instant = () => Instant.now()): Seq[EndpointClients => HttpEndpoint] =
-    def api(clients: EndpointClients) = Api(settings, clients, authenticate, now)
+  /**
+   * The four endpoints of contracts/routes.md, one per prefix. `bags` is the brand's roles the operator routes
+   * decide from: by default read from the brand's `players` (spec 030 E1).
+   */
+  def endpoints(settings: Settings, authenticate: () => Acl, now: () => Instant = () => Instant.now(),
+      bags: Option[EndpointClients => io.eitheror.casino.contract.access.RoleBags] = None): Seq[EndpointClients => HttpEndpoint] =
+    def api(clients: EndpointClients) =
+      Api(settings, clients, authenticate, now, bags.getOrElse(c => BrandRoles.of(c.services, settings.brand)))
     Seq[EndpointClients => HttpEndpoint](
       clients => TrackEndpoint(api(clients)),
       clients => AttributionEndpoint(api(clients)),

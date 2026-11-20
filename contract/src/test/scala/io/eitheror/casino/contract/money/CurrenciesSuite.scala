@@ -23,6 +23,11 @@ class CurrenciesSuite extends munit.FunSuite:
   test("the codes are sorted and each appears once") {
     val codes = Currencies.table.map(_._1)
     assertEquals(codes, codes.sorted.distinct)
+    assertEquals(codes.size, Currencies.Codes.size)
+  }
+
+  test("every code is one Currency.from takes, so none is written with a guessed exponent") {
+    assertEquals(Currencies.Codes.filter(c => Currency.from(c).isLeft), Vector.empty[String])
   }
 
   test("contract/schemas/currencies.v1.json is the table") {

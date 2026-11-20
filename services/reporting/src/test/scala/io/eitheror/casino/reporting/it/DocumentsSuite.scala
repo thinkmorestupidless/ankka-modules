@@ -55,15 +55,15 @@ class DocumentsSuite extends munit.FunSuite with LogCapturing:
       assertEquals((hours(e), hours(sync), hours(queued)), (2L, 5L, 5L))
       kit.moveClock(2.hours + 1.minute)
       assertEquals(kit.get(s"/documents/$e", kit.asFinance).status, 410)
-      assertEquals(kit.get(s"/documents/$sync", kit.asOperator).status, 200)
-      assertEquals(kit.get(s"/documents/$queued", kit.asOperator).status, 200)
+      assertEquals(kit.get(s"/documents/$sync", kit.asExporter).status, 200)
+      assertEquals(kit.get(s"/documents/$queued", kit.asExporter).status, 200)
       val gone = expired(e, Document.Lifetime)
       assertEquals(kit.testKit.storage.default.getBytes(gone.objectName.get), None)
       assertEquals((gone.kind, gone.askedBy, gone.from, gone.to), (Document.ReportExport, "finance-1", Some(Kit.SeedDay.toString),
         Some(Kit.SeedDay.toString)))
       kit.moveClock(3.hours)
       for ref <- Vector(sync, queued) do
-        assertEquals(kit.get(s"/documents/$ref", kit.asOperator).error, "document_expired")
+        assertEquals(kit.get(s"/documents/$ref", kit.asExporter).error, "document_expired")
         val r = expired(ref, Document.Lifetime)
         assertEquals(kit.testKit.storage.default.getBytes(r.objectName.get), None)
         assertEquals(r.subject, Some(p.player))
@@ -125,7 +125,7 @@ class DocumentsSuite extends munit.FunSuite with LogCapturing:
     assertEquals((kept.kind, kept.askedBy, kept.subject, kept.parameters.get("sessionId")),
       (Document.DisputeReport, "op-1", Some(a.player), Some(a.logins.head.id)))
     // The other player's document, and an export naming no player, are still served.
-    assertEquals(kit.get(s"/documents/$other", kit.asOperator).status, 200)
+    assertEquals(kit.get(s"/documents/$other", kit.asExporter).status, 200)
     assertEquals(kit.get(s"/documents/$ggr", kit.asFinance).status, 200)
     // Run again it ends nothing more; a subject that is not a player's is not this service's.
     kit.eventually("the view caught up")(Option.when(!Documents.keptNow(kit.views).exists(_.reference == own))(()))

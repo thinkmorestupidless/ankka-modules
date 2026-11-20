@@ -281,8 +281,10 @@ final class WithdrawalWorkflow(context: WorkflowContext) extends Workflow[Flow]:
     val j    = job
     val held = currentState.held.get
     val forfeit = Forfeit(held.bonusForfeited, if held.bonusForfeited then j.preview.bonusBalance else 0L, held.clawbackAmount)
+    // The balances the request was made at (spec 030 Y3), from the preview its checks read just before the hold.
+    val real = j.preview.available
     request.call(WithdrawalRequest.open).invoke(Open(j.requestId, j.playerId, j.amount, held.paidAmount, j.currency, j.terminal,
-      j.payee, forfeit, j.kyc, now(), held.voidedAmount)): Unit
+      j.payee, forfeit, j.kyc, now(), held.voidedAmount, real, real.map(_ => j.preview.bonusBalance))): Unit
     stepEffects.updateState(currentState.copy(step = Flow.Review, job = Some(j.copy(payee = Payee())))).thenPause()
 
   /** The hold released with the outcome in hand, then the request records why; a repeat the wallet already made is done (R9). */

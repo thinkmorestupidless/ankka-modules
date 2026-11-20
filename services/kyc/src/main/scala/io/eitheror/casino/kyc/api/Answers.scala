@@ -2,12 +2,14 @@ package io.eitheror.casino.kyc.api
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.core.EntityId
-import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, Respond}
+import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, Respond, Streamed}
+import io.eitheror.casino.contract.access.RoleBags
 import io.eitheror.casino.kyc.{Json, KycRuntime, Settings}
 import io.eitheror.casino.kyc.documents.Store
 import io.eitheror.casino.kyc.policy.{Policy, PolicyEntity}
 import io.eitheror.casino.kyc.record.{KycRecord, KycState, Refusal}
 
+import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets.UTF_8
 import java.time.Instant
 import io.eitheror.casino.contract.http.Json as JsonBody
@@ -21,6 +23,10 @@ object Answers:
 
   def json(status: Int, body: JsonNode): Reply = Respond(JsonBody(Json.render(body).getBytes(UTF_8)), status, Vector.empty)
   def ok(body: JsonNode): Reply             = json(200, body)
+
+  /** A whole answer on a route that streams (spec 030 K5): the same status, headers and bytes. */
+  def whole(r: Reply): Respond[Streamed] =
+    Respond(Streamed(JsonBody.toResponse.contentType, Some(r.body.bytes.length.toLong), ByteArrayInputStream(r.body.bytes)), r.status, r.headers)
 
   def refusal(status: Int, error: String, message: String, fields: (String, Any)*): Reply =
     json(status, Json.obj((Seq[(String, Any)]("error" -> error, "message" -> message) ++ fields)*))
@@ -49,6 +55,8 @@ object Answers:
     "flag_not_found"            -> (404, "No open flag of that reason"),
     "note_required"             -> (400, "A note is required"),
     "invalid_filter"            -> (400, "Unknown filter"),
+    "invalid_page"              -> (400, "page is a whole number from 1, pageSize one from 1 to 200"),
+    "invalid_time"              -> (400, "from and to are ISO instants"),
     "player_not_found"          -> (404, "No such player"),
     "invalid_policy"            -> (400, "A policy field is not valid"),
     "currency_required"         -> (400, "A threshold needs the KYC currency"),
@@ -70,8 +78,12 @@ object Answers:
     val (status, message) = Statuses.getOrElse(code, (400, code))
     refusal(status, code, message, fields*)
 
-/** What every endpoint is built with: the service's clients, the authenticator, the settings, the clock and the store. */
-final class Ctx(val authenticate: () => Acl, val clients: EndpointClients):
+/**
+ * What every endpoint is built with: the service's clients, the authenticator, the settings, the clock, the
+ * store, and the brand's roles the operator routes decide from (spec 030 K1), opened on first use.
+ */
+final class Ctx(val authenticate: () => Acl, val clients: EndpointClients, roles: => RoleBags):
+  lazy val bags: RoleBags = roles
   def settings: Settings = KycRuntime.settings
   def slug: String       = settings.brand
   def now(): Instant     = KycRuntime.now()

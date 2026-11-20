@@ -3,6 +3,7 @@ package io.eitheror.casino.programme.api
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.http.{Bytes, Respond}
+import io.eitheror.casino.contract.access.BrandRoles
 import io.eitheror.casino.programme.ProgrammeCodecs
 import io.eitheror.casino.programme.accounts.*
 import io.eitheror.casino.programme.activity.{Audit, AuditEntry}
@@ -21,13 +22,14 @@ object ManagerAnswers:
 import ManagerAnswers.{*, given}
 
 /**
- * A brand's programme managers (FR-031): users of the `eitheror` realm holding `affiliate_manager` and
- * `brand_<slug>`, as the original provisions them. A new manager, and a reset, get a token and the
- * brand's email for it (`AffiliateManagerInvite`, `AffiliateManagerPasswordReset`); revoking takes the
- * brand's role, and the manager role with it when no other brand's role is left.
+ * A brand's programme managers (FR-031): users of the `eitheror` realm holding `brand_<slug>` and the
+ * manager role named for that brand, `affiliate_manager@<slug>` (spec 032 FR-012, research R8). A new
+ * manager, and a reset, get a token and the brand's email for it (`AffiliateManagerInvite`,
+ * `AffiliateManagerPasswordReset`); revoking takes both of the brand's roles, and leaves any other
+ * brand's alone.
  */
 final class Managers(api: Api):
-  private val Role = "affiliate_manager"
+  private def role(brand: String)      = BrandRoles.nameIn(brand, "affiliate_manager")
   private def brandRole(brand: String) = s"brand_$brand"
 
   private def unavailable(e: RealmError): Respond[Bytes] = refuse(503, "substrate_unavailable", e.toString)
@@ -35,7 +37,7 @@ final class Managers(api: Api):
   /** The users holding both roles. */
   private def of(brand: String): Either[RealmError, Vector[RealmUser]] =
     for
-      managers <- api.realm.usersWithRole(Role)
+      managers <- api.realm.usersWithRole(role(brand))
       atBrand  <- api.realm.usersWithRole(brandRole(brand))
     yield
       val ids = atBrand.map(_.id).toSet
@@ -50,7 +52,7 @@ final class Managers(api: Api):
       case None => invalid("email is required")
       case Some(email) =>
         val (first, last) = KeycloakAdmin.names(b.name)
-        // A manager's authority is its two roles; it names no account (no `eitheror_scope_id`), as the original.
+        // A manager's authority is its two roles at the brand; it names no account (no `eitheror_scope_id`), as the original.
         val made = api.realm.createUser(email, first, last, Map("eitheror_actor_type" -> "affiliate", "eitheror_scope_level" -> "affiliate")) match
           case Left(RealmError.AlreadyExists(_)) if resume =>
             api.realm.findByEmail(email).flatMap(_.toRight(RealmError.Failed(s"$email exists and cannot be found")))
@@ -59,7 +61,7 @@ final class Managers(api: Api):
           case Left(RealmError.AlreadyExists(_)) => refuse(409, "user_already_exists")
           case Left(e)                           => unavailable(e)
           case Right(user) =>
-            api.realm.assignRole(user, Role).flatMap(_ => api.realm.assignRole(user, brandRole(brand))) match
+            api.realm.assignRole(user, role(brand)).flatMap(_ => api.realm.assignRole(user, brandRole(brand))) match
               case Left(e) => unavailable(e)
               case Right(_) =>
                 send(brand, user, email, Token.ManagerInvite, "AffiliateManagerInvite", "affiliates/accept-invitation")
@@ -75,15 +77,14 @@ final class Managers(api: Api):
         audit(brand, "MANAGER_PASSWORD_RESET", by, u.id)
         noContent)
 
-  /** Change 16, as decided 2026-11-02: the manager role stays while the user still holds another brand's role. */
+  /** Change 16, as decided 2026-11-02: another brand's roles stay; the manager role is held per brand (spec 032). */
   def revoke(brand: String, user: String, by: String): Respond[Bytes] =
     of(brand).fold(unavailable, _.find(_.id == user) match
       case None => refuse(404, "not_found")
       case Some(_) =>
         val done = for
-          _     <- api.realm.removeRole(user, brandRole(brand))
-          roles <- api.realm.rolesOf(user)
-          _     <- if roles.exists(_.startsWith("brand_")) then Right(()) else api.realm.removeRole(user, Role)
+          _ <- api.realm.removeRole(user, brandRole(brand))
+          _ <- api.realm.removeRole(user, role(brand))
         yield ()
         done.fold(unavailable, { _ =>
           audit(brand, "MANAGER_REVOKED", by, user)

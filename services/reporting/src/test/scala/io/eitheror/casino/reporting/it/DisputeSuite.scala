@@ -104,8 +104,8 @@ class DisputeSuite extends munit.FunSuite with LogCapturing:
     // A year exactly is allowed.
     assertEquals(p.report(s"fromDate=${d.minusDays(365)}&toDate=$d").status, 202)
     // A player the brand never registered; a session that is none, another player's, or a game session.
-    assertEquals((kit.get(s"/players/nobody-${p.tag}/dispute-report?sessionId=${l.id}", kit.asOperator).error), Disputes.PlayerNotFound)
-    assertEquals(kit.get(s"/players/nobody-${p.tag}/dispute-report?sessionId=${l.id}", kit.asOperator).status, 404)
+    assertEquals((kit.get(s"/players/nobody-${p.tag}/dispute-report?sessionId=${l.id}", kit.asExporter).error), Disputes.PlayerNotFound)
+    assertEquals(kit.get(s"/players/nobody-${p.tag}/dispute-report?sessionId=${l.id}", kit.asExporter).status, 404)
     val other = Disputed(kit, d.plusDays(5)).usual().publish()
     for s <- Vector(s"ls-none-${p.tag}", other.logins.head.id, p.games.head.id) do
       val r = p.report(s"sessionId=$s")
@@ -118,7 +118,7 @@ class DisputeSuite extends munit.FunSuite with LogCapturing:
         ("pdf", "pdf", "application/pdf"))
     do
       val (status, headers, body) = kit.getBytes(s"/players/${p.player}/dispute-report?sessionId=${p.logins.head.id}&format=$format",
-        kit.asOperator)
+        kit.asExporter)
       assertEquals(status, 200, String(body))
       val r   = Reply(status, "", headers)
       val ref = Disputed.reference(r)
@@ -163,11 +163,11 @@ class DisputeSuite extends munit.FunSuite with LogCapturing:
     assertEquals(r.status, 202, r.text)
     val ref = r.json.path("reference").asText
     assertEquals(r.json.path("status").asText, Document.Generating)
-    val first = kit.get(s"/documents/$ref", kit.asOperator)
+    val first = kit.get(s"/documents/$ref", kit.asExporter)
     if first.status == 202 then
       val progress = first.json.path("progress").asInt(-1)
       assert(progress >= 0 && progress <= 100, first.text)
-    val served = Disputed.served(kit, ref, kit.asOperator)
+    val served = Disputed.served(kit, ref, kit.asExporter)
     assertEquals(served.status, 200, served.text)
     assert(served.header("Content-Disposition").get.contains(s"dispute-report-$ref.csv"))
     val all = lines(served)
@@ -189,8 +189,8 @@ class DisputeSuite extends munit.FunSuite with LogCapturing:
       val r = p.bySession(format = "pdf")
       assertEquals(r.status, 202, r.text)
       val ref = r.json.path("reference").asText
-      Disputed.served(kit, ref, kit.asOperator): Unit
-      val (status, headers, body) = kit.getBytes(s"/documents/$ref", kit.asOperator)
+      Disputed.served(kit, ref, kit.asExporter): Unit
+      val (status, headers, body) = kit.getBytes(s"/documents/$ref", kit.asExporter)
       assertEquals(status, 200)
       assert(Reply(status, "", headers).header("Content-Type").get.startsWith("application/pdf"))
       val doc = org.apache.pdfbox.Loader.loadPDF(body)

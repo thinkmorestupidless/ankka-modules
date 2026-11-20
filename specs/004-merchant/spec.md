@@ -303,6 +303,9 @@ scenario 12's full chain, whose steps 1 to 3 touch the realm directly and are st
 - added `features/payments/operators.feature`: a pending operator who accepts the operator invitation and sets a password is active at their level
 - added `features/payments/operators.feature`: an operator cannot create an operator above their own level or with more privilege than their own
 - added `features/payments/operators.feature`: an operator disabled at the sign-in reads as disabled in the shared payments
+- added `features/payments/operators.feature`: a brand's request sets an operator's roles for that brand
+- added `features/payments/operators.feature`: a brand's request for a payments role or the platform administrator's role is refused
+- added `features/payments/operators.feature`: a brand's request changes no role another brand's request gave
 
 ---
 
@@ -520,6 +523,14 @@ original refuses a capture it cannot trust rather than credit it.
 - **FR-028**: The service MUST mirror an operator's enabled flag from the realm on a recurring timer
   (ankka 032), replacing the original's in-process syncer, and MUST list operators by the caller's
   scope.
+- **FR-028a** *(amended by spec 030, H6)*: `PUT /v1/operators/{id}/brand-roles/{brand}`, admitted only
+  to that brand's `players` under the brand's grant, MUST set the realm roles the brand gives the
+  operator: add `brand_<slug>`, create a realm role that does not exist, and remove only the roles this
+  brand gave before and no longer asks for, never a role another brand's request gave. It MUST refuse,
+  touching nothing, a role reserved by `OperatorPermissions.reserved` (every realm role but the four
+  default brand roles, `platform_admin`, the payments roles, another brand's `brand_<slug>`). The
+  roles each brand gave are kept on the operator, and each setting is an audit record.
+- **FR-028b** *(amended by spec 030, H5)*: `GET /v1/operators` MUST page the operators in the caller's scope newest first: `page` from 1, `pageSize` 1 to 200 (25 otherwise), answering `total`, `page` and `pageSize` beside `operators`.
 
 **Backoffice reads**
 
@@ -530,6 +541,10 @@ original refuses a capture it cannot trust rather than credit it.
   per currency in minor units, a daily series and a per-provider series, counting captured rows with
   no amount separately. Both MUST serve only sub-brands the operator's scope covers and MUST serve a
   sub-brand with no parent to platform scope only.
+- **FR-029a** *(amended by spec 030, H1)*: `GET /v1/payments/cashier`, `/cashier/summary` and `/v1/payments/{id}` MUST also admit an operator holding `brand_<slug>` (and `platform_admin` without a payments level, who holds every brand) to the sub-brands whose brand is that slug and no other, refusing another's, a sub-brand naming no brand and an unknown one `403 scope_violation`; a payments operator's access is unchanged, and merchant reads no brand's roles.
+- **FR-029b** *(amended by spec 030, H2)*: `GET /v1/payments/cashier?reference=` MUST list the payment whose id, cashier transaction id or provider transaction id is exactly the reference, within the sub-brands the reader may read.
+- **FR-029c** *(amended by spec 030, H3)*: `GET` and `PUT /v1/sub-brands/{id}/deposit-bounds` MUST read and replace a sub-brand's deposit bounds for a payments operator whose level covers it: per payment method (the catalogue's category of the terminal's scheme, such as `card`, else the scheme) and currency, a minimum, a maximum or both, in minor units, both inclusive. The deposit workflow MUST refuse a deposit outside them before the gateway is asked, `403 DEPOSIT_BELOW_MINIMUM` or `403 DEPOSIT_ABOVE_MAXIMUM` naming the method, the currency and the bound in minor units and as a decimal, and record no payment; a method and currency with no bounds take any amount, as before.
+- **FR-029d** *(amended by spec 030, H4)*: `POST /v1/sub-brands/{id}/psp-credentials/{provider}/test-payment?name=` MUST make, for a payments operator whose level covers the sub-brand, one payment with the named credential (whatever its status) through psp-gateway's test payment (spec 005 T2): the provider's smallest amount in its own test mode, in the currency the body may name. It MUST answer the provider's outcome (`accepted`, `refused` or `unavailable`) with the amount in minor units (`amountCents`) and as a decimal (`amount`), and pass the gateway's refusals on in upper case (`501 TEST_MODE_UNAVAILABLE` for a provider with none). It MUST record no payment, start no deposit, publish no fact and call no wallet.
 - **FR-030**: *Struck in planning (2026-10-12): it contradicted FR-036, written in a later
   reconciliation, which drops the risk routes as a stub. FR-036 stands.*
 

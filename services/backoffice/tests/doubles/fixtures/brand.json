@@ -1,0 +1,15 @@
+{
+  "slug": "goldvibe",
+  "name": "Goldvibe",
+  "zone": "America/Sao_Paulo",
+  "currencies": ["BRL", "EUR", "JPY", "KWD"],
+  "defaultCurrency": "BRL",
+  "modules": ["casino", "core"],
+  "preferences": { "theme": "dark", "worklistKinds": null, "onlineNotices": false, "jobs": [] },
+  "players": [
+    { "playerId": "p-ana", "username": "ana.souza", "currency": "BRL" },
+    { "playerId": "p-kenji", "username": "kenji.sato", "currency": "JPY" },
+    { "playerId": "p-fahad", "username": "fahad.k", "currency": "KWD" },
+    { "playerId": "p-lena", "username": "lena.m", "currency": "EUR" }
+  ]
+}

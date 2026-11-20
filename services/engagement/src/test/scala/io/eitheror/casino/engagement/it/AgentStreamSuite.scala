@@ -95,6 +95,6 @@ class AgentStreamSuite extends munit.FunSuite with io.eitheror.casino.engagement
 
   test("a ticket is bought only with an operator's bearer for the brand") {
     assertEquals(kit.request("POST", path("/agent-stream/ticket"), None, kit.bearer("x").take(1)).status, 401)
-    assertEquals(kit.request("POST", path("/agent-stream/ticket"), None, kit.bearer("staff|op-2|brand_another,brand_admin")).status, 403)
+    assertEquals(kit.request("POST", path("/agent-stream/ticket"), None, kit.bearer("staff|op-2|brand_another,brand_admin@another")).status, 403)
     assertEquals(kit.request("POST", path("/agent-stream/ticket"), None, kit.asPlayer("p-1")).status, 403)
   }

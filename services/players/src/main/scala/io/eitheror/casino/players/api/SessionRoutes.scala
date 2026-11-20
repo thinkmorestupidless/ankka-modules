@@ -112,6 +112,7 @@ final class SessionRoutes(ctx: Ctx):
       .invoke(OpenPlayerSession(id, tokens.realmSessionId, Geo.callerAddress(header).getOrElse(""), header("user-agent").getOrElse(""),
         body.textOr("deviceFingerprint", ""), at)): Unit
     val others = player(id).call(PlayerEntity.sessionOpened).invoke(SessionId(sessionId, at)).others
+    seen(id, body, header, at)
     val single = components.forKeyValueEntity(EntityId(ctx.slug)).call(BrandConfigEntity.get).invoke().singleSession
     if single then
       val bound = ctx.settings.sessionEndBound.toMillis.millis
@@ -125,6 +126,16 @@ final class SessionRoutes(ctx: Ctx):
     reply.put("currency", Some(answer.currency).filter(_.nonEmpty).orNull)
     reply.put("country", answer.country.orNull)
     ok(reply)
+
+  /**
+   * The log-in's device, kept under the player (spec 030 P8): the fingerprint's digest or the user agent's
+   * family, and the country its address resolves to. A failure here is logged and lets the log-in through.
+   */
+  private def seen(id: String, body: com.fasterxml.jackson.databind.JsonNode, header: String => Option[String], at: Instant): Unit =
+    try
+      val country = ctx.neighbours.geo.lookup(Geo.callerAddress(header)).country
+      player(id).call(PlayerEntity.seeDevice).invoke(Devices.seen(body.text("deviceFingerprint"), header("user-agent"), country, at)): Unit
+    catch case scala.util.control.NonFatal(e) => SessionRoutes.log.warn(s"sign-in of $id: its device was not recorded: ${e.getClass.getSimpleName}")
 
   // ── POST /refresh ──────────────────────────────────────────────────────────────────────────────
 

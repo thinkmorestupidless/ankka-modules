@@ -28,7 +28,7 @@ class LayoutSuite extends munit.FunSuite:
   private def of(names: String*) = Layout.Modules.filter(m => names.contains(m.name))
 
   test("the modules are core first, then the product modules of the tree") {
-    assertEquals(Layout.Modules.map(_.name), Vector("core", "casino", "engagement", "player-site", "predictions", "public-api", "reporting", "support"))
+    assertEquals(Layout.Modules.map(_.name), Vector("core", "backoffice", "casino", "engagement", "player-site", "predictions", "public-api", "reporting", "support"))
     assertEquals(Layout.Modules.map(_.kind).distinct, Vector("core", "product"))
   }
 
@@ -37,7 +37,7 @@ class LayoutSuite extends munit.FunSuite:
   test("core and casino run spec 001's services less those now a module of their own or spec 016's") {
     assertEquals(of("core", "casino").flatMap(_.services).toSet,
       spec001Services.toSet -- Set("partner-api", "engagement", "reporting", "support-agent"))
-    assertEquals(Layout.Services.toSet, spec001Services.toSet - "partner-api" + "markets" + "exchange" + "public-api" + "player-site")
+    assertEquals(Layout.Services.toSet, spec001Services.toSet - "partner-api" + "markets" + "exchange" + "public-api" + "player-site" + "backoffice" + "backoffice-state")
     assertEquals(Layout.Services.distinct, Layout.Services, "a service is in one module only")
     assertEquals(Layout.moduleOf("game-provider"), Some("casino"))
   }
@@ -55,6 +55,18 @@ class LayoutSuite extends munit.FunSuite:
 
   test("the received grants stay shared payments' to make, per brand (E2)") {
     assertEquals(Layout.brandGrantsReceived("goldvibe").map(_.principal).toSet, Set("service:goldvibe/payouts", "service:goldvibe/players"))
+  }
+
+  test("spec 030 H6: a brand's players sets its operators' roles at merchant, and nothing else of merchant's") {
+    assertEquals(
+      Layout.brandGrantsReceived("goldvibe").filter(_.target match { case GrantTarget.Route("merchant", _, _) => true; case _ => false }),
+      Vector(Grant("service:goldvibe/players", GrantTarget.Route("merchant", "PUT", "/v1/operators/{id}/brand-roles/{brand}"))))
+  }
+
+  test("a slug whose brand role would be a default role's name is reserved (spec 032)") {
+    for s <- Vector("admin", "support", "finance", "compliance") do
+      assertEquals(Layout.slugProblems(s), Vector(s"slug '$s' is reserved"), s)
+    assertEquals(Layout.slugProblems("goldvibe"), Vector.empty)
   }
 
   test("the longest brand service still sets the slug's limit") {

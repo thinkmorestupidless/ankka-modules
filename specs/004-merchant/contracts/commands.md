@@ -41,7 +41,10 @@ provider's redirect address is not in it; the frontend takes it from the read. A
 (correction 2).
 
 Refused: `404 SESSION_NOT_FOUND` (unknown or expired token); `400 terminal_not_found`;
-`400 missing_crypto_currency`; `400 PAYMENT_REJECTED` with `message` when the gateway refused with
+`400 missing_crypto_currency`; `403 DEPOSIT_BELOW_MINIMUM` or `403 DEPOSIT_ABOVE_MAXIMUM` with `message`,
+`method`, `currency` and `minimumAmountCents`, `minimumAmount` (or `maximum…`) when the sub-brand's
+deposit bounds refuse the amount, before the gateway is asked (spec 030 H3, FR-029c);
+`400 PAYMENT_REJECTED` with `message` when the gateway refused with
 a player-safe message; `502 psp_error` for any other gateway failure (the original's generic
 failure, `CashierPlayerErrorForwardingSpec`); `503` when the gateway cannot be reached.
 

@@ -359,6 +359,49 @@ class PlayerEntitySuite extends munit.FunSuite with LogCapturing with io.eithero
     assert(!kit.currentState.testAccount)
   }
 
+  test("SetManagerTags (spec 030 P7): the whole list, trimmed and without a repeat in another case, with who and when; the list held is no event") {
+    val kit = active
+    val set = kit.call(PlayerEntity.setManagerTags)(SetManagerTags(Vector(" host: ana ", "high value", "HIGH VALUE", ""), "op-1", later(1)))
+    assertEquals(set.events, Vector(ManagerTagsSet(Vector("host: ana", "high value"), Vector.empty, "op-1", later(1))))
+    assertEquals(kit.currentState.managerTags, ManagerTags(Vector("host: ana", "high value"), "op-1", Some(later(1))))
+    assert(!kit.call(PlayerEntity.setManagerTags)(SetManagerTags(Vector("host: ana", "high value"), "op-2", later(2))).persisted)
+    assertEquals(kit.call(PlayerEntity.setManagerTags)(SetManagerTags(Vector.empty, "op-2", later(3))).events,
+      Vector(ManagerTagsSet(Vector.empty, Vector("host: ana", "high value"), "op-2", later(3))))
+    assertEquals(kit.currentState.managerTags.tags, Vector.empty)
+  }
+
+  test("SetManagerTags refuses a tag over 40 characters naming it, more than 20 tags, and no player") {
+    val kit  = active
+    val long = "x" * 41
+    val d    = kit.call(PlayerEntity.setManagerTags)(SetManagerTags(Vector("ok", long), "op-1", at)).replyValue
+    assertEquals(d.refusal, Some(Refusal("invalid_tag", Map("tag" -> long, "maxLength" -> "40"))))
+    assert(!kit.call(PlayerEntity.setManagerTags)(SetManagerTags(Vector("x" * 40), "op-1", at)).replyValue.refusal.isDefined)
+    assertEquals(code(kit.call(PlayerEntity.setManagerTags)(SetManagerTags((1 to 21).map(i => s"t$i").toVector, "op-1", at)).replyValue),
+      Some("too_many_tags"))
+    assertEquals(code(fresh.call(PlayerEntity.setManagerTags)(SetManagerTags(Vector("a"), "op-1", at)).replyValue), Some("player_not_found"))
+  }
+
+  test("SeeDevice (spec 030 P8): a new device is added with its first and last sighting; a known one moves only its last") {
+    val kit     = active
+    val windows = Devices.seen(None, Some("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36"), Some("br"), later(1))
+    val iphone  = Devices.seen(Some("fp-9"), Some("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile/15E148 Safari/604.1"), None, later(2))
+    assertEquals(kit.call(PlayerEntity.seeDevice)(windows).events.size, 1)
+    kit.call(PlayerEntity.seeDevice)(iphone): Unit
+    kit.call(PlayerEntity.seeDevice)(windows.copy(country = Some("PT"), at = later(3))): Unit
+    val ds = kit.currentState.devices
+    assertEquals(ds.map(d => (d.platform.reveal, d.browser.reveal, d.deviceType.reveal, d.country, d.firstSeenAt, d.lastSeenAt)), Vector(
+      ("Windows", "Chrome", "Desktop", Some("BR"), later(1), later(3)), ("iOS", "Safari", "Mobile", None, later(2), later(2))))
+    assert(ds(1).key.reveal.startsWith("fp:") && !ds(1).key.reveal.contains("fp-9"), "the fingerprint's digest, never the fingerprint")
+    assert(!fresh.call(PlayerEntity.seeDevice)(windows).persisted, "no player, no device")
+  }
+
+  test("a device past the 50 kept drops the one seen longest ago") {
+    val kit = active
+    (0 until Devices.MaxDevices + 1).foreach(i => kit.call(PlayerEntity.seeDevice)(Devices.seen(Some(s"fp-$i"), None, None, later(i.toLong))): Unit)
+    assertEquals(kit.currentState.devices.size, Devices.MaxDevices)
+    assertEquals(kit.currentState.devices.map(_.firstSeenAt).min, later(1))
+  }
+
   test("FlagDuplicate is idempotent under the case id; ClearDuplicate removes the flag with its last case") {
     val kit = active
     assert(kit.call(PlayerEntity.flagDuplicate)(FlagDuplicate("c-1", Set("p-1", "p-9"), Set("identity"), at)).persisted)
@@ -422,6 +465,9 @@ class PlayerEntitySuite extends munit.FunSuite with LogCapturing with io.eithero
     kit.call(PlayerEntity.addEmail)(Address("two@example.test", at)): Unit
     kit.call(PlayerEntity.recordCookieDecision)(RecordCookieDecision(Some("d-1"), Some(true), Some(true), Some("v1"), Some("t"), at)): Unit
     kit.call(PlayerEntity.addFavourite)(Favourite("g-1", at)): Unit
+    kit.call(PlayerEntity.setManagerTags)(SetManagerTags(Vector("host: ana"), "op-1", at)): Unit
+    kit.call(PlayerEntity.seeDevice)(Devices.seen(Some("fp-1"), Some("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) Firefox/120.0"), Some("GB"), at)): Unit
+    kit.call(PlayerEntity.seeDevice)(Devices.seen(None, Some("Mozilla/5.0 (Linux; Android 14) Chrome/120.0 Mobile"), None, at)): Unit
     kit.call(PlayerEntity.close)(Close(Actor.Player, Some("p-1"), "leaving", at)): Unit
     kit.call(PlayerEntity.fileErasure)(FileErasure("corr-1", later(60), later(1))): Unit
     assertEquals(kit.currentState.status, Status.ErasurePending)
@@ -433,6 +479,10 @@ class PlayerEntitySuite extends munit.FunSuite with LogCapturing with io.eithero
     assert(s.emails.forall(_.address.reveal.isEmpty))
     assertEquals(s.emails.size, before.emails.size)
     assertEquals(s.cookieDecisions, Map.empty)
+    assertEquals(s.managerTags, ManagerTags())
+    assertEquals(before.devices.size, 2)
+    assertEquals(s.devices, Vector.empty, "every seen device erased")
+    assert(!kit.call(PlayerEntity.seeDevice)(Devices.seen(Some("fp-1"), None, None, later(63))).persisted, "an erased player records no device")
     assertEquals((s.registration.networkAddress, s.registration.deviceFingerprint), (None, None))
     assertEquals((s.registeredAt, s.closedAt, s.favourites, s.currency, s.registration.tag),
       (before.registeredAt, before.closedAt, before.favourites, before.currency, before.registration.tag))

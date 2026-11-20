@@ -2,13 +2,14 @@ package io.eitheror.casino.programme.api
 
 import com.thinkmorestupidless.ankka.auth.oidc.Oidc
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Principal, RequestContext}
-import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.access.{BrandRoles, Routes}
 
 /**
  * The programme's ACLs (research R11, R12), each a recipe of `contract.access.Routes` refined:
- * a manager acts only at a brand `Routes.brandsOf` holds, read from the path's `{brand}` under
- * `/v1/affiliates/` (`403 brand_not_held`), as the simulator's `Access`; the manager routes need
- * `brand_admin` or `platform_admin`, as the original; hosted brands and the usage report need
+ * a manager acts only at a brand `Routes.managedBrands` holds (spec 032 FR-012), read from the path's
+ * `{brand}` under `/v1/affiliates/` (`403 brand_not_held`), as the simulator's `Access`; the manager
+ * routes need `brand_admin` named for the path's brand or `platform_admin`, as the original with the
+ * role held per brand; hosted brands and the usage report need
  * `platform_admin`. The portal's own check, that the target is the caller or a descendant, is
  * [[Access.reaches]], made by the route with the accounts it reads.
  */
@@ -31,7 +32,15 @@ object Access:
   def reaches(caller: String, target: String, parentOf: String => Option[String]): Boolean =
     Iterator.iterate(Option(target))(_.flatMap(parentOf)).take(MaxDepth + 1).takeWhile(_.isDefined).flatten.contains(caller)
 
+  /**
+   * The roles that add and remove a brand's managers: `brand_admin` held named for the brand
+   * (`brand_admin@<slug>`, spec 032 research R8) and `platform_admin`, held bare. See [[administers]].
+   */
   val ManagerAdminRoles: Set[String] = Set("brand_admin", "platform_admin")
+
+  /** Whether `p` administers `brand`'s managers: [[ManagerAdminRoles]], `platform_admin` bare and the rest named for `brand`. */
+  def administers(p: Principal, brand: String): Boolean =
+    ManagerAdminRoles.exists(r => if r == "platform_admin" then p.roles.contains(r) else BrandRoles.holds(brand, p.roles, r))
 
 /** @param authenticate the verifier `Routes` refines; `Oidc.authenticate()` in a deployment. */
 final class Access(authenticate: => Acl = Oidc.authenticate()):
@@ -49,7 +58,7 @@ final class Access(authenticate: => Acl = Oidc.authenticate()):
 
   private def holdsPathBrand(p: Principal, context: RequestContext): Option[String] =
     Access.brandOfPath(context.path) match
-      case Some(brand) if Routes.brandsOf(p).holds(brand) => None
+      case Some(brand) if Routes.managedBrands(p).holds(brand) => None
       case Some(brand)                                    => Some(s"${Wire.Codes.BrandNotHeld}: $brand is not among your brands")
       case None                                           => Some(s"${Wire.Codes.BrandNotHeld}: the route names no brand")
 
@@ -58,8 +67,8 @@ final class Access(authenticate: => Acl = Oidc.authenticate()):
 
   /** A brand or platform administrator of the path's brand: the manager routes (O1 to O3). */
   lazy val managerAdmin: Acl = refine(Routes.affiliateManager(verifier)) { (p, c) =>
-    if !p.roles.exists(Access.ManagerAdminRoles) then Some(s"${Routes.NotAffiliateManager}: brand_admin or platform_admin is required")
-    else holdsPathBrand(p, c)
+    holdsPathBrand(p, c).orElse(Access.brandOfPath(c.path).filterNot(Access.administers(p, _))
+      .map(b => s"${Routes.NotAffiliateManager}: brand_admin for $b or platform_admin is required"))
   }
 
   /** A platform administrator: hosted brands, the legacy withdrawal and the usage report. */

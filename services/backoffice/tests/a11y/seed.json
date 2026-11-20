@@ -1,0 +1,3520 @@
+{
+ "affiliate-programme.programme": {
+  "GET /v1/affiliates/{brand}/accounts": {
+   "body": {
+    "items": [
+     {
+      "account": {
+       "affiliateId": "aff-rio",
+       "brandId": "goldvibe",
+       "closedAt": null,
+       "companyName": "Rio Media Ltda",
+       "createdAt": "2026-09-10T12:00:00Z",
+       "displayName": "Rio Media",
+       "email": "rio@affiliate.example.test",
+       "firstLoginAt": "2026-09-10T12:05:00Z",
+       "group": null,
+       "lastLoginAt": "2026-11-14T08:30:00Z",
+       "managerId": null,
+       "memberships": [
+        {
+         "appliedAt": "2026-09-10T12:00:00Z",
+         "brandId": "goldvibe",
+         "planId": "plan-1",
+         "rejectionReason": null,
+         "revShareOverride": null,
+         "since": "2026-09-11T09:00:00Z",
+         "status": "active"
+        }
+       ],
+       "minimumPayout": {
+        "BRL": 10000
+       },
+       "name": "Rio Media",
+       "overridePercent": 0,
+       "parentAffiliateId": null,
+       "paymentMethod": "bank",
+       "planId": "plan-1",
+       "postbackUrl": null,
+       "status": "active",
+       "tags": [
+        "seo"
+       ],
+       "trafficSource": "seo",
+       "website": "https://rio.example.test"
+      },
+      "currentMonth": [
+       {
+        "adjustments": 0,
+        "adminFees": 1000,
+        "bonusCosts": 5000,
+        "brandId": "goldvibe",
+        "chargebacks": 0,
+        "cpaCommission": 20000,
+        "currency": "BRL",
+        "deposit2Count": 3,
+        "deposit3Count": 2,
+        "depositCount": 9,
+        "excludedGgr": 0,
+        "fraudFlagCount": 1,
+        "ftdCount": 4,
+        "ggr": 100000,
+        "ngr": 91500,
+        "overrideCommission": 0,
+        "paymentFees": 500,
+        "providerFees": 2000,
+        "registrationCount": 12,
+        "revShareCommission": 22875,
+        "totalCommission": 42875,
+        "totalDepositAmount": 250000
+       }
+      ]
+     }
+    ],
+    "page": 1,
+    "pageSize": 100,
+    "total": 1
+   }
+  },
+  "GET /v1/affiliates/{brand}/accounts/{affiliate}": {
+   "body": {
+    "affiliateId": "aff-rio",
+    "brandId": "goldvibe",
+    "closedAt": null,
+    "companyName": "Rio Media Ltda",
+    "createdAt": "2026-09-10T12:00:00Z",
+    "displayName": "Rio Media",
+    "email": "rio@affiliate.example.test",
+    "firstLoginAt": "2026-09-10T12:05:00Z",
+    "group": null,
+    "lastLoginAt": "2026-11-14T08:30:00Z",
+    "managerId": null,
+    "memberships": [
+     {
+      "appliedAt": "2026-09-10T12:00:00Z",
+      "brandId": "goldvibe",
+      "planId": "plan-1",
+      "rejectionReason": null,
+      "revShareOverride": null,
+      "since": "2026-09-11T09:00:00Z",
+      "status": "active"
+     }
+    ],
+    "minimumPayout": {
+     "BRL": 10000
+    },
+    "name": "Rio Media",
+    "overridePercent": 0,
+    "parentAffiliateId": null,
+    "paymentMethod": "bank",
+    "planId": "plan-1",
+    "postbackUrl": null,
+    "status": "active",
+    "tags": [
+     "seo"
+    ],
+    "trafficSource": "seo",
+    "website": "https://rio.example.test"
+   }
+  },
+  "GET /v1/affiliates/{brand}/accounts/{affiliate}/audit": {
+   "body": [
+    {
+     "actorId": "op-platform-admin",
+     "affiliateId": "aff-rio",
+     "auditId": "au-1",
+     "brandId": "goldvibe",
+     "details": {},
+     "event": "approved",
+     "recordedAt": "2026-09-11T09:00:00Z"
+    }
+   ]
+  },
+  "GET /v1/affiliates/{brand}/accounts/{affiliate}/network-health": {
+   "body": {
+    "activeSubs": 1,
+    "pendingApprovals": 0,
+    "suspendedSubs": 0,
+    "totalSubs": 1
+   }
+  },
+  "GET /v1/affiliates/{brand}/accounts/{affiliate}/notes": {
+   "body": [
+    {
+     "affiliateId": "aff-rio",
+     "authorId": "op-platform-admin",
+     "brandId": "goldvibe",
+     "createdAt": "2026-11-14T08:30:00Z",
+     "noteId": "n-1",
+     "text": "Strong SEO traffic."
+    }
+   ]
+  },
+  "GET /v1/affiliates/{brand}/accounts/{affiliate}/revenue": {
+   "body": {
+    "affiliateId": "aff-rio",
+    "figures": [
+     {
+      "adjustments": 0,
+      "adminFees": 1000,
+      "bonusCosts": 5000,
+      "brandId": "goldvibe",
+      "chargebacks": 0,
+      "cpaCommission": 20000,
+      "currency": "BRL",
+      "deposit2Count": 3,
+      "deposit3Count": 2,
+      "depositCount": 9,
+      "excludedGgr": 0,
+      "fraudFlagCount": 1,
+      "ftdCount": 4,
+      "ggr": 100000,
+      "ngr": 91500,
+      "overrideCommission": 0,
+      "paymentFees": 500,
+      "providerFees": 2000,
+      "registrationCount": 12,
+      "revShareCommission": 22875,
+      "totalCommission": 42875,
+      "totalDepositAmount": 250000
+     }
+    ],
+    "period": "2026-11"
+   }
+  },
+  "GET /v1/affiliates/{brand}/accounts/{affiliate}/sub-affiliates": {
+   "body": [
+    {
+     "affiliateId": "aff-sub",
+     "createdAt": "2026-11-14T08:30:00Z",
+     "displayName": "Sub Media",
+     "memberships": [
+      {
+       "brandId": "goldvibe",
+       "planId": "plan-1",
+       "status": "active"
+      }
+     ],
+     "overridePercent": 5,
+     "planId": "plan-1",
+     "status": "active"
+    }
+   ]
+  },
+  "GET /v1/affiliates/{brand}/commission-plans": {
+   "body": [
+    {
+     "brandId": "goldvibe",
+     "cpaAmount": 5000,
+     "cpaCurrency": "BRL",
+     "minimumDeposit": 2000,
+     "negativeCarryover": false,
+     "planId": "plan-1",
+     "planName": "Standard",
+     "planType": "HYBRID",
+     "revSharePercent": 25,
+     "status": "active"
+    }
+   ]
+  },
+  "GET /v1/affiliates/{brand}/creatives": {
+   "body": [
+    {
+     "brand": "goldvibe",
+     "createdAt": "2026-11-14T08:30:00Z",
+     "createdBy": "op-platform-admin",
+     "creativeId": "cr-1",
+     "creativeType": "banner",
+     "deletedAt": null,
+     "description": "Leaderboard",
+     "dimensions": "728x90",
+     "fileUrl": "https://cdn.example.test/autumn.png",
+     "name": "Autumn banner",
+     "status": "active"
+    }
+   ]
+  },
+  "GET /v1/affiliates/{brand}/managers": {
+   "body": [
+    {
+     "email": "manager@goldvibe.example.test",
+     "keycloakUserId": "kc-1",
+     "name": "Marta Manager",
+     "pending": false
+    }
+   ]
+  },
+  "GET /v1/affiliates/{brand}/payouts": {
+   "body": [
+    {
+     "adjustments": 0,
+     "affiliateId": "aff-rio",
+     "approvedAt": null,
+     "approvedBy": null,
+     "brandId": "goldvibe",
+     "cpaCommission": 20000,
+     "createdAt": "2026-11-01T03:00:00Z",
+     "currency": "BRL",
+     "overrideCommission": 0,
+     "paidAt": null,
+     "paidBy": null,
+     "payoutId": "po-11",
+     "period": "2026-10",
+     "rejectedBy": null,
+     "rejectionReason": null,
+     "revShareCommission": 22875,
+     "status": "pending",
+     "totalPayable": 42875
+    }
+   ]
+  },
+  "GET /v1/affiliates/{brand}/programme": {
+   "body": {
+    "brandId": "goldvibe",
+    "contact": "partners@goldvibe.example.test",
+    "defaultPlanId": "plan-1",
+    "description": "Earn with Goldvibe.",
+    "minimumPayoutAmount": 10000,
+    "name": "Goldvibe Partners",
+    "payoutCycleDays": 30,
+    "terms": "Be fair.",
+    "termsVersion": "1"
+   }
+  },
+  "GET /v1/affiliates/{brand}/revenue": {
+   "body": {
+    "figures": [
+     {
+      "adjustments": 0,
+      "adminFees": 1000,
+      "bonusCosts": 5000,
+      "brandId": "goldvibe",
+      "chargebacks": 0,
+      "cpaCommission": 20000,
+      "currency": "BRL",
+      "deposit2Count": 3,
+      "deposit3Count": 2,
+      "depositCount": 9,
+      "excludedGgr": 0,
+      "fraudFlagCount": 1,
+      "ftdCount": 4,
+      "ggr": 100000,
+      "ngr": 91500,
+      "overrideCommission": 0,
+      "paymentFees": 500,
+      "providerFees": 2000,
+      "registrationCount": 12,
+      "revShareCommission": 22875,
+      "totalCommission": 42875,
+      "totalDepositAmount": 250000
+     }
+    ],
+    "period": "2026-11"
+   }
+  },
+  "GET /v1/affiliates/{brand}/revenue/by-campaign": {
+   "body": [
+    {
+     "brandId": "goldvibe",
+     "campaign": "autumn",
+     "ftdCount": 4
+    }
+   ]
+  },
+  "GET /v1/affiliates/{brand}/revenue/geo": {
+   "body": [
+    {
+     "brandId": "goldvibe",
+     "country": "BR",
+     "ftdCount": 4,
+     "registrationCount": 12
+    }
+   ]
+  },
+  "GET /v1/affiliates/{brand}/settings": {
+   "body": {
+    "adminFeePercent": 1,
+    "bonusCostThreshold": 3,
+    "brandId": "goldvibe",
+    "chargebackThreshold": 2,
+    "customerIoKeySet": true,
+    "defaultPlanId": "plan-1",
+    "ggrSource": "reporting",
+    "ggrSourceFrom": null,
+    "origin": "https://partners.goldvibe.example.test",
+    "paymentFeePercent": 0.5,
+    "payoutCycleDay": 5,
+    "previousGgrSource": "reporting",
+    "providerFeePercent": 2,
+    "reportingZone": "America/Sao_Paulo",
+    "retiredAt": null,
+    "senderMessages": {},
+    "senderRegion": "eu"
+   }
+  },
+  "GET /v1/affiliates/{brand}/tracking-links": {
+   "body": [
+    {
+     "affiliateId": "aff-rio",
+     "brandId": "goldvibe",
+     "btag": "bt-1",
+     "campaign": "autumn",
+     "clicks": 120,
+     "createdAt": "2026-11-14T08:30:00Z",
+     "landingPath": "/",
+     "landingUrl": "https://goldvibe.example.test/?btag=bt-1",
+     "registrations": 12,
+     "revokedAt": null,
+     "subIds": [],
+     "tag": "autumn",
+     "utmCampaign": "autumn",
+     "utmMedium": "seo",
+     "utmSource": "rio"
+    }
+   ]
+  },
+  "GET /v1/affiliates/{brand}/traffic": {
+   "body": {
+    "affiliates": [
+     {
+      "affiliateId": "7d0c1b52-3f0e-4c55-9b0e-3a6f2f8c1d11",
+      "clickCount": 180,
+      "ftdCount": 4,
+      "links": [
+       {
+        "btag": "lnk-abcdefghijklmnop",
+        "clickCount": 180,
+        "ftdCount": 4,
+        "qftdCount": 3,
+        "registrationCount": 12
+       }
+      ],
+      "qftdCount": 3,
+      "registrationCount": 12
+     }
+    ],
+    "brandId": "goldvibe",
+    "clickCount": 180,
+    "ftdCount": 4,
+    "period": "2026-11",
+    "qftdCount": 3,
+    "registrationCount": 12
+   }
+  }
+ },
+ "attribution": {
+  "GET /v1/casino/backoffice/{brand}/attribution-webhooks": {
+   "body": {
+    "subscriptions": [
+     {
+      "active": true,
+      "address": "https://net.example.test/hook",
+      "createdAt": "2026-11-14T08:30:00Z",
+      "id": "wh-1",
+      "network": "net-1"
+     }
+    ]
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/attribution-webhooks/undelivered": {
+   "body": {
+    "total": 1,
+    "undelivered": [
+     {
+      "attempts": 3,
+      "delivery": "d-1",
+      "factId": "f-1",
+      "firstAttemptAt": "2026-11-14T08:30:00Z",
+      "kind": "registration",
+      "lastStatus": 502,
+      "network": "net-1",
+      "subscription": "wh-1"
+     }
+    ]
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/attribution/networks": {
+   "body": {
+    "networks": [
+     {
+      "documents": [
+       {
+        "expiresAt": "2026-11-20T08:30:00Z",
+        "fetchedAt": "2026-11-14T08:30:00Z",
+        "fresh": true,
+        "kind": "keys"
+       }
+      ],
+      "id": "net-1",
+      "keyDocument": "https://net.example.test/keys",
+      "pseudonymKeyMade": true,
+      "revocationList": "https://net.example.test/revoked",
+      "roundStream": false
+     }
+    ]
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/attribution/settings": {
+   "body": {
+    "attributionWindowDays": 30,
+    "bonusCodeWindowDays": 7
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/attribution/signing-keys": {
+   "body": {
+    "keys": [
+     {
+      "kid": "k-1",
+      "madeAt": "2026-11-14T08:30:00Z",
+      "publicKey": "MCowBQYDK2VwAyEA"
+     }
+    ]
+   }
+  }
+ },
+ "engagement": {
+  "GET /v1/casino/backoffice/{brand}/engagement/status": {
+   "body": {
+    "configured": true,
+    "lastHour": {
+     "parked": 1,
+     "sent": 12
+    },
+    "parked": {
+     "count": 1,
+     "oldestAt": "2026-11-14T08:30:00Z"
+    },
+    "processor": "customerio"
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/parked-sends": {
+   "body": {
+    "page": 1,
+    "sends": [
+     {
+      "channel": "email",
+      "class": "transactional",
+      "event": "deposit",
+      "outcome": "parked",
+      "reason": "processor_unavailable",
+      "sendId": "send-1",
+      "time": "2026-11-14T08:30:00Z",
+      "trigger": "deposit_succeeded"
+     }
+    ],
+    "total": 1
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/players/{player}/sends": {
+   "body": {
+    "sends": [],
+    "total": 0
+   }
+  },
+  "GET /v1/casino/crm-config/{brand}": {
+   "body": {
+    "appApiKey": "\u2022\u2022\u2022\u2022",
+    "fromEmail": "hello@goldvibe.example.test",
+    "region": "eu",
+    "siteId": "site-1",
+    "trackApiKey": "\u2022\u2022\u2022\u2022",
+    "triggers": {
+     "deposit_succeeded": {
+      "transactionalId": "tx-dep"
+     }
+    },
+    "webhookSigningKey": "\u2022\u2022\u2022\u2022"
+   }
+  }
+ },
+ "game-provider": {
+  "GET /v1/casino/backoffice/{brand}/game-provider/providers": {
+   "body": {
+    "providers": [
+     {
+      "apiUrl": "https://st8.example.test",
+      "depositUrl": "https://goldvibe.example.test/deposit",
+      "jurisdiction": "anjouan",
+      "lobbyUrl": "https://goldvibe.example.test/lobby",
+      "operatorPublicKey": null,
+      "provider": "st8",
+      "providerKeyDocumentUrl": "https://st8.example.test/keys",
+      "providerPublicKey": null,
+      "site": "goldvibe",
+      "updatedAt": "2026-11-14T08:30:00Z",
+      "walletUrl": null
+     }
+    ]
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/game-provider/providers/{provider}/catalogue/refresh": {
+   "body": {
+    "count": 2,
+    "error": null,
+    "finishedAt": "2026-11-14T08:30:00Z",
+    "provider": "st8",
+    "removed": 0,
+    "startedAt": "2026-11-14T08:30:00Z",
+    "status": "done"
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/game-provider/rounds": {
+   "body": {
+    "page": 1,
+    "pageSize": 50,
+    "rounds": [
+     {
+      "currency": "EUR",
+      "freeRoundsGrant": null,
+      "gameCode": "sweet-bonanza",
+      "gameName": "Sweet Bonanza",
+      "gameType": "slots",
+      "openedAt": "2026-11-16T06:23:20.792Z",
+      "playerId": "3f6c2a1e-8b4d-4c7a-9e2f-5a1b6c7d8e90",
+      "provider": "st8",
+      "roundId": "8a7cf728-9b44-431e-b15a-f9de866aceda",
+      "sessionId": "gs-1",
+      "settledAt": "2026-11-16T07:23:20.792Z",
+      "status": "settled",
+      "totalStake": 1500,
+      "win": 4000
+     },
+     {
+      "currency": "EUR",
+      "freeRoundsGrant": null,
+      "gameCode": "sweet-bonanza",
+      "gameName": "Sweet Bonanza",
+      "gameType": "slots",
+      "openedAt": "2026-11-16T06:23:20.792Z",
+      "playerId": "3f6c2a1e-8b4d-4c7a-9e2f-5a1b6c7d8e90",
+      "provider": "st8",
+      "roundId": "ba32dff9-d12f-4081-ace3-5e2e22ad7c93",
+      "sessionId": "gs-1",
+      "settledAt": null,
+      "status": "open",
+      "totalStake": 700,
+      "win": 0
+     }
+    ],
+    "total": 2
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/game-provider/rounds/by-round/{roundId}": {
+   "answers": {
+    "8a7cf728-9b44-431e-b15a-f9de866aceda": {
+     "body": {
+      "conflictingRepeats": [],
+      "currency": "EUR",
+      "freeRoundsGrant": null,
+      "gameCode": "sweet-bonanza",
+      "gameName": "Sweet Bonanza",
+      "gameType": "slots",
+      "openBets": [],
+      "openedAt": "2026-11-16T06:23:20.792Z",
+      "playerId": "3f6c2a1e-8b4d-4c7a-9e2f-5a1b6c7d8e90",
+      "provider": "st8",
+      "roundId": "8a7cf728-9b44-431e-b15a-f9de866aceda",
+      "sessionId": "gs-1",
+      "settledAt": "2026-11-16T07:23:20.792Z",
+      "status": "settled",
+      "totalStake": 1500,
+      "transactions": [
+       {
+        "amount": 1000,
+        "answer": {
+         "balance": 0,
+         "currency": "EUR",
+         "status": "OK"
+        },
+        "kind": "bet",
+        "movements": [
+         {
+          "action": "bet",
+          "amount": 1000,
+          "real": 1000,
+          "walletKey": "k",
+          "walletRoundId": "8a7cf728-9b44-431e-b15a-f9de866aceda",
+          "walletTransactionId": "w-tx-bet-1"
+         }
+        ],
+        "receivedAt": "2026-11-16T06:23:20.792Z",
+        "references": {},
+        "transactionId": "tx-bet-1"
+       },
+       {
+        "amount": 500,
+        "answer": {
+         "balance": 0,
+         "currency": "EUR",
+         "status": "OK"
+        },
+        "kind": "bet",
+        "movements": [
+         {
+          "action": "bet",
+          "amount": 500,
+          "real": 500,
+          "walletKey": "k",
+          "walletRoundId": "8a7cf728-9b44-431e-b15a-f9de866aceda",
+          "walletTransactionId": "w-tx-bet-2"
+         }
+        ],
+        "receivedAt": "2026-11-16T06:23:20.792Z",
+        "references": {},
+        "transactionId": "tx-bet-2"
+       },
+       {
+        "amount": 4000,
+        "answer": {
+         "balance": 0,
+         "currency": "EUR",
+         "status": "OK"
+        },
+        "kind": "win",
+        "movements": [
+         {
+          "action": "win",
+          "amount": 4000,
+          "real": 4000,
+          "walletKey": "k",
+          "walletRoundId": "8a7cf728-9b44-431e-b15a-f9de866aceda",
+          "walletTransactionId": "w-tx-win-1"
+         }
+        ],
+        "receivedAt": "2026-11-16T06:23:20.792Z",
+        "references": {},
+        "transactionId": "tx-win-1"
+       }
+      ],
+      "unacknowledged": [],
+      "win": 4000
+     }
+    },
+    "ba32dff9-d12f-4081-ace3-5e2e22ad7c93": {
+     "body": {
+      "conflictingRepeats": [],
+      "currency": "EUR",
+      "freeRoundsGrant": null,
+      "gameCode": "sweet-bonanza",
+      "gameName": "Sweet Bonanza",
+      "gameType": "slots",
+      "openBets": [
+       {
+        "amount": 700,
+        "transactionId": "tx-bet-3",
+        "walletKey": "k",
+        "walletRoundId": "ba32dff9-d12f-4081-ace3-5e2e22ad7c93"
+       }
+      ],
+      "openedAt": "2026-11-16T06:23:20.792Z",
+      "playerId": "3f6c2a1e-8b4d-4c7a-9e2f-5a1b6c7d8e90",
+      "provider": "st8",
+      "roundId": "ba32dff9-d12f-4081-ace3-5e2e22ad7c93",
+      "sessionId": "gs-1",
+      "settledAt": null,
+      "status": "open",
+      "totalStake": 700,
+      "transactions": [
+       {
+        "amount": 700,
+        "answer": {
+         "balance": 0,
+         "currency": "EUR",
+         "status": "OK"
+        },
+        "kind": "bet",
+        "movements": [
+         {
+          "action": "bet",
+          "amount": 700,
+          "real": 700,
+          "walletKey": "k",
+          "walletRoundId": "ba32dff9-d12f-4081-ace3-5e2e22ad7c93",
+          "walletTransactionId": "w-tx-bet-3"
+         }
+        ],
+        "receivedAt": "2026-11-16T06:23:20.792Z",
+        "references": {},
+        "transactionId": "tx-bet-3"
+       }
+      ],
+      "unacknowledged": [],
+      "win": 0
+     }
+    }
+   },
+   "by": "roundId",
+   "otherwise": {
+    "body": {
+     "error": "round_not_found"
+    },
+    "status": 404
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/game-provider/rounds/by-transaction/{transactionId}": {
+   "answers": {
+    "00a872de-4513-460a-abbc-aa5713826811": {
+     "body": {
+      "conflictingRepeats": [],
+      "currency": "EUR",
+      "freeRoundsGrant": null,
+      "gameCode": "sweet-bonanza",
+      "gameName": "Sweet Bonanza",
+      "gameType": "slots",
+      "openBets": [],
+      "openedAt": "2026-11-16T06:23:08.918Z",
+      "playerId": "3f6c2a1e-8b4d-4c7a-9e2f-5a1b6c7d8e90",
+      "provider": "st8",
+      "roundId": "8a7cf728-9b44-431e-b15a-f9de866aceda",
+      "sessionId": "gs-1",
+      "settledAt": "2026-11-16T07:23:08.918Z",
+      "status": "settled",
+      "totalStake": 1000,
+      "transactions": [
+       {
+        "amount": 1000,
+        "answer": {
+         "balance": 0,
+         "currency": "EUR",
+         "status": "OK"
+        },
+        "kind": "bet",
+        "movements": [
+         {
+          "action": "bet",
+          "amount": 1000,
+          "real": 1000,
+          "walletKey": "k",
+          "walletRoundId": "8a7cf728-9b44-431e-b15a-f9de866aceda",
+          "walletTransactionId": "w-00a872de-4513-460a-abbc-aa5713826811"
+         }
+        ],
+        "receivedAt": "2026-11-16T06:23:08.918Z",
+        "references": {},
+        "transactionId": "00a872de-4513-460a-abbc-aa5713826811"
+       },
+       {
+        "amount": 2500,
+        "answer": {
+         "balance": 0,
+         "currency": "EUR",
+         "status": "OK"
+        },
+        "kind": "win",
+        "movements": [
+         {
+          "action": "win",
+          "amount": 2500,
+          "real": 2500,
+          "walletKey": "k",
+          "walletRoundId": "8a7cf728-9b44-431e-b15a-f9de866aceda",
+          "walletTransactionId": "w-tx-win-1"
+         }
+        ],
+        "receivedAt": "2026-11-16T06:23:08.918Z",
+        "references": {},
+        "transactionId": "tx-win-1"
+       }
+      ],
+      "unacknowledged": [],
+      "win": 2500
+     }
+    }
+   },
+   "by": "transactionId",
+   "otherwise": {
+    "body": {
+     "error": "round_not_found"
+    },
+    "status": 404
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/game-provider/unacknowledged": {
+   "body": {
+    "entries": [
+     {
+      "amount": 2500,
+      "callback": "win",
+      "currency": "BRL",
+      "error": "timeout",
+      "kind": "credit",
+      "playerId": "p-ana",
+      "provider": "st8",
+      "recordedAt": "2026-11-14T08:30:00Z",
+      "roundId": "r-90211",
+      "transactionId": "b2f1c0de-0001-4c2a-9e1f-000000000001"
+     }
+    ],
+    "page": 1,
+    "pageSize": 50,
+    "total": 1
+   }
+  },
+  "GET /v1/casino/brands/{brand}/game-catalog": {
+   "body": {
+    "games": [
+     {
+      "category": "slots",
+      "categoryDisabled": false,
+      "code": "sweet-bonanza",
+      "developer": "pragmatic",
+      "developerDisabled": false,
+      "effectiveEnabled": true,
+      "individualOverride": null,
+      "name": "Sweet Bonanza",
+      "provider": "st8",
+      "removedFromFeed": false,
+      "st8Enabled": true
+     },
+     {
+      "category": "live",
+      "categoryDisabled": true,
+      "code": "lightning-roulette",
+      "developer": "evolution",
+      "developerDisabled": false,
+      "effectiveEnabled": false,
+      "individualOverride": null,
+      "name": "Lightning Roulette",
+      "provider": "st8",
+      "removedFromFeed": false,
+      "st8Enabled": true
+     }
+    ]
+   }
+  },
+  "GET /v1/casino/brands/{brand}/game-catalog-config": {
+   "body": {
+    "disabledCategories": [
+     "live"
+    ],
+    "disabledDevelopers": [],
+    "gameOverrides": {}
+   }
+  }
+ },
+ "ingest.payments": {
+  "GET /v1/ingest/lost-answers": {
+   "body": {
+    "lostAnswers": [
+     {
+      "amount": 5000,
+      "country": "BR",
+      "currency": "BRL",
+      "lostAnswer": {
+       "answeredAt": "2026-11-14T08:30:00Z",
+       "paymentId": null,
+       "ticket": null
+      },
+      "outcome": "accepted",
+      "paymentId": null,
+      "receivedAt": "2026-11-14T08:30:00Z",
+      "recordId": "rec-1",
+      "refusal": null,
+      "requestId": "req-1",
+      "route": "deposit",
+      "seen": false,
+      "subBrand": "sb-1",
+      "ticket": null
+     }
+    ]
+   }
+  },
+  "GET /v1/ingest/sub-brands/{subBrand}/rate": {
+   "body": {
+    "default": 60,
+    "perMinute": 120
+   }
+  },
+  "GET /v1/ingest/sub-brands/{subBrand}/requests": {
+   "body": {
+    "requests": [
+     {
+      "amount": 5000,
+      "country": "BR",
+      "currency": "BRL",
+      "outcome": "accepted",
+      "paymentId": "c4e6a8b0-3d5f-4a7b-9c1d-2e3f4a5b6c7d",
+      "receivedAt": "2026-11-15T10:00:00Z",
+      "recordId": "rec-2",
+      "refusal": null,
+      "requestId": "req-2",
+      "route": "deposit"
+     }
+    ]
+   }
+  }
+ },
+ "kyc": {
+  "GET /v1/casino/backoffice/{brand}/kyc/policy": {
+   "body": {
+    "autoSuspendOnWindowExpiry": false,
+    "depositGate": "none",
+    "depositThresholdMinorUnits": 200000,
+    "isDefault": false,
+    "kycCurrency": "BRL",
+    "kycWindowDays": 30,
+    "licenceProfile": "anjouan",
+    "playGate": "none",
+    "requiredDocTypes": [
+     "identity",
+     "address"
+    ],
+    "sofThresholdMinorUnits": 1000000
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/kyc/queue": {
+   "body": {
+    "counts": {
+     "awaiting": 3,
+     "largeDeposit": 0,
+     "pending": 3,
+     "ready": 0,
+     "rejected": 0,
+     "sourceOfFunds": 0,
+     "threshold": 0,
+     "unverified": 0,
+     "verified": 0,
+     "window": 0
+    },
+    "rows": [
+     {
+      "awaiting": 1,
+      "depositsByCurrency": {},
+      "flaggedAt": null,
+      "flags": [],
+      "mode": "automatic",
+      "oldestAwaitingAt": "2026-11-10T09:15:00Z",
+      "playerId": "p-fahad",
+      "readyAt": null,
+      "sinceSeconds": 3600,
+      "sof": "unverified",
+      "status": "pending",
+      "updatedAt": "2026-11-10T09:15:00Z"
+     },
+     {
+      "awaiting": 1,
+      "depositsByCurrency": {},
+      "flaggedAt": null,
+      "flags": [],
+      "mode": "automatic",
+      "oldestAwaitingAt": "2026-11-11T14:02:00Z",
+      "playerId": "p-ana",
+      "readyAt": null,
+      "sinceSeconds": 3600,
+      "sof": "unverified",
+      "status": "pending",
+      "updatedAt": "2026-11-11T14:02:00Z"
+     },
+     {
+      "awaiting": 1,
+      "depositsByCurrency": {},
+      "flaggedAt": null,
+      "flags": [],
+      "mode": "automatic",
+      "oldestAwaitingAt": "2026-11-12T08:40:00Z",
+      "playerId": "p-kenji",
+      "readyAt": null,
+      "sinceSeconds": 3600,
+      "sof": "unverified",
+      "status": "pending",
+      "updatedAt": "2026-11-12T08:40:00Z"
+     }
+    ]
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/kyc/{playerId}": {
+   "answers": {
+    "p-ana": {
+     "body": {
+      "categories": [
+       {
+        "category": "identity_front",
+        "document": {
+         "category": "identity_front",
+         "documentId": "d-p-ana",
+         "reasonCode": null,
+         "reviewedAt": null,
+         "reviewedBy": null,
+         "status": "pending",
+         "submittedBy": "player",
+         "uploadedAt": "2026-11-11T14:02:00Z"
+        },
+        "requiredByPolicy": true,
+        "requiredOfPlayer": false
+       },
+       {
+        "category": "proof_of_address",
+        "document": null,
+        "requiredByPolicy": true,
+        "requiredOfPlayer": false
+       }
+      ],
+      "deadline": null,
+      "depositsByCurrency": {},
+      "flags": [],
+      "missingProfileFields": [],
+      "mode": "automatic",
+      "other": [],
+      "playerId": "p-ana",
+      "readyAt": null,
+      "requiredOfPlayer": [],
+      "sof": "unverified",
+      "status": "pending"
+     }
+    },
+    "p-fahad": {
+     "body": {
+      "categories": [
+       {
+        "category": "identity_front",
+        "document": {
+         "category": "identity_front",
+         "documentId": "d-p-fahad",
+         "reasonCode": null,
+         "reviewedAt": null,
+         "reviewedBy": null,
+         "status": "pending",
+         "submittedBy": "player",
+         "uploadedAt": "2026-11-10T09:15:00Z"
+        },
+        "requiredByPolicy": true,
+        "requiredOfPlayer": false
+       },
+       {
+        "category": "proof_of_address",
+        "document": null,
+        "requiredByPolicy": true,
+        "requiredOfPlayer": false
+       }
+      ],
+      "deadline": null,
+      "depositsByCurrency": {},
+      "flags": [],
+      "missingProfileFields": [],
+      "mode": "automatic",
+      "other": [],
+      "playerId": "p-fahad",
+      "readyAt": null,
+      "requiredOfPlayer": [],
+      "sof": "unverified",
+      "status": "pending"
+     }
+    },
+    "p-kenji": {
+     "body": {
+      "categories": [
+       {
+        "category": "identity_front",
+        "document": {
+         "category": "identity_front",
+         "documentId": "d-p-kenji",
+         "reasonCode": null,
+         "reviewedAt": null,
+         "reviewedBy": null,
+         "status": "pending",
+         "submittedBy": "player",
+         "uploadedAt": "2026-11-12T08:40:00Z"
+        },
+        "requiredByPolicy": true,
+        "requiredOfPlayer": false
+       },
+       {
+        "category": "proof_of_address",
+        "document": null,
+        "requiredByPolicy": true,
+        "requiredOfPlayer": false
+       }
+      ],
+      "deadline": null,
+      "depositsByCurrency": {},
+      "flags": [],
+      "missingProfileFields": [],
+      "mode": "automatic",
+      "other": [],
+      "playerId": "p-kenji",
+      "readyAt": null,
+      "requiredOfPlayer": [],
+      "sof": "unverified",
+      "status": "pending"
+     }
+    }
+   },
+   "by": "playerId",
+   "otherwise": {
+    "body": {
+     "categories": [
+      {
+       "category": "identity_front",
+       "document": {
+        "category": "identity_front",
+        "documentId": "d-p-fahad",
+        "reasonCode": null,
+        "reviewedAt": null,
+        "reviewedBy": null,
+        "status": "pending",
+        "submittedBy": "player",
+        "uploadedAt": "2026-11-10T09:15:00Z"
+       },
+       "requiredByPolicy": true,
+       "requiredOfPlayer": false
+      },
+      {
+       "category": "proof_of_address",
+       "document": null,
+       "requiredByPolicy": true,
+       "requiredOfPlayer": false
+      }
+     ],
+     "deadline": null,
+     "depositsByCurrency": {},
+     "flags": [],
+     "missingProfileFields": [],
+     "mode": "automatic",
+     "other": [],
+     "playerId": "p-fahad",
+     "readyAt": null,
+     "requiredOfPlayer": [],
+     "sof": "unverified",
+     "status": "pending"
+    }
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/kyc/{playerId}/decisions": {
+   "body": {
+    "decisions": []
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/kyc/{playerId}/views/{documentId}": {
+   "body": "%PDF-1.4 the player's identity document",
+   "headers": {
+    "Cache-Control": "no-store",
+    "Content-Disposition": "inline",
+    "Content-Type": "application/pdf"
+   }
+  },
+  "GET /v1/casino/brands/{brand}/kyc/status": {
+   "body": {
+    "views": [
+     {
+      "asOf": "2026-11-16T09:59:00Z",
+      "name": "kyc-queue",
+      "rebuilding": false
+     }
+    ]
+   }
+  }
+ },
+ "merchant.payments": {
+  "GET /v1/catalog/gateway/{gateway}": {
+   "body": {
+    "gateway": "DREAMZPAY",
+    "schemes": [
+     {
+      "category": "bank",
+      "pspId": "pix",
+      "requiredProperties": [
+       {
+        "key": "apiKey",
+        "label": "API key",
+        "multiline": false,
+        "required": true,
+        "secret": true
+       }
+      ]
+     }
+    ]
+   }
+  },
+  "GET /v1/companies": {
+   "body": {
+    "companies": [
+     {
+      "companyId": "co-1",
+      "createdAt": "2026-11-14T08:30:00Z",
+      "holdingId": "h-1",
+      "name": "Goldvibe Ltd",
+      "status": "active"
+     }
+    ]
+   }
+  },
+  "GET /v1/holdings": {
+   "body": {
+    "holdings": [
+     {
+      "createdAt": "2026-11-14T08:30:00Z",
+      "holdingId": "h-1",
+      "name": "Goldvibe Holdings",
+      "status": "active"
+     }
+    ]
+   }
+  },
+  "GET /v1/holdings/{id}/companies": {
+   "body": {
+    "companies": [
+     {
+      "companyId": "co-1",
+      "createdAt": "2026-11-14T08:30:00Z",
+      "holdingId": "h-1",
+      "name": "Goldvibe Ltd",
+      "status": "active"
+     }
+    ]
+   }
+  },
+  "GET /v1/merchants/{id}": {
+   "body": {
+    "brand": "goldvibe",
+    "companyId": "co-1",
+    "createdAt": "2026-11-14T08:30:00Z",
+    "holdingId": "h-1",
+    "id": "0b6f2a4e-3c1d-4e8f-9a7b-5c6d7e8f9a0b",
+    "name": "goldvibe",
+    "status": "active",
+    "subBrandId": "0b6f2a4e-3c1d-4e8f-9a7b-5c6d7e8f9a0b",
+    "type": "casino"
+   }
+  },
+  "GET /v1/merchants/{id}/gateways/integrations": {
+   "body": {
+    "integrations": [
+     {
+      "gateway": "DREAMZPAY",
+      "integrationId": "int-1",
+      "missingRequiredProperties": [],
+      "name": "Pix main",
+      "propertyKeys": [
+       "apiKey"
+      ],
+      "propertyPreviews": {
+       "apiKey": "\u2022\u2022\u2022\u202212"
+      },
+      "regions": [
+       "BR"
+      ],
+      "requiresPayoutDestination": false,
+      "scheme": "pix",
+      "status": "active",
+      "supportsDeposit": true,
+      "supportsWithdrawal": true
+     }
+    ]
+   }
+  },
+  "GET /v1/merchants/{id}/keys": {
+   "body": {
+    "keys": [
+     {
+      "active": true,
+      "createdAt": "2026-11-14T08:30:00Z",
+      "keyId": "key-1",
+      "name": "Cashier"
+     }
+    ]
+   }
+  },
+  "GET /v1/operators": {
+   "body": {
+    "operators": [
+     {
+      "email": "finance@goldvibe.example.test",
+      "enabled": true,
+      "firstName": "Fin",
+      "lastName": "Ance",
+      "operatorId": "po-1",
+      "pending": false,
+      "roles": [
+       "merchant_admin"
+      ],
+      "scopeId": "sb-1",
+      "scopeLevel": "subBrand"
+     },
+     {
+      "email": "new@goldvibe.example.test",
+      "enabled": true,
+      "firstName": null,
+      "lastName": null,
+      "operatorId": "po-2",
+      "pending": true,
+      "roles": [
+       "merchant_viewer"
+      ],
+      "scopeId": "sb-1",
+      "scopeLevel": "subBrand"
+     }
+    ],
+    "page": 1,
+    "pageSize": 25,
+    "total": 2
+   }
+  },
+  "GET /v1/payments/cashier": {
+   "body": {
+    "page": 1,
+    "pageSize": 25,
+    "payments": [
+     {
+      "amountCents": 5000,
+      "createdAt": "2026-11-15T10:00:00Z",
+      "currency": "BRL",
+      "customerRef": "p-ana",
+      "failureReason": null,
+      "merchantId": "sb-1",
+      "paymentId": "c4e6a8b0-3d5f-4a7b-9c1d-2e3f4a5b6c7d",
+      "psp": "paysafe",
+      "pspTransactionId": "PSP_1",
+      "status": "captured",
+      "terminalId": "t-1"
+     },
+     {
+      "amountCents": 300000,
+      "createdAt": "2026-11-14T08:30:00Z",
+      "currency": "JPY",
+      "customerRef": "p-kenji",
+      "failureReason": "declined",
+      "merchantId": "sb-1",
+      "paymentId": "d5f7b9c1-4e6a-4b8c-8d2e-3f4a5b6c7d8e",
+      "psp": "paysafe",
+      "pspTransactionId": null,
+      "status": "failed",
+      "terminalId": "t-1"
+     }
+    ],
+    "statusCounts": {
+     "failed": 1,
+     "captured": 1
+    },
+    "total": 2
+   }
+  },
+  "GET /v1/payments/cashier/summary": {
+   "body": {
+    "capturedVolume": [
+     {
+      "amountCents": 15000,
+      "currency": "BRL"
+     }
+    ],
+    "capturedWithoutAmount": 0,
+    "daily": [
+     {
+      "captured": 2,
+      "date": "2026-11-15",
+      "total": 3
+     }
+    ],
+    "psps": [
+     {
+      "captured": 2,
+      "psp": "paysafe",
+      "total": 3
+     }
+    ],
+    "statusCounts": {
+     "failed": 1,
+     "captured": 2
+    },
+    "totalCount": 3
+   }
+  },
+  "GET /v1/payments/cashier/uncredited": {
+   "body": {
+    "payments": [
+     {
+      "attempts": 3,
+      "capturedAt": "2026-11-14T08:30:00Z",
+      "creditStatus": "failing",
+      "lastAnswer": "503",
+      "merchantId": "sb-1",
+      "paymentId": "pay-9"
+     }
+    ]
+   }
+  },
+  "GET /v1/payments/routing-rules/state": {
+   "body": {
+    "draft": {
+     "nodes": {
+      "r": {
+       "branches": [
+        {
+         "conditions": [
+          {
+           "conditionType": "COUNTRY",
+           "operator": "IN",
+           "value": "BR"
+          }
+         ],
+         "nextNodeId": "t"
+        }
+       ],
+       "nodeId": "r"
+      },
+      "t": {
+       "nodeId": "t",
+       "terminals": [
+        "pix-main"
+       ]
+      }
+     },
+     "rootNodeId": "r"
+    },
+    "history": [
+     {
+      "deployedAt": "2026-10-01T10:00:00Z",
+      "version": 1
+     },
+     {
+      "deployedAt": "2026-11-01T10:00:00Z",
+      "version": 2
+     }
+    ],
+    "liveDeployedAt": "2026-11-01T10:00:00Z",
+    "liveTree": {
+     "nodes": {
+      "r": {
+       "nodeId": "r",
+       "terminals": [
+        "card-main"
+       ]
+      }
+     },
+     "rootNodeId": "r"
+    },
+    "liveVersion": 2
+   }
+  },
+  "GET /v1/payments/terminals": {
+   "body": {
+    "terminals": [
+     {
+      "gateway": "DREAMZPAY",
+      "integrationType": "integration",
+      "name": "Pix main",
+      "requiresPayoutDestination": false,
+      "status": "active",
+      "supportsDeposit": true,
+      "supportsWithdrawal": true,
+      "terminalEntityId": "pix-main"
+     }
+    ]
+   }
+  },
+  "GET /v1/payments/{paymentId}": {
+   "answers": {
+    "c4e6a8b0-3d5f-4a7b-9c1d-2e3f4a5b6c7d": {
+     "body": {
+      "amountCents": 2000,
+      "currency": "EUR",
+      "customerRef": "3f6c2a1e-8b4d-4c7a-9e2f-5a1b6c7d8e90",
+      "paymentId": "c4e6a8b0-3d5f-4a7b-9c1d-2e3f4a5b6c7d",
+      "psp": "paysafe",
+      "reference": "PSP_7781234",
+      "status": "captured"
+     }
+    }
+   },
+   "by": "paymentId",
+   "otherwise": {
+    "body": {
+     "error": "PAYMENT_NOT_FOUND"
+    },
+    "status": 404
+   }
+  },
+  "GET /v1/sub-brands": {
+   "body": {
+    "subBrands": [
+     {
+      "brand": "goldvibe",
+      "companyId": "co-1",
+      "createdAt": "2026-11-14T08:30:00Z",
+      "holdingId": "h-1",
+      "id": "0b6f2a4e-3c1d-4e8f-9a7b-5c6d7e8f9a0b",
+      "name": "goldvibe",
+      "status": "active",
+      "subBrandId": "0b6f2a4e-3c1d-4e8f-9a7b-5c6d7e8f9a0b",
+      "type": "casino"
+     }
+    ]
+   }
+  },
+  "GET /v1/sub-brands/{id}/deposit-bounds": {
+   "body": {
+    "bounds": [
+     {
+      "currency": "BRL",
+      "maximumAmountCents": 500000,
+      "method": "card",
+      "minimumAmountCents": 2000
+     }
+    ],
+    "methods": [
+     "card",
+     "pix"
+    ],
+    "subBrandId": "0b6f2a4e-3c1d-4e8f-9a7b-5c6d7e8f9a0b"
+   }
+  },
+  "GET /v1/sub-brands/{id}/psp-credentials": {
+   "body": {
+    "credentials": [
+     {
+      "configId": "cfg-1",
+      "environment": "live",
+      "name": "Paysafe live",
+      "provider": "paysafe",
+      "scheme": "card",
+      "status": "active"
+     }
+    ]
+   }
+  }
+ },
+ "payouts": {
+  "GET /v1/casino/brands/{brand}/payouts/status": {
+   "body": {
+    "views": [
+     {
+      "asOf": "2026-11-16T09:59:00Z",
+      "name": "withdrawal-requests",
+      "rebuilding": false
+     }
+    ]
+   }
+  },
+  "GET /v1/casino/brands/{brand}/players/{playerId}/withdrawal-history": {
+   "body": {
+    "page": 1,
+    "pageSize": 50,
+    "requests": [
+     {
+      "amount": 40000,
+      "createdAt": "2026-11-14T10:00:00Z",
+      "currency": "EUR",
+      "destinationLastFour": "7710",
+      "kycStatus": "verified",
+      "method": "bank_transfer",
+      "payoutStatus": "NONE",
+      "playerId": "p-lena",
+      "requestId": "7d1e4c2a-5b3f-4e6d-8a9c-000000000004",
+      "status": "PENDING_REVIEW",
+      "terminalName": "SEPA out"
+     },
+     {
+      "amount": 30000,
+      "createdAt": "2026-11-13T10:00:00Z",
+      "currency": "EUR",
+      "destinationLastFour": "7710",
+      "kycStatus": "verified",
+      "method": "bank_transfer",
+      "payoutStatus": "RESOLVED",
+      "playerId": "p-lena",
+      "requestId": "7d1e4c2a-5b3f-4e6d-8a9c-000000000003",
+      "status": "COMPLETED",
+      "terminalName": "SEPA out"
+     },
+     {
+      "amount": 20000,
+      "createdAt": "2026-11-12T10:00:00Z",
+      "currency": "EUR",
+      "destinationLastFour": "7710",
+      "kycStatus": "verified",
+      "method": "bank_transfer",
+      "payoutStatus": "NONE",
+      "playerId": "p-lena",
+      "requestId": "7d1e4c2a-5b3f-4e6d-8a9c-000000000002",
+      "status": "REJECTED",
+      "terminalName": "SEPA out"
+     },
+     {
+      "amount": 10000,
+      "createdAt": "2026-11-11T10:00:00Z",
+      "currency": "EUR",
+      "destinationLastFour": "7710",
+      "kycStatus": "verified",
+      "method": "bank_transfer",
+      "payoutStatus": "NONE",
+      "playerId": "p-lena",
+      "requestId": "7d1e4c2a-5b3f-4e6d-8a9c-000000000001",
+      "status": "CANCELLED",
+      "terminalName": "SEPA out"
+     }
+    ],
+    "total": 4
+   }
+  },
+  "GET /v1/casino/brands/{brand}/withdrawal-config": {
+   "body": {
+    "limits": {
+     "BRL": {
+      "monthly": 1500000,
+      "weekly": 500000
+     }
+    }
+   }
+  },
+  "GET /v1/casino/brands/{brand}/withdrawal-requests": {
+   "answers": {
+    "": {
+     "body": {
+      "page": 1,
+      "pageSize": 50,
+      "requests": [
+       {
+        "amount": 30001,
+        "createdAt": "2026-11-01T09:00:00.000Z",
+        "currency": "JPY",
+        "kycStatus": "verified",
+        "payoutStatus": "NONE",
+        "playerId": "p-ana",
+        "requestId": "5e0c0001-7c1a-4d2b-9f3e-000000000001",
+        "status": "PENDING_REVIEW"
+       },
+       {
+        "amount": 30002,
+        "createdAt": "2026-11-02T09:00:00.000Z",
+        "currency": "JPY",
+        "kycStatus": "verified",
+        "payoutStatus": "NONE",
+        "playerId": "p-kenji",
+        "requestId": "5e0c0002-7c1a-4d2b-9f3e-000000000002",
+        "status": "PENDING_REVIEW"
+       },
+       {
+        "amount": 30003,
+        "createdAt": "2026-11-03T09:00:00.000Z",
+        "currency": "JPY",
+        "kycStatus": "verified",
+        "payoutStatus": "NONE",
+        "playerId": "p-fahad",
+        "requestId": "5e0c0003-7c1a-4d2b-9f3e-000000000003",
+        "status": "PENDING_REVIEW"
+       },
+       {
+        "amount": 30004,
+        "createdAt": "2026-11-04T09:00:00.000Z",
+        "currency": "JPY",
+        "kycStatus": "verified",
+        "payoutStatus": "NONE",
+        "playerId": "p-lena",
+        "requestId": "5e0c0004-7c1a-4d2b-9f3e-000000000004",
+        "status": "PENDING_REVIEW"
+       },
+       {
+        "amount": 30005,
+        "createdAt": "2026-11-05T09:00:00.000Z",
+        "currency": "JPY",
+        "kycStatus": "verified",
+        "payoutStatus": "NONE",
+        "playerId": "p-ana",
+        "requestId": "5e0c0005-7c1a-4d2b-9f3e-000000000005",
+        "status": "PENDING_REVIEW"
+       },
+       {
+        "amount": 30006,
+        "createdAt": "2026-11-06T09:00:00.000Z",
+        "currency": "JPY",
+        "kycStatus": "verified",
+        "payoutStatus": "NONE",
+        "playerId": "p-kenji",
+        "requestId": "5e0c0006-7c1a-4d2b-9f3e-000000000006",
+        "status": "PENDING_REVIEW"
+       },
+       {
+        "amount": 30007,
+        "createdAt": "2026-11-07T09:00:00.000Z",
+        "currency": "JPY",
+        "kycStatus": "verified",
+        "payoutStatus": "NONE",
+        "playerId": "p-fahad",
+        "requestId": "5e0c0007-7c1a-4d2b-9f3e-000000000007",
+        "status": "PENDING_REVIEW"
+       },
+       {
+        "amount": 30008,
+        "createdAt": "2026-11-08T09:00:00.000Z",
+        "currency": "JPY",
+        "kycStatus": "verified",
+        "payoutStatus": "NONE",
+        "playerId": "p-lena",
+        "requestId": "5e0c0008-7c1a-4d2b-9f3e-000000000008",
+        "status": "PENDING_REVIEW"
+       },
+       {
+        "amount": 30009,
+        "createdAt": "2026-11-09T09:00:00.000Z",
+        "currency": "JPY",
+        "kycStatus": "verified",
+        "payoutStatus": "NONE",
+        "playerId": "p-ana",
+        "requestId": "5e0c0009-7c1a-4d2b-9f3e-000000000009",
+        "status": "PENDING_REVIEW"
+       },
+       {
+        "amount": 30010,
+        "createdAt": "2026-11-10T09:00:00.000Z",
+        "currency": "JPY",
+        "kycStatus": "verified",
+        "payoutStatus": "NONE",
+        "playerId": "p-kenji",
+        "requestId": "5e0c0010-7c1a-4d2b-9f3e-000000000010",
+        "status": "PENDING_REVIEW"
+       },
+       {
+        "amount": 30011,
+        "createdAt": "2026-11-11T09:00:00.000Z",
+        "currency": "JPY",
+        "kycStatus": "verified",
+        "payoutStatus": "NONE",
+        "playerId": "p-fahad",
+        "requestId": "5e0c0011-7c1a-4d2b-9f3e-000000000011",
+        "status": "PENDING_REVIEW"
+       },
+       {
+        "amount": 30012,
+        "createdAt": "2026-11-12T09:00:00.000Z",
+        "currency": "JPY",
+        "kycStatus": "verified",
+        "payoutStatus": "NONE",
+        "playerId": "p-lena",
+        "requestId": "5e0c0012-7c1a-4d2b-9f3e-000000000012",
+        "status": "PENDING_REVIEW"
+       }
+      ],
+      "total": 12
+     }
+    },
+    "NEEDS_REVIEW": {
+     "body": {
+      "page": 1,
+      "pageSize": 50,
+      "requests": [],
+      "total": 0
+     }
+    }
+   },
+   "by": "?payoutStatus",
+   "otherwise": {
+    "body": {
+     "page": 1,
+     "pageSize": 50,
+     "requests": [
+      {
+       "amount": 30001,
+       "createdAt": "2026-11-01T09:00:00.000Z",
+       "currency": "JPY",
+       "kycStatus": "verified",
+       "payoutStatus": "NONE",
+       "playerId": "p-ana",
+       "requestId": "5e0c0001-7c1a-4d2b-9f3e-000000000001",
+       "status": "PENDING_REVIEW"
+      },
+      {
+       "amount": 30002,
+       "createdAt": "2026-11-02T09:00:00.000Z",
+       "currency": "JPY",
+       "kycStatus": "verified",
+       "payoutStatus": "NONE",
+       "playerId": "p-kenji",
+       "requestId": "5e0c0002-7c1a-4d2b-9f3e-000000000002",
+       "status": "PENDING_REVIEW"
+      },
+      {
+       "amount": 30003,
+       "createdAt": "2026-11-03T09:00:00.000Z",
+       "currency": "JPY",
+       "kycStatus": "verified",
+       "payoutStatus": "NONE",
+       "playerId": "p-fahad",
+       "requestId": "5e0c0003-7c1a-4d2b-9f3e-000000000003",
+       "status": "PENDING_REVIEW"
+      },
+      {
+       "amount": 30004,
+       "createdAt": "2026-11-04T09:00:00.000Z",
+       "currency": "JPY",
+       "kycStatus": "verified",
+       "payoutStatus": "NONE",
+       "playerId": "p-lena",
+       "requestId": "5e0c0004-7c1a-4d2b-9f3e-000000000004",
+       "status": "PENDING_REVIEW"
+      },
+      {
+       "amount": 30005,
+       "createdAt": "2026-11-05T09:00:00.000Z",
+       "currency": "JPY",
+       "kycStatus": "verified",
+       "payoutStatus": "NONE",
+       "playerId": "p-ana",
+       "requestId": "5e0c0005-7c1a-4d2b-9f3e-000000000005",
+       "status": "PENDING_REVIEW"
+      },
+      {
+       "amount": 30006,
+       "createdAt": "2026-11-06T09:00:00.000Z",
+       "currency": "JPY",
+       "kycStatus": "verified",
+       "payoutStatus": "NONE",
+       "playerId": "p-kenji",
+       "requestId": "5e0c0006-7c1a-4d2b-9f3e-000000000006",
+       "status": "PENDING_REVIEW"
+      },
+      {
+       "amount": 30007,
+       "createdAt": "2026-11-07T09:00:00.000Z",
+       "currency": "JPY",
+       "kycStatus": "verified",
+       "payoutStatus": "NONE",
+       "playerId": "p-fahad",
+       "requestId": "5e0c0007-7c1a-4d2b-9f3e-000000000007",
+       "status": "PENDING_REVIEW"
+      },
+      {
+       "amount": 30008,
+       "createdAt": "2026-11-08T09:00:00.000Z",
+       "currency": "JPY",
+       "kycStatus": "verified",
+       "payoutStatus": "NONE",
+       "playerId": "p-lena",
+       "requestId": "5e0c0008-7c1a-4d2b-9f3e-000000000008",
+       "status": "PENDING_REVIEW"
+      },
+      {
+       "amount": 30009,
+       "createdAt": "2026-11-09T09:00:00.000Z",
+       "currency": "JPY",
+       "kycStatus": "verified",
+       "payoutStatus": "NONE",
+       "playerId": "p-ana",
+       "requestId": "5e0c0009-7c1a-4d2b-9f3e-000000000009",
+       "status": "PENDING_REVIEW"
+      },
+      {
+       "amount": 30010,
+       "createdAt": "2026-11-10T09:00:00.000Z",
+       "currency": "JPY",
+       "kycStatus": "verified",
+       "payoutStatus": "NONE",
+       "playerId": "p-kenji",
+       "requestId": "5e0c0010-7c1a-4d2b-9f3e-000000000010",
+       "status": "PENDING_REVIEW"
+      },
+      {
+       "amount": 30011,
+       "createdAt": "2026-11-11T09:00:00.000Z",
+       "currency": "JPY",
+       "kycStatus": "verified",
+       "payoutStatus": "NONE",
+       "playerId": "p-fahad",
+       "requestId": "5e0c0011-7c1a-4d2b-9f3e-000000000011",
+       "status": "PENDING_REVIEW"
+      },
+      {
+       "amount": 30012,
+       "createdAt": "2026-11-12T09:00:00.000Z",
+       "currency": "JPY",
+       "kycStatus": "verified",
+       "payoutStatus": "NONE",
+       "playerId": "p-lena",
+       "requestId": "5e0c0012-7c1a-4d2b-9f3e-000000000012",
+       "status": "PENDING_REVIEW"
+      }
+     ],
+     "total": 12
+    }
+   }
+  },
+  "GET /v1/casino/brands/{brand}/withdrawal-requests/{requestId}": {
+   "body": {
+    "amount": 50000,
+    "balancesAtRequest": 120000,
+    "bonusForfeited": false,
+    "clawbackAmount": 0,
+    "createdAt": "2026-11-14T08:30:00Z",
+    "currency": "BRL",
+    "decisions": [],
+    "destination": {
+     "destinationId": "d-1",
+     "firstName": "Ana",
+     "ibanLastFour": "7710",
+     "lastName": "Souza"
+    },
+    "forfeitedAmount": 0,
+    "initiatedAt": null,
+    "kycStatus": "verified",
+    "outcomes": [],
+    "paidAmount": 0,
+    "payoutStatus": "NONE",
+    "playerId": "p-ana",
+    "providerReference": null,
+    "requestId": "7d1e4c2a-5b3f-4e6d-8a9c-1f2e3d4c5b6a",
+    "restrictedAtRequest": 0,
+    "settledAt": null,
+    "status": "PENDING_REVIEW",
+    "terminal": {
+     "gateway": "dreamzpay",
+     "id": "t-pix",
+     "name": "Pix out",
+     "scheme": "pix"
+    },
+    "transitions": [
+     {
+      "at": "2026-11-14T08:30:00Z",
+      "by": "player",
+      "status": "pending_review"
+     }
+    ],
+    "voidedAmount": 0
+   }
+  }
+ },
+ "players": {
+  "GET /v1/casino/backoffice/{brand}/players": {
+   "body": {
+    "items": [
+     {
+      "playerId": "p-ana",
+      "twinId": "casino-goldvibe/p-ana",
+      "username": "ana.souza",
+      "email": "ana@example.test",
+      "accountStatus": "active",
+      "country": "BR",
+      "currency": "BRL",
+      "registeredAt": "2026-09-01T13:00:00Z",
+      "vipTier": null,
+      "potVip": false,
+      "suspectedDuplicate": false
+     },
+     {
+      "playerId": "p-kenji",
+      "twinId": "casino-goldvibe/p-kenji",
+      "username": "kenji.sato",
+      "email": "kenji@example.test",
+      "accountStatus": "active",
+      "country": "JP",
+      "currency": "JPY",
+      "registeredAt": "2026-09-14T02:30:00Z",
+      "vipTier": "gold",
+      "potVip": false,
+      "suspectedDuplicate": false
+     },
+     {
+      "playerId": "p-fahad",
+      "twinId": "casino-goldvibe/p-fahad",
+      "username": "fahad.k",
+      "email": "fahad@example.test",
+      "accountStatus": "suspended",
+      "country": "KW",
+      "currency": "KWD",
+      "registeredAt": "2026-10-02T18:45:00Z",
+      "vipTier": null,
+      "potVip": true,
+      "suspectedDuplicate": true
+     },
+     {
+      "playerId": "p-lena",
+      "twinId": "casino-goldvibe/p-lena",
+      "username": "lena.m",
+      "email": "lena@example.test",
+      "accountStatus": "active",
+      "country": "PT",
+      "currency": "EUR",
+      "registeredAt": "2026-10-20T09:10:00Z",
+      "vipTier": null,
+      "potVip": false,
+      "suspectedDuplicate": false
+     }
+    ],
+    "total": 4,
+    "facets": {
+     "status": {
+      "active": 3,
+      "suspended": 1
+     },
+     "country": {
+      "BR": 1,
+      "JP": 1,
+      "KW": 1,
+      "PT": 1
+     },
+     "currency": {
+      "BRL": 1,
+      "JPY": 1,
+      "KWD": 1,
+      "EUR": 1
+     },
+     "vipOnly": {
+      "true": 1
+     },
+     "potVip": {
+      "true": 1,
+      "false": 3
+     },
+     "online": {
+      "true": 1,
+      "false": 3
+     },
+     "identity": {
+      "verified": 2,
+      "unverified": 2
+     },
+     "birthdayWithinDays": {
+      "0": 0,
+      "7": 1,
+      "30": 1
+     }
+    }
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/fraud-cases": {
+   "body": {
+    "cases": [
+     {
+      "caseId": "9a3c2b1d-4e5f-4a6b-8c7d-0e1f2a3b4c5d",
+      "detectedAt": "2026-11-12T08:40:00Z",
+      "playerIds": [
+       "p-fahad",
+       "p-kenji"
+      ],
+      "reviewNotes": null,
+      "reviewedAt": null,
+      "reviewedBy": null,
+      "signals": [
+       "shared_device"
+      ],
+      "status": "OPEN"
+     }
+    ]
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/merge-tags": {
+   "body": {
+    "tags": [
+     {
+      "example": "David",
+      "label": "First name",
+      "name": "first_name"
+     },
+     {
+      "example": "Verified",
+      "label": "Verification status",
+      "name": "verification_status"
+     },
+     {
+      "example": "Play now",
+      "label": "Play now CTA",
+      "name": "play_now_cta"
+     }
+    ]
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/players/{playerId}/activity": {
+   "answers": {
+    "account": {
+     "body": {
+      "events": [],
+      "hasMore": false,
+      "next": null,
+      "page": 0,
+      "pageSize": 50,
+      "total": 0
+     }
+    },
+    "bonus": {
+     "body": {
+      "events": [
+       {
+        "actor": "system",
+        "amountMinorUnits": 2000,
+        "category": "Bonus",
+        "currency": "EUR",
+        "description": "bonus_granted",
+        "eventId": "e-reward",
+        "eventType": "bonus_granted",
+        "expandable": true,
+        "timestamp": "2026-11-14T09:23:18.439Z"
+       }
+      ],
+      "hasMore": false,
+      "next": null,
+      "page": 0,
+      "pageSize": 50,
+      "total": 1
+     }
+    },
+    "games": {
+     "body": {
+      "events": [
+       {
+        "actor": "player",
+        "amountMinorUnits": 1500,
+        "category": "Games",
+        "currency": "EUR",
+        "description": "round_settled",
+        "eventId": "e-round",
+        "eventType": "round_settled",
+        "expandable": true,
+        "timestamp": "2026-11-13T23:23:18.439Z"
+       }
+      ],
+      "hasMore": false,
+      "next": null,
+      "page": 0,
+      "pageSize": 50,
+      "total": 1
+     }
+    },
+    "transactions": {
+     "body": {
+      "events": [
+       {
+        "actor": "player",
+        "amountMinorUnits": 5000,
+        "category": "Transactions",
+        "currency": "EUR",
+        "description": "deposit",
+        "eventId": "e-dep",
+        "eventType": "deposit",
+        "expandable": true,
+        "timestamp": "2026-11-13T13:23:18.439Z"
+       },
+       {
+        "actor": "player",
+        "amountMinorUnits": 1000,
+        "category": "Transactions",
+        "currency": "EUR",
+        "description": "bet",
+        "eventId": "e-bet",
+        "eventType": "bet",
+        "expandable": true,
+        "timestamp": "2026-11-13T23:23:18.439Z"
+       }
+      ],
+      "hasMore": false,
+      "next": null,
+      "page": 0,
+      "pageSize": 50,
+      "total": 2
+     }
+    }
+   },
+   "by": "?category",
+   "otherwise": {
+    "body": {
+     "events": [
+      {
+       "actor": "player",
+       "amountMinorUnits": 5000,
+       "category": "Transactions",
+       "currency": "EUR",
+       "description": "deposit",
+       "eventId": "e-dep",
+       "eventType": "deposit",
+       "expandable": true,
+       "timestamp": "2026-11-13T13:23:18.439Z"
+      },
+      {
+       "actor": "player",
+       "amountMinorUnits": 1000,
+       "category": "Transactions",
+       "currency": "EUR",
+       "description": "bet",
+       "eventId": "e-bet",
+       "eventType": "bet",
+       "expandable": true,
+       "timestamp": "2026-11-13T23:23:18.439Z"
+      }
+     ],
+     "hasMore": false,
+     "next": null,
+     "page": 0,
+     "pageSize": 50,
+     "total": 2
+    }
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/players/{playerId}/bets": {
+   "body": {
+    "items": [],
+    "total": 0
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/players/{playerId}/crm": {
+   "body": {
+    "emailMarketingConsent": false,
+    "messageSuppressed": false,
+    "smsMarketingConsent": false
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/players/{playerId}/devices": {
+   "body": {
+    "devices": []
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/players/{playerId}/games": {
+   "body": {
+    "games": [],
+    "truncated": false
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/players/{playerId}/messages": {
+   "body": {
+    "items": [],
+    "page": 1,
+    "pageSize": 100,
+    "total": 0
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/players/{playerId}/notes": {
+   "body": {
+    "notes": [
+     {
+      "author": "op-sup-1",
+      "createdAt": "2026-11-15T15:23:18.439Z",
+      "noteId": "n-1",
+      "pinned": false,
+      "text": "Asked about the limit",
+      "updatedAt": "2026-11-15T15:23:18.439Z"
+     }
+    ],
+    "total": 1
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/players/{playerId}/player-sessions": {
+   "body": {
+    "sessions": [
+     {
+      "endedAt": null,
+      "gameSessions": [
+       {
+        "currency": "BRL",
+        "endedAt": "2026-11-15T10:20:00Z",
+        "gameId": "st8:sweet-bonanza",
+        "gap": null,
+        "launchedAt": "2026-11-15T10:00:00Z",
+        "netMinorUnits": -900,
+        "rounds": 40,
+        "sessionId": "gs-1",
+        "stakedMinorUnits": 4000,
+        "status": "ended",
+        "wonMinorUnits": 3100
+       }
+      ],
+      "reason": null,
+      "sessionId": "s-1",
+      "startedAt": "2026-11-15T10:00:00Z",
+      "status": "active"
+     }
+    ],
+    "total": 1
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/players/{playerId}/sessions": {
+   "body": {
+    "items": [],
+    "total": 0
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/players/{playerId}/tags": {
+   "body": {
+    "setAt": null,
+    "setBy": null,
+    "tags": []
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/sessions": {
+   "body": {
+    "sessions": [
+     {
+      "endedAt": null,
+      "playerId": "p-ana",
+      "reason": null,
+      "sessionId": "s-1",
+      "startedAt": "2026-11-15T10:00:00Z",
+      "status": "active"
+     },
+     {
+      "endedAt": "2026-11-14T09:30:00Z",
+      "playerId": "p-kenji",
+      "reason": "logout",
+      "sessionId": "s-2",
+      "startedAt": "2026-11-14T08:30:00Z",
+      "status": "ended"
+     }
+    ],
+    "total": 2
+   }
+  },
+  "GET /v1/casino/brands/{brand}/modules": {
+   "body": {
+    "missingKeys": [],
+    "modules": [
+     {
+      "follow": "stable",
+      "lastChange": "2026-11-14T08:30:00Z",
+      "module": "core",
+      "status": "enabled",
+      "version": "0.4.0"
+     },
+     {
+      "follow": "stable",
+      "lastChange": "2026-11-14T08:30:00Z",
+      "module": "casino",
+      "status": "enabled",
+      "version": "0.4.0"
+     }
+    ],
+    "requests": []
+   }
+  },
+  "GET /v1/casino/brands/{brand}/players/status": {
+   "body": {
+    "views": [
+     {
+      "asOf": "2026-11-16T09:59:00Z",
+      "name": "players",
+      "rebuilding": false
+     }
+    ]
+   }
+  }
+ },
+ "psp-gateway.payments": {
+  "GET /v1/psp/outcomes/refused": {
+   "body": {
+    "outcomes": [
+     {
+      "attempts": 1,
+      "kind": "withdrawal",
+      "lastAnswer": "409",
+      "outcome": "failed",
+      "provider": "paysafe",
+      "receiver": "payouts",
+      "reference": "ref-2",
+      "since": "2026-11-14T08:30:00Z"
+     }
+    ],
+    "total": 1
+   }
+  },
+  "GET /v1/psp/outcomes/undelivered": {
+   "body": {
+    "outcomes": [
+     {
+      "attempts": 4,
+      "kind": "deposit",
+      "lastAnswer": "503",
+      "outcome": "succeeded",
+      "provider": "paysafe",
+      "receiver": "wallet",
+      "reference": "ref-1",
+      "since": "2026-11-14T08:30:00Z"
+     }
+    ],
+    "total": 1
+   }
+  }
+ },
+ "reporting": {
+  "GET /v1/casino/brands/{brand}/reporting/compliance/kyc-decisions": {
+   "body": {
+    "rows": [
+     {
+      "category": "identity",
+      "decidedAt": "2026-11-15T10:00:00Z",
+      "outcome": "approved",
+      "playerId": "p-kenji",
+      "reason": "",
+      "submittedAt": "2026-11-14T08:30:00Z"
+     }
+    ]
+   }
+  },
+  "GET /v1/casino/brands/{brand}/reporting/compliance/rg-cases": {
+   "body": {
+    "rows": [
+     {
+      "closedAt": null,
+      "openedAt": "2026-11-14T08:30:00Z",
+      "outcome": "open",
+      "playerId": "p-ana",
+      "reason": "",
+      "type": "cooling_off"
+     }
+    ]
+   }
+  },
+  "GET /v1/casino/brands/{brand}/reporting/dashboard/geo": {
+   "body": {
+    "countries": [
+     {
+      "countryCode": "BR",
+      "playerCount": 50
+     },
+     {
+      "countryCode": "PT",
+      "playerCount": 41
+     },
+     {
+      "countryCode": "MX",
+      "playerCount": 32
+     },
+     {
+      "countryCode": "AR",
+      "playerCount": 23
+     },
+     {
+      "countryCode": "CL",
+      "playerCount": 14
+     }
+    ]
+   }
+  },
+  "GET /v1/casino/brands/{brand}/reporting/dashboard/trend": {
+   "by": "?currency",
+   "answers": {
+    "EUR": {
+     "body": {
+      "range": "7d",
+      "currency": "EUR",
+      "currencies": [
+       "BRL",
+       "EUR"
+      ],
+      "dataPoints": [
+       {
+        "label": "2026-11-09",
+        "ggr": "214.00",
+        "ngr": "175.00"
+       },
+       {
+        "label": "2026-11-10",
+        "ggr": "220.00",
+        "ngr": "180.00"
+       },
+       {
+        "label": "2026-11-11",
+        "ggr": "226.00",
+        "ngr": "185.00"
+       },
+       {
+        "label": "2026-11-12",
+        "ggr": "232.00",
+        "ngr": "190.00"
+       },
+       {
+        "label": "2026-11-13",
+        "ggr": "238.00",
+        "ngr": "195.00"
+       },
+       {
+        "label": "2026-11-14",
+        "ggr": "244.00",
+        "ngr": "200.00"
+       },
+       {
+        "label": "2026-11-15",
+        "ggr": "250.00",
+        "ngr": "205.00"
+       }
+      ]
+     }
+    }
+   },
+   "otherwise": {
+    "body": {
+     "range": "7d",
+     "currency": "BRL",
+     "currencies": [
+      "BRL",
+      "EUR"
+     ],
+     "dataPoints": [
+      {
+       "label": "2026-11-09",
+       "ggr": "1070.00",
+       "ngr": "875.00"
+      },
+      {
+       "label": "2026-11-10",
+       "ggr": "1100.00",
+       "ngr": "900.00"
+      },
+      {
+       "label": "2026-11-11",
+       "ggr": "1130.00",
+       "ngr": "925.00"
+      },
+      {
+       "label": "2026-11-12",
+       "ggr": "1160.00",
+       "ngr": "950.00"
+      },
+      {
+       "label": "2026-11-13",
+       "ggr": "1190.00",
+       "ngr": "975.00"
+      },
+      {
+       "label": "2026-11-14",
+       "ggr": "1220.00",
+       "ngr": "1000.00"
+      },
+      {
+       "label": "2026-11-15",
+       "ggr": "1250.00",
+       "ngr": "1025.00"
+      }
+     ]
+    }
+   }
+  },
+  "GET /v1/casino/brands/{brand}/reporting/dashboard/kpis": {
+   "answers": {
+    "BRL": {
+     "body": {
+      "activeGames": {
+       "trend": "flat",
+       "value": 2,
+       "yesterday": 2
+      },
+      "activeSessions": {
+       "trend": "flat",
+       "value": 4,
+       "yesterday": 4
+      },
+      "currencies": [
+       "EUR",
+       "BRL"
+      ],
+      "currency": "BRL",
+      "depositsToday": {
+       "amount": "0.00",
+       "count": 0,
+       "currency": "BRL",
+       "trend": "flat",
+       "yesterdayAmount": "0.00"
+      },
+      "ggrToday": {
+       "currency": "BRL",
+       "trend": "up",
+       "value": "7890.12",
+       "yesterday": "0.00"
+      },
+      "ngrToday": {
+       "currency": "BRL",
+       "trend": "up",
+       "value": "6000.20",
+       "yesterday": "0.00"
+      },
+      "playersOnline": {
+       "trend": "flat",
+       "value": 3,
+       "yesterday": 3
+      },
+      "registrationsToday": {
+       "trend": "flat",
+       "value": 1,
+       "yesterday": 1
+      },
+      "withdrawalsToday": {
+       "amount": "0.00",
+       "count": 0,
+       "currency": "BRL",
+       "trend": "flat",
+       "yesterdayAmount": "0.00"
+      }
+     }
+    },
+    "EUR": {
+     "body": {
+      "activeGames": {
+       "trend": "flat",
+       "value": 2,
+       "yesterday": 2
+      },
+      "activeSessions": {
+       "trend": "flat",
+       "value": 4,
+       "yesterday": 4
+      },
+      "currencies": [
+       "EUR",
+       "BRL"
+      ],
+      "currency": "EUR",
+      "depositsToday": {
+       "amount": "0.00",
+       "count": 0,
+       "currency": "EUR",
+       "trend": "flat",
+       "yesterdayAmount": "0.00"
+      },
+      "ggrToday": {
+       "currency": "EUR",
+       "trend": "up",
+       "value": "1234.56",
+       "yesterday": "0.00"
+      },
+      "ngrToday": {
+       "currency": "EUR",
+       "trend": "up",
+       "value": "1000.10",
+       "yesterday": "0.00"
+      },
+      "playersOnline": {
+       "trend": "flat",
+       "value": 3,
+       "yesterday": 3
+      },
+      "registrationsToday": {
+       "trend": "flat",
+       "value": 1,
+       "yesterday": 1
+      },
+      "withdrawalsToday": {
+       "amount": "0.00",
+       "count": 0,
+       "currency": "EUR",
+       "trend": "flat",
+       "yesterdayAmount": "0.00"
+      }
+     }
+    }
+   },
+   "by": "?currency",
+   "otherwise": {
+    "body": {
+     "activeGames": {
+      "trend": "flat",
+      "value": 2,
+      "yesterday": 2
+     },
+     "activeSessions": {
+      "trend": "flat",
+      "value": 4,
+      "yesterday": 4
+     },
+     "currencies": [
+      "EUR",
+      "BRL"
+     ],
+     "currency": "EUR",
+     "depositsToday": {
+      "amount": "0.00",
+      "count": 0,
+      "currency": "EUR",
+      "trend": "flat",
+      "yesterdayAmount": "0.00"
+     },
+     "ggrToday": {
+      "currency": "EUR",
+      "trend": "up",
+      "value": "1234.56",
+      "yesterday": "0.00"
+     },
+     "ngrToday": {
+      "currency": "EUR",
+      "trend": "up",
+      "value": "1000.10",
+      "yesterday": "0.00"
+     },
+     "playersOnline": {
+      "trend": "flat",
+      "value": 3,
+      "yesterday": 3
+     },
+     "registrationsToday": {
+      "trend": "flat",
+      "value": 1,
+      "yesterday": 1
+     },
+     "withdrawalsToday": {
+      "amount": "0.00",
+      "count": 0,
+      "currency": "EUR",
+      "trend": "flat",
+      "yesterdayAmount": "0.00"
+     }
+    }
+   }
+  },
+  "GET /v1/casino/brands/{brand}/reporting/day-end/{day}": {
+   "body": {
+    "closedAt": "2026-11-16T03:05:00Z",
+    "corrections": [],
+    "currencies": {
+     "BRL": {
+      "bonusCost": "5.00",
+      "chargebacks": "0.00",
+      "depositPoolGgr": "0.00",
+      "deposits": [
+       {
+        "amount": "400.00",
+        "count": 8,
+        "provider": "paysafe"
+       }
+      ],
+      "games": [
+       {
+        "gameId": "sweet-bonanza",
+        "gameName": "Sweet Bonanza",
+        "provider": "st8",
+        "providerGgr": "80.00",
+        "walletGgr": "79.50"
+       }
+      ],
+      "liability": "1200.00",
+      "pendingHolds": "50.00",
+      "walletGgr": "79.50",
+      "withdrawals": [
+       {
+        "amount": "50.00",
+        "count": 1,
+        "gateway": "paysafe"
+       }
+      ]
+     }
+    },
+    "day": "2026-11-15",
+    "differences": [
+     {
+      "provider": "st8",
+      "roundId": "r-90211",
+      "status": "open"
+     }
+    ],
+    "reference": "de-2026-11-15",
+    "zone": "America/Sao_Paulo"
+   }
+  },
+  "GET /v1/casino/brands/{brand}/reporting/documents": {
+   "body": {
+    "documents": [
+     {
+      "askedBy": "op",
+      "endedBy": null,
+      "expiresAt": null,
+      "format": "csv",
+      "from": "2026-10-01",
+      "generatedAt": "2026-11-16T11:23:06.362Z",
+      "kind": "report-export",
+      "parameters": {
+       "report": "ggr"
+      },
+      "readyAt": "2026-11-16T11:23:06.362Z",
+      "reference": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "rows": 2,
+      "status": "ready",
+      "to": "2026-10-31"
+     }
+    ]
+   }
+  },
+  "GET /v1/casino/brands/{brand}/reporting/reports/bonus": {
+   "body": {
+    "currencies": [
+     "BRL"
+    ],
+    "currency": "BRL",
+    "from": "2026-11-01",
+    "offers": [
+     {
+      "cancelledCount": 0,
+      "conversionRatePct": 33.3,
+      "convertedCount": 1,
+      "convertedValue": "20.00",
+      "currency": "BRL",
+      "forfeitedCount": 1,
+      "grantsCount": 3,
+      "offerId": "o-1",
+      "offerName": "Welcome",
+      "offerType": "deposit_match",
+      "totalGrantedValue": "60.00"
+     }
+    ],
+    "summary": {
+     "activeCount": 1,
+     "cancelledCount": 0,
+     "conversionRatePct": 33.3,
+     "convertedCount": 1,
+     "currency": "BRL",
+     "forfeitedCount": 1,
+     "totalGrantedValue": "60.00",
+     "totalGrantsCount": 3
+    },
+    "to": "2026-11-15"
+   }
+  },
+  "GET /v1/casino/brands/{brand}/reporting/reports/ggr": {
+   "answers": {
+    "csv": {
+     "body": {
+      "reference": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "status": "generating"
+     },
+     "status": 202
+    }
+   },
+   "by": "?format",
+   "otherwise": {
+    "body": {
+     "currencies": [
+      "BRL"
+     ],
+     "currency": "BRL",
+     "dailyBreakdown": [
+      {
+       "bets": "1000.00",
+       "bonusCosts": "20.00",
+       "date": "2026-10-01",
+       "depositPoolGgr": "0.00",
+       "ggr": "200.00",
+       "ngr": "180.00",
+       "wins": "800.00"
+      }
+     ],
+     "from": "2026-10-01",
+     "summary": {
+      "bonusCosts": "20.00",
+      "chargebacks": "0.00",
+      "depositPoolGgr": "0.00",
+      "ggr": "200.00",
+      "netCashFlow": "1200.00",
+      "ngr": "180.00",
+      "ngrBasis": "before programme fees",
+      "totalBets": "1000.00",
+      "totalDeposits": "1500.00",
+      "totalWins": "800.00",
+      "totalWithdrawals": "300.00"
+     },
+     "to": "2026-10-31"
+    }
+   }
+  },
+  "GET /v1/casino/brands/{brand}/reporting/reports/players": {
+   "body": {
+    "currencies": [
+     "BRL"
+    ],
+    "currency": "BRL",
+    "from": "2026-11-01",
+    "players": [
+     {
+      "country": "BR",
+      "currency": "BRL",
+      "email": "ana@example.test",
+      "isTestAccount": false,
+      "kycStatus": "verified",
+      "lastLoginAt": "2026-11-15T10:00:00Z",
+      "lifetimeDeposits": "500.00",
+      "lifetimeGgr": "80.00",
+      "lifetimeWagered": "1200.00",
+      "playerId": "p-ana",
+      "registrationDate": "2026-09-01",
+      "status": "active"
+     }
+    ],
+    "to": "2026-11-15",
+    "totalCount": 1
+   }
+  },
+  "GET /v1/casino/brands/{brand}/reporting/reports/psp": {
+   "body": {
+    "currencies": [
+     "BRL"
+    ],
+    "currency": "BRL",
+    "from": "2026-11-01",
+    "pspBreakdown": [
+     {
+      "avgWithdrawalHours": 5.5,
+      "belowThreshold": false,
+      "completedDeposits": 8,
+      "depositAttempts": 10,
+      "depositSuccessRatePct": 80,
+      "depositValue": "400.00",
+      "pspName": "paysafe",
+      "withdrawalCount": 1,
+      "withdrawalRequests": 2
+     }
+    ],
+    "summary": {
+     "avgWithdrawalHours": 5.5,
+     "completedDeposits": 8,
+     "completedWithdrawals": 1,
+     "currency": "BRL",
+     "depositAttempts": 10,
+     "depositSuccessRatePct": 80,
+     "depositValue": "400.00",
+     "withdrawalRequests": 2
+    },
+    "to": "2026-11-15"
+   }
+  },
+  "GET /v1/casino/brands/{brand}/reporting/reports/transactions": {
+   "body": {
+    "from": "2026-11-01",
+    "page": 0,
+    "pageSize": 100,
+    "to": "2026-11-15",
+    "totalCount": 1,
+    "totalPages": 1,
+    "transactions": [
+     {
+      "amount": "50.00",
+      "currency": "BRL",
+      "playerId": "p-ana",
+      "reference": "PSP_1",
+      "timestamp": "2026-11-15T10:00:00Z",
+      "transactionId": "tx-1",
+      "transactionType": "deposit",
+      "truncatedEmail": "an\u2026@example.test"
+     }
+    ]
+   }
+  },
+  "GET /v1/casino/brands/{brand}/reporting/settings": {
+   "body": {
+    "defaultCurrency": "BRL",
+    "excludeTestAccounts": true,
+    "lifetimeHours": {
+     "csv": 72
+    },
+    "reportsTab": true,
+    "syncDays": 31,
+    "syncRows": 5000
+   }
+  }
+ },
+ "responsible-gambling": {
+  "GET /v1/casino/backoffice/{brand}/rg/cases": {
+   "body": {
+    "cases": [
+     {
+      "caseId": "c-rg-1",
+      "caseType": "cooling_off",
+      "closeReason": null,
+      "closedAt": null,
+      "closesAt": "2026-11-21T08:30:00Z",
+      "openedAt": "2026-11-14T08:30:00Z",
+      "playerId": "p-ana",
+      "status": "open",
+      "trigger": "player"
+     }
+    ],
+    "page": 1,
+    "pageSize": 50,
+    "total": 1
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/rg/settings": {
+   "body": {
+    "maxBreakDays": 42,
+    "minSessionMinutes": 60
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/rg/{player}": {
+   "body": {
+    "activeRestrictions": [],
+    "cases": [],
+    "coolingOffUntil": null,
+    "exclusion": null,
+    "history": [
+     {
+      "actor": "player",
+      "description": "DEPOSIT_DAILY (EUR) change requested: 20000",
+      "eventType": "deposit_limit_change_requested",
+      "limitType": "DEPOSIT_DAILY",
+      "newValue": "20000",
+      "occurredAt": "2026-11-16T10:22:57Z",
+      "previousValue": "10000"
+     },
+     {
+      "actor": "player",
+      "description": "DEPOSIT_DAILY (EUR) set: 10000",
+      "eventType": "deposit_limit_set",
+      "limitType": "DEPOSIT_DAILY",
+      "newValue": "10000",
+      "occurredAt": "2026-10-17T11:22:57Z",
+      "previousValue": null
+     }
+    ],
+    "isCoolingOff": false,
+    "limits": [
+     {
+      "currency": "EUR",
+      "limitType": "DEPOSIT_DAILY",
+      "value": 10000
+     }
+    ],
+    "pendingChanges": [
+     {
+      "appliesAt": "2026-11-17T10:22:57Z",
+      "currency": "EUR",
+      "limitType": "DEPOSIT_DAILY",
+      "pendingValue": "20000"
+     }
+    ],
+    "realityCheckIntervalMinutes": null,
+    "returnRequest": null,
+    "usedAmounts": [
+     {
+      "currency": "EUR",
+      "limitType": "DEPOSIT_DAILY",
+      "usedAmount": 0
+     },
+     {
+      "currency": "EUR",
+      "limitType": "DEPOSIT_WEEKLY",
+      "usedAmount": 0
+     },
+     {
+      "currency": "EUR",
+      "limitType": "DEPOSIT_MONTHLY",
+      "usedAmount": 0
+     },
+     {
+      "currency": "EUR",
+      "limitType": "LOSS_DAILY",
+      "usedAmount": 0
+     },
+     {
+      "currency": "EUR",
+      "limitType": "LOSS_WEEKLY",
+      "usedAmount": 0
+     },
+     {
+      "currency": "EUR",
+      "limitType": "LOSS_MONTHLY",
+      "usedAmount": 0
+     }
+    ]
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/rg/{player}/history": {
+   "body": [
+    {
+     "actor": "player",
+     "description": "Daily deposit limit set",
+     "eventType": "LIMIT_SET",
+     "limitType": "DEPOSIT_DAILY",
+     "newValue": "10000",
+     "occurredAt": "2026-11-15T05:23:18.460Z",
+     "previousValue": null
+    }
+   ]
+  },
+  "GET /v1/casino/brands/{brand}/rg/status": {
+   "body": {
+    "views": [
+     {
+      "asOf": "2026-11-16T09:59:00Z",
+      "name": "rg-cases",
+      "rebuilding": false
+     }
+    ]
+   }
+  }
+ },
+ "rewards": {
+  "GET /v1/casino/brands/{brand}/offers": {
+   "body": [
+    {
+     "active": true,
+     "bonusPercentage": 10000,
+     "claimWindowDays": null,
+     "conflictsWith": [],
+     "createdAt": "2026-10-01T09:00:00Z",
+     "currency": "EUR",
+     "depositNumberTarget": "ANY",
+     "description": "",
+     "excludedOfferIds": [],
+     "id": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+     "maxBonusValue": 10000,
+     "maxClaimsPerPlayer": 1,
+     "maxConcurrentGrants": null,
+     "maxConvertibleAmount": null,
+     "minDepositAmount": 2000,
+     "name": "Welcome match",
+     "noDepositRequired": false,
+     "payloadType": "bonus_funds",
+     "redemptionCodes": [],
+     "spinConfigurations": [],
+     "type": "DEPOSIT_MATCH",
+     "updatedAt": "2026-10-01T09:00:00Z",
+     "wageringMultiplier": 30,
+     "wageringWindowDays": 30
+    },
+    {
+     "active": true,
+     "bonusPercentage": 10000,
+     "claimWindowDays": null,
+     "conflictsWith": [],
+     "createdAt": "2026-10-01T09:00:00Z",
+     "currency": "EUR",
+     "depositNumberTarget": "ANY",
+     "description": "",
+     "excludedOfferIds": [
+      "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+     ],
+     "id": "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e",
+     "maxBonusValue": 10000,
+     "maxClaimsPerPlayer": 1,
+     "maxConcurrentGrants": null,
+     "maxConvertibleAmount": null,
+     "minDepositAmount": 2000,
+     "name": "Reload bonus",
+     "noDepositRequired": false,
+     "payloadType": "bonus_funds",
+     "redemptionCodes": [],
+     "spinConfigurations": [],
+     "type": "DEPOSIT_MATCH",
+     "updatedAt": "2026-10-01T09:00:00Z",
+     "wageringMultiplier": 30,
+     "wageringWindowDays": 30
+    },
+    {
+     "active": true,
+     "bonusPercentage": 10000,
+     "claimWindowDays": null,
+     "conflictsWith": [],
+     "createdAt": "2026-10-01T09:00:00Z",
+     "currency": "EUR",
+     "depositNumberTarget": "ANY",
+     "description": "",
+     "excludedOfferIds": [
+      "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+     ],
+     "id": "3c4d5e6f-7a8b-4c9d-8e1f-2a3b4c5d6e7f",
+     "maxBonusValue": 10000,
+     "maxClaimsPerPlayer": 1,
+     "maxConcurrentGrants": null,
+     "maxConvertibleAmount": null,
+     "minDepositAmount": 2000,
+     "name": "High roller",
+     "noDepositRequired": false,
+     "payloadType": "bonus_funds",
+     "redemptionCodes": [],
+     "spinConfigurations": [],
+     "type": "DEPOSIT_MATCH",
+     "updatedAt": "2026-10-01T09:00:00Z",
+     "wageringMultiplier": 30,
+     "wageringWindowDays": 30
+    },
+    {
+     "active": true,
+     "bonusPercentage": 10000,
+     "claimWindowDays": null,
+     "conflictsWith": [],
+     "createdAt": "2026-10-01T09:00:00Z",
+     "currency": "EUR",
+     "depositNumberTarget": "ANY",
+     "description": "",
+     "excludedOfferIds": [],
+     "gameId": "pragmatic:vs20doghouse",
+     "id": "4d5e6f7a-8b9c-4d0e-9f2a-3b4c5d6e7f8a",
+     "maxBonusValue": 10000,
+     "maxClaimsPerPlayer": 1,
+     "maxConcurrentGrants": null,
+     "maxConvertibleAmount": null,
+     "minDepositAmount": 2000,
+     "name": "Weekend spins",
+     "noDepositRequired": false,
+     "payloadType": "free_spins",
+     "redemptionCodes": [],
+     "spinConfigurations": [],
+     "spinCount": 20,
+     "spinValue": 20,
+     "type": "FREE_SPINS",
+     "updatedAt": "2026-10-01T09:00:00Z",
+     "wageringMultiplier": 30,
+     "wageringWindowDays": 30
+    }
+   ]
+  },
+  "GET /v1/casino/brands/{brand}/reward-grants": {
+   "body": {
+    "items": [
+     {
+      "currency": "EUR",
+      "expiresAt": "2026-12-10T12:00:00Z",
+      "faceValue": 10000,
+      "freeSpins": null,
+      "grantedAt": "2026-11-10T12:00:00Z",
+      "isPrimary": null,
+      "offerId": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+      "offerName": "Welcome match",
+      "playerId": "p-lena",
+      "rewardId": "5c0b7e9a-2d41-4f3e-9b6a-8e1f0c2d3a4b",
+      "source": "player_code",
+      "status": "CONVERTED_PENDING_CAP",
+      "type": "DEPOSIT_MATCH",
+      "wageredAmount": 300000,
+      "wageringRequirement": 300000
+     }
+    ],
+    "page": 1,
+    "pageSize": 1,
+    "total": 1,
+    "unmatchedRounds": []
+   }
+  },
+  "GET /v1/casino/brands/{brand}/reward-grants/{rewardId}": {
+   "answers": {
+    "b1d3f5a7-2c4e-4f6a-8b9c-0d1e2f3a4b5c": {
+     "body": {
+      "kind": "DEPOSIT_MATCH",
+      "offerName": "Welcome match",
+      "playerId": "3f6c2a1e-8b4d-4c7a-9e2f-5a1b6c7d8e90",
+      "rewardId": "b1d3f5a7-2c4e-4f6a-8b9c-0d1e2f3a4b5c",
+      "status": "active"
+     }
+    }
+   },
+   "by": "rewardId",
+   "otherwise": {
+    "body": {
+     "error": "not_found"
+    },
+    "status": 404
+   }
+  },
+  "GET /v1/casino/brands/{brand}/rewards/status": {
+   "body": {
+    "views": [
+     {
+      "asOf": "2026-11-16T09:59:00Z",
+      "name": "reward-grants",
+      "rebuilding": false
+     }
+    ]
+   }
+  }
+ },
+ "support-agent": {
+  "GET /v1/casino/agent-config/{brand}": {
+   "body": {
+    "config": {
+     "approvalMinutes": 10,
+     "closingMessage": "Thanks.",
+     "dailyTokens": 200000,
+     "enabled": true,
+     "handOffMessage": "A person will take over.",
+     "helpline": null,
+     "maxInputChars": 2000,
+     "model": "claude",
+     "personalFields": [
+      "email"
+     ],
+     "prompt": "Help players with their accounts.",
+     "retentionDays": 30,
+     "safeguardingMessage": null,
+     "safeguardingOptIn": true,
+     "supportHours": "09:00-17:00",
+     "turnsPerMinute": 6,
+     "unavailableMessage": "We are away."
+    },
+    "recentChanges": [
+     {
+      "at": "2026-11-14T08:30:00Z",
+      "by": "op-platform-admin",
+      "fields": [
+       "prompt"
+      ],
+      "values": {
+       "prompt": "Help players with their accounts."
+      },
+      "version": 2
+     }
+    ],
+    "version": 2
+   }
+  },
+  "GET /v1/casino/agent-config/{brand}/status": {
+   "body": {
+    "budget": {
+     "limit": 200000,
+     "spent": false,
+     "used": 1200
+    },
+    "conversations": {
+     "awaiting": 1,
+     "lastDay": 14,
+     "open": 2
+    },
+    "enabled": true,
+    "judged": "on",
+    "realMoney": false,
+    "safeguarding": "on"
+   }
+  },
+  "GET /v1/casino/agent-config/{brand}/versions/{version}": {
+   "body": {
+    "approvalMinutes": 10,
+    "closingMessage": "Thanks.",
+    "dailyTokens": 200000,
+    "enabled": false,
+    "handOffMessage": "A person will take over.",
+    "helpline": null,
+    "maxInputChars": 2000,
+    "model": "claude",
+    "personalFields": [
+     "email"
+    ],
+    "prompt": "Help players with their accounts.",
+    "retentionDays": 30,
+    "safeguardingMessage": null,
+    "safeguardingOptIn": true,
+    "supportHours": "09:00-17:00",
+    "turnsPerMinute": 6,
+    "unavailableMessage": "We are away."
+   }
+  }
+ },
+ "wallet": {
+  "GET /v1/casino/backoffice/{brand}/wallet-config": {
+   "body": {
+    "bonusWageringCounts": true,
+    "contributionRateByGameType": {},
+    "maxConcurrentAwards": null,
+    "partialSplitsAllowed": true,
+    "turnover": {
+     "definition": "gross_wagered",
+     "multiplier": 3
+    },
+    "updatedAt": "2026-11-10T09:00:00Z",
+    "updatedBy": "op-brand-admin"
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/wallets/{player}/{currency}/balance": {
+   "body": {
+    "available": "1250.50",
+    "bonusBalance": "0.00",
+    "convertedPoolBalance": "0.00",
+    "currency": "BRL",
+    "depositPoolBalance": "1250.50",
+    "primary": null,
+    "realBalance": "1250.50",
+    "reserved": "0.00"
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/wallets/{player}/{currency}/lifetime-totals": {
+   "body": {
+    "totalDeposited": "1200.00",
+    "totalWagered": "5400.00",
+    "totalWon": "5100.00"
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/wallets/{player}/{currency}/restricted-funds": {
+   "body": {
+    "headline": {
+     "balance": 0,
+     "bonusRef": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+     "depositsSinceConversion": 0,
+     "expiresAt": "2026-12-10T12:00:00Z",
+     "forfeitOnWithdrawal": "funds_and_winnings",
+     "grantRef": "5c0b7e9a-2d41-4f3e-9b6a-8e1f0c2d3a4b",
+     "grantedAt": "2026-11-10T12:00:00Z",
+     "maxConvertible": 50000,
+     "openRoundCount": 1,
+     "priority": 1,
+     "recordId": "rf-1",
+     "releaseProgress": 300000,
+     "remainingAllowance": 50000,
+     "status": "CONVERTED_PENDING_CAP",
+     "wageringRequirement": 300000
+    },
+    "records": [
+     {
+      "balance": 0,
+      "bonusRef": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+      "depositsSinceConversion": 0,
+      "expiresAt": "2026-12-10T12:00:00Z",
+      "forfeitOnWithdrawal": "funds_and_winnings",
+      "grantRef": "5c0b7e9a-2d41-4f3e-9b6a-8e1f0c2d3a4b",
+      "grantedAt": "2026-11-10T12:00:00Z",
+      "maxConvertible": 50000,
+      "openRoundCount": 1,
+      "priority": 1,
+      "recordId": "rf-1",
+      "releaseProgress": 300000,
+      "remainingAllowance": 50000,
+      "status": "CONVERTED_PENDING_CAP",
+      "wageringRequirement": 300000
+     }
+    ],
+    "restrictedBalance": 0
+   }
+  },
+  "GET /v1/casino/backoffice/{brand}/wallets/{player}/{currency}/transactions": {
+   "body": {
+    "page": 0,
+    "pageSize": 200,
+    "total": 2,
+    "transactions": [
+     {
+      "actorId": "op-fin-1",
+      "amount": "15.00",
+      "awardRef": null,
+      "balanceAfter": "1250.50",
+      "balanceBefore": "1235.50",
+      "category": "compensation",
+      "cause": {
+       "kind": "payment",
+       "ref": "c4e6a8b0-3d5f-4a7b-9c1d-2e3f4a5b6c7d"
+      },
+      "convertedPart": "0.00",
+      "convertedPoolAfter": "0.00",
+      "createdAt": "2026-11-15T10:00:00Z",
+      "depositPart": "15.00",
+      "depositPoolAfter": "1250.50",
+      "paymentReference": null,
+      "reason": "Failed deposit",
+      "reference": null,
+      "roundId": null,
+      "status": "completed",
+      "transactionId": "t-adj",
+      "type": "admin_adjust",
+      "walletType": "real"
+     },
+     {
+      "actorId": null,
+      "amount": "500.00",
+      "awardRef": null,
+      "balanceAfter": "1235.50",
+      "balanceBefore": "735.50",
+      "category": null,
+      "cause": null,
+      "convertedPart": "0.00",
+      "convertedPoolAfter": "0.00",
+      "createdAt": "2026-11-14T08:30:00Z",
+      "depositPart": "500.00",
+      "depositPoolAfter": "1235.50",
+      "paymentReference": "PSP_1",
+      "reason": null,
+      "reference": null,
+      "roundId": null,
+      "status": "completed",
+      "transactionId": "t-dep",
+      "type": "deposit",
+      "walletType": "real"
+     }
+    ]
+   }
+  },
+  "GET /v1/casino/brands/{brand}/wallet/status": {
+   "body": {
+    "views": [
+     {
+      "asOf": "2026-11-16T09:59:00Z",
+      "name": "wallets",
+      "rebuilding": false
+     }
+    ]
+   }
+  }
+ }
+}

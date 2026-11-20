@@ -42,7 +42,8 @@ class RenderSuite extends munit.FunSuite:
   private val NewOwnKeys  = Map(
     "kyc"           -> Set("KYC_MAX_UPLOAD_BYTES"),
     // spec 023 R13: the erasure targets the brand's modules add.
-    "players"       -> (Set("KEYCLOAK_URL", "INGEST_URL", "ERASURE_TARGETS") ++ PlayersSecrets),
+    // spec 030: half the instance for the heap, which ankka's default quarter left too small.
+    "players"       -> (Set("KEYCLOAK_URL", "INGEST_URL", "ERASURE_TARGETS", "JAVA_TOOL_OPTIONS") ++ PlayersSecrets),
     // spec 026 R11: the provider names the brand runs.
     "game-provider" -> Set("ST8_OPERATOR_ID", "ST8_API_KEY", "GAME_PROVIDER_MODE", "CASINO_PROVIDERS"),
     // spec 011 R13: the programme's code document.
@@ -65,9 +66,11 @@ class RenderSuite extends munit.FunSuite:
 
   /**
    * Sizes spec 001 did not set: players and attribution outgrow `small`'s 512Mi on kind (spec 008 T077,
-   * spec 012 T073; both OOM-killed).
+   * spec 012 T073; both OOM-killed); under spec 030's seed players outgrew `medium` too, and payouts and
+   * rewards `small` (spec 030 research, found during implementation).
    */
-  private val NewSizes = Map("players" -> "medium", "attribution" -> "medium", "kyc" -> "medium")
+  private val NewSizes = Map("players" -> "large", "attribution" -> "medium", "kyc" -> "medium",
+    "payouts" -> "medium", "rewards" -> "medium")
 
   private def plan(named: Vector[String], v: Values = values) =
     BrandRender.plan(v, keys, modules, named, at, Some(Fixtures.devKind), routes = ModuleManifest.ContractView.contractRoutes(Fixtures.root))
@@ -163,7 +166,8 @@ class RenderSuite extends munit.FunSuite:
     assertEquals(p.modules.flatMap(_.grantsReceived), Vector.empty)
     val received = fixture.path("grantsReceived").elements().asScala.toVector.map(_.path("target").asText())
     assertEquals(received, Vector("route:psp-gateway POST /v1/payments/withdrawals", "route:psp-gateway GET /v1/payments/withdrawals/{requestId}",
-      "route:psp-gateway GET /v1/payments/withdrawal-terminals", "erasure"), "what shared payments now makes per brand")
+      "route:psp-gateway GET /v1/payments/withdrawal-terminals", "route:merchant PUT /v1/operators/{id}/brand-roles/{brand}", "erasure"),
+      "what shared payments now makes per brand (the brand-roles grant: spec 030 H6)")
   }
 
   test("all five modules render spec 001's eleven services, the support switch gone, once the brand names the support secret") {
@@ -289,3 +293,16 @@ class RenderSuite extends munit.FunSuite:
     assertEquals(readFromString[ServiceDescriptor](wire).service.hosting, "web")
   }
 
+  test("a web-hosted module service renders hosting web with no protocol, and the descriptor carries it on the wire (spec 030 D1)") {
+    val node = ObjectMapper().readTree(
+      """{"image":"ghcr.io/eitheror/backoffice:0.0.0","hosting":"web","expose":true,"env":[{"name":"CASINO_BRAND","key":"brand.slug"}]}""")
+      .asInstanceOf[com.fasterxml.jackson.databind.node.ObjectNode]
+    val service = ModuleManifest.Service("backoffice", node, None)
+    val d = BrandRender.descriptor(service, Set.empty, Map("brand.slug" -> "goldvibe"), Some("1.2.3"))
+    assertEquals(d.service.hosting, "web")
+    assertEquals(d.service.protocol, None)
+    assertEquals(d.service.image, "ghcr.io/eitheror/backoffice:1.2.3")
+    val wire = com.github.plokhotnyuk.jsoniter_scala.core.writeToString(d)
+    assert(wire.contains("\"hosting\":\"web\""), wire)
+    assertEquals(readFromString[ServiceDescriptor](wire).service.hosting, "web")
+  }

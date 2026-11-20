@@ -45,7 +45,7 @@ class GatesSuite extends munit.FunSuite with LogCapturing:
 
   private def refused(r: Reply, status: Int, code: String): Unit = assertEquals((r.status, r.str("error")), (status, code), r.text)
 
-  private def config(method: String, body: Option[String] = None, roles: String = s"brand_${kit.slug},brand_admin", subject: String = "op-admin") =
+  private def config(method: String, body: Option[String] = None, roles: String = s"brand_${kit.slug},${kit.in("brand_admin")}", subject: String = "op-admin") =
     kit.request(method, s"/v1/casino/brands/${kit.slug}/withdrawal-config", body, kit.asOperator(subject, roles))
 
   private def previews = kit.wallet.received.count(_.path.endsWith("/holds/preview"))
@@ -114,17 +114,19 @@ class GatesSuite extends munit.FunSuite with LogCapturing:
     refused(r, 402, "WITHDRAWAL_BLOCKED_WEEKLY_LIMIT")
     assertEquals((r.json.long("weeklyUsed"), r.json.long("weeklyRemaining")), (Some(6000L), Some(4000L)))
 
-  test("the config routes: read, set, null for unset, admins only"):
+  test("the config routes: read, set, null for unset, set by config.brand only"):
     val set = put("""{"limits":{"eur":{"weekly":100000,"monthly":null},"GBP":{"monthly":250000}}}""")
     val expected = Json.obj("limits" -> Json.obj(
       "EUR" -> Json.obj("weekly" -> 100000L, "monthly" -> null),
       "GBP" -> Json.obj("weekly" -> null, "monthly" -> 250000L)))
     assertEquals(Json.render(set.json), Json.render(expected))
     assertEquals(Json.render(config("GET").json), Json.render(expected))
-    val finance = config("GET", roles = s"brand_${kit.slug},brand_finance")
-    assertEquals((finance.status, finance.str("error")), (403, "forbidden"))
-    assertEquals(config("PUT", Some("""{"limits":{}}"""), roles = s"brand_${kit.slug},brand_finance").status, 403)
-    assertEquals(config("GET", roles = "brand_other,brand_admin").status, 403)
+    // spec 030 Y1: reading the limits is withdrawal.read, setting them config.brand
+    assertEquals(config("GET", roles = s"brand_${kit.slug},${kit.in("brand_finance")}").status, 200)
+    val finance = config("PUT", Some("""{"limits":{}}"""), roles = s"brand_${kit.slug},${kit.in("brand_finance")}")
+    assertEquals(finance.status, 403, finance.text)
+    assert(finance.text.contains("forbidden: the config.brand permission is needed"), finance.text)
+    assertEquals(config("GET", roles = s"brand_other,${kit.in("brand_admin", "other")}").status, 403)
 
   test("a negative or decimal limit, or a currency that is not a code, is refused naming the field; nothing is stored"):
     put("""{"limits":{"EUR":{"weekly":100000}}}""")

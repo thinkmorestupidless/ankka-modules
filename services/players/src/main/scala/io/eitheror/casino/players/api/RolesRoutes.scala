@@ -1,0 +1,240 @@
+package io.eitheror.casino.players.api
+
+import com.fasterxml.jackson.databind.node.ObjectNode
+import com.thinkmorestupidless.ankka.http.Principal
+import io.eitheror.casino.contract.Layout
+import io.eitheror.casino.contract.access.OperatorPermissions
+import io.eitheror.casino.players.{Json, PlayersRuntime}
+import io.eitheror.casino.players.Json.*
+import io.eitheror.casino.players.clients.{Neighbour, Target}
+import io.eitheror.casino.players.roles.*
+
+import java.time.Instant
+import scala.concurrent.Await
+import scala.concurrent.duration.*
+import scala.util.Try
+
+import Answers.*
+
+/**
+ * The brand's roles (spec 030 amendments P12, P13; contracts/roles.md): every role and what it carries,
+ * a role made, changed, reset and deleted, and an operator's roles given. Whether a change leaves a role
+ * able to change roles is decided by [[RoleChangers]], one writer; a change is in force in `players` at once and in every other service of
+ * the brand within its next read of `GET …/players/roles`.
+ */
+final class RolesRoutes(ctx: Ctx):
+  private def components = ctx.clients.componentClient
+  private def views      = ctx.clients.viewClient
+  private def now(): Instant = PlayersRuntime.now()
+
+  /** `{"roles": [{name, description, permissions, default}]}`: what `RoleBags.parse` reads. */
+  def list: Reply = ok(Json.obj("roles" -> Json.arr(Roles.all(views).map(rowOf)*)))
+
+  /** `{"description", "permissions": […]}`: the role made, or changed to carry exactly these. */
+  def set(p: Principal, name: String, text: String): Reply =
+    val body = Json.parse(text).filter(_.isObject)
+    RoleRules.nameRefusal(name) match
+      case Some((code, message)) => refusal(400, code, message)
+      case None =>
+        body match
+          case None => refusal(400, "invalid_body", "a role is {\"description\": …, \"permissions\": […]}")
+          case Some(b) =>
+            val permissions = b.strings("permissions").toSet
+            val description = b.textOr("description", "").take(200)
+            RoleRules.unknown(permissions) match
+              case Some(unknown) =>
+                refusal(400, RoleRules.UnknownPermission, s"$unknown is not a permission", "permission" -> unknown)
+              case None =>
+                val role = components.forEventSourcedEntity(Role.id(name))
+                val held = role.call(Role.get).invoke()
+                changerLacks(p, if held.exists then permissions -- held.permissions else permissions) match
+                  case Some(missing) => lacks(missing)
+                  case None =>
+                    oneWriter(name, permissions(RoleRules.Change))(
+                      role.call(Role.set).invoke(SetRole(name, description, permissions, author(p), now())))
+
+  def reset(p: Principal, name: String): Reply =
+    (OperatorPermissions.DefaultRoles.get(name), RoleRules.nameRefusal(name)) match
+      case (None, Some((code, message))) => refusal(400, code, message)
+      case (None, None) => refusal(409, RoleRules.NotDefault, s"$name is not a default role: it has no default permissions to reset to")
+      case (Some(bag), _) =>
+        val role = components.forEventSourcedEntity(Role.id(name))
+        changerLacks(p, bag -- role.call(Role.get).invoke().permissions) match
+          case Some(missing) => lacks(missing)
+          case None          => oneWriter(name, bag(RoleRules.Change))(role.call(Role.reset).invoke(RoleAct(author(p), now())))
+
+  def delete(p: Principal, name: String): Reply =
+    RoleRules.nameRefusal(name) match
+      case Some((code, message)) => refusal(400, code, message)
+      case None                  => deleteRole(p, name)
+
+  private def deleteRole(p: Principal, name: String): Reply =
+    if OperatorPermissions.DefaultRoles.contains(name) then
+      refusal(409, RoleRules.DefaultRole, s"$name is a default role: it is reset, never deleted")
+    else oneWriter(name, carries = false)(components.forEventSourcedEntity(Role.id(name)).call(Role.delete).invoke(RoleAct(author(p), now())))
+
+  /**
+   * A change to `name` that leaves it carrying `roles.change` (`carries`) or not, decided by [[RoleChangers]],
+   * the one writer of who carries it (FR-008d): one that takes it away is claimed there first and refused when
+   * no role would carry it, so two changes at once cannot both take the last; one that gives it is recorded
+   * there once the role holds it.
+   */
+  private def oneWriter(name: String, carries: Boolean)(write: => RoleAnswer): Reply =
+    val changers = components.forKeyValueEntity(RoleChangers.id)
+    def claim() =
+      val known = if changers.call(RoleChangers.get).invoke().holders.isDefined then Set.empty[String] else changersNow()
+      changers.call(RoleChangers.claim).invoke(ClaimChange(name, carries, known))
+    if carries then
+      val a = write
+      if a.refusal.isEmpty then claim(): Unit
+      done(a)
+    else if claim().refused then lastChanger(name)
+    else done(write)
+
+  /** The roles carrying `roles.change` now: the default roles from their entities, the brand's others from the view. */
+  private def changersNow(): Set[String] =
+    val defaults = OperatorPermissions.DefaultRoles.keySet.filter { r =>
+      val s = components.forEventSourcedEntity(Role.id(r)).call(Role.get).invoke()
+      s.exists && s.permissions(RoleRules.Change)
+    }
+    defaults ++ Roles.bags(views).collect { case (r, bag) if bag(RoleRules.Change) && !OperatorPermissions.DefaultRoles.contains(r) => r }
+
+  /**
+   * `{"roles": […]}`: every role the brand gives `operator`, replacing what it gave before. Refused, naming
+   * the permission, when the giver's own permissions lack one carried by a role it gives or takes away (what
+   * the brand gave last, less what is asked); then merchant records the giving (amendment H6, spec 032: it
+   * answers `202` and puts it in force after), and once it has, the giving is recorded here and answered
+   * `202` with how far it got.
+   */
+  def give(p: Principal, operator: String, text: String): Reply =
+    val roles = Json.parse(text).filter(_.isObject).map(_.strings("roles").toSet)
+    roles match
+      case None => refusal(400, "invalid_body", "a giving is {\"roles\": […]}")
+      case Some(asked) =>
+        val bags = Roles.bags(views)
+        asked.toVector.sorted.find(r => RoleRules.givingRefusal(r).isDefined || !(bags.contains(r) || RoleRules.Given(r))) match
+          case Some(r) if RoleRules.givingRefusal(r).isDefined =>
+            refusal(400, RoleRules.ReservedRole, s"$r is not a role the brand gives", "role" -> r)
+          case Some(r) => refusal(404, RoleRules.NoSuchRole, s"the brand has no role $r", "role" -> r)
+          case None =>
+            val holds  = OperatorPermissions.permissionsOf(ctx.slug, p.roles, bags)
+            val before = components.forEventSourcedEntity(RoleAssignment.id(operator)).call(RoleAssignment.get).invoke().roles
+            RoleRules.givingLacks(holds, bags, before, asked) match
+              case Some(missing) =>
+                refusal(403, RoleRules.GiverLacks, s"the $missing permission is needed to give or take away a role that carries it",
+                  "permission" -> missing)
+              case None => setAtMerchant(p, operator, asked)
+
+  private def setAtMerchant(p: Principal, operator: String, roles: Set[String]): Reply =
+    val target = Target(RolesRoutes.Merchant, "", Some(RolesRoutes.PaymentsProject))
+    val path   = s"/v1/operators/${Neighbour.segment(operator)}/brand-roles/${Neighbour.segment(ctx.slug)}"
+    val call   = Neighbour.call(ctx.clients.services, target, "PUT", path, Some(Json.obj("roles" -> Json.arr(roles.toVector.sorted*))))
+    Try(Await.result(call, RolesRoutes.MerchantBound)).toEither match
+      case Left(e) => refusal(503, "merchant_unavailable", s"the shared payments could not be asked to set the roles: ${e.getMessage}")
+      case Right(r) if !r.ok =>
+        val code = r.body.flatMap(_.text("error")).getOrElse("merchant_refused")
+        refusal(if r.status == 404 then 404 else 502, code, s"the shared payments refused to set the roles (${r.status})")
+      case Right(r) =>
+        val s = components.forEventSourcedEntity(RoleAssignment.id(operator)).call(RoleAssignment.give)
+          .invoke(Give(operator, roles, author(p), now()))
+        json(202, RolesRoutes.giving(Json.obj("operator" -> operator, "brand" -> ctx.slug, "roles" -> Json.arr(s.roles.toVector.sorted*)), r.body))
+
+  /**
+   * P13r (spec 032): what the brand last gave `operator`, and from merchant's H6r how far it got (`state`,
+   * `reason`, `version`, `at`) and the realm roles held for the brand now (`held`), a role no giving asked
+   * for among them. When merchant cannot be asked, the giving is answered without them.
+   */
+  def assignment(operator: String): Reply =
+    val s      = components.forEventSourcedEntity(RoleAssignment.id(operator)).call(RoleAssignment.get).invoke()
+    val answer = Json.obj("operator" -> operator, "brand" -> ctx.slug, "roles" -> Json.arr(s.roles.toVector.sorted*))
+    val target = Target(RolesRoutes.Merchant, "", Some(RolesRoutes.PaymentsProject))
+    val path   = s"/v1/operators/${Neighbour.segment(operator)}/brand-roles/${Neighbour.segment(ctx.slug)}"
+    Try(Await.result(Neighbour.call(ctx.clients.services, target, "GET", path, None), RolesRoutes.MerchantBound)).toEither match
+      case Right(r) if r.ok => ok(RolesRoutes.giving(answer, r.body))
+      case other =>
+        org.slf4j.LoggerFactory.getLogger("players.roles").warn("merchant's giving of {} for {} could not be read: {}", operator, ctx.slug, other.fold(_.getMessage, _.status.toString))
+        ok(answer)
+
+  /**
+   * The first of `added`, the permissions a change puts into a role, the changer does not hold: holding
+   * `roles.change` is not holding every permission, so a role is given only what its changer may do.
+   */
+  private def changerLacks(p: Principal, added: Set[String]): Option[String] =
+    RoleRules.escalation(OperatorPermissions.permissionsOf(ctx.slug, p.roles, Roles.bags(views)), added)
+
+  private def lacks(missing: String): Reply =
+    refusal(403, RoleRules.GiverLacks, s"the $missing permission is needed to put it into a role", "permission" -> missing)
+
+  private def lastChanger(name: String): Reply =
+    refusal(409, RoleRules.LastRoleChanger, s"$name is the last role that may change roles: nobody could change roles after this")
+
+  private def done(a: RoleAnswer): Reply =
+    a.refusal match
+      case Some(RoleRules.NoSuchRole)  => refusal(404, RoleRules.NoSuchRole, "no such role")
+      case Some(RoleRules.DefaultRole) => refusal(409, RoleRules.DefaultRole, s"${a.state.name} is a default role: it is reset, never deleted")
+      case Some(code)                  => refusal(409, code, code.replace('_', ' '))
+      case None =>
+        PlayersRuntime.bags.refresh()
+        ok(stateOf(a.state))
+
+  private def stateOf(s: RoleState): ObjectNode =
+    Json.obj("name" -> s.name, "description" -> s.description, "permissions" -> Json.arr(s.permissions.toVector.sorted*),
+      "default" -> s.default, "deleted" -> s.deleted)
+
+  private def rowOf(r: RoleRow): ObjectNode =
+    Json.obj("name" -> r.name, "description" -> r.description, "permissions" -> Json.arr(r.permissions*), "default" -> r.default)
+
+  private def author(p: Principal): String = p.subject
+
+object RolesRoutes:
+  val Merchant        = "merchant"
+
+  /** `answer` with merchant's account of the giving: `state`, `reason`, `version`, `at` and `held`, as it gave them. */
+  def giving(answer: ObjectNode, merchant: Option[com.fasterxml.jackson.databind.JsonNode]): ObjectNode =
+    merchant.filter(_.isObject).foreach(m => Vector("state", "reason", "version", "at", "held").foreach(f => Option(m.get(f)).foreach(answer.set(f, _): Unit)))
+    answer
+  val PaymentsProject = Layout.SharedProjects.collectFirst { case (p, ss) if ss.contains(Merchant) => p }.getOrElse("payments")
+  val MerchantBound: FiniteDuration = 10.seconds
+
+  /** The description a default role is seeded with. */
+  val Descriptions: Map[String, String] = Map(
+    OperatorPermissions.Support    -> "Reads a player's account and writes notes and messages",
+    OperatorPermissions.Finance    -> "Money: adjustments, withdrawals, rewards and the finance reports",
+    OperatorPermissions.Compliance -> "A player's standing, identity, protection and fraud",
+    OperatorPermissions.Admin      -> "Everything, the brand's configuration and its roles"
+  )
+
+  /** Seeds the role matrix's roles a brand does not yet have; a role that exists is left as it stands. */
+  def seed(components: com.thinkmorestupidless.ankka.sdk.ComponentClient, at: Instant): Unit =
+    OperatorPermissions.DefaultRoles.toVector.sortBy(_._1).foreach { (name, bag) =>
+      components.forEventSourcedEntity(Role.id(name)).call(Role.seed).invoke(SetRole(name, Descriptions(name), bag, "seed", at)): Unit
+    }
+
+  /**
+   * [[seed]], tried again until it holds: a start on a busy node can take longer than a call's 10
+   * seconds, and the service must not end for it. It stays on the starting thread, so the default roles
+   * exist once the service has started; each call leaves a role that exists as it stands, so a second
+   * try changes nothing the first made.
+   */
+  def seedUntilItHolds(components: com.thinkmorestupidless.ankka.sdk.ComponentClient, at: Instant): Unit =
+    untilItHolds(() => seed(components, at))
+
+  /** The wait before the next try after the `n`th failure: 2 s, doubling, never more than a minute. */
+  val SeedPause: Int => Long = n => math.min(60000L, 2000L << math.min(n, 5))
+
+  /** `attempt`, tried again after `pause(n)` ms each time it throws, until it returns; the number of tries. */
+  def untilItHolds(attempt: () => Unit, pause: Int => Long = SeedPause, sleep: Long => Unit = Thread.sleep): Int =
+    val log = org.slf4j.LoggerFactory.getLogger("players.roles")
+    var tries = 0
+    var done = false
+    while !done do
+      tries += 1
+      try
+        attempt()
+        done = true
+      catch
+        case scala.util.control.NonFatal(e) =>
+          val wait = pause(tries - 1)
+          log.warn(s"the default roles are not seeded yet (${e.getMessage}); trying again in ${wait / 1000} s")
+          sleep(wait)
+    tries

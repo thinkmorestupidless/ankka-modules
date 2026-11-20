@@ -42,7 +42,8 @@ object PublicApiService:
 
   def endpoints(settings: Settings, contract: Contract, authenticate: () => Acl = () => Oidc.authenticate(),
       now: () => Instant = () => Instant.now(),
-      catalogueOf: Option[EndpointClients => () => Vector[io.eitheror.casino.publicapi.games.CatalogueGame]] = None): Seq[EndpointClients => HttpEndpoint] =
+      catalogueOf: Option[EndpointClients => () => Vector[io.eitheror.casino.publicapi.games.CatalogueGame]] = None,
+      bags: Option[EndpointClients => io.eitheror.casino.contract.access.RoleBags] = None): Seq[EndpointClients => HttpEndpoint] =
     // The catalogue's load is a blocking call to the provider: two threads of its own, never the global pool's.
     given scala.concurrent.ExecutionContext = PublicApiService.catalogueThreads
     val load = catalogueOf.getOrElse((c: EndpointClients) => io.eitheror.casino.publicapi.games.Catalogue.fromProvider(c.services, settings.brand))
@@ -61,7 +62,9 @@ object PublicApiService:
           (brand, player) =>
             if brand != settings.brand then Refusals.notFound.respond
             else Refusals.json(200, api.Erasure.erase(clients.componentClient, player.toLowerCase))),
-      clients => api.StatusEndpoint(settings.brand, clients, authenticate, now),
+      // `bags`: the brand's roles the status route decides from; by default read from the brand's `players` (spec 030 E1).
+      clients => api.StatusEndpoint(settings.brand, clients, authenticate, now,
+        bags.fold(api.BrandRoles.of(clients.services, settings.brand))(_(clients))),
       _ => HealthEndpoint()
     )
 

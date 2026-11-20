@@ -2,7 +2,7 @@ package io.eitheror.casino.rewards.api
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.http.*
-import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.access.{RoleBags, Routes}
 import io.eitheror.casino.contract.personal.Personal
 import io.eitheror.casino.rewards.Json
 import io.eitheror.casino.rewards.Json.*
@@ -13,27 +13,39 @@ import io.eitheror.casino.rewards.steps.{FreeRoundsFlow, StepRequest, WalletCall
 import Answers.*
 
 /**
- * `/v1/casino/brands/<slug>/reward-grants` (contracts/routes.md): the brand's rewards for its operators. The ACL is
- * the brand's operators; every route but the list checks the three admin roles in the handler (`forbidden`).
+ * `/v1/casino/brands/<slug>/reward-grants` (contracts/routes.md): the brand's rewards for its operators. Each route
+ * requires one permission of the brand's roles as `bags` last read them (spec 030 amendment RW1,
+ * `Routes.operatorMay`): `reward.read` for the list (a player's rewards among it) and one reward, `reward.grant` for
+ * an award, `reward.revoke` for a revoke.
  */
-final class RewardAdminEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${ctx.slug}/reward-grants"):
-  val acl: Acl = Routes.operator(ctx.slug, ctx.authenticate())
+final class RewardAdminEndpoint(ctx: Ctx, bags: RoleBags) extends HttpEndpoint(s"/v1/casino/brands/${ctx.slug}/reward-grants"):
+  private def may(permission: String): Acl = Routes.operatorMay(ctx.slug, permission, bags, ctx.authenticate())
 
-  private def admin(f: => Reply): Reply = if principal.roles.exists(Answers.AdminRoles) then f else forbidden
+  // every route names its own permission; this is never reached
+  val acl: Acl = Acl.DenyAll
+
   private def body(text: String)(f: JsonNode => Reply): Reply = Json.parseObject(text).fold(badBody)(f)
 
-  // The lists and the awards (US6): the brand's list is any operator's; the rest the three admin roles.
+  // The lists and the awards (US6).
+  withAcl(may("reward.read")) {
   get("") { () =>
     RewardLists.list(ctx, RewardLists.Query(query.raw("search"), query.raw("status"), query.raw("offerId"), query.raw("playerId"),
       query.raw("page"), query.raw("pageSize")))
   }
+  }
 
-  get("/{rewardId}") { (id: String) => admin(RewardLists.one(ctx, id)) }
+  withAcl(may("reward.read")) {
+  get("/{rewardId}") { (id: String) => RewardLists.one(ctx, id) }
+  }
 
-  postBody("/{playerId}") { (p: String, text: String) => admin(body(text)(OperatorAwards.award(ctx, p, _, principal.subject))) }
+  withAcl(may("reward.grant")) {
+  postBody("/{playerId}") { (p: String, text: String) => body(text)(OperatorAwards.award(ctx, p, _, principal.subject)) }
+  }
 
+  withAcl(may("reward.revoke")) {
   postBody("/{rewardId}/revoke") { (id: String, text: String) =>
-    admin(body(text)(Revocations.revoke(ctx, id, _, principal.subject)))
+    body(text)(Revocations.revoke(ctx, id, _, principal.subject))
+  }
   }
 
 /**

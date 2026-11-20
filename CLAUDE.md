@@ -57,7 +57,9 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
 | 023 | brand | the predictions module: `markets` and `exchange` on ankka-predictions' libraries (built) | Scala |
 | 026 | shared `games` | provider: eitheror's own game provider, ST8's protocol, on the `provider-core` library it shares with 020 (amends 001, 003, 009, 020) | Scala |
 | 027 | brand | the player SDK (`sdk/player`) and the reference player site, the module `player-site` (web-hosted; amends 002, 003, 008, 021) | TypeScript |
+| 030 | brand (the `backoffice` module) | the backoffice, one per brand: every operator capability of the original, reworked from its use; calls the owning services as the signed-in operator; permissions, and roles as bags of them kept by the brand (amends the constitution) | TypeScript (web), Scala (sign-in, preferences) |
 | 031 | all | every service on ankka 0.18.0; the player routes of nine services described, kept (`openapi.player.json`) and held; the SDK's route tables and shapes generated from them (amends 001, 027) | Scala, TypeScript |
+| 032 | all | per-brand realm roles: a role holds in one brand, named `<role>@<slug>` (`contract.access.BrandRoles`); a brand's giving is recorded by merchant and put in force by its `BrandRolesApplier`; applying a brand carries old roles over (amends 001, 013, 016, 019, 023, 030) | Scala, TypeScript |
 
 ## Working here
 
@@ -93,6 +95,17 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
   (`just player-sdk-generate`; never edited), and `client.ts` is the mapping alone.
   `just player-sdk-test` and CI fail when they are out of date. After changing a player route:
   `just describe <service>`, then `just player-sdk-generate`.
+- The backoffice (spec 030) is the brand's `backoffice` module, two services. `services/backoffice/`
+  is the one service that is not an sbt build: TypeScript, web-hosted (`hosting: "web"`), a React
+  page and the Node server that signs the operator in and calls the owners as them, only through the
+  rows of `src/server/routes.ts` (`npm run owners` makes the typed clients from it). Its README says
+  how to run and test it. `services/backoffice-state/` (Scala) keeps the sign-ins and preferences.
+  `just backoffice-test`, `backoffice-features` (the scenarios over the service doubles),
+  `backoffice-a11y`, `backoffice-run`, `backoffice-contract` (copies the contract's published
+  permissions and currencies into the page), `backoffice-state-it` and `backoffice-spike` (the V1
+  probe) drive them; `backoffice-seed`, `backoffice-it` and `backoffice-record-original` seed a
+  running brand, run the integration suites against it and record the original's screens; the suites
+  wait on spec 033's ephemeral GKE installation, as kind on one machine is too small for a brand.
 - The module model (spec 021, decision 0055): a brand project runs `core` and the modules its
   entitlement at ankka-vendor names. Each module is one manifest, `modules/<module>/module.json`, in
   the vendor's format (the schema is vendored in `tools/modules/src/main/resources/`); a brand

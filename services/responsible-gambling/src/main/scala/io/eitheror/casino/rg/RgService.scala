@@ -4,6 +4,7 @@ import com.thinkmorestupidless.ankka.auth.oidc.Oidc
 import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, HttpServer}
 import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime}
+import io.eitheror.casino.contract.access.RoleBags
 import io.eitheror.casino.rg.api.*
 import io.eitheror.casino.rg.facts.{AuditPublisher, RgPublisher, SettingsAuditPublisher}
 import io.eitheror.casino.rg.profile.{ProfileEntity, RgKeys}
@@ -29,16 +30,21 @@ object RgService:
     PendingTimer.descriptor,
     BreakTimer.descriptor,
     ReturnTimer.descriptor,
-    SyncTimer.descriptor
-  )
+    SyncTimer.descriptor,
+    io.eitheror.casino.rg.cases.CasesView.descriptor
+  ) ++ io.eitheror.casino.rg.freshness.ViewFollower.descriptors
 
-  /** One endpoint per prefix (contracts/routes.md), none sharing one. */
-  def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] =
+  /**
+   * One endpoint per prefix (contracts/routes.md), none sharing one. `bags` is the brand's roles the operator
+   * routes decide from: by default read from the brand's `players` (spec 030 amendment G1).
+   */
+  def endpoints(authenticate: () => Acl, bags: Option[EndpointClients => RoleBags] = None): Seq[EndpointClients => HttpEndpoint] =
     def ctx(c: EndpointClients) = Ctx(authenticate, c)
+    def roles(c: EndpointClients) = bags.fold(BrandRoles.of(c.services, ctx(c).slug))(_(c))
     Seq[EndpointClients => HttpEndpoint](
       c => PlayerEndpoint(ctx(c)),
-      c => OperatorEndpoint(ctx(c)),
-      c => ServiceEndpoint(ctx(c)),
+      c => OperatorEndpoint(ctx(c), roles(c)),
+      c => ServiceEndpoint(ctx(c), roles(c)),
       c => SupportEndpoint(ctx(c))
     )
 

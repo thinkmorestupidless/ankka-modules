@@ -121,6 +121,23 @@ object KycQueue extends View.Companion[KycQueueView, KycEvent, QueueRow](
       val sorted = found.sortBy(since(_).getOrElse(Instant.MAX))
       (if newest then sorted.reverse else sorted).take(limit)
 
+    /** The page'th `pageSize` rows (from 1) in the same order as `rows` (spec 030 K2). */
+    def page(queue: ViewQueries[QueueRow], page: Int, pageSize: Int, newest: Boolean): Vector[QueueRow] =
+      rows(queue, page * pageSize, newest).drop((page - 1) * pageSize)
+
+    /** How many rows the filter holds: what `rows` lists with no limit (spec 030 K2). */
+    def total(queue: ViewQueries[QueueRow]): Long =
+      import com.thinkmorestupidless.ankka.runtime.SqlSyntax.{jsonText, sql}
+      import com.thinkmorestupidless.ankka.runtime.SqlFragment
+      def flagged(r: FlagReason) = sql"jsonb_exists(payload::jsonb->'flags', ${r.wire})"
+      this match
+        case Awaiting         => queue.count(sql"COALESCE((" ++ jsonText("awaiting") ++ sql")::int, 0) > 0")
+        case ByStatus(st)     => queue.count(sql"COALESCE(" ++ jsonText("status") ++ sql", 'unverified') = ${st.wire}")
+        case Ready            => queue.count(jsonText("readyAt") ++ sql" IS NOT NULL")
+        case Flagged(Some(r)) => queue.count(flagged(r))
+        case Flagged(None)    =>
+          queue.count(SqlFragment.raw("(") ++ FlagReason.values.toVector.map(flagged).reduce((a, b) => a ++ SqlFragment.raw(" OR ") ++ b) ++ SqlFragment.raw(")"))
+
     def since(row: QueueRow): Option[Instant] = this match
       case Awaiting    => row.oldestAwaitingAt
       case ByStatus(_) => row.updatedAt

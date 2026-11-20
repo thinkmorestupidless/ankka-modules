@@ -6,6 +6,7 @@ import io.eitheror.casino.players.fraud.FraudCaseEvent
 import io.eitheror.casino.players.inbox.{MessageEvent, MessageOrigin, NoteState}
 import io.eitheror.casino.players.player.{Actor, PlayerEvent, Profile, Status}
 import io.eitheror.casino.players.player.PlayerEvent.*
+import io.eitheror.casino.players.roles.{AssignmentEvent, RoleEvent}
 import io.eitheror.casino.players.sessions.{EndReason, GameSessionEvent, PlayerSessionEvent}
 
 import java.time.Instant
@@ -186,6 +187,9 @@ object Facts:
       case e: NoDepositBlockCleared =>
         op("no-deposit-block-clear", Some(e.actorId), None, Vector(change("noDepositOfferBlocked", "true", "false")), e.at)
       case e: ResetLinkSent => op("reset-password", Some(e.operatorId), None, Vector(named("password")), e.at)
+      case e: ManagerTagsSet =>
+        def listed(ts: Vector[String]) = Option.when(ts.nonEmpty)(ts.mkString(", "))
+        op("manager-tags", Some(e.actorId), None, Vector(f.AuditChange("managerTags", listed(e.previous), listed(e.tags))), e.at)
       case _ => None
     action.map(record(brand, eventId("audit/player", playerId, sequence), _))
 
@@ -235,6 +239,30 @@ object Facts:
       case _ => None
 
   /** An operator's review or dismissal of a suspected duplicate. */
+  private def bag(ps: Set[String]): String = ps.toVector.sorted.mkString(",")
+
+  /**
+   * Every change to one of the brand's roles (spec 030 FR-008b): who made it, the role, and its permissions
+   * before and after. A seeded default role is the service's, `system`.
+   */
+  def roleAudit(brand: String, role: String, sequence: Long, event: RoleEvent): Option[Published[f.AuditRecord]] =
+    def perms(before: Set[String], after: Set[String]) = Vector(change("permissions", bag(before), bag(after)))
+    val action = event match
+      case e: RoleEvent.Defined =>
+        Action("role-define", e.by, "role", role, None, perms(Set.empty, e.permissions), e.at,
+          actorKind = if e.by == "seed" then "system" else "operator")
+      case e: RoleEvent.PermissionsChanged => Action("role-change", e.by, "role", role, None, perms(e.before, e.after), e.at)
+      case e: RoleEvent.Reset              => Action("role-reset", e.by, "role", role, None, perms(e.before, e.after), e.at)
+      case e: RoleEvent.Deleted            => Action("role-delete", e.by, "role", role, None, perms(e.before, Set.empty), e.at)
+    Some(record(brand, eventId("audit/role", role, sequence), action))
+
+  /** An operator's roles given by another (spec 030 FR-008c): both operators, and the roles before and after. */
+  def assignmentAudit(brand: String, operator: String, sequence: Long, event: AssignmentEvent): Option[Published[f.AuditRecord]] =
+    event match
+      case e: AssignmentEvent.Given =>
+        Some(record(brand, eventId("audit/role-assignment", operator, sequence),
+          Action("roles-give", e.by, "operator", operator, None, Vector(change("roles", bag(e.before), bag(e.after))), e.at)))
+
   def fraudAudit(brand: String, caseId: String, sequence: Long, event: FraudCaseEvent): Option[Published[f.AuditRecord]] =
     val action = event match
       case e: FraudCaseEvent.Reviewed  => Some(Action("fraud-review", e.operatorId, "fraud-case", caseId, None, Vector.empty, e.at))

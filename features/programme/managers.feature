@@ -56,3 +56,9 @@ Feature: Managers run the programme per brand and across brands
     Given the programme page of brand "A"
     When a manager changes it
     Then affiliates applying to brand "A" see the new text
+
+  Scenario: the manager role given for one brand manages no other brand the operator's roles name
+    Given an operator whose roles name the brands "A" and "B"
+    And the operator holds the manager role for brand "A" only
+    When they list the accounts of brand "B"
+    Then it is refused

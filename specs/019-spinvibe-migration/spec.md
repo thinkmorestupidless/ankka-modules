@@ -118,6 +118,14 @@ Settled with specs 014–018 once they existed.
   a defect in figures, not in data: nothing is imported for it, and the report says historic
   dashboard figures are not comparable (FR-026b).
 
+### Session 2026-11-16 (amended by spec 030)
+
+- Q: Which roles do the original's operators hold in the brand's backoffice after the cutover? →
+  A: The default roles of spec 030's role matrix, by the mapping of its `contracts/roles.md`
+  (*Cutover mapping*), published as a report for review before the migration runs; an operator whose
+  mapping is ambiguous is given `brand_support` and listed (spec 030 FR-008a, amendment X1;
+  FR-038 to FR-040).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A player's money and bonuses are exactly what they were (Priority: P1)
@@ -247,6 +255,27 @@ findings, and the last one has none open.
 
 ---
 
+### User Story 7 - The operators keep their work (Priority: P2)
+
+On Monday morning a finance operator of the original signs in to Spinvibe's backoffice (spec 030)
+and finds the withdrawal queue they left on Friday, with what `brand_finance` may do. An operator
+who held both a finance and a compliance role is given the support role and is on the list the
+brand's administrator works through that morning.
+
+**Why this priority**: Without roles no operator can act on the brand; a role given too wide is a
+control the brand did not choose.
+
+**Independent Test**: In a rehearsal, publish the mapping from the original's operators, approve
+it, apply it, and sign in as one operator of each original role.
+
+**Acceptance Scenarios**:
+
+- added `features/migration/operator-roles.feature`: the mapping of the original's operators to roles is published for review before the migration runs
+- added `features/migration/operator-roles.feature`: an operator of the original is given the role their original role maps to
+- added `features/migration/operator-roles.feature`: an operator whose original roles map to more than one role is given the support role and listed
+
+---
+
 ### Edge Cases
 
 - A player registered in the original between the final export and the freeze: impossible by
@@ -268,6 +297,9 @@ findings, and the last one has none open.
   default plan and listed.
 - A Keycloak user with no player twin (the orphan spec 008 found): removed from the realm before
   cutover and listed; the person may register again.
+- An operator of the original holding a role the mapping does not name (`resource_owner`,
+  `resource_operator`, `resource_developer`, `casino_admin`), or roles that map to more than one
+  default role: given `brand_support` and listed for review (FR-039).
 - The provider's DNS move is cached beyond the window at one provider: the old gateway keeps
   answering the preserved hostnames with a redirect to the new one for the DNS record's old
   time-to-live, and nothing else.
@@ -370,7 +402,8 @@ findings, and the last one has none open.
   (FR-030); change the realm's authenticator targets; move the preserved hostnames' DNS to the new
   gateway and redeploy the frontends with the new base URLs — and the player site's proxy forwarding
   the player's realm token to the agent's routes instead of minting a hand-off token (spec 017), the
-  one frontend change beyond base URLs; unfreeze; watch (FR-019).
+  one frontend change beyond base URLs; give the operators their roles by the approved mapping
+  (FR-039); unfreeze; watch (FR-019).
 - **FR-017**: Reconciliation MUST compare, for every player, what the player's own routes answer on
   the new services with what the original's answered at the freeze — real balance, restricted
   balance and status, open withdrawal, deposit history count and sum, KYC status, RG status and
@@ -455,11 +488,33 @@ findings, and the last one has none open.
 - **FR-034**: A defect in one rebuilt service after the window MUST be handled by ankka 033's
   rollback of that service, never by returning to the original.
 
+**Operators** (amended by spec 030, X1)
+
+- **FR-038**: The migration MUST publish, for review before it runs, a report listing every operator
+  of the original with the roles they hold there and the roles they would be given, by the mapping
+  of spec 030's `contracts/roles.md` (*Cutover mapping*), and the operators listed for review; no
+  role MUST be given until the report is approved, and the approved report is kept beside the
+  runbook.
+- **FR-039**: At the cutover each operator MUST be given the default role their original role maps
+  to (`platform_admin` stays `platform_admin`; `resource_admin` and `brand_admin` give
+  `brand_admin`; `resource_finance` and `brand_finance` give `brand_finance`; `compliance_officer`,
+  `brand_compliance` and `fraud_analyst` give `brand_compliance`; `support_agent`, `brand_support`
+  and `resource_viewer` give `brand_support`), with `brand_<slug>` for every brand their original
+  level reached; an operator holding a role the mapping does not name, or roles mapping to more than
+  one default role, MUST be given `brand_support` and listed for review. *Amended by spec 032
+  (FR-011, research R10):* the default role is given named for each brand the original's scope
+  reached (`brand_finance@<slug>`), by a giving of that brand through merchant's H6, so each brand
+  can change it or take it away; no role is given with no brand in its name.
+- **FR-040**: The mapping MUST give the default roles only and MUST leave each operator's payments
+  roles as they are, for payments administration; the roles are set through `merchant`, which owns
+  the operators (spec 030 FR-008c), and a brand's own roles are given afterwards in its backoffice.
+
 **Evidence and sign-off**
 
 - **FR-035**: The cutover MUST produce one report: the freeze point, the counts per entity type at
   export and import, the data rules' reports, the reconciliation classes and their evidence, the
-  totals, the elapsed time per step, who did each step, and the signatures; kept under
+  totals, the operators' role mapping as approved and its review list (FR-038), the elapsed time per
+  step, who did each step, and the signatures; kept under
   `brands/spinvibe/cutover-<date>.md`.
 - **FR-036**: Every rehearsal MUST produce the same report marked as a rehearsal, naming its
   snapshot, and recording the removal of production personal data from the rehearsal installation
@@ -490,6 +545,8 @@ findings, and the last one has none open.
 - **Reconciliation row**: one player's before and after, its class and its evidence.
 - **Retained copy**: the original's final backup and export copy, read-only, under retention.
 - **Preserved hostname**: a public hostname a provider or ST8 knows, whose DNS moves at cutover.
+- **Role mapping**: each operator of the original, the roles they hold there, the default roles
+  they are given, and whether they are listed for review (FR-038).
 
 ## Success Criteria *(mandatory)*
 
@@ -540,8 +597,10 @@ findings, and the last one has none open.
   installation's export topics in the same envelope (spec 001 FR-014; spec 015 names them as spec
   014's or 016's if carried); the cutover records the consumer's last position and the new topics
   begin at the cutover point.
-- The operator console, the affiliate portal and the player site change only their base URLs and
-  are redeployed inside the window; custom hostnames of the player site are unchanged.
+- The affiliate portal and the player site change only their base URLs and are redeployed inside
+  the window; custom hostnames of the player site are unchanged. The operator console is replaced by
+  the brand's backoffice (spec 030), which the original's operators sign in to with the roles of
+  FR-039.
 - The old journal's retention follows spec 009's per-licence policy; this spec does not set a
   number of years.
 - The rehearsal installation is a separate ankka installation (or project set) that receives a
@@ -551,7 +610,8 @@ findings, and the last one has none open.
 
 - Every service spec 002–018 and 020, for the shape of each opening event and the import each
   service accepts; spec 013 for the programme's import; spec 016 for the opaque-id registry; spec
-  018 for the account-event import; spec 017 for the proxy change.
+  018 for the account-event import; spec 017 for the proxy change; spec 030 for the role matrix,
+  the cutover mapping and the backoffice that replaces the operator console.
 - Spec 001: the port method (its recordings prove the services before this spec applies), the
   installation conditions, the topic contract, the personal-data rules.
 - ankka 041 (backups, the rehearsed restore, the line of history after any later restore), 042

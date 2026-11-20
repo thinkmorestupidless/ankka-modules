@@ -191,9 +191,9 @@ class DuplicatesFeatures extends PlayersFeatures("duplicates.feature"):
     second = registered("email" -> own("gracehopper1@gmail.com"))
     kit.eventually("the block", 30.seconds)(Option.when(player(second).noDepositBlocked)(())): Unit
   }
-  When("an operator with a fraud or compliance role clears the block") { () =>
+  When("an operator with a compliance or admin role clears the block") { () =>
     val r = kit.request("POST", kit.operatorPath(s"/players/$second/clear-no-deposit-block"), Some("{}"),
-      kit.asOperator(roles = s"brand_${kit.slug},fraud_analyst", subject = "op-8"))
+      kit.asOperator(roles = s"brand_${kit.slug},${kit.in("brand_compliance")}", subject = "op-8"))
     assertEquals((r.status, r.json.get("blockCleared").asBoolean), (200, true), r.text)
   }
   Then("the block is lifted with the operator and the time recorded") { () =>

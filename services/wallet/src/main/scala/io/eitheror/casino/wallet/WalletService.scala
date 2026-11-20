@@ -4,7 +4,7 @@ import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.auth.oidc.Oidc
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, HttpServer}
 import com.thinkmorestupidless.ankka.runtime.{Ankka, ProjectionRuntime}
-import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.access.{RoleBags, Routes}
 import io.eitheror.casino.wallet.api.*
 import com.thinkmorestupidless.ankka.sdk.ServiceClients
 import io.eitheror.casino.wallet.accounts.{AccountEntity, AccountMoveWorkflow}
@@ -33,6 +33,7 @@ object WalletService:
     DepositWorkflow.descriptor,
     BrandConfigEntity.descriptor,
     PaymentEntity.descriptor,
+    io.eitheror.casino.wallet.erasure.ErasedPlayerEntity.descriptor,
     TransactionsView.descriptor,
     SumsView.descriptor,
     LifetimeTotalsView.descriptor,
@@ -46,12 +47,21 @@ object WalletService:
     AccountMoveWorkflow.descriptor,
     AccountAuditPublisher.descriptor,
     AccountTransactionsPublisher.descriptor
-  )
+  ) ++ io.eitheror.casino.wallet.freshness.ViewFollower.descriptors
 
-  /** The four audiences' endpoints, for a brand, with `responsible-gambling` as given. */
-  def endpoints(brand: String, authenticate: () => Acl = () => Oidc.authenticate(), project: String = ""): Seq[EndpointClients => HttpEndpoint] = Seq(
-    clients => ServiceEndpoint(clients.componentClient, clients.viewClient, brand, project = project),
-    clients => OperatorEndpoint(clients.componentClient, clients.viewClient, brand, authenticate()),
+  /**
+   * The four audiences' endpoints, for a brand, with `responsible-gambling` as given. `bags` is the
+   * brand's roles the operator routes decide from: by default read from the brand's `players`.
+   */
+  def endpoints(brand: String, authenticate: () => Acl = () => Oidc.authenticate(), project: String = "",
+      bags: Option[EndpointClients => RoleBags] = None)
+      : Seq[EndpointClients => HttpEndpoint] =
+    def roles(clients: EndpointClients) = bags.fold(BrandRoles.of(clients.services, brand))(_(clients))
+    Seq(
+    // spec 030 W4 (F): the views' freshness for an operator who may read the wallet, or for the project's services
+    clients => ServiceEndpoint(clients.componentClient, clients.viewClient, brand, project = project,
+      statusAcl = Acl.anyOf(Routes.operatorMay(brand, "wallet.read", roles(clients), authenticate()), Routes.service())),
+    clients => OperatorEndpoint(clients.componentClient, clients.viewClient, brand, authenticate(), bags = roles(clients)),
     clients => PlayerEndpoint(clients.componentClient, clients.viewClient, brand, authenticate())
   )
 

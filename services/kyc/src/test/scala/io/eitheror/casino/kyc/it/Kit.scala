@@ -9,7 +9,7 @@ import com.thinkmorestupidless.ankka.core.{EntityId, Metadata}
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, HttpServer, Principal}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.AnkkaTestKit
-import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.access.{BrandRoles, OperatorPermissions, RoleBags, Routes}
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.kyc.{Json, KycRuntime, KycService, Settings}
 import io.eitheror.casino.kyc.documents.{S3Store, Store}
@@ -25,7 +25,9 @@ import scala.concurrent.duration.*
 import scala.jdk.CollectionConverters.*
 
 /** An HTTP answer from the service. */
-final case class Reply(status: Int, text: String):
+final case class Reply(status: Int, text: String, bytes: Array[Byte] = Array.emptyByteArray, headers: Map[String, String] = Map.empty):
+  /** A response header by its name in any case. */
+  def header(name: String): Option[String] = headers.collectFirst { case (k, v) if k.equalsIgnoreCase(name) => v }
   def json: JsonNode             = Json.parse(text).getOrElse(throw AssertionError(s"not JSON ($status): $text"))
   def str(field: String): String = Json.parse(text).flatMap(n => Option(n.get(field))).filterNot(_.isNull).map(_.asText).getOrElse("")
 
@@ -87,9 +89,12 @@ final class Kit(base: Settings = Kit.Base):
   LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).asInstanceOf[Logger].addAppender(log)
 
   private val timers = TimerRuntime(200.millis)
+  /** The brand's roles the operator routes decide from: the role matrix, as a new brand starts. */
+  val roles: RoleBags = RoleBags.fixed(OperatorPermissions.DefaultRoles)
+
   /** The player's routes held to the kept description (spec 031 FR-015); `Held` asserts it after each test. */
   val held = io.eitheror.casino.contract.port.HeldToPlayerRoutes(Kit.description, slug)
-  private val server = held.hold(HttpServer.at("127.0.0.1", 0)(KycService.endpoints(() => Kit.authenticate)*))
+  private val server = held.hold(HttpServer.at("127.0.0.1", 0)(KycService.endpoints(() => Kit.authenticate, bags = Some(_ => roles))*))
   Kit.started.add(this): Unit
 
   val testKit: AnkkaTestKit = AnkkaTestKit.start(
@@ -130,8 +135,9 @@ final class Kit(base: Settings = Kit.Base):
       .method(method, body.fold(HttpRequest.BodyPublishers.noBody())(t => HttpRequest.BodyPublishers.ofString(t)))
     if body.isDefined then b.header("Content-Type", "application/json")
     headers.foreach((k, v) => b.header(k, v))
-    val r = http.send(b.build(), HttpResponse.BodyHandlers.ofString())
-    Reply(r.statusCode, r.body)
+    val r     = http.send(b.build(), HttpResponse.BodyHandlers.ofByteArray())
+    val heads = r.headers.map.asScala.toMap.collect { case (k, v) if !v.isEmpty => k -> v.get(0) }
+    Reply(r.statusCode, String(r.body, UTF_8), r.body, heads)
 
   def json(method: String, path: String, body: JsonNode, headers: Seq[(String, String)]): Reply =
     request(method, path, Some(Json.render(body)), headers)
@@ -150,7 +156,9 @@ final class Kit(base: Settings = Kit.Base):
 
   private def gateway = testKit.asCaller(Caller.Gateway)
   def asPlayer(playerId: String): Seq[(String, String)] = Seq(gateway, "Authorization" -> s"Bearer player|$playerId")
-  def asOperator(subject: String = "op-1", roles: String = s"brand_$slug,brand_compliance"): Seq[(String, String)] =
+  /** A role held in this brand: the realm role named for it (spec 032). */
+  def named(role: String): String = BrandRoles.nameIn(slug, role)
+  def asOperator(subject: String = "op-1", roles: String = s"brand_$slug,${named("brand_admin")}"): Seq[(String, String)] =
     Seq(gateway, "Authorization" -> s"Bearer staff|$subject|$roles")
   def asService(name: String): Seq[(String, String)] = Seq(testKit.asCaller(Caller.Service("local", name)))
   def asPublic: Seq[(String, String)]                = Seq(gateway)

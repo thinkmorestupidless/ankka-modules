@@ -82,6 +82,30 @@ class RgItSuite extends munit.FunSuite with LogCapturing:
     val h = kit.request("GET", kit.playerPath(s"/$p/history"), None, kit.asPlayer(p)).json
     assertEquals(h.elements.asScala.toVector.flatMap(_.text("eventType")), Vector("deposit_limit_change_requested", "deposit_limit_set"))
 
+  // spec 030 G3
+  test("an operator holding protection.read reads the player's history, newest first, bounded by from and to; others are refused"):
+    val p = player()
+    putLimit(p, "DEPOSIT_DAILY", "10000"): Unit
+    kit.advance(java.time.Duration.ofMinutes(5))
+    val between = kit.now()
+    kit.advance(java.time.Duration.ofMinutes(5))
+    putLimit(p, "DEPOSIT_DAILY", "20000"): Unit
+    def history(query: String = "", as: Seq[(String, String)] = kit.asOperator("op-g3", s"brand_${kit.slug},${kit.in("brand_support")}")) =
+      kit.request("GET", kit.operatorPath(s"/$p/history$query"), None, as)
+    val all = history()
+    assertEquals(all.status, 200, all.text)
+    val own = kit.request("GET", kit.playerPath(s"/$p/history"), None, kit.asPlayer(p))
+    assertEquals(all.text, own.text)
+    def types(r: Reply) = r.json.elements.asScala.toVector.flatMap(_.text("eventType"))
+    assertEquals(types(all), Vector("deposit_limit_change_requested", "deposit_limit_set"))
+    assertEquals(types(history(s"?from=$between")), Vector("deposit_limit_change_requested"))
+    assertEquals(types(history(s"?to=$between")), Vector("deposit_limit_set"))
+    val bad = history("?to=soon")
+    assertEquals((bad.status, bad.str("error"), bad.str("field")), (400, "invalid_request", "to"))
+    val payments = history(as = kit.asOperator("op-p", s"brand_${kit.slug},resource_admin"))
+    assert(payments.status == 403 && payments.text.contains("the protection.read permission is needed"), payments.toString)
+    assertEquals(history(as = kit.asPlayer(p)).status, 403)
+
   // ── US2: deposits ─────────────────────────────────────────────────────────
 
   test("may-deposit: exactly the remainder allowed, a minor unit over refused naming the limit, in the wallet's shape"):

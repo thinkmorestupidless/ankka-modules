@@ -2,7 +2,6 @@ package io.eitheror.casino.payouts.api
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.http.*
-import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.contract.personal.Personal
 import io.eitheror.casino.payouts.Json
 import io.eitheror.casino.payouts.Json.*
@@ -17,32 +16,36 @@ import Answers.*
 
 /**
  * `/v1/casino/brands/<slug>/withdrawal-requests` (contracts/routes.md; R6): the brand's queue, a request, and
- * the operator's decisions and settlements. The ACL admits an operator of the brand; each route asks for a
- * finance or admin role, and any other is `forbidden`.
+ * the operator's decisions and settlements. Each route admits an operator of the brand whose roles' bags hold
+ * its permission (spec 030 amendment Y1): `withdrawal.read` for the queue and a request, `withdrawal.review`
+ * for a decision and a settlement by hand.
  */
 final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${ctx.slug}/withdrawal-requests"):
-  val acl: Acl = Routes.operator(ctx.slug, ctx.authenticate())
-
-  private def finance(f: => Reply): Reply = if principal.roles.exists(FinanceRoles) then f else forbidden
+  // every route names its own permission; this is never reached
+  val acl: Acl = Acl.DenyAll
   private def by(reason: Option[String]) = ByOperator(principal.subject, reason.map(Personal(_)))
   private def reason(text: String, field: String): Option[String] =
     Json.parseObject(text).flatMap(_.text(field)).map(_.trim).filter(_.nonEmpty)
 
-  get("/") { () => finance(Operator.queue(ctx, request.query.raw)) }
-  get("/{requestId}") { (id: String) => finance(Operator.detail(ctx, id)) }
+  withAcl(ctx.may("withdrawal.read")) {
+    get("/") { () => Operator.queue(ctx, request.query.raw) }
+    get("/{requestId}") { (id: String) => Operator.detail(ctx, id) }
+  }
 
-  postBody("/{requestId}/approve") { (id: String, _: String) =>
-    finance(Operator.decide(ctx, id)(ctx.workflow(id).call(WithdrawalWorkflow.approve).invoke(by(None))))
-  }
-  postBody("/{requestId}/reject") { (id: String, text: String) =>
-    finance(Operator.decide(ctx, id)(ctx.workflow(id).call(WithdrawalWorkflow.reject).invoke(by(reason(text, "reason")))))
-  }
-  postBody("/{requestId}/confirm-payout") { (id: String, text: String) =>
-    finance(Operator.settle(ctx, id)(ctx.workflow(id).call(WithdrawalWorkflow.confirmPayout).invoke(by(reason(text, "note")))))
-  }
-  postBody("/{requestId}/mark-payout-failed") { (id: String, text: String) =>
-    val why = reason(text, "reason").orElse(Some(Operator.DefaultFailure))
-    finance(Operator.settle(ctx, id)(ctx.workflow(id).call(WithdrawalWorkflow.markFailed).invoke(by(why))))
+  withAcl(ctx.may("withdrawal.review")) {
+    postBody("/{requestId}/approve") { (id: String, _: String) =>
+      Operator.decide(ctx, id)(ctx.workflow(id).call(WithdrawalWorkflow.approve).invoke(by(None)))
+    }
+    postBody("/{requestId}/reject") { (id: String, text: String) =>
+      Operator.decide(ctx, id)(ctx.workflow(id).call(WithdrawalWorkflow.reject).invoke(by(reason(text, "reason"))))
+    }
+    postBody("/{requestId}/confirm-payout") { (id: String, text: String) =>
+      Operator.settle(ctx, id)(ctx.workflow(id).call(WithdrawalWorkflow.confirmPayout).invoke(by(reason(text, "note"))))
+    }
+    postBody("/{requestId}/mark-payout-failed") { (id: String, text: String) =>
+      val why = reason(text, "reason").orElse(Some(Operator.DefaultFailure))
+      Operator.settle(ctx, id)(ctx.workflow(id).call(WithdrawalWorkflow.markFailed).invoke(by(why)))
+    }
   }
 
 /** The operator routes' work, apart from the endpoint so a suite can read it. */
@@ -57,8 +60,8 @@ object Operator:
   private def notFound = refusal(404, RequestCodes.NotFound, "no such withdrawal request")
   private def invalid(parameter: String) = refusal(400, "INVALID_REQUEST", s"$parameter is not a valid value", "field" -> parameter)
 
-  /** The query as a filter and a page, or the first parameter that is not valid. */
-  def filter(q: String => Option[String], now: java.time.Instant): Either[String, (WithdrawalQueue.Filter, Int, Int)] =
+  /** The query as a filter, a page and whether oldest first (`sort=oldest`; newest by default), or the first parameter that is not valid. */
+  def filter(q: String => Option[String], now: java.time.Instant): Either[String, (WithdrawalQueue.Filter, Int, Int, Boolean)] =
     def opt(name: String) = q(name).map(_.trim).filter(_.nonEmpty)
     def number(name: String, default: Int) = opt(name).fold[Either[String, Int]](Right(default))(v => v.toIntOption.toRight(name))
     for
@@ -75,18 +78,43 @@ object Operator:
       band <- opt("amountRange").fold[Either[String, Option[String]]](Right(None))(v => Either.cond(Bands(v), Some(v), "amountRange"))
       page <- number("page", 1)
       size <- number("pageSize", 50)
-      _    <- Either.cond(page >= 1, (), "page")
+      _    <- Either.cond(page >= 1 && page <= WithdrawalQueue.LastPage, (), "page")
       _    <- Either.cond(size >= 1 && size <= WithdrawalQueue.MaxPageSize, (), "pageSize")
+      oldest <- opt("sort").map(_.toLowerCase) match
+        case None | Some("newest") => Right(false)
+        case Some("oldest")        => Right(true)
+        case Some(_)               => Left("sort")
     yield
       val waiting = if stale then payout.orElse(Some(PayoutStatus.Initiated.wire)) else payout
       (WithdrawalQueue.Filter(status, waiting, kyc, opt("method"), band, opt("playerSearch"),
-        Option.when(stale)(now.minus(Stale))), page, size)
+        Option.when(stale)(now.minus(Stale))), page, size, oldest)
 
   def queue(ctx: Ctx, q: String => Option[String]): Reply =
     filter(q, ctx.now()) match
       case Left(parameter) => invalid(parameter)
-      case Right((f, page, size)) =>
-        val p = WithdrawalQueue.page(ctx.queue, f, page, size)
+      case Right((f, page, size, oldest)) =>
+        val p = WithdrawalQueue.page(ctx.queue, f, page, size, oldest)
+        val c = WithdrawalQueue.counts(ctx.queue)
+        ok(Json.obj("requests" -> Json.arr(p.rows.map(row)*), "total" -> p.total, "page" -> p.page, "pageSize" -> p.pageSize,
+          "counts" -> Json.obj("pendingReview" -> c.pendingReview, "needsReview" -> c.needsReview)))
+
+  /** A page and its size from the query (spec 030 L), or the first parameter that is not valid. */
+  def paging(q: String => Option[String]): Either[String, (Int, Int)] =
+    def number(name: String, default: Int) =
+      q(name).map(_.trim).filter(_.nonEmpty).fold[Either[String, Int]](Right(default))(v => v.toIntOption.toRight(name))
+    for
+      page <- number("page", 1)
+      size <- number("pageSize", 50)
+      _    <- Either.cond(page >= 1 && page <= WithdrawalQueue.LastPage, (), "page")
+      _    <- Either.cond(size >= 1 && size <= WithdrawalQueue.MaxPageSize, (), "pageSize")
+    yield (page, size)
+
+  /** A player's requests in every state, newest first, a page at a time (spec 030 Y4). */
+  def history(ctx: Ctx, playerId: String, q: String => Option[String]): Reply =
+    paging(q) match
+      case Left(parameter) => invalid(parameter)
+      case Right((page, size)) =>
+        val p = WithdrawalQueue.ofPlayer(ctx.queue, playerId, page, size)
         ok(Json.obj("requests" -> Json.arr(p.rows.map(row)*), "total" -> p.total, "page" -> p.page, "pageSize" -> p.pageSize))
 
   /** A row as contracts/routes.md has it. */
@@ -103,7 +131,7 @@ object Operator:
       val t = s.terminal
       ok(Json.obj(
         "requestId" -> s.requestId, "playerId" -> s.playerId, "kycStatus" -> s.kyc, "amount" -> s.amount, "paidAmount" -> s.paidAmount,
-        "currency" -> s.currency, "status" -> s.status.upper, "payoutStatus" -> s.payoutStatus.upper,
+        "voidedAmount" -> s.voidedAmount, "currency" -> s.currency, "status" -> s.status.upper, "payoutStatus" -> s.payoutStatus.upper,
         "terminal" -> t.map(t => Json.obj("id" -> t.id, "name" -> t.name, "gateway" -> t.gateway, "scheme" -> t.scheme)),
         "destination" -> s.payee.destinationId.map(d => Json.obj("destinationId" -> d,
           "firstName" -> s.payee.holder.map(_.givenName.reveal), "lastName" -> s.payee.holder.map(_.familyName.reveal),
@@ -112,7 +140,11 @@ object Operator:
         "clawbackAmount" -> s.forfeit.clawbackAmount, "providerReference" -> s.providerReference,
         "decisions" -> Json.arr(s.decisions.map(d => Json.obj("approved" -> d.approved, "operatorId" -> d.operatorId, "at" -> d.at.toString))*),
         "outcomes" -> Json.arr(s.outcomes.map(o => Json.obj("source" -> o.source.wire, "answer" -> o.answer, "reasonCode" -> o.reasonCode,
-          "reference" -> o.reference, "at" -> o.at.toString))*),
+          "reference" -> o.reference, "operatorId" -> o.operatorId, "at" -> o.at.toString))*),
+        // spec 030 Y3: the balances the request was made at (absent on an older request), and every state with who moved it
+        "balancesAtRequest" -> s.balancesAtRequest, "restrictedAtRequest" -> s.restrictedAtRequest,
+        "transitions" -> Json.arr(s.transitions.map(t => Json.obj("status" -> t.status, "at" -> t.at.toString, "by" -> t.by,
+          "operatorId" -> t.operatorId, "reason" -> t.reason))*),
         "createdAt" -> s.createdAt.toString, "initiatedAt" -> s.initiatedAt.map(_.toString), "settledAt" -> s.settledAt.map(_.toString)))
 
   private def answer(s: RequestState): Reply =

@@ -9,6 +9,27 @@ import io.eitheror.casino.wallet.publish.Facts
 /** features/wallet/adjustments.feature (User Story 5). */
 class AdjustmentsFeatures extends WalletFeatures("adjustments.feature"):
 
+  private val roundCause = Cause("round", "r-provider-win")
+
+  // spec 030 W2: the cause on the answer, the row and the fact; the route's answer in MoneyPathsItSuite
+  When("an operator credits {string} to real balance with reason {string} and the round it answers as its cause") {
+    (a: String, reason: String) =>
+      act(run(walletKit.call(WalletEntity.adjust)(Adjust(nextKey("adj"), "real", long(a), reason, "correction", "op-7", now(),
+        Some(roundCause))))): Unit
+  }
+
+  Then("the answer carries the real balance before, {string}, and after, {string}") { (before: String, after: String) =>
+    assertEquals((lastOutcome.balanceBefore, lastOutcome.balanceAfter, lastOutcome.cause), (Some(long(before)), Some(long(after)), Some(roundCause)))
+  }
+
+  Then("the {string} transaction carries the reason, the cause and the actor") { (kind: String) =>
+    val row = rowsWritten.find(_.`type` == kind).getOrElse(fail(rowsWritten.toString))
+    assertEquals((row.reason.map(_.reveal), row.cause, row.actorId, row.category),
+      (Some("provider win not paid"), Some(roundCause), Some("op-7"), Some("correction")))
+    val fact = lastEvents.flatMap(Facts.moneyTransactions(state.walletId, _)).map(_.fact).collectFirst { case a: f.AdminAdjusted => a }
+    assertEquals(fact.map(a => (a.cause, a.actorId)), Some((Some(f.AdjustmentCause("round", "r-provider-win")), "op-7")))
+  }
+
   private var sums: DepositSums = null
 
   When("an operator credits {string} to real balance with reason {string}") { (a: String, reason: String) =>

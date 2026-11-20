@@ -32,8 +32,11 @@ final case class DepositJob(
     transactionId: String,
     redirectUrl: String,
     createdAt: Instant,
-    deadline: Instant
-)
+    deadline: Instant,
+    /** The payment method the deposit bounds are kept by (spec 030 H3); empty in a job started before them. */
+    method: String = ""
+):
+  def boundedMethod: String = if method.nonEmpty then method else DepositBounds.methodOf(psp, scheme)
 
 /** A capture as the gateway reported it, checked: the variance and what the wallet is to be credited. */
 final case class CaptureInput(variance: Option[Variance], creditedAmount: Long, at: Instant)
@@ -41,8 +44,8 @@ final case class CaptureInput(variance: Option[Variance], creditedAmount: Long, 
 /** A failure or an abandon. */
 final case class FailInput(code: Option[String], reason: String, received: Option[Received], at: Instant)
 
-/** Why an initiate did not happen, as the submit answers it (contracts/commands.md). */
-final case class InitiateRefusal(status: Int, error: String, message: Option[String])
+/** Why an initiate did not happen, as the submit answers it (contracts/commands.md); the deposit bound it broke, if that was why. */
+final case class InitiateRefusal(status: Int, error: String, message: Option[String], bound: Option[BrokenBound] = None)
 
 /**
  * The workflow's state (data-model.md): its status, the job, the capture or failure it was given, the
@@ -161,7 +164,14 @@ final class DepositWorkflow(context: WorkflowContext) extends Workflow[DepositFl
   // ── Steps ────────────────────────────────────────────────────────────────────────────────────
 
   def initiateStep: StepEffect =
-    val j        = job
+    val j      = job
+    val bounds = components.forEventSourcedEntity(EntityId(j.subBrandId)).call(io.eitheror.casino.merchant.hierarchy.SubBrand.get).invoke().depositBounds
+    // The sub-brand's deposit bounds, before any provider is asked (spec 030 H3); 403 as the original's preflight answered.
+    DepositBounds.broken(bounds, j.boundedMethod, j.currency, j.amount) match
+      case Some(b) => refused(InitiateRefusal(403, b.code, Some(b.message), Some(b)))
+      case None    => initiate(j)
+
+  private def initiate(j: DepositJob): StepEffect =
     val customer = components.forKeyValueEntity(EntityId(j.paymentId)).call(PaymentCustomer.get).invoke().customer
     val page = HostedPage(j.paymentId, j.amount, j.currency, j.scheme, s"/v1/payments/${j.paymentId}/capture", j.psp, j.subBrandId,
       j.customerId, j.redirectUrl, j.terminalId, Map.empty, customer)

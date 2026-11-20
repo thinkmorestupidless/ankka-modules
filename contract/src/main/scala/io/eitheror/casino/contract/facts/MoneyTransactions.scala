@@ -30,6 +30,18 @@ final case class RecordProgress(awardId: String, status: String, balanceCents: M
 object RecordProgress:
   given FieldType[RecordProgress] = FieldType.nested[RecordProgress]
 
+/**
+ * What an operator's adjustment corrects (spec 030 amendment C4, W2): a round, a provider's
+ * transaction, a payment or an incident, and its reference. Optional on the fact; the backoffice's
+ * timeline links the adjustment to it.
+ */
+final case class AdjustmentCause(kind: String, ref: String)
+
+object AdjustmentCause:
+  /** The kinds an adjustment may name. */
+  val Kinds: Set[String] = Set("round", "provider_transaction", "payment", "incident")
+  given FieldType[AdjustmentCause] = FieldType.nested[AdjustmentCause]
+
 /** A message about a player's wallet, keyed `<player>/<currency>`: every family but `account_adjusted`. */
 sealed trait MoneyTransactionsFact extends MoneyTransactionsMessage:
   def playerId: String
@@ -110,7 +122,7 @@ final case class RestrictedFundsClosed(playerId: String, currency: Currency, tra
 final case class AdminAdjusted(playerId: String, currency: Currency, transactionId: String, amount: SignedMinorUnits,
     target: String, reason: String, actorId: String, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits,
     occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None,
-    records: Option[Vector[RecordProgress]] = None) extends MoneyTransactionsFact
+    records: Option[Vector[RecordProgress]] = None, cause: Option[AdjustmentCause] = None) extends MoneyTransactionsFact
 
 @named("hold_placed")
 final case class HoldPlaced(playerId: String, currency: Currency, transactionId: String, withdrawalRequestId: String,

@@ -48,3 +48,19 @@ Feature: An operator reviews the queue and approves or rejects, and a player can
     Given a withdrawal request already approved
     When the player cancels it
     Then it is refused as not cancellable
+
+  Scenario: a withdrawal payment confirmed by hand names the operator who confirmed it
+    Given an approved withdrawal request whose withdrawal payment needs review
+    When an operator with a finance or admin role for the brand confirms the withdrawal payment
+    Then the request read back names that operator against the confirmation
+
+  Scenario: a withdrawal request keeps the balances it was made at
+    Given a real balance of "1000" and restricted funds of "200"
+    When the player makes a withdrawal request of "400"
+    Then the request read back carries the real balance "1000" and the restricted funds "200" it was made at
+
+  Scenario: the queue answers how many requests are pending review and how many payments need review
+    Given two withdrawal requests pending review and one whose withdrawal payment needs review
+    When an operator with a finance or admin role for the brand reads the queue oldest first
+    Then the oldest request is first
+    And the answer counts "2" pending review and "1" needing review

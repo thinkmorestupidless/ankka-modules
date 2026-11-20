@@ -22,10 +22,22 @@ final class FraudRoutes(ctx: Ctx):
   private def now(): Instant = PlayersRuntime.now()
 
   /** `status` `OPEN`, `REVIEWED`, `DISMISSED` or `ALL` (none is all), as the original. */
-  def cases(status: Option[String]): Reply =
+  /**
+   * The open cases are oldest first, the others newest first, with the status's `total` (spec 030 P11).
+   * `page` (from 1) and `pageSize` (1 to 200, 25 by default) page it and are answered back, a value out of range
+   * taken as its default as the players list takes one; with neither, the first 1,000 are listed as before.
+   */
+  def cases(status: Option[String], page: Option[String] = None, pageSize: Option[String] = None): Reply =
     val wanted = status.map(_.trim.toLowerCase).filter(s => s.nonEmpty && s != "all")
-    val rows   = FraudCasesView.withStatus(ctx.clients.viewClient, wanted)
-    ok(Json.obj("cases" -> Json.arr(rows.map(caseOf)*)))
+    val views  = ctx.clients.viewClient
+    val total  = FraudCasesView.total(views, wanted)
+    if page.forall(_.trim.isEmpty) && pageSize.forall(_.trim.isEmpty) then
+      ok(Json.obj("cases" -> Json.arr(FraudCasesView.withStatus(views, wanted, 0, 1000).map(caseOf)*), "total" -> total))
+    else
+      val n    = page.flatMap(_.trim.toIntOption).filter(n => n >= 1 && n <= 1_000_000).getOrElse(1)
+      val size = pageSize.flatMap(_.trim.toIntOption).filter(s => s >= 1 && s <= 200).getOrElse(25)
+      val rows = FraudCasesView.withStatus(views, wanted, (n - 1) * size, size)
+      ok(Json.obj("cases" -> Json.arr(rows.map(caseOf)*), "total" -> total, "page" -> n, "pageSize" -> size))
 
   def review(p: Principal, caseId: String): Reply =
     val a = components.forEventSourcedEntity(EntityId(caseId)).call(FraudCaseEntity.review).invoke(DecideCase(p.subject, now()))

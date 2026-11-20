@@ -1,0 +1,110 @@
+/* The charts (contracts/design.md, *Charts*): series on a faint grid, donuts labelled outside, a dot
+   grid, the world map in --surface-2 filled by one hue of --primary. Every mark is also a row of a
+   table a screen reader reads; colour is never the only way a value is told. */
+
+.bo-chart {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bo-chart figcaption {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.bo-chart svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+.bo-chart-grid line {
+  stroke: color-mix(in oklch, var(--text-muted) 22%, transparent);
+  stroke-width: 1;
+}
+
+.bo-chart-axis text,
+.bo-chart-label {
+  fill: var(--text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bo-chart-line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.bo-chart [data-series="1"] { stroke: var(--primary); fill: var(--primary); }
+.bo-chart [data-series="2"] { stroke: var(--series-2); fill: var(--series-2); }
+.bo-chart [data-series="3"] { stroke: var(--series-3); fill: var(--series-3); }
+.bo-chart .bo-chart-line[data-series] { fill: none; }
+/* The second and third series are dashed and dotted too, so they are told apart without colour. */
+.bo-chart .bo-chart-line[data-series="2"] { stroke-dasharray: 6 4; }
+.bo-chart .bo-chart-line[data-series="3"] { stroke-dasharray: 2 4; }
+
+.bo-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.bo-chart-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.bo-chart-legend svg { width: 24px; height: 8px; }
+
+/* Candles: a rising one hollow in --primary, a falling one filled in --danger; the table says which. */
+.bo-candle[data-direction="up"] rect { fill: var(--surface-1); stroke: var(--primary); }
+.bo-candle[data-direction="up"] line { stroke: var(--primary); }
+.bo-candle[data-direction="down"] rect { fill: var(--danger); stroke: var(--danger); }
+.bo-candle[data-direction="down"] line { stroke: var(--danger); }
+
+.bo-donut-track { fill: none; stroke: var(--surface-2); }
+.bo-donut-leader { stroke: var(--text-muted); stroke-width: 1; fill: none; }
+.bo-donut-centre { fill: var(--text); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.bo-dot { fill: var(--primary); }
+.bo-dot[data-empty] { fill: var(--surface-2); }
+
+.bo-map {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(200px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .bo-map { grid-template-columns: minmax(0, 1fr); }
+}
+
+.bo-map-country {
+  fill: var(--surface-2);
+  stroke: var(--surface-1);
+  stroke-width: 0.5;
+}
+
+.bo-map-country[data-players] { stroke: var(--surface-0); }
+
+.bo-chart-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-table);
+}
+
+.bo-chart-table caption { text-align: start; color: var(--text-muted); padding-bottom: 4px; }
+.bo-chart-table th,
+.bo-chart-table td { height: var(--row); padding: 0 8px; text-align: start; border-bottom: 1px solid var(--surface-2); }
+.bo-chart-table [data-numeric] { text-align: end; }
+
+/* A donut and a dot grid keep their own size: their labels are in the drawing's units. */
+.bo-chart svg[data-chart="donut"] { max-width: 400px; }
+.bo-chart svg[data-chart="dots"] { max-width: 720px; }

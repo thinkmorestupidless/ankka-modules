@@ -21,10 +21,11 @@ class ManagerSteps extends ProgrammeFeatures("managers.feature"):
   private var player: String       = null
   private var flagId: String       = null
   private var roles: Set[String]   = Set.empty
+  private var managed: Option[Seq[String]] = None
 
   override def beforeEach(context: BeforeEach): Unit =
     super.beforeEach(context)
-    brands = Nil; replies = Map.empty; scenes = Map.empty; player = null; flagId = null; roles = Set.empty
+    brands = Nil; managed = None; replies = Map.empty; scenes = Map.empty; player = null; flagId = null; roles = Set.empty
 
   private def slug(name: String): String = ids.getOrElse(s"brand:$name", if name == "A" then "goldvibe" else "silvervibe")
 
@@ -35,7 +36,7 @@ class ManagerSteps extends ProgrammeFeatures("managers.feature"):
     ids(s"brand:$name") = s
     s
 
-  private def manager = kit.asManager(brands.map(slug))
+  private def manager = kit.asManager(brands.map(slug), roleIn = managed.map(_.map(slug)))
   private def admin   = kit.asManager(brands.map(slug), "admin-1", "brand_admin")
   private def get(path: String): Reply = kit.request("GET", s"/v1/affiliates$path", headers = manager)
   private def send(method: String, path: String, body: String, as: Seq[(String, String)] = manager): Reply =
@@ -57,18 +58,25 @@ class ManagerSteps extends ProgrammeFeatures("managers.feature"):
   When("they list accounts, revenue, payouts or fraud flags") { () =>
     Seq(slug("A"), slug("B")).foreach(b => scene(b))
     val gold = slug("A")
-    kit.eventually("listed")(Option(get(s"/$gold/accounts")).filter(r => items(r).exists(_.get("account").get("affiliateId").asText == scene(gold).affiliate))): Unit
+    kit.eventually("listed")(Option(get(s"/$gold/accounts")).filter(r => items(r, Some("items")).exists(_.get("account").get("affiliateId").asText == scene(gold).affiliate))): Unit
     replies = Map("accounts" -> get(s"/$gold/accounts"), "revenue" -> get(s"/$gold/revenue?period=all"), "payouts" -> get(s"/$gold/payouts?period=2026-10"),
       "flags" -> get(s"/$gold/fraud-flags"))
   }
   Then("only the memberships and facts of brand {string} are listed") { (b: String) =>
     val brand = slug(b)
     val other = scene(slug("B")).affiliate
-    assert(!items(replies("accounts")).exists(_.get("account").get("affiliateId").asText == other))
-    assert(items(replies("accounts")).forall(_.get("account").get("memberships").elements().asScala.forall(_.get("brandId").asText == brand)))
+    assert(!items(replies("accounts"), Some("items")).exists(_.get("account").get("affiliateId").asText == other))
+    assert(items(replies("accounts"), Some("items")).forall(_.get("account").get("memberships").elements().asScala.forall(_.get("brandId").asText == brand)))
     assert(items(replies("revenue"), Some("figures")).forall(_.get("brandId").asText == brand))
     assert(items(replies("payouts")).forall(_.get("brandId").asText == brand))
     assert(items(replies("flags")).forall(_.get("brandId").asText == brand))
+  }
+
+  // spec 032 FR-012: the manager role is held named for a brand, and manages that brand only.
+  Given("an operator whose roles name the brands {string} and {string}") { (a: String, b: String) => brands = Seq(a, b) }
+  Given("the operator holds the manager role for brand {string} only") { (b: String) =>
+    managed = Some(Seq(b))
+    assertEquals(get(s"/${slug(b)}/accounts").status, 200)
   }
 
   When("they list the accounts of brand {string}") { (b: String) => last = get(s"/${slug(b)}/accounts") }
@@ -188,21 +196,26 @@ class ManagerSteps extends ProgrammeFeatures("managers.feature"):
     val s = scene("goldvibe")
     kit.request("POST", s"/v1/my/${s.affiliate}/tracking-links", Some("""{"brandId":"goldvibe"}"""), kit.asAffiliate(s.affiliate)): Unit
     replies = Map("dashboard" -> "dashboard?period=all", "stats" -> "stats?period=all", "commission" -> "commission?period=all", "links" -> "links",
-      "payouts" -> "payouts", "notifications" -> "notifications").map((k, p) => k -> get(s"/goldvibe/accounts/${s.affiliate}/view/$p"))
+      "payouts" -> "payouts", "notifications" -> "notifications").map((k, p) => k -> get(s"/goldvibe/accounts/${s.affiliate}/portal/$p"))
   }
   Then("they see the dashboard, stats, commission, links, payouts and notifications the affiliate would see") { () =>
     val aff = scene("goldvibe").affiliate
     replies.foreach((page, r) => assertEquals(r.status, 200, s"$page: ${r.text}"))
     def portal(path: String) = kit.request("GET", s"/v1/my/$aff/$path", headers = kit.asAffiliate(aff)).json
     assertEquals(replies("dashboard").json, portal("revenue?brand=goldvibe&period=all"))
-    kit.eventually("the same links")(Option(get(s"/goldvibe/accounts/$aff/view/links").json).filter(_ == portal("tracking-links?brand=goldvibe"))): Unit
+    kit.eventually("the same links")(Option(get(s"/goldvibe/accounts/$aff/portal/links").json).filter(_ == portal("tracking-links?brand=goldvibe"))): Unit
     assertEquals(replies("payouts").json, portal("payouts?brand=goldvibe"))
+    // Each read is audited as the manager's, of this account at this brand, naming the page (spec 030 A2).
+    val seen = kit.eventually("audited VIEWED_AS")(Option(kit.views.forView(Activity).ask(Activity.byAction, "action" -> "VIEWED_AS")
+      .filter(r => r.affiliate == aff && r.brand.contains("goldvibe"))).filter(_.flatMap(_.details.get("view")).toSet == replies.keySet))
+    assert(seen.forall(_.actor == "mgr-1"), seen.toString)
   }
   Then("they can change nothing from there") { () =>
     val aff = scene("goldvibe").affiliate
     for method <- Seq("POST", "PUT", "PATCH", "DELETE"); page <- Seq("links", "payouts", "notifications") do
-      val r = send(method, s"/goldvibe/accounts/$aff/view/$page", "{}")
-      assert(r.status / 100 == 4, s"$method $page: ${r.status} ${r.text}")
+      for under <- Seq("portal", "view") do
+        val r = send(method, s"/goldvibe/accounts/$aff/$under/$page", "{}")
+        assert(r.status / 100 == 4, s"$method $under/$page: ${r.status} ${r.text}")
   }
 
   // ── managers ────────────────────────────────────────────────────────────────────────────────────
@@ -219,7 +232,7 @@ class ManagerSteps extends ProgrammeFeatures("managers.feature"):
     assertEquals(kit.realm.user(user).get.roles, Set.empty[String])
   }
   Then("the manager is provisioned with the manager role and the role for brand {string}") { (b: String) =>
-    assertEquals(roles, Set("affiliate_manager", s"brand_${slug(b)}"))
+    assertEquals(roles, kit.managerRoles(slug(b)))
   }
   Then("the action is audited") { () =>
     kit.eventually("audited")(Option(Seq("MANAGER_ADDED", "MANAGER_PASSWORD_RESET", "MANAGER_REVOKED").forall(audited(_, slug("A")))).filter(identity)): Unit

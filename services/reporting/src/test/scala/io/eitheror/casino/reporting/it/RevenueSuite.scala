@@ -92,12 +92,13 @@ class RevenueSuite extends munit.FunSuite with LogCapturing:
     kit.eventually(s"the $currency report equal to the facts' figures", 60.seconds)(Some(ggr(currency)).filter(r => r.status == 200 && shown(r) == want))
 
   test("the summary and each day are the exact sums over every player in the currency asked for, in the brand's zone") {
-    for c <- Vector("EUR", "USD") do
-      val r = settled(c)
+    // both settled first: the currencies a report names are the ones every fact so far has been folded into
+    val reports = Vector("EUR", "USD").map(c => c -> settled(c))
+    for (c, r) <- reports do
       assertEquals(shown(r), expected(c))
       val j = r.json
       assertEquals((j.path("from").asText, j.path("to").asText, j.path("currency").asText), (d1.toString, d3.toString, c))
-      assertEquals(j.path("currencies").elements.asScala.map(_.asText).toVector, kit.heldCurrencies)
+      assertEquals(ggr(c).json.path("currencies").elements.asScala.map(_.asText).toVector, kit.heldCurrencies)
       assertEquals(j.path("summary").fieldNames.asScala.toVector, Vector("totalBets", "totalWins", "ggr", "depositPoolGgr",
         "bonusCosts", "chargebacks", "ngr", "ngrBasis", "totalDeposits", "totalWithdrawals", "netCashFlow"))
     // Read by hand: d1's EUR stakes are p1's 10 and 5 and p3's 9, its wins p1's 4; d2's wins the 8 after midnight and the credit.

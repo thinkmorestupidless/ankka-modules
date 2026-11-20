@@ -26,9 +26,39 @@ class OperatorsSuite extends SharedKitSuite:
     assertEquals((u.emailVerified, u.requiredActions), (false, Vector("VERIFY_EMAIL")))
     val invite = kit.invitations.to(e).head
     assertEquals((invite.kind, invite.link), (Invitation.Kind.Invite, s"https://payments.example/accept-invitation?token=${invite.token}"))
-    val listed = kit.eventually("listed")(Option(kit.request("GET", "/v1/operators", None, kit.asOperator())).filter(_.text.contains(id)))
+    val listed = kit.eventually("listed")(Option(kit.request("GET", "/v1/operators?pageSize=200", None, kit.asOperator())).filter(_.text.contains(id)))
     val row = listed.json.get("operators").elements.asScala.find(_.textOr("operatorId", "") == id).get
     assertEquals((row.bool("pending"), row.textOr("email", "")), (Some(true), e))
+  }
+
+  test("the list is paged newest first within the caller's scope, with its total (spec 030 H5)") {
+    val r   = kit.subBrand()
+    val ids = (1 to 3).map { _ =>
+      val c = create(kit.asOperator(), email, "resource_viewer", "sub_brand", r.subBrandId)
+      assertEquals(c.status, 201, c.text)
+      Thread.sleep(5)
+      c.str("operatorId")
+    }
+    val scoped = kit.asOperator(level = "sub_brand", scopeId = r.subBrandId, roles = "resource_admin", subject = "lister")
+    def page(q: String) = kit.request("GET", s"/v1/operators$q", None, scoped)
+    def listed(reply: Reply) = reply.json.get("operators").elements.asScala.map(_.textOr("operatorId", "")).toVector
+    val all = kit.eventually("all three listed")(Option(page("")).filter(r => r.json.long("total").contains(3L)))
+    assertEquals((all.json.long("page"), all.json.long("pageSize")), (Some(1L), Some(25L)))
+    assertEquals(listed(all), ids.reverse.toVector, "newest first")
+    val first  = page("?page=1&pageSize=2")
+    val second = page("?page=2&pageSize=2")
+    assertEquals((listed(first), listed(second)), (ids.reverse.take(2).toVector, Vector(ids.head)))
+    assertEquals((second.json.long("total"), second.json.long("page"), second.json.long("pageSize")), (Some(3L), Some(2L), Some(2L)))
+    assertEquals(listed(page("?page=3&pageSize=2")), Vector.empty)
+    assertEquals(page("?pageSize=500").json.long("pageSize"), Some(25L), "a size over 200 is the default")
+    assertEquals(page("?page=0").json.long("page"), Some(1L))
+    // the view pages by scope: a company operator reaches them through their ancestors, another holding's none
+    val company = kit.asOperator(level = "company", scopeId = r.companyId, roles = "resource_admin", subject = "lister")
+    val viaAncestors = kit.request("GET", "/v1/operators?pageSize=2", None, company)
+    assertEquals((viaAncestors.json.long("total"), listed(viaAncestors)), (Some(3L), ids.reverse.take(2).toVector))
+    val elsewhere = kit.asOperator(level = "holding", scopeId = kit.subBrand().holdingId, roles = "resource_owner", subject = "lister")
+    val none = kit.request("GET", "/v1/operators", None, elsewhere)
+    assertEquals((none.json.long("total"), listed(none)), (Some(0L), Vector.empty))
   }
 
   test("accepting the invitation sets the password once; a second accept with the same token is refused") {
@@ -70,4 +100,15 @@ class OperatorsSuite extends SharedKitSuite:
     assertEquals(kit.request("DELETE", s"/v1/operators/$id", None, holdingOp).status, 403, "outside the caller's level")
     assertEquals(kit.request("DELETE", s"/v1/operators/$id", None, kit.asOperator()).status, 204)
     assertEquals(kit.keycloak.user(id), None)
+  }
+
+  test("spec 030 H6: an operator id not of the realm's shape is refused at the route and the realm is not asked") {
+    kit.keycloak.clearReceived()
+    for id <- Vector("a%20b", "..%2Fadmin", "a.b") do
+      val r = kit.request("PUT", s"/v1/operators/$id/brand-roles/goldvibe", Some("""{"roles":["brand_support"]}"""),
+        kit.asService("goldvibe", "players"))
+      // a slash, even encoded, may already be no route of this endpoint; every other id is refused by name
+      if id.contains("%2F") then assert(r.status == 400 || r.status == 404, s"$id: ${r.status} ${r.text}")
+      else assertEquals((r.status, r.str("error")), (400, "INVALID_OPERATOR_ID"), s"$id: ${r.text}")
+    assertEquals(kit.keycloak.received.filterNot(_.path.endsWith("/token")), Vector.empty)
   }

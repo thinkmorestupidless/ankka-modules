@@ -12,8 +12,13 @@ final class OutcomesEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/psp/outcomes"):
 
   private def limit = request.query.raw("limit").flatMap(_.toIntOption).filter(_ > 0).map(math.min(_, 1000)).getOrElse(100)
 
-  get("/undelivered") { () => Refusal.ok(OutcomesEndpoint.listing(SessionsView.undelivered(ctx.views, limit))) }
-  get("/refused") { () => Refusal.ok(OutcomesEndpoint.listing(SessionsView.refused(ctx.views, limit))) }
+  // Oldest first, at most `limit`; `total` is every outcome in the state, however many are listed (spec 030 T1).
+  get("/undelivered") { () =>
+    Refusal.ok(OutcomesEndpoint.listing(SessionsView.undelivered(ctx.views, limit), SessionsView.count(ctx.views, "Undelivered")))
+  }
+  get("/refused") { () =>
+    Refusal.ok(OutcomesEndpoint.listing(SessionsView.refused(ctx.views, limit), SessionsView.count(ctx.views, "Refused")))
+  }
 
   /** An operator's re-drive: an undelivered or refused outcome is delivered again now, by this operator. */
   post("/{reference}/redrive") { (reference: String) =>
@@ -34,10 +39,10 @@ final class OutcomesEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/psp/outcomes"):
   }
 
 object OutcomesEndpoint:
-  def listing(rows: Vector[SessionRow]) =
+  def listing(rows: Vector[SessionRow], total: Long) =
     Json.obj("outcomes" -> Json.arr(rows.map(r => Json.obj("reference" -> r.reference, "kind" -> r.kind, "provider" -> r.provider,
       "receiver" -> r.receiver, "outcome" -> r.outcome, "attempts" -> r.attempts, "lastAnswer" -> r.lastAnswer,
-      "since" -> java.time.Instant.ofEpochMilli(r.since).toString))*))
+      "since" -> java.time.Instant.ofEpochMilli(r.since).toString))*), "total" -> total)
 
 /**
  * `/status`: any service of the project, and payments operators through the ingress (FR-023): the

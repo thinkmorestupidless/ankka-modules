@@ -10,6 +10,10 @@ import scala.concurrent.duration.*
 /** features/responsible-gambling/operators.feature (US6, FR-004, FR-025 to FR-029). */
 class OperatorsFeatures extends RgFeatures("operators.feature"):
 
+  // spec 030 G2: bound by T059, with the brand-wide case list
+  override protected def ranElsewhere: Map[String, String] = Map(
+    "an operator lists the brand's open cases, oldest first, with their total" -> "T059 (pending)")
+
   private val Daily = "DEPOSIT_DAILY"
   private var caseId = ""
   private val Note   = "the player called, worried about their spending"

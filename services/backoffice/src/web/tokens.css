@@ -1,0 +1,67 @@
+/* The backoffice's design tokens (contracts/design.md): dark by default, light by the operator's
+   preference. No eitheror colour, mark or type (FR-039): the brand's operators' tool, not ours.
+   tests/unit/contrast.test.ts holds these values equal to design.md and every named pair to AA. */
+
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-0: oklch(0.16 0.012 155);
+  --surface-1: oklch(0.20 0.014 155);
+  --surface-2: oklch(0.25 0.016 155);
+  --text: oklch(0.95 0.01 155);
+  --text-muted: oklch(0.72 0.02 155);
+  --primary: oklch(0.84 0.22 145);
+  --on-primary: oklch(0.18 0.03 145);
+  --series-2: oklch(0.68 0.25 340);
+  --series-3: oklch(0.88 0.17 95);
+  --danger: oklch(0.66 0.22 25);
+  --focus: oklch(0.90 0.15 145);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --surface-0: oklch(0.98 0.004 155);
+  --surface-1: oklch(1 0 0);
+  --surface-2: oklch(0.95 0.006 155);
+  --text: oklch(0.22 0.02 155);
+  --text-muted: oklch(0.45 0.02 155);
+  --primary: oklch(0.52 0.17 145);
+  --on-primary: oklch(0.99 0 0);
+  --series-2: oklch(0.52 0.22 340);
+  --series-3: oklch(0.53 0.12 85);
+  --danger: oklch(0.52 0.21 25);
+  --focus: oklch(0.45 0.17 145);
+}
+
+:root {
+  --radius-card: 20px;
+  --radius-pill: 999px;
+  --gap-card: 16px;
+  --rail: 64px;
+  --row: 36px;
+  --text-table: 13px;
+  --figure-min: 28px;
+  --figure-max: 40px;
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--surface-0);
+  color: var(--text);
+  font-family: var(--font-sans);
+}
+
+/* Tabular figures wherever an amount or a count is shown. */
+.figures,
+table,
+[data-figure] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The focus ring: 2 px, 2 px offset, the focus token in either theme. */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}

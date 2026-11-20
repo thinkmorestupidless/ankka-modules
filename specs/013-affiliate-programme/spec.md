@@ -493,3 +493,9 @@ An operator of the installation adds a hosted brand under a contract signed outs
 ## Open Questions
 
 None. The three open questions and spec 012's finding 3 were settled on 2026-11-01 (Clarifications).
+
+## Amended by 030
+
+- A1 (spec 030 contracts/amendments.md, T116): `GET /v1/affiliates/{brand}/accounts` (O7) answers a page, `{items, total, page, pageSize}`: `page` from 1, `pageSize` 100 unless asked and at most 200 (`400 invalid_request` past it), newest first unless sorted otherwise; `limit` and `offset` are gone.
+- A2 (spec 030 contracts/amendments.md, T116): `GET /v1/affiliates/{brand}/accounts/{aff}/portal/{view}`, for a manager of the brand, answers what O29–O34's `view/{page}` answers (the affiliate's own portal reads at the brand), read-only, with no token of the affiliate's made; every answered read, under `portal/` or `view/`, is audited `VIEWED_AS` with the manager as actor, the account, the brand and `view` (`features/programme/managers.feature`).
+- A3 (spec 030 contracts/amendments.md, DR-19): `GET /v1/affiliates/{brand}/traffic?period=`, for a manager of the brand, answers the brand's traffic for the period, for the brand, per affiliate and per link: `clickCount` the clicks recorded (FR-024's rows, in the period of their time in the brand's reporting zone), `registrationCount` the players bound, `ftdCount` the first deposits, `qftdCount` the qualified first deposits (glossary). Counted from the `Clicks` and `PlayerFacts` views, never from a counter. Impressions and unique clicks are not counted: no fact carries an impression, and a click fact carries no digest of the visitor (spec 012 FR-006 keeps it at the brand) (`features/programme/links.feature`).

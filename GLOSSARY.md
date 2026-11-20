@@ -27,6 +27,7 @@ another, try
 attempt, attempts, instance, instances, abandons, deregisters, deregister, acknowledge, acknowledges, acknowledged, decremented, either, demo, exponent, loads, protocol, registered, registers, spends, sweep, younger
 descending, null, parameter, temporarily
 appearance, choice, chooses, choosing, component, driven, due, effect, interface, interrupted, mobile, pick, province
+administrator, behind, catching, incident, picked, provisional, settings, simulating, tenth, tried, unsettled, withdraws
 
 ## Terms
 
@@ -498,6 +499,11 @@ Whether a period's negative NGR persists as a deficit into the next period, or t
 ### first-deposit guard
 The programme's record that CPA was paid for a player at a brand, set once for the player's life and never by a first deposit below the plan's minimum deposit.
 
+### qualified first deposit
+A player's first deposit at or above the minimum deposit of a plan that pays CPA: the deposit the first-deposit guard is set by, counted once for the player's life in the period it occurred in.
+
+Avoid: QFTD
+
 ### commission
 What an affiliate is owed for the players they sent: CPA, RevShare, override and adjustments, as payable facts in a ledger.
 
@@ -844,7 +850,7 @@ The KYC mode in which nothing changes the KYC status but the operator's own deci
 The mark put on a player for an operator to look at, with its reason: threshold, source of funds or window; raised once per reason.
 
 ### document store
-Where a brand keeps documents, under each player's own prefix, encrypted at rest, readable only through the addresses the brand issues for a limited time.
+Where a brand keeps documents, under each player's own prefix, encrypted at rest, readable only through kyc: an operator who may review them is given the document itself, a player an address the brand issues for a limited time.
 
 Avoid: bucket, object store
 
@@ -1001,7 +1007,7 @@ A brand's credential for the public API, created by an operator holding the acce
 Avoid: API key, partner, partner token, partner entitlement, partner grant, client secret
 
 ### access keys permission
-The realm role (`api_keys`) an operator holds beside the brand's own role to create, list, change, disable, enable and delete that brand's access keys; ordinary operator access is not enough.
+The role (`api_keys`, held in one brand) an operator holds beside the brand's own role to create, list, change, disable, enable and delete that brand's access keys; ordinary operator access is not enough.
 
 ### public API
 A brand's read-only API over its players, their activity, its games and its statistics, reached with an access key at the brand's own hostname.
@@ -1221,7 +1227,7 @@ Of a market: resolved or void and past its review window; its positions are paid
 Of a market: cancelled after opening; each share is paid its equal part.
 
 ### markets permission
-The permission on the brand_<slug> role that lets an operator draft, change, approve, open, suspend, resume, close, move the close of, resolve, correct and void markets.
+The role (`markets`, held in one brand) that lets an operator draft, change, approve, open, suspend, resume, close, move the close of, resolve, correct and void markets.
 
 ### share
 One unit of a position in an outcome; pays one major unit of the market's currency (100 minor units) if the market resolves to that outcome.
@@ -1497,4 +1503,63 @@ Per module, the routes its module client has, each naming one player route of on
 A module client whose routes and whose shapes of what each route takes and answers are produced from a selection and the kept service descriptions, under the interface of the module client it replaces. What maps a route's answer to the player SDK's own words stays written by hand.
 
 Avoid: generated SDK, codegen client
+
+## The backoffice
+
+### worklist
+An operator's open items in one brand that their roles let them act on: withdrawal requests pending review, withdrawal payments needing review, identity documents awaiting review, players flagged for review, open cases and fraud cases, unacknowledged calls, undelivered facts, undelivered outcomes and parked sends; oldest first, read from the owning services and never stored.
+
+Avoid: task list, to-do list
+
+### timeline
+Everything that happened to one player, from every owning service, in the order it happened: each event with its actor (the player, an operator by name, the system or a provider) and its cause where the fact carries one, and any source that could not be read named with the period it is missing.
+
+Avoid: activity feed, audit trail
+
+### adjustment batch
+One reason and one cause applied to many players as one adjustment per player, each under its own key, so that repeating the batch makes none twice; each row ends made, refused with its reason, or already made.
+
+Avoid: bulk adjustment, compensation run
+
+### merge tag
+A placeholder in an operator's send, such as the player's first name, that the brand fills from the player's record when the inbox item is previewed and when it is sent.
+
+### permission
+What one operator action on a brand requires: making an adjustment, reviewing a withdrawal request, reading a player. Every operator route of a brand requires exactly one, named by the contract. A sign-in never carries one; it carries roles.
+
+### operator role
+A bag of permissions that a brand keeps and its administrators change while the brand runs; what an operator's sign-in carries. An operator holds a role in one brand: the realm names it for that brand, and a role held in another brand, or one with no brand in its name, carries nothing here. A brand starts with the default roles (`brand_support`, `brand_finance`, `brand_compliance`, `brand_admin`) and may create its own. `platform_admin` carries every permission and is not the brand's to change.
+
+### giving
+A brand's choice of the operator roles one operator holds in it: the set asked, and whether the realm holds it yet (in force), or why the realm refused it (failed). A brand's later giving replaces its earlier ones; it changes only the roles held in that brand. Not a grant, which a brand makes to a shared project.
+
+Avoid: assignment, role assignment
+
+### role matrix
+The default roles and the permissions each carries when a brand is first applied: held by the contract, and the starting point a default role is reset to. What a role carries afterwards is the brand's own.
+
+Avoid: permission table, access matrix
+
+### payments role
+A role of the shared payments' hierarchy (`resource_admin`, `resource_finance` and the rest, each with an operator level): it admits payments administration at that level and no action on a brand's players, wallets, withdrawals or rewards.
+
+### manager tag
+An operator's own short label on a player, such as who looks after them; read with the player, at most forty characters, and changing nothing about what the player may do. Not a tag, which is an affiliate's.
+
+Avoid: player label, account tag
+
+### seen device
+One device a player has logged in from, kept as personal data under the player: when it was first and last seen, its platform, its browser and the country it logged in from. Not the device fingerprint, which is compared at registration for duplicates.
+
+Avoid: device record, login device
+
+### deposit bounds
+The least and the most one deposit by one method may be at a sub-brand, in one currency; a deposit outside them is refused before any payment provider is asked. Not a deposit limit, which is a player's own cap over a period.
+
+Avoid: deposit minimum and maximum, method limits
+
+### test payment
+One payment a payments operator makes with a sub-brand's credential in the payment provider's test mode, to see the provider answer; it credits no wallet and records no deposit.
+
+Avoid: test deposit, test charge
 

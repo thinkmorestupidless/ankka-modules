@@ -5,6 +5,7 @@ import com.thinkmorestupidless.ankka.core.{EntityId, Metadata}
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, HttpServer, LocalCallers, Principal}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.{AnkkaTestKit, MovableClock, TimerProbe}
+import io.eitheror.casino.contract.access.{BrandRoles, OperatorPermissions}
 import io.eitheror.casino.contract.facts.{Fact, Topic}
 import io.eitheror.casino.reporting.{ReportingService, Settings}
 import io.eitheror.casino.reporting.intake.Coverage
@@ -44,8 +45,12 @@ final class Kit(val brand: String = "goldvibe", modules: Set[String] = Set("casi
 
   val timers = TimerRuntime(200.millis, probe, clock)
   ReportingService.wire(current)
+  /** The brand's roles the operator routes decide from: the role matrix, as a new brand starts (spec 030 E3). */
+  val roles: io.eitheror.casino.contract.access.RoleBags =
+    io.eitheror.casino.contract.access.RoleBags.fixed(io.eitheror.casino.contract.access.OperatorPermissions.DefaultRoles)
+
   private val server = HttpServer.at("127.0.0.1", 0)(
-    (ReportingService.endpoints(() => Kit.authenticate, () => clock.instant()) :+ StreamedFailureSuite.endpoint)*)
+    (ReportingService.endpoints(() => Kit.authenticate, () => clock.instant(), bags = Some(_ => roles)) :+ StreamedFailureSuite.endpoint)*)
 
   val testKit: AnkkaTestKit = AnkkaTestKit.start(
     ReportingService.descriptors(current, clock),
@@ -147,16 +152,27 @@ final class Kit(val brand: String = "goldvibe", modules: Set[String] = Set("casi
   /** A request from the internet, through the gateway, with no token. */
   def fromInternet: Seq[(String, String)] = Seq(LocalCallers.header(Caller.Gateway))
 
-  /** An operator through the gateway holding `roles`; the brand's role is added unless `brandRole` is false. */
+  /**
+   * An operator through the gateway holding `roles`; the brand's role is added unless `brandRole` is false. A role a
+   * brand may hold (a default role or one it made) is given named for this brand (spec 032, `brand_admin@goldvibe`);
+   * a reserved role (`platform_admin`, the payments roles) and one already named are given as written.
+   */
   def asStaff(roles: Seq[String], op: String = "op-1", brandRole: Boolean = true): Seq[(String, String)] =
-    val all = (if brandRole then Seq(s"brand_$brand") else Nil) ++ roles
+    val all = (if brandRole then Seq(s"brand_$brand") else Nil) ++ roles.map(named)
     fromInternet :+ ("Authorization" -> s"Bearer staff|$op|${all.mkString(",")}")
+
+  /** `role` as this brand's realm role names it, unless it is reserved or already named. */
+  def named(role: String): String =
+    if OperatorPermissions.reserved(role) || BrandRoles.brandOf(role).isDefined then role else BrandRoles.nameIn(brand, role)
 
   /** Finance: an operator of the brand holding `brand_admin`, whom the Reports tab admits. */
   def asFinance: Seq[(String, String)] = asStaff(Seq("brand_admin"), "finance-1")
 
-  /** An operator of the brand with no role beyond the brand's. */
-  def asOperator: Seq[(String, String)] = asStaff(Nil)
+  /** An operator of the brand holding `brand_support`, the role every operator has: the dashboard, not the reports. */
+  def asOperator: Seq[(String, String)] = asStaff(Seq("brand_support"))
+
+  /** An operator of the brand holding `brand_compliance`, whose bag holds `export.player`: the dispute report. */
+  def asExporter: Seq[(String, String)] = asStaff(Seq("brand_compliance"))
 
   def asPlayer(player: String = "p-1"): Seq[(String, String)] = fromInternet :+ ("Authorization" -> s"Bearer player|$player")
 

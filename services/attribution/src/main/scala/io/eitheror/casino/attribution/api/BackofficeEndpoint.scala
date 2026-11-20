@@ -10,16 +10,20 @@ import io.eitheror.casino.attribution.record.{AttributionRecord, Record}
 import io.eitheror.casino.attribution.settings.{AddSigningKey, BrandSettings, RetireSigningKey, SetWindows, SettingsEntity, SigningKey}
 import io.eitheror.casino.attribution.tag.{Pseudonyms, Signing}
 import io.eitheror.casino.attribution.views.Records
-import io.eitheror.casino.contract.access.Routes
 
 import java.time.LocalDate
 import java.util.UUID
 
-/** The operator's attribution backoffice (contracts/routes.md *Operator*), for this brand's operators. */
+/**
+ * The operator's attribution backoffice (contracts/routes.md *Operator*), for this brand's operators whose roles carry
+ * the route's permission (spec 030 E1): a player's record `player.read`; the settings, the status, the networks and the
+ * signing keys `config.attribution`.
+ */
 final class BackofficeEndpoint(api: Api) extends HttpEndpoint(s"/v1/casino/backoffice/${api.brand}/attribution"):
+  // every route names its own permission; this is never reached
   val acl: Acl = Acl.DenyAll
 
-  withAcl(Routes.operator(api.brand, api.authenticate())) {
+  withAcl(api.may("config.attribution")) {
     get("/settings") { () => ok(windows(settings.call(SettingsEntity.get).invoke())) }
     putBody("/settings") { (body: String) => setWindows(body) }
     get("/status") { () => status() }
@@ -30,9 +34,13 @@ final class BackofficeEndpoint(api: Api) extends HttpEndpoint(s"/v1/casino/backo
     putBody("/networks/{id}") { (id: String, body: String) => updateNetwork(id, body) }
     delete("/networks/{id}") { (id: String) => removeNetwork(id) }
     post("/networks/{id}/pseudonym-key") { (id: String) => makePseudonymKey(id) }
+  }
 
+  withAcl(api.may("player.read")) {
     get("/records/{player}") { (player: String) => record(player) }
+  }
 
+  withAcl(api.may("config.attribution")) {
     get("/signing-keys") { () => ok(SigningKeys(settings.call(SettingsEntity.get).invoke().signingKeys.map(keyAnswer))) }
     post("/signing-keys") { () => makeSigningKey() }
     delete("/signing-keys/{kid}") { (kid: String) => retireSigningKey(kid) }
@@ -142,7 +150,7 @@ final class BackofficeEndpoint(api: Api) extends HttpEndpoint(s"/v1/casino/backo
       s.firstDay.filter(_ => !s.transitionOver).map(f => LocalDate.parse(f).plusMonths(12).toString),
       s.transitionEnd.map(_.day), s.transitionEnd.map(_.endedBy), s.legacyLast30Days(today))
     val open = api.views.forView(OpenDays).ask(OpenDays.openBefore, "day" -> "9999-12-31").size.toLong
-    ok(Status(rows, transition, open, s.legacyDaily))
+    ok(Status(rows, transition, open, s.legacyDaily, api.bags.status))
 
   // ── records ───────────────────────────────────────────────────────────────────────────────────
 

@@ -38,7 +38,9 @@ final case class Preview(
     bonusBalance: Long = 0L,
     clawback: Long = 0L,
     totalForfeit: Long = 0L,
-    mostWithdrawable: Long = 0L
+    mostWithdrawable: Long = 0L,
+    /** The real balance less what is reserved, as the wallet read it (spec 030 Y3); none from a wallet that does not say. */
+    available: Option[Long] = None
 )
 
 /**

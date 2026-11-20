@@ -185,6 +185,9 @@ var NotDriven = map[string]string{
 	"the legacy tag document maps each imported legacy tag to its affiliate and link during the transition period":          "the legacy tag document is the port's transition; the original has none",
 	"the legacy tag document is withdrawn after the transition period":                                                      "the legacy tag document is the port's transition; the original has none",
 	"a link's click count comes from click facts and never from a counter on the account":                                   "the original counts clicks in counters on the link and the revenue twin; attribution's landing recording holds the click",
+	"a manager reads a brand's traffic for a period per affiliate and per link":                                             "spec 030 A3: the original counts clicks in a counter on the revenue twin and never counts qualified first deposits; one brand per deployment",
+	"a click counts in the period its time falls in in the brand's reporting zone":                                          "spec 030 A3: the original's monthly click counter takes the month of the receipt in the server's zone (S/ClickTrackingRoutes.scala:61)",
+	"only a first deposit at or above the plan's minimum deposit is a qualified first deposit":                              "spec 030 A3: the original's pages read qftdCount and nothing in it writes one",
 	"a manager for one brand lists only that brand's memberships and facts":                                                 "the original serves one brand per deployment",
 	"a manager's request naming a brand their roles do not cover is refused":                                                "the original's operator gate is role-only (OperatorRoutes.scala:370-372) and refuses no brand",
 	"a manager for several brands reads revenue per brand and per currency":                                                 "the original serves one brand per deployment and has no currency on a plan",
@@ -193,6 +196,7 @@ var NotDriven = map[string]string{
 	"a parent chain that forms a cycle is visited once and the computation ends":                                            "the original refuses a cycle on write (409 parent_cycle), so none can be made through its routes",
 	"facts in two currencies close as two payouts":                                                                          "the original's payout is one per affiliate and period whatever the currency (marked divergence 6)",
 	"an export of approved payouts lists every figure and is audited as a read of payment details":                          "the original has no export route; the backoffice builds the file in the browser",
+	"the manager role given for one brand manages no other brand the operator's roles name":                                 "spec 032: the original's realm roles hold in every brand; it has no role named for a brand",
 }
 
 // NotDrivenFeatures are the features the original has nothing of, and why.

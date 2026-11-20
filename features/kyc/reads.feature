@@ -30,3 +30,8 @@ Feature: Reads of KYC by operators and the player
     Given a player whose KYC status has changed
     When their activity history is read
     Then the KYC status changes appear as account entries
+
+  Scenario: an operator reads a player's decisions in order, each with who made it
+    Given a player whose document was rejected and then approved
+    When an operator reads the player's decisions
+    Then both decisions are listed in order, each with the operator who made it and when

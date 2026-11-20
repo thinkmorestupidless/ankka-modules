@@ -24,14 +24,17 @@ final class FakeGateway(bind: Int = 0) extends FakeServer(bind):
   @volatile var failWith: Option[Int]        = None
   @volatile var crypto: Boolean              = false
   @volatile var down: Boolean                = false
+  /** What a test payment is answered (spec 005 T2); none answers as the gateway does: accepted for a provider with a test mode, else `501`. */
+  @volatile var testAnswer: Option[Answer]   = None
 
   def session(paymentId: String, s: Session): Unit = synchronized(sessions.update(paymentId, s))
 
   def initiates: Vector[Received] = received.filter(r => r.method == "POST" && r.path == "/v1/psp/hpp/initiate")
   def sessionReads: Vector[Received] = received.filter(_.path.startsWith("/v1/psp/sessions/"))
+  def testPayments: Vector[Received] = received.filter(r => r.method == "POST" && r.path == "/v1/psp/test-payment")
 
   def reset(): Unit = synchronized {
-    initiated.clear(); sessions.clear(); refusePlayer = None; failWith = None; crypto = false; down = false; clearReceived()
+    initiated.clear(); sessions.clear(); refusePlayer = None; failWith = None; crypto = false; down = false; testAnswer = None; clearReceived()
   }
 
   protected def route(r: Received): Answer = synchronized {
@@ -40,6 +43,7 @@ final class FakeGateway(bind: Int = 0) extends FakeServer(bind):
       val body = r.json.get
       val id   = body.textOr("paymentId", "")
       initiated.getOrElseUpdate(id, initiate(id, body))
+    else if r.method == "POST" && r.path == "/v1/psp/test-payment" then testAnswer.getOrElse(testPayment(r.json.get))
     else if r.method == "GET" && r.path.startsWith("/v1/psp/sessions/") then
       val id = r.path.stripPrefix("/v1/psp/sessions/")
       sessions.getOrElse(id, Session.Pending) match
@@ -66,3 +70,13 @@ final class FakeGateway(bind: Int = 0) extends FakeServer(bind):
               Json.set(o, "cryptoCurrency", body.textOr("method", "BTC"))
               Json.set(o, "validUntil", "2026-10-12T11:00:00Z")
             Answer.ok(o)
+
+  private def testPayment(body: com.fasterxml.jackson.databind.JsonNode): Answer =
+    val psp = body.textOr("psp", "")
+    if !Set("UNITYFINANCE", "GIGADAT", "DIGITARIUM").contains(psp) then
+      Answer.json(501, Json.obj("error" -> "test_mode_unavailable", "message" -> s"$psp offers no test mode", "provider" -> psp))
+    else
+      val currency = body.textOr("currency", if psp == "GIGADAT" then "CAD" else "USD")
+      Answer.ok(Json.obj("outcome" -> "accepted", "provider" -> psp, "testMode" -> "test_card", "method" -> "CARD_TEST",
+        "currency" -> currency, "amount" -> 100L, "reference" -> s"test-${java.util.UUID.randomUUID()}",
+        "redirectUrl" -> "https://provider.example/test-checkout"))

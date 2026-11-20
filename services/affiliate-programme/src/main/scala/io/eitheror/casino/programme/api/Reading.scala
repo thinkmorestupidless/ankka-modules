@@ -4,6 +4,8 @@ import com.thinkmorestupidless.ankka.http.{Bytes, Respond}
 import io.eitheror.casino.programme.api.Wire.*
 import io.eitheror.casino.programme.ledger.{LedgerRow, Revenue, RevenueAnswer}
 import io.eitheror.casino.programme.ledger.Revenue.given
+import io.eitheror.casino.programme.links.Traffic
+import io.eitheror.casino.programme.links.Traffic.given
 import io.eitheror.casino.programme.periods.Periods
 import io.eitheror.casino.programme.players.PlayerFactRow
 
@@ -19,6 +21,15 @@ final class Reading(api: Api):
 
   def revenue(affiliate: Option[String], brands: Vector[String], token: Option[String]): Respond[Bytes] =
     range(token) { (t, r) => ok(RevenueAnswer(affiliate, t, Revenue.read(api.reads, affiliate, zones(brands), r))) }
+
+  /** A brand's clicks, registrations, first deposits and qualified first deposits for the range, per affiliate and link (spec 030 A3). */
+  def traffic(brand: String, token: Option[String]): Respond[Bytes] =
+    range(token) { (t, r) =>
+      val zone       = api.brand(brand).zone
+      val (from, to) = Revenue.bounds(r)
+      val players    = api.reads.players(None, brand, from, to).filter(x => r.holds(x.period, x.occurredAt, zone))
+      ok(Traffic.answer(brand, t, Traffic.clicks(api.views, brand, r, zone), players))
+    }
 
   /** The rows of both views for the range, held to it in each brand's zone. */
   def rows(affiliate: Option[String], brands: Vector[String], r: Periods.Range): (Vector[LedgerRow], Vector[PlayerFactRow]) =

@@ -105,6 +105,8 @@ final class PlayerEntity(context: EventSourcedEntityContext) extends EventSource
       case _: PendingBonusCodeCleared => s.copy(pendingBonusCode = None)
       case e: StatusImported          => status(e.status, "imported", Actor.System)
       case _: ResetLinkSent           => s
+      case e: ManagerTagsSet          => s.copy(managerTags = ManagerTags(e.tags, e.actorId, Some(e.at)))
+      case e: DeviceSeen              => s.copy(devices = Devices.after(s.devices, e))
       case e: ErasureFiled =>
         status(Status.ErasurePending, "erasure_filed", Actor.System).copy(erasure = Some(ErasureFiling(e.correlationId, e.holdUntil)))
       case e: ErasureStageReached => s.copy(erasure = s.erasure.map(f => f.copy(stages = f.stages + e.stage)))
@@ -115,6 +117,8 @@ final class PlayerEntity(context: EventSourcedEntityContext) extends EventSource
           cookieDecisions = Map.empty,
           registration = s.registration.copy(networkAddress = None, deviceFingerprint = None),
           suspension = s.suspension.map(_.copy(reason = "")),
+          managerTags = ManagerTags(),
+          devices = Vector.empty,
           trail = s.trail.map(_.copy(reason = None)) :+ AccountEvent("erased", s.status, Status.Erased, Actor.System, None, None, event.at))
 
   // ── registration and verification ─────────────────────────────────────────
@@ -156,6 +160,13 @@ final class PlayerEntity(context: EventSourcedEntityContext) extends EventSource
       effects.persist(SignInRefused(s.status, c.at)).thenReply(_ => SignInAnswer(Some(restricted(s.status))))
     else
       effects.persist(SignedIn(c.at)).thenReply(n => SignInAnswer(None, n.currency, n.profile.get("country"), n.pendingBonusCode))
+
+  /** The device of a log-in the player was let in from (spec 030 P8); no player, no device. */
+  def seeDevice(c: SeeDevice): Effect[Done] =
+    if !currentState.exists || currentState.status == Status.Erased then effects.reply(Done.unchanged)
+    else
+      effects.persist(DeviceSeen(Personal(c.key), Personal(c.platform), Personal(c.browser), Personal(c.deviceType), c.country, c.at))
+        .thenReply(_ => Done.changed)
 
   /** A refusal after the entity served the sign-in (`may-log-in`, R4): stamps the refused attempt. */
   def signInRefused(c: RefuseSignIn): Effect[Done] = effects.persist(SignInRefused(c.reason, c.at)).thenReply(_ => Done.changed)
@@ -340,6 +351,25 @@ final class PlayerEntity(context: EventSourcedEntityContext) extends EventSource
     if currentState.potVip == c.potVip then effects.reply(Done.unchanged)
     else effects.persist(PotVipSet(c.potVip, c.actorId, c.at)).thenReply(_ => Done.changed)
 
+  /**
+   * The player's manager tags, the whole list (spec 030 P7): each trimmed, blanks dropped, a repeat that
+   * differs only in case dropped (the original's), at most [[ManagerTags.MaxLength]] characters each and
+   * [[ManagerTags.MaxCount]] in all. The list already held is no event.
+   */
+  def setManagerTags(c: SetManagerTags): Effect[Done] =
+    val s    = currentState
+    val tags = c.tags.map(_.trim).filter(_.nonEmpty).foldLeft(Vector.empty[String])((kept, t) =>
+      if kept.exists(_.equalsIgnoreCase(t)) then kept else kept :+ t)
+    if !s.exists then effects.reply(Done.refused("player_not_found"))
+    else
+      tags.find(_.length > ManagerTags.MaxLength) match
+        case Some(long) => effects.reply(Done.refused("invalid_tag", "tag" -> long, "maxLength" -> ManagerTags.MaxLength.toString))
+        case None if tags.size > ManagerTags.MaxCount =>
+          effects.reply(Done.refused("too_many_tags", "maxCount" -> ManagerTags.MaxCount.toString))
+        case None if tags == s.managerTags.tags => effects.reply(Done.unchanged)
+        case None =>
+          effects.persist(ManagerTagsSet(tags, s.managerTags.tags, c.actorId, c.at)).thenReply(_ => Done.changed)
+
   /** The operator's test-account flag (spec 015 R11); the value already held is no event. */
   def setTestAccount(c: SetTestAccount): Effect[Done] =
     val s = currentState
@@ -468,6 +498,8 @@ object PlayerEntity
   given Serializer[FileErasure]           = PlayersCodecs.serializer[FileErasure]("file-erasure")
   given Serializer[ErasureStage]          = PlayersCodecs.serializer[ErasureStage]("erasure-stage")
   given Serializer[SendResetLink]         = PlayersCodecs.serializer[SendResetLink]("send-reset-link")
+  given Serializer[SeeDevice]             = PlayersCodecs.serializer[SeeDevice]("see-device")
+  given Serializer[SetManagerTags]        = PlayersCodecs.serializer[SetManagerTags]("set-manager-tags")
   given Serializer[PlayerState]           = PlayersCodecs.serializer[PlayerState]("player-state-reply")
 
   override def snapshotEvery: Option[Int] = Some(100)
@@ -509,6 +541,8 @@ object PlayerEntity
   val setVipTier            = command("set-vip-tier")(_.setVipTier)
   val setPotVip             = command("set-pot-vip")(_.setPotVip)
   val setTestAccount        = command("set-test-account")(_.setTestAccount)
+  val setManagerTags        = command("set-manager-tags")(_.setManagerTags)
+  val seeDevice             = command("see-device")(_.seeDevice)
   val flagDuplicate         = command("flag-duplicate")(_.flagDuplicate)
   val clearDuplicate        = command("clear-duplicate")(_.clearDuplicate)
   val startDuplicateCheck   = command("start-duplicate-check")(_.startDuplicateCheck)

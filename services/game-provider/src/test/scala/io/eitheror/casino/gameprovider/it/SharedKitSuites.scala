@@ -54,6 +54,41 @@ class UnacknowledgedViewSuite extends SharedKitSuite:
     assertEquals(gauge(), before - 1)
   }
 
+  test("the list is oldest first, paged by page and pageSize, and answers its total (spec 030 GP3)") {
+    val player = s"$run-p"
+    kit.wallet.set(player, "EUR", 1000)
+    val token = kit.sessionTicket(player)
+    kit.wallet.down = true
+    val txs = (1 to 3).map { i =>
+      val tx = s"$run-p$i"
+      assertEquals(kit.callback("debit", Json.obj("token" -> token, "transaction_id" -> tx, "round" -> s"$run-pr$i", "amount" -> "1.00")).word, "error")
+      tx
+    }
+    kit.wallet.down = false
+    def list(query: String) = kit.request("GET", s"/v1/casino/backoffice/${kit.brand}/game-provider/unacknowledged$query", None, kit.asOperator())
+    def ids(r: Reply)       = r.json.objects("entries").flatMap(_.text("transactionId"))
+    val whole = kit.eventually("three listed")(Some(list("")).filter(r => txs.forall(ids(r).contains)))
+    assertEquals(whole.json.path("total").asLong, ids(whole).size.toLong, whole.text)
+    assert(whole.json.path("page").isMissingNode, "no paging asked, none answered")
+    val at = whole.json.objects("entries").flatMap(_.text("recordedAt")).map(java.time.Instant.parse)
+    assertEquals(at, at.sorted, "oldest first")
+    assertEquals(ids(whole).filter(txs.contains), txs.toVector)
+
+    val total = whole.json.path("total").asLong
+    val first = list("?page=1&pageSize=2")
+    assertEquals((first.status, first.json.path("page").asInt, first.json.path("pageSize").asInt), (200, 1, 2), first.text)
+    assertEquals(ids(first), ids(whole).take(2))
+    assertEquals(first.json.path("total").asLong, total)
+    val second = list("?page=2&pageSize=2")
+    assertEquals(ids(second), ids(whole).slice(2, 4))
+    val past = list(s"?page=${total / 2 + 2}&pageSize=2")
+    assertEquals((past.status, ids(past), past.json.path("total").asLong), (200, Vector.empty, total), past.text)
+
+    val tooMany = list("?pageSize=201")
+    assertEquals((tooMany.status, tooMany.json.text("field")), (400, Some("pageSize")), tooMany.text)
+    assertEquals(list("?page=0").status, 400)
+  }
+
   test("the bets counter counts every bet placed, free rounds included") {
     val player = s"$run-b"
     kit.wallet.set(player, "EUR", 1000)
@@ -275,4 +310,64 @@ class RewardsEndpointSuite extends SharedKitSuite:
     val r = kit.request("POST", s"/v1/casino/brands/${kit.brand}/game-provider/st8/players/$run-k/known", Some("""{"currency":"EUR"}"""))
     assertEquals(r.status, 204, r.text)
     assertEquals(kit.callback("player_profile", Json.obj("player" -> s"$run-k")).word, "ok")
+  }
+
+/** An operator's rounds: the list's total and page, and one round by round or by transaction (spec 030 GP2). */
+class RoundReadsSuite extends SharedKitSuite:
+  private def read(path: String) = kit.request("GET", s"/v1/casino/backoffice/${kit.brand}/game-provider/rounds$path", None, kit.asOperator())
+  private def ids(r: Reply)      = r.json.objects("rounds").flatMap(_.text("roundId"))
+
+  /** A player with `n` rounds, one bet each, opened in order a second apart (the kit's clock is set back after). */
+  private def rounds(player: String, n: Int): Vector[String] =
+    kit.wallet.set(player, "EUR", 10000)
+    val token = kit.sessionTicket(player)
+    val start = kit.clock
+    try
+      (1 to n).toVector.map { i =>
+        val round = s"$run-r$i"
+        kit.clock = start.plusSeconds(i)
+        assertEquals(kit.callback("debit", Json.obj("token" -> token, "transaction_id" -> s"$round-d", "round" -> round, "amount" -> "1.00")).word, "ok")
+        round
+      }
+    finally kit.clock = start
+
+  test("a player's rounds are newest first with their total, paged by page and pageSize or by offset and limit") {
+    val player = s"$run-p"
+    val made   = rounds(player, 3)
+    val whole  = kit.eventually("three rounds listed")(Some(read(s"?playerId=$player")).filter(ids(_).size == 3))
+    assertEquals(ids(whole), made.reverse, "newest first")
+    assertEquals(whole.json.path("total").asLong, 3L, whole.text)
+    assert(whole.json.path("page").isMissingNode, "no paging asked, none answered")
+
+    val first = read(s"?playerId=$player&page=1&pageSize=2")
+    assertEquals((first.status, ids(first), first.json.path("total").asLong), (200, made.reverse.take(2), 3L), first.text)
+    assertEquals((first.json.path("page").asInt, first.json.path("pageSize").asInt), (1, 2))
+    assertEquals(ids(read(s"?playerId=$player&page=2&pageSize=2")), made.reverse.drop(2))
+    val past = read(s"?playerId=$player&page=3&pageSize=2")
+    assertEquals((past.status, ids(past), past.json.path("total").asLong), (200, Vector.empty, 3L))
+    assertEquals(ids(read(s"?playerId=$player&offset=1&limit=1")), Vector(made(1)), "offset and limit as before 030")
+
+    val tooMany = read(s"?playerId=$player&pageSize=201")
+    assertEquals((tooMany.status, tooMany.json.text("field")), (400, Some("pageSize")), tooMany.text)
+    assertEquals(read(s"?playerId=$player&page=0").status, 400)
+  }
+
+  test("by-round and by-transaction are their own routes beside rounds/<adapter>/{roundId}; an unknown id is 404") {
+    val player = s"$run-q"
+    val round  = rounds(player, 1).head
+    val atSt8  = read(s"/st8/$round")
+    assertEquals((atSt8.status, atSt8.json.text("roundId")), (200, Some(round)), atSt8.text)
+    val byRound = read(s"/by-round/$round")
+    assertEquals((byRound.status, byRound.json.text("provider"), byRound.json.text("playerId")), (200, Some("st8"), Some(player)), byRound.text)
+    val byTx = read(s"/by-transaction/$round-d")
+    assertEquals((byTx.status, byTx.json.text("roundId")), (200, Some(round)), byTx.text)
+    // The literal segments are routes, not an adapter: a round named `by-round` at st8 is still st8's route's.
+    assertEquals(read("/st8/by-round").json.text("error"), Some("round_not_found"))
+
+    val noRound = read(s"/by-round/$run-none")
+    assertEquals((noRound.status, noRound.json.text("error")), (404, Some("round_not_found")), noRound.text)
+    val noTx = read(s"/by-transaction/$run-none")
+    assertEquals((noTx.status, noTx.json.text("error")), (404, Some("round_not_found")), noTx.text)
+    assertEquals(kit.request("GET", s"/v1/casino/backoffice/${kit.brand}/game-provider/rounds/by-round/$round", None,
+      kit.asOperator(roles = "resource_admin")).status, 403, "player.read is required")
   }

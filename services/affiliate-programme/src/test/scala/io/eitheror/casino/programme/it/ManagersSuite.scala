@@ -19,6 +19,8 @@ class ManagersSuite extends munit.FunSuite with LogCapturing:
   private def send(method: String, path: String, body: String, as: Seq[(String, String)] = kit.asManager()): Reply =
     kit.request(method, s"/v1/affiliates$path", Some(body), as)
   private def items(r: Reply): Vector[JsonNode] = { assertEquals(r.status, 200, r.text); r.json.elements().asScala.toVector }
+  /** O7's rows: its answer is a page, `{items, total, page, pageSize}` (spec 030 A1). */
+  private def listed(r: Reply): Vector[JsonNode] = { assertEquals(r.status, 200, r.text); r.json.get("items").elements().asScala.toVector }
   private def admin(brands: Seq[String] = Seq("goldvibe")) = kit.asManager(brands, "admin-1", "brand_admin")
   /** An audit row of `action` at `brand` for this test's own plan or user: the database is shared with earlier runs. */
   private def audited(action: String, brand: String, detail: (String, String)): Boolean =
@@ -28,9 +30,10 @@ class ManagersSuite extends munit.FunSuite with LogCapturing:
   test("a manager of one brand reads only that brand; naming another is refused brand_not_held") {
     val gold   = Scene(kit)
     val silver = Scene(kit, "silvervibe")
-    val mine = kit.eventually("gold listed")(Option(items(get("/goldvibe/accounts"))).filter(_.exists(_.get("account").get("affiliateId").asText == gold.affiliate)))
+    val mine = kit.eventually("gold listed")(Option(listed(get("/goldvibe/accounts"))).filter(_.exists(_.get("account").get("affiliateId").asText == gold.affiliate)))
     assert(!mine.exists(_.get("account").get("affiliateId").asText == silver.affiliate))
-    for path <- Seq("/silvervibe/accounts", "/silvervibe/revenue?period=all", "/silvervibe/payouts", "/silvervibe/fraud-flags") do
+    for path <- Seq("/silvervibe/accounts", "/silvervibe/revenue?period=all", "/silvervibe/traffic?period=all", "/silvervibe/payouts",
+        "/silvervibe/fraud-flags") do
       val r = get(path)
       assertEquals(r.status, 403, s"$path: ${r.text}")
       assert(r.json.get("error").asText.startsWith("brand_not_held"), r.text)
@@ -41,6 +44,34 @@ class ManagersSuite extends munit.FunSuite with LogCapturing:
       assertEquals(r.status, 200, r.text)
       val figures = r.json.get("figures").elements().asScala.toVector
       assert(figures.forall(_.get("brandId").asText == brand), r.text)
+  }
+
+  test("a brand's traffic counts its clicks, registrations, first deposits and qualified first deposits per affiliate and link (spec 030 A3)") {
+    val s      = Scene(kit, planType = Plan.Cpa, cpa = 5_000, minimumDeposit = 1_000)
+    val at     = java.time.Instant.parse("2026-08-20T10:00:00Z")
+    s.send(s.facts.copy(clickId = Some(kit.fresh("clk"))).click(at)): Unit
+    s.send(s.facts.click(at.plusSeconds(5))): Unit
+    val small = s.player(at)
+    s.send(s.facts.firstDeposit(small, 500, at.plusSeconds(60))): Unit
+    val big = s.player(at)
+    s.send(s.facts.firstDeposit(big, 1_000, at.plusSeconds(60))): Unit
+    // September's click counts in a range that reaches September, not in August.
+    s.send(s.facts.click(java.time.Instant.parse("2026-09-01T00:00:00Z"))): Unit
+    val answer = kit.eventually("the traffic") {
+      val r = get("/goldvibe/traffic?period=2026-08")
+      assertEquals(r.status, 200, r.text)
+      r.json.get("affiliates").elements().asScala.find(_.get("affiliateId").asText == s.affiliate)
+        // every count, not only the last one asked for: each is folded from its own facts, in its own time
+        .filter(a => a.get("qftdCount").asLong == 1L && a.get("clickCount").asLong == 2L && a.get("registrationCount").asLong == 2L && a.get("ftdCount").asLong == 2L)
+    }
+    assertEquals((answer.get("clickCount").asLong, answer.get("registrationCount").asLong, answer.get("ftdCount").asLong), (2L, 2L, 2L))
+    val link = answer.get("links").elements().asScala.toVector
+    assertEquals(link.map(_.get("btag").asText), Vector(s.link))
+    val ranged = get("/goldvibe/traffic?period=2026-08-20..2026-09-01").json.get("affiliates").elements().asScala
+      .find(_.get("affiliateId").asText == s.affiliate).get
+    assertEquals(ranged.get("clickCount").asLong, 3L)
+    val bad = get("/goldvibe/traffic?period=August")
+    assertEquals((bad.status, bad.json.get("error").asText), (400, "invalid_period"), bad.text)
   }
 
   test("a plan is made once by name, changed and listed, and both are audited") {
@@ -93,7 +124,7 @@ class ManagersSuite extends munit.FunSuite with LogCapturing:
     assertEquals(made.status, 201, made.text)
     val aff = made.json.get("affiliateId").asText
     assertEquals(send("POST", "/goldvibe/accounts", s"""{"email":"$email","planId":"$plan"}""").json.get("error").asText, "email_already_registered")
-    val found = kit.eventually("found")(items(get(s"/goldvibe/accounts?search=${email.take(10)}&status=ACTIVE")).find(_.get("account").get("affiliateId").asText == aff))
+    val found = kit.eventually("found")(listed(get(s"/goldvibe/accounts?search=${email.take(10)}&status=ACTIVE")).find(_.get("account").get("affiliateId").asText == aff))
     assertEquals(found.get("account").get("status").asText, "active")
     assertEquals(send("POST", s"/goldvibe/accounts/$aff/notes", """{"text":"called them"}""").status, 201)
     kit.eventually("noted")(items(get(s"/goldvibe/accounts/$aff/notes")).find(_.get("text").asText == "called them")): Unit
@@ -101,7 +132,7 @@ class ManagersSuite extends munit.FunSuite with LogCapturing:
     assert(trail.exists(_.get("event").asText == "ACCOUNT_CREATED"), trail.mkString)
   }
 
-  test("O7 answers a page: limit (100 unless asked, at most 500) from offset, newest first, with or without a search") {
+  test("O7 answers a page: page and pageSize (100 unless asked, at most 200), newest first, with its total, with or without a search") {
     val h    = Hosted.add(kit)
     val mgr  = kit.asManager(Seq(h.slug))
     val plan = kit.plan(h.slug, kit.fresh("p"), Plan.Cpa, cpa = 1_000)
@@ -110,13 +141,20 @@ class ManagersSuite extends munit.FunSuite with LogCapturing:
       kit.request("POST", s"/v1/affiliates/${h.slug}/accounts", Some(s"""{"email":"${kit.fresh(s"page$i")}@example.com","planId":"$plan"}"""), mgr)
         .json.get("affiliateId").asText
     }
-    def ids(q: String) = kit.request("GET", s"/v1/affiliates/${h.slug}/accounts?$q", headers = mgr).json.elements().asScala
-      .map(_.get("account").get("affiliateId").asText).toVector
+    def page(q: String) = kit.request("GET", s"/v1/affiliates/${h.slug}/accounts?$q", headers = mgr)
+    def ids(q: String) = listed(page(q)).map(_.get("account").get("affiliateId").asText)
     kit.eventually("all three listed")(Option(ids("")).filter(_.size == 3)): Unit
-    assertEquals(ids("limit=2"), Vector(made(2), made(1)))
-    assertEquals(ids("limit=2&offset=2"), Vector(made(0)))
-    assertEquals(ids("limit=0").size, 1)
-    assertEquals(ids("limit=1&search=page1"), Vector(made(0)))
+    assertEquals(ids("pageSize=2"), Vector(made(2), made(1)))
+    assertEquals(ids("pageSize=2&page=2"), Vector(made(0)))
+    val second = page("pageSize=2&page=2").json
+    assertEquals((second.get("total").asInt, second.get("page").asInt, second.get("pageSize").asInt), (3, 2, 2))
+    assertEquals(page("").json.get("pageSize").asInt, 100)
+    assertEquals(ids("pageSize=200").size, 3)
+    for q <- Seq("pageSize=201", "pageSize=0", "page=0") do
+      val r = page(q)
+      assertEquals((r.status, r.json.get("error").asText), (400, "invalid_request"), q)
+    val searched = page("pageSize=1&search=page1").json
+    assertEquals((listed(page("pageSize=1&search=page1")).map(_.get("account").get("affiliateId").asText), searched.get("total").asInt), (Vector(made(0)), 1))
   }
 
   test("a fraud flag is raised once per player, brand and reason; dismissing it tells the affiliate") {
@@ -132,12 +170,23 @@ class ManagersSuite extends munit.FunSuite with LogCapturing:
     assertEquals(send("PATCH", "/goldvibe/fraud-flags/none/dismiss", """{"reason":"x"}""").status, 404)
   }
 
-  test("the read-only view answers each page the affiliate sees, and takes no change") {
+  test("the read-only view answers each page the affiliate sees under portal/ and view/, audits each read, and takes no change") {
     val s = Scene(kit)
-    for page <- Seq("dashboard?period=all", "stats?period=all", "commission?period=all", "links", "payouts", "notifications") do
-      assertEquals(get(s"/goldvibe/accounts/${s.affiliate}/view/$page").status, 200, page)
-    assertEquals(send("POST", s"/goldvibe/accounts/${s.affiliate}/view/links", "{}").status / 100, 4)
-    assertEquals(get(s"/goldvibe/accounts/${s.affiliate}/view/commission").status, 400)
+    for under <- Seq("portal", "view"); page <- Seq("dashboard?period=all", "stats?period=all", "commission?period=all", "links", "payouts", "notifications", "postbacks") do
+      assertEquals(get(s"/goldvibe/accounts/${s.affiliate}/$under/$page").status, 200, s"$under/$page")
+    for under <- Seq("portal", "view") do
+      assertEquals(send("POST", s"/goldvibe/accounts/${s.affiliate}/$under/links", "{}").status / 100, 4)
+      assertEquals(get(s"/goldvibe/accounts/${s.affiliate}/$under/commission").status, 400)
+    // 14 reads answered, each a VIEWED_AS of the manager's naming the account, the brand and the page; the refused reads none.
+    val rows = kit.eventually("audited")(Option(kit.views.forView(Activity).ask(Activity.byAction, "action" -> "VIEWED_AS")
+      .filter(_.affiliate == s.affiliate)).filter(_.size >= 14))
+    assertEquals(rows.size, 14)
+    assert(rows.forall(r => r.actor == "mgr-1" && r.brand.contains("goldvibe")), rows.toString)
+    assertEquals(rows.flatMap(_.details.get("view")).toSet, Set("dashboard", "stats", "commission", "links", "payouts", "notifications", "postbacks"))
+    // A page the portal has no read for is not routed (the endpoint's DenyAll answers it), and audits nothing.
+    assertEquals(get(s"/goldvibe/accounts/${s.affiliate}/portal/elsewhere").status / 100, 4)
+    val other = get(s"/goldvibe/accounts/${kit.fresh("nobody")}/portal/links")
+    assertEquals((other.status, other.json.get("error").asText), (404, "account_not_found"))
   }
 
   test("messages, creatives, and the facts that paid no one") {
@@ -164,15 +213,15 @@ class ManagersSuite extends munit.FunSuite with LogCapturing:
     val made  = send("POST", "/goldvibe/managers", s"""{"email":"$email","name":"Pat Manager"}""", admin())
     assertEquals(made.status, 201, made.text)
     val user = made.json.get("keycloakUserId").asText
-    assertEquals(kit.realm.user(user).get.roles, Set("affiliate_manager", "brand_goldvibe"))
+    assertEquals(kit.realm.user(user).get.roles, kit.managerRoles("goldvibe"))
     assertEquals(send("POST", "/goldvibe/managers", s"""{"email":"$email"}""", admin()).status, 409)
     assertEquals(items(get("/goldvibe/managers", admin())).map(_.get("keycloakUserId").asText), Vector(user))
     assertEquals(kit.request("POST", s"/v1/affiliates/goldvibe/managers/$user/reset-password", headers = admin()).status, 204)
     assertEquals(kit.request("POST", "/v1/affiliates/goldvibe/managers/nobody/reset-password", headers = admin()).status, 404)
     // A manager of two brands revoked at one keeps the manager role for the other.
-    kit.realm.assignRole(user, "brand_silvervibe"): Unit
+    kit.managerRoles("silvervibe").foreach(kit.realm.assignRole(user, _): Unit)
     assertEquals(kit.request("DELETE", s"/v1/affiliates/goldvibe/managers/$user", headers = admin()).status, 204)
-    assertEquals(kit.realm.user(user).get.roles, Set("affiliate_manager", "brand_silvervibe"))
+    assertEquals(kit.realm.user(user).get.roles, kit.managerRoles("silvervibe"))
     assertEquals(kit.request("DELETE", s"/v1/affiliates/silvervibe/managers/$user", headers = admin(Seq("silvervibe"))).status, 204)
     assertEquals(kit.realm.user(user).get.roles, Set.empty[String])
     kit.eventually("audited")(Option(Seq("MANAGER_ADDED", "MANAGER_PASSWORD_RESET", "MANAGER_REVOKED").forall(audited(_, "goldvibe", "userId" -> user))).filter(identity)): Unit

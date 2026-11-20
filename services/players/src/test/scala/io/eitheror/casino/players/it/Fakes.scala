@@ -171,14 +171,30 @@ final class FakeWallet(brand: String, bind: Int = 0) extends KnobbedServer(bind)
   /** Erasure subjects answered `500`: one target failing while the other answers. */
   val failingErasures: java.util.Set[String] = ConcurrentHashMap.newKeySet[String]()
 
-  def reset(): Unit = { sums.clear(); failingErasures.clear(); knobsReset() }
+  /** Each operator's and brand's count of givings, as merchant numbers them. */
+  private val givings = ConcurrentHashMap[String, java.lang.Long]()
+
+  def reset(): Unit = { sums.clear(); failingErasures.clear(); givings.clear(); knobsReset() }
 
   def erasures: Vector[String] = received.filter(_.path.startsWith(s"$prefix/erasure/players/")).map(_.path.split('/').last)
   def exports: Vector[String]  = received.filter(_.path.startsWith(s"$prefix/exports/players/")).map(_.path.split('/').last)
 
+  /** merchant's `PUT /v1/operators/{id}/brand-roles/{brand}` (spec 004 H6, amended by 032), which this fake also plays. */
+  def brandRoles: Vector[Received] = received.filter(r => r.method == "PUT" && r.path.startsWith("/v1/operators/") && r.path.contains("/brand-roles/"))
+
   protected def answer(r: Received): Answer =
     val p = r.path.stripPrefix(prefix)
-    if p.startsWith("/wallets/") && p.endsWith("/deposit-sums") then
+    if r.path.startsWith("/v1/operators/") && r.path.contains("/brand-roles/") && r.method == "PUT" then
+      // spec 032 H6: the giving is recorded and answered pending; the realm is merchant's to set after
+      val asked = Json.parse(r.body).getOrElse(Json.obj())
+      givings.merge(r.path, 1L, _ + _)
+      Answer(202, Json.render(Json.obj("roles" -> asked.get("roles"), "version" -> givings.get(r.path), "state" -> "pending",
+        "at" -> "2026-11-20T10:00:00Z")))
+    else if r.path.startsWith("/v1/operators/") && r.path.contains("/brand-roles/") then
+      // H6r: the last giving, in force, and the roles it asked held
+      Option(givings.get(r.path)).fold(Answer.ok(Json.obj("held" -> Json.arr())))(v =>
+        Answer.ok(Json.obj("version" -> v, "state" -> "in_force", "at" -> "2026-11-20T10:00:01Z", "held" -> Json.arr())))
+    else if p.startsWith("/wallets/") && p.endsWith("/deposit-sums") then
       val player = java.net.URLDecoder.decode(p.split('/')(2), "UTF-8")
       val (d1, d7, d30) = Option(sums.get(player)).getOrElse((0L, 0L, 0L))
       Answer.ok(Json.obj("last24h" -> d1, "last7d" -> d7, "last30d" -> d30))

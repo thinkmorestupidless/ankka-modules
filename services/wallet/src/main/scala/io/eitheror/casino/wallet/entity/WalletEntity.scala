@@ -165,13 +165,15 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
    * synthetic key so the original key's outcome is untouched; a new key is decided by `decide`.
    */
   /** `unset`: fields added to a command later, left out of the digest while they hold their default. */
-  private def keyed(command: MoneyCommand, wireName: String, unset: Set[(String, String)] = Set.empty)(
+  private def keyed(command: MoneyCommand, wireName: String, unset: Set[(String, String)] = Set.empty, marksRepeat: Boolean = false)(
       decide: String => Effect[Outcome]): Effect[Outcome] =
-    keyedWithDigest(command, wireName, MoneyCommand.digestOf(wireName, command, unset))(decide)
+    keyedWithDigest(command, wireName, MoneyCommand.digestOf(wireName, command, unset), marksRepeat)(decide)
 
-  private def keyedWithDigest(command: MoneyCommand, wireName: String, digest: String)(decide: String => Effect[Outcome]): Effect[Outcome] =
+  /** `marksRepeat`: a repeat's reply says so (`repeated`), for the operator's adjustment (spec 030 W2). */
+  private def keyedWithDigest(command: MoneyCommand, wireName: String, digest: String, marksRepeat: Boolean = false)(
+      decide: String => Effect[Outcome]): Effect[Outcome] =
     currentState.seen.check(Key.unsafe(command.key), digest) match
-      case Some(Answer.Repeated(first)) => effects.reply(first)
+      case Some(Answer.Repeated(first)) => effects.reply(if marksRepeat then first.copy(repeated = Some(true)) else first)
       case Some(Answer.Reused(first)) =>
         val outcome = refusal(Refusals.KeyReused, Refusals.keyReused(command.key, first.outcome), Map("key" -> command.key), wireName, amountOf(command))
         effects.persist(CommandRefused(s"${command.key}#reused#$digest", digest, wireName, Refusals.KeyReused,
@@ -628,19 +630,22 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
 
   // ── adjustments (FR-026) ──────────────────────────────────────────────────
 
-  def adjust(c: Adjust): Effect[Outcome] = keyed(c, "adjust") { digest =>
+  def adjust(c: Adjust): Effect[Outcome] = keyed(c, "adjust", unset = Set("cause" -> "None"), marksRepeat = true) { digest =>
     val s = currentState
     if c.reason.trim.isEmpty then refuse(c, "adjust", digest, Refusals.ReasonRequired, Refusals.reasonRequired)
-    else if c.amount == 0 then effects.reply(accepted("adjust", c, None, s.realBalance, s.restrictedBalance))
+    else if c.amount == 0 then
+      val balance = if c.target == "restricted" then s.restrictedBalance else s.realBalance
+      effects.reply(accepted("adjust", c, None, s.realBalance, s.restrictedBalance)
+        .copy(balanceBefore = Some(balance), balanceAfter = Some(balance), cause = c.cause))
     else
       val txId = transactionId(c.key)
       def persistAdjusted(real: Long, recordId: Option[String], forfeited: Option[Forfeit], updates: Vector[RecordUpdate],
           before: Long, after: Long, pools: Pools = s.pools, parts: Parts = Parts.zero, closes: Boolean = false) =
         val restricted = s.withUpdates(updates).restrictedBalance
         val outcome = pooled(accepted("adjust", c, Some(txId), real, restricted), pools).copy(recordId = recordId,
-          forfeited = forfeited.map(_.recordId).toVector, balanceBefore = Some(before), balanceAfter = Some(after))
+          forfeited = forfeited.map(_.recordId).toVector, balanceBefore = Some(before), balanceAfter = Some(after), cause = c.cause)
         effects.persist(AdminAdjusted(c.key, digest, txId, c.target, c.amount, Personal(c.reason), c.category, c.actorId, recordId,
-          forfeited, updates, real, restricted, c.at, outcome, parts, pools.deposit, pools.converted, closes)).thenReply(_ => outcome)
+          forfeited, updates, real, restricted, c.at, outcome, parts, pools.deposit, pools.converted, closes, c.cause)).thenReply(_ => outcome)
       c.target match
         case "restricted" =>
           Resolver.adjustRestricted(s.fundingWallet, s.openRecords, c.amount) match

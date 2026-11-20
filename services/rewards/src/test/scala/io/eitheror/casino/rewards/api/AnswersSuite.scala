@@ -19,8 +19,23 @@ class AnswersSuite extends munit.FunSuite:
   test("the original's shapes: ineligible, and a code preview that matches nothing"):
     val i = Answers.ineligible("MAX_CLAIMS_REACHED")
     assertEquals((i.status, body(i).text("status"), body(i).text("reason")), (409, Some("ineligible"), Some("MAX_CLAIMS_REACHED")))
+    assertEquals(body(i).strings("allowedBy"), Vector("offer_limit_raised", "operator_award"))
     val c = Answers.codeNotFound
     assertEquals((c.status, body(c).bool("valid"), body(c).text("error")), (200, Some(false), Some("code_not_found")))
+
+  test("RW2: every decline and the wallet's award refusals name what would allow the grant; an unknown reason nothing"):
+    import io.eitheror.casino.rewards.eligibility.{AllowedBy, Decline}
+    Decline.values.foreach(d => assert(AllowedBy.of(d.reason).nonEmpty, d.reason))
+    // rules 1 to 4 apply to an operator's award too: it is never offered as what would allow them (FR-006)
+    Seq(Decline.EligibilityCheckUnavailable, Decline.NoDepositOfferBlocked, Decline.SuspectedDuplicate, Decline.ActiveBonusConflict)
+      .foreach(d => assert(!AllowedBy.of(d).contains(AllowedBy.OperatorAward), d.reason))
+    assertEquals(AllowedBy.of("SUSPECTED_DUPLICATE"), Vector("fraud_flag_cleared", "brand_detection_off"))
+    assertEquals(AllowedBy.of("max_claims_reached"), AllowedBy.of(Decline.MaxClaimsReached))
+    assertEquals(AllowedBy.of("BONUS_ALREADY_ACTIVE"), Vector("open_reward_ended", "brand_limit_raised"))
+    assertEquals(AllowedBy.of("WALLET_NOT_FOUND"), Vector("wallet_opened"))
+    assertEquals(AllowedBy.of("SOMETHING_ELSE"), Vector.empty)
+    val unknown = Answers.ineligible("SOMETHING_ELSE")
+    assert(body(unknown).get("allowedBy").isArray && body(unknown).get("allowedBy").isEmpty, unknown.body.text)
 
   test("each endpoint's table"):
     val cases = Vector(

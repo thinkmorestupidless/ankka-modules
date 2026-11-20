@@ -99,9 +99,14 @@ class CloseSuite extends munit.FunSuite with LogCapturing:
     val id = payout(aff, "2025-04")().get("payoutId").asText
     assertEquals(move(id, """{"status":"APPROVED"}""").status, 200)
     earn(aff, 1_000, "2025-04-20T10:00:00Z")
-    closed("2025-04"): Unit
-    // The row read before the approval reached the view is pending too; wait for the second close's.
-    val p = payout(aff, "2025-04")(p => p.get("status").asText == "pending" && Option(p.get("supersededApprovals")).exists(_.size > 0))
+    // A close already running when asked joins it, and may have read before the late fact: close again until one
+    // has swept it in (seen on CI, as for June below). The row read before the approval reached the view is
+    // pending too, so the superseded approval is what shows the second close's.
+    val p = kit.eventually(s"$aff's late fact swept into April's approved payout", 60.seconds) {
+      closed("2025-04"): Unit
+      payoutsOf(aff, "2025-04").find(p => p.get("currency").asText == "EUR" && p.get("status").asText == "pending" &&
+        Option(p.get("supersededApprovals")).exists(_.size > 0))
+    }
     assertEquals(p.get("totalPayable").asLong, 6_000L)
     assertEquals(p.get("supersededApprovals").elements().asScala.map(_.get("total").asLong).toVector, Vector(5_000L))
   }
@@ -117,8 +122,13 @@ class CloseSuite extends munit.FunSuite with LogCapturing:
     assertEquals(close("2025-05").status, 200)
     val paid = payout(aff, "2025-05")(_.get("status").asText == "paid")
     assertEquals(paid.get("totalPayable").asLong, 5_000L)
-    close("2025-06"): Unit
-    assertEquals(payout(aff, "2025-06")().get("totalPayable").asLong, 1_000L)
+    // A close already running when asked joins it, and may have read before the late fact: close again until one
+    // has claimed it, as each close claims what is still unclaimed (seen on CI).
+    val june = kit.eventually(s"$aff's late fact claimed by a June close", 60.seconds) {
+      closed("2025-06"): Unit
+      payoutsOf(aff, "2025-06").find(_.get("currency").asText == "EUR")
+    }
+    assertEquals(june.get("totalPayable").asLong, 1_000L)
   }
 
   test("facts in two currencies close as two payouts") {

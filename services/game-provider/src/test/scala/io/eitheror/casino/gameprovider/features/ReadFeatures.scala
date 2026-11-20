@@ -9,6 +9,43 @@ class ReadFeatures extends ProviderFeatures("reads.feature"):
 
   sessionTicketSteps()
 
+  // ── An operator's rounds by round and by transaction (spec 030 GP2) ─────────────────────────────
+
+  private def operatorRead(path: String): Unit =
+    last = kit.request("GET", s"/v1/casino/backoffice/${kit.brand}/game-provider/rounds/$path", None, kit.asOperator())
+
+  Given("a round of a player at one of the brand's game providers") { () =>
+    // `acme`, the brand's second provider, so the read cannot be st8's by default.
+    assertEquals(kit.configureAcme().status, 204)
+    token = kit.sessionTicket(player, provider = "acme")
+    kit.wallet.set(player, currency, 10000)
+    last = kit.callback("debit", json("token" -> token, "transaction_id" -> id("bet"), "round" -> id("round"), "amount" -> "1.00",
+      "currency" -> currency), path = Some(s"/v1/casino/brands/${kit.brand}/acme/debit"))
+    answered("ok")
+  }
+
+  When("an operator reads the round by its id, naming no game provider") { () => operatorRead(s"by-round/${id("round")}") }
+
+  Then("the round is answered with its player and its game provider") { () =>
+    assertEquals(last.status, 200, last.text)
+    assertEquals((last.json.text("roundId"), last.json.text("playerId"), last.json.text("provider")), (Some(id("round")), Some(player), Some("acme")))
+  }
+
+  Given("a round of a player with a bet and a win") { () =>
+    token = kit.sessionTicket(player)
+    kit.wallet.set(player, currency, 10000)
+    debit("bet", "1.00", "round"); answered("ok")
+    credit("win", "2.50", Some("round")); answered("ok")
+  }
+
+  When("an operator reads the round by the id of its win") { () => operatorRead(s"by-transaction/${id("win")}") }
+
+  Then("the round is answered with its player") { () =>
+    assertEquals(last.status, 200, last.text)
+    assertEquals((last.json.text("roundId"), last.json.text("playerId")), (Some(id("round")), Some(player)))
+    assertEquals(last.json.objects("transactions").flatMap(_.text("transactionId")).toSet, Set(id("bet"), id("win")))
+  }
+
   Given("a player with a session ticket for a wallet in {string} and a real balance of {string}") { (cur: String, amount: String) =>
     currency = cur
     token = kit.sessionTicket(player, currency = cur)

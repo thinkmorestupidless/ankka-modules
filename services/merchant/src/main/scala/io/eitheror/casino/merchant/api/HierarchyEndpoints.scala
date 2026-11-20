@@ -162,7 +162,12 @@ final class SubBrandsEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/sub-brands"):
   patch("/{id}/psp-credentials/{provider}/activate") { (id: String, provider: String) => ops.credentialStatus(op, id, provider, name, CredentialRecord.Active) }
   post("/{id}/psp-credentials/{provider}/disable") { (id: String, provider: String) => ops.credentialStatus(op, id, provider, name, CredentialRecord.Disabled) }
   patch("/{id}/psp-credentials/{provider}/disable") { (id: String, provider: String) => ops.credentialStatus(op, id, provider, name, CredentialRecord.Disabled) }
+  postBody("/{id}/psp-credentials/{provider}/test-payment") { (id: String, provider: String, text: String) =>
+    ops.testPayment(op, id, provider, name, text)
+  }
   get("/{id}/gateway-config") { (id: String) => ops.gatewayConfig(op, id) }
+  get("/{id}/deposit-bounds") { (id: String) => ops.depositBounds(op, id) }
+  putBody("/{id}/deposit-bounds") { (id: String, text: String) => ops.setDepositBounds(op, id, text) }
 
 /**
  * `/v1/merchants/{id}` (FR-004, FR-006, FR-007): the original's "merchant" is the sub-brand. Keys,

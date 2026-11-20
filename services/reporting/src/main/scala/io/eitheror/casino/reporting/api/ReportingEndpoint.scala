@@ -18,11 +18,15 @@ import Wire.*
  * What every route is built with: the service's clients, the authenticator and the clock. The settings are read at
  * each request from `ReportingRuntime`, so a service restarted on another generation answers from it.
  */
-final class Ctx(val clients: EndpointClients, val authenticate: () => Acl, val now: () => Instant):
+final class Ctx(val clients: EndpointClients, val authenticate: () => Acl, val now: () => Instant,
+    bagsOf: EndpointClients => io.eitheror.casino.contract.access.RoleBags = c => BrandRoles.of(c.services, ReportingRuntime.settings.get().brand)):
   def settings: Settings = ReportingRuntime.settings.get()
   def slug: String       = settings.brand
   def components         = clients.componentClient
   def views              = clients.viewClient
+
+  /** The brand's roles the operator routes decide from (spec 030 E3): by default read from the brand's `players`. */
+  lazy val bags: io.eitheror.casino.contract.access.RoleBags = bagsOf(clients)
 
   /** What a report's rows are read through, as a document job reads them too. */
   def reads: Reads = Reads(views, components, settings, now)
@@ -40,7 +44,7 @@ final class Ctx(val clients: EndpointClients, val authenticate: () => Acl, val n
  * operator of the brand, so it answers alike whether the route exists or not. Each user story adds its routes here.
  */
 final class ReportingEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${ctx.slug}/reporting"):
-  private val access = Access(ctx.slug, ctx.authenticate)
+  private val access = Access(ctx.slug, ctx.authenticate, ctx.bags)
 
   val acl: Acl = access.operator
 
@@ -60,8 +64,8 @@ final class ReportingEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands
     get("/reports/psp") { () => Reports.psp(ctx, asked) }
   }
 
-  // The dashboard admits every operator of the brand and is never hidden by the Reports tab's flag (FR-023, FR-024).
-  withAcl(access.operator) {
+  // The dashboard, for `dashboard.read`, is never hidden by the Reports tab's flag (FR-023, FR-024).
+  withAcl(access.dashboard) {
     get("/dashboard/kpis") { () => Dashboard.kpis(ctx, query.raw("currency")) }
     get("/dashboard/trend") { () => Dashboard.trend(ctx, query.raw("range"), query.raw("currency")) }
     get("/dashboard/kpi-history") { () => Dashboard.history(ctx, query.raw("currency")) }
@@ -72,24 +76,30 @@ final class ReportingEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands
     get("/dashboard/payment-health") { () => Dashboard.paymentHealth(ctx, query.raw("currency")) }
     // Not found unless the brand runs the predictions module (FR-028, FR-032).
     get("/dashboard/predictions") { () => Dashboard.predictions(ctx, query.raw("currency")) }
-    // The dispute report admits every operator of the brand, as the original (FR-023).
+  }
+
+  // The dispute report, for `export.player` (spec 030 E3; the original admitted every operator of the brand).
+  withAcl(access.disputes) {
     get("/players/{playerId}/dispute-report") { (playerId: String) =>
       Disputes.report(ctx, playerId, query.raw("sessionId"), query.raw("fromDate"), query.raw("toDate"), query.raw("format"),
         principal.subject)
     }
-    // A document is admitted by its kind's roles, checked once its record is read (contracts/routes.md, *Admission*).
+  }
+
+  // A document is admitted by its kind's permission, checked once its record is read (contracts/routes.md, *Admission*).
+  withAcl(access.operator) {
     get("/documents") { () => Documents.list(ctx, principal, query.raw("kind"), query.raw("from"), query.raw("to")) }
     get("/documents/{reference}") { (reference: String) => Documents.get(ctx, principal, reference) }
   }
 
-  // The compliance exports: the Reports tab's roles and compliance (FR-023); not hidden by the tab's flag.
+  // The compliance exports, for `report.compliance` (FR-023); not hidden by the tab's flag.
   withAcl(access.compliance) {
     get("/compliance/rg-cases") { () => Compliance.rgCases(ctx, asked) }
     get("/compliance/kyc-decisions") { () => Compliance.kycDecisions(ctx, asked) }
   }
 
-  // The prediction markets' reports: not found unless the brand runs the module (FR-032); the market report also for
-  // the module's `markets` permission, the traders report also for compliance (decided 2026-11-09).
+  // The prediction markets' reports: not found unless the brand runs the module (FR-032); the summary and the market
+  // report for `report.read`, the traders report for `report.compliance`, as compliance (decided 2026-11-09).
   withAcl(access.predictions) {
     get("/predictions/summary") { () => Predictions.summary(ctx, asked) }
   }
@@ -100,7 +110,7 @@ final class ReportingEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands
     get("/predictions/markets") { () => Predictions.markets(ctx, asked, query.raw("status"), query.raw("category")) }
   }
 
-  // The day-end: the Reports tab's roles and finance (FR-023); not hidden by the tab's flag, as it is no report of the tab.
+  // The day-end, for `report.dayEnd` (FR-023); not hidden by the tab's flag, as it is no report of the tab.
   withAcl(access.dayEnd) {
     get("/day-end/{day}") { (day: String) => DayEnd.read(ctx, day) }
     get("/day-end/{day}/export") { (day: String) => DayEnd.exported(ctx, day, principal.subject) }
@@ -122,9 +132,12 @@ final class ReportingEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands
     putBody("/settings") { (body: String) => SettingsRoute.put(ctx, body) }
   }
 
-/** `GET /status` (FR-004): the generation served, and per view the first complete day and whether it is rebuilding. */
+/**
+ * `GET /status` (FR-004): the generation served, and per view the first complete day and whether it is rebuilding;
+ * `roles`, when the brand's roles were last read from `players` (spec 030 E3).
+ */
 final case class ViewStatus(name: String, completeFrom: Option[String], rebuilding: Boolean)
-final case class StatusAnswer(generation: Int, views: Vector[ViewStatus])
+final case class StatusAnswer(generation: Int, views: Vector[ViewStatus], roles: String)
 object StatusAnswer:
   given JsonValueCodec[StatusAnswer] = Wire.answer[StatusAnswer]
 
@@ -143,7 +156,7 @@ object StatusRoute:
     val rebuilding =
       io.eitheror.casino.reporting.day.DayClosing.catchingUp(progress, s, ReportingRuntime.startedAt.get(), ctx.now()).nonEmpty
     StatusAnswer(s.generation, Completeness.viewTopics(s).map((view, topics) =>
-      ViewStatus(view, Completeness.from(ctx.components, s, topics).map(_.toString), rebuilding)))
+      ViewStatus(view, Completeness.from(ctx.components, s, topics).map(_.toString), rebuilding)), ctx.bags.status)
 
 /** `GET`/`PUT /settings` (FR-024): `ReportingSettings` in camelCase; a value out of its range `400 invalid_setting`. */
 final case class SettingsAnswer(reportsTab: Boolean, excludeTestAccounts: Boolean, defaultCurrency: Option[String], syncRows: Int,

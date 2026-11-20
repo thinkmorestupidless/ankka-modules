@@ -602,3 +602,8 @@ The transition period, the attribution window default and the per-round stream w
 spec 013. The four decisions the plan made were answered by Sheldon on 2026-10-28 (Clarifications):
 three stand as built; converted money never counts, which is spec 025's wallet change and this
 spec's FR-016 and FR-030 as amended. Nothing is open.
+
+## Amended by 030
+
+- E1 (spec 030 contracts/amendments.md, T025): every backoffice route requires one permission (`Routes.operatorMay`), decided from the brand's roles attribution reads from `players` every 10 seconds: `config.attribution` for the settings, the status, the networks, the signing keys and the webhook subscriptions, `fact.redeliver` for the undelivered facts (list, resend, discard), `player.read` for a player's attribution record (`features/attribution/operator-roles.feature`).
+- E2 (spec 030 contracts/amendments.md, T061): `GET …/attribution-webhooks/undelivered` is oldest first attempt first (the `deliveries` view, at version 2, carries `firstAttemptAt`, answered on each fact) and answers `total` beside `undelivered`; `page` (from 1) and `pageSize` (1 to 200, 50 by default) page it in the view's query and are answered back, a page past the last is empty, and a `page` or `pageSize` out of range is a 400 naming it; with neither, the list is whole as before.

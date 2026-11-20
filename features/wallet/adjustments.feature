@@ -57,3 +57,9 @@ Feature: An operator corrects a balance or a game provider credits one
     Given an "admin_adjust" transaction of "500"
     When deposit totals, GGR or deposit limit usage are computed
     Then the adjustment is not counted as a deposit
+
+  Scenario: an operator's adjustment carries its cause and answers the balance before and after
+    Given a real balance of "1000"
+    When an operator credits "500" to real balance with reason "provider win not paid" and the round it answers as its cause
+    Then the answer carries the real balance before, "1000", and after, "1500"
+    And the "admin_adjust" transaction carries the reason, the cause and the actor

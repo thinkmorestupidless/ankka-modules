@@ -10,7 +10,7 @@ import scala.jdk.CollectionConverters.*
 
 /**
  * The operator's routes of US6 (FR-017; contracts/routes.md `RewardAdminEndpoint`) over the whole service: the brand's
- * list for any operator of the brand, filtered and paged; a player's every reward with the primary and the wagering
+ * list for an operator holding `reward.read` (spec 030 RW1), filtered and paged; a player's every reward with the primary and the wagering
  * from the wallet; one reward; and the award in its three shapes, each the operator's override (rules 1 to 4).
  */
 class OperatorSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
@@ -20,7 +20,7 @@ class OperatorSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.He
   override def beforeEach(context: BeforeEach): Unit = kit.reset()
 
   private def admin = kit.asOperator()
-  private def viewer = kit.asOperator("support_agent", "op-viewer")
+  private def viewer = kit.asOperator("brand_support", "op-viewer")
 
   private def get(path: String, headers: Seq[(String, String)] = admin): Reply = kit.request("GET", kit.grantsPath(path), None, headers)
   private def give(player: String, fields: (String, Any)*): Reply =
@@ -31,14 +31,29 @@ class OperatorSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.He
 
   // ── who may call ──────────────────────────────────────────────────────────────────────────────
 
-  test("any operator of the brand reads the list; reading one reward and awarding need an admin role"):
+  test("reward.read reads the list and one reward; awarding needs reward.grant; a role carrying neither is refused"):
     val p = paths.newPlayer("op-p")
     assertEquals(get("", viewer).status, 200)
-    assertEquals(get("/no-such-reward", viewer).str("error"), "forbidden")
+    assertEquals(get("/no-such-reward", viewer).status, 404)
     val r = kit.json("POST", kit.grantsPath(s"/$p"), Json.obj("offerId" -> paths.noDeposit()), viewer)
-    assertEquals((r.status, r.str("error")), (403, "forbidden"), r.text)
+    assertEquals(r.status, 403, r.text)
+    assert(r.text.contains("the reward.grant permission is needed"), r.text)
+    assertEquals(get("", kit.asOperator("support_agent", "op-other")).status, 403)
     assertEquals(kit.request("GET", kit.grantsPath(""), None, kit.asPlayer(p)).status, 403)
     assertEquals(kit.request("GET", kit.grantsPath(""), None, kit.asService("engagement")).status, 401)
+
+  test("status (RW3, F): the rewards view with when it last applied a change, for reward.read and the project's services"):
+    val status = s"/v1/casino/brands/${kit.slug}/rewards/status"
+    val p = paths.newPlayer("st-p")
+    assertEquals(give(p, "offerId" -> paths.noDeposit()).status / 100, 2)
+    val view = kit.eventually("the rewards view marked")(
+      Option(kit.request("GET", status, None, viewer)).filter(_.status == 200)
+        .flatMap(_.json.objects("views").find(_.text("name").contains("rewards-view"))).filter(_.text("asOf").nonEmpty))
+    java.time.Instant.parse(view.text("asOf").get): Unit // an ISO instant; the shared kit moves its clock and a mark never moves back, so no bound on it
+    assertEquals(view.get("rebuilding").asBoolean, false)
+    assertEquals(kit.request("GET", status, None, kit.asService("backoffice")).json.objects("views").flatMap(_.text("name")), Vector("rewards-view"))
+    assertEquals(kit.request("GET", status, None, kit.asOperator("support_agent", "op-other")).status, 403)
+    assertEquals(kit.request("GET", status, None, kit.asPlayer(p)).status, 403)
 
   // ── the lists ─────────────────────────────────────────────────────────────────────────────────
 
@@ -132,6 +147,7 @@ class OperatorSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.He
     try
       val r = give(paths.newPlayer("op-p"), "offerId" -> paths.noDeposit())
       assertEquals((r.status, r.str("status"), r.str("reason")), (409, "ineligible", "BONUS_ALREADY_ACTIVE"), r.text)
+      assertEquals(r.json.strings("allowedBy"), Vector("open_reward_ended", "brand_limit_raised"), r.text)
     finally kit.wallet.clearRoute("awards")
 
   // ── the award: a free bonus ───────────────────────────────────────────────────────────────────
@@ -160,6 +176,7 @@ class OperatorSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.He
     paths.flagged(p)
     val r = give(p, "bonusAmount" -> 2000L, "wager" -> 5, "currency" -> "EUR")
     assertEquals((r.status, r.str("status"), r.str("reason")), (409, "ineligible", "SUSPECTED_DUPLICATE"), r.text)
+    assertEquals(r.json.strings("allowedBy"), Vector("fraud_flag_cleared", "brand_detection_off"), r.text)
 
   test("a free bonus with no currency named is in the player's currency, and refused when it is unknown"):
     val r = give(paths.newPlayer("op-p"), "bonusAmount" -> 2000L, "wager" -> 5)

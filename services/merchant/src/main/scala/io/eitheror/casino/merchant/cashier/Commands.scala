@@ -117,7 +117,7 @@ final class Commands(ctx: Ctx):
     val scheme = if t.scheme.equalsIgnoreCase("CRYPTO") then crypto.get else t.scheme
     val job = DepositJob(paymentId, s.subBrandId, s.brand, s.customerId, Commands.playerOf(s.customerId), s.amount, s.currency,
       t.gateway.getOrElse(""), scheme, t.terminalEntityId, if t.credentialId.isDefined then None else Some(t.terminalEntityId),
-      s.transactionId, s.redirectUrl, now(), now().plus(ctx.live.paymentDeadline))
+      s.transactionId, s.redirectUrl, now(), now().plus(ctx.live.paymentDeadline), DepositBounds.methodOf(t.gateway.getOrElse(""), t.scheme))
     try components.forWorkflow(EntityId(paymentId)).call(DepositWorkflow.start).invoke(job): Unit
     catch case e: CommandError if e.code == ErrorCode.Conflict => ()
 
@@ -129,7 +129,7 @@ final class Commands(ctx: Ctx):
       case Some(f) if f.status == DepositFlow.Refused =>
         components.forKeyValueEntity(EntityId(token)).call(Session.release).invoke(paymentId): Unit
         val r = f.refusal.get
-        refuse(r.status, r.error, r.message.getOrElse(""))
+        refuse(r.status, r.error, r.message.getOrElse(""), r.bound.toSeq.flatMap(Commands.boundFields)*)
       case Some(_) =>
         val p = components.forEventSourcedEntity(EntityId(paymentId)).call(Payment.get).invoke()
         if !p.exists then refuse(503, "OUTCOME_PENDING", "The outcome is still being decided; retry")
@@ -167,6 +167,11 @@ object Commands:
   /** A casino sub-brand serves only its own brand's players (Clarifications); `brand:player` names it. */
   def wrongBrand(sb: SubBrandState, customerId: String): Boolean =
     sb.brand.exists(brand => customerId.contains(':') && customerId.takeWhile(_ != ':') != brand)
+
+  /** A broken deposit bound as the refusal names it: the method, the currency, and the bound in minor units and as a decimal. */
+  def boundFields(b: BrokenBound): Seq[(String, Any)] =
+    val decimal = Currency.from(b.currency).toOption.map(io.eitheror.casino.contract.money.Amounts.render(b.bound, _)).getOrElse(b.bound.toString)
+    Seq("method" -> b.method, "currency" -> b.currency, s"${b.kind}AmountCents" -> b.bound, s"${b.kind}Amount" -> decimal)
 
   def offeredJson(t: OfferedTerminal): ObjectNode =
     val o = Json.obj("terminalEntityId" -> t.terminalEntityId, "name" -> t.name, "scheme" -> t.scheme)

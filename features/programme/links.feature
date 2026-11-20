@@ -55,3 +55,21 @@ Feature: Links, bonus codes and invite links carry the programme's tag
     Given an affiliate's link
     When they read the link
     Then its click count comes from the "click" facts received and never from a counter on the account
+
+  Scenario: a manager reads a brand's traffic for a period per affiliate and per link
+    Given an affiliate with two links at brand "A", each with clicks, registrations and first deposits in one period
+    When a manager reads the brand's traffic for that period
+    Then the traffic counts the clicks, registrations, first deposits and qualified first deposits of the affiliate and of each link
+    And the brand's counts include the affiliate's
+
+  Scenario: a click counts in the period its time falls in in the brand's reporting zone
+    Given brand "A" with the reporting zone "America/Sao_Paulo"
+    And a click late on the last day of a month in that zone
+    When a manager reads the brand's traffic for that month and for the next
+    Then the click counts in that month and not in the next
+
+  Scenario: only a first deposit at or above the plan's minimum deposit is a qualified first deposit
+    Given an affiliate on a plan that pays CPA with a minimum deposit at brand "A"
+    And one player whose first deposit is below the minimum deposit and one whose first deposit meets it
+    When a manager reads the brand's traffic for that period
+    Then the traffic counts two first deposits and one qualified first deposit

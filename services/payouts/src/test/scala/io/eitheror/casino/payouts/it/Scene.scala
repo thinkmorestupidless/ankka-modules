@@ -45,7 +45,7 @@ final class Scene(kit: Kit):
 
   def approve(id: String): Reply =
     kit.request("POST", s"/v1/casino/brands/${kit.slug}/withdrawal-requests/$id/approve", Some("{}"),
-      kit.asOperator("op-1", s"brand_${kit.slug},brand_finance"))
+      kit.asOperator("op-1", s"brand_${kit.slug},${kit.in("brand_finance")}"))
 
   def outcome(id: String, outcome: String, reference: String, headers: Seq[(String, String)] = kit.asGateway): Reply =
     kit.json("POST", s"/v1/casino/brands/${kit.slug}/withdrawals/$id/outcome",

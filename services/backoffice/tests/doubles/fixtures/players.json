@@ -1,0 +1,48 @@
+{
+  "GET /v1/casino/brands/{brand}/players/modules": {
+    "anonymous": true,
+    "body": { "modules": [ { "module": "core", "status": "enabled" }, { "module": "casino", "status": "enabled" } ] }
+  },
+  "GET /v1/casino/brands/{brand}/players/config/brand-config": {
+    "anonymous": true,
+    "body": { "name": "Goldvibe", "legalName": "Goldvibe Ltd", "playerSiteBase": "https://goldvibe.example.test", "reportingZone": "America/Sao_Paulo", "singleSession": false, "multiAccountDetection": true, "retentionDays": null, "features": {} }
+  },
+  "GET /v1/casino/backoffice/{brand}/brand-config": {
+    "body": { "name": "Goldvibe", "legalName": "Goldvibe Ltd", "playerSiteBase": "https://goldvibe.example.test", "reportingZone": "America/Sao_Paulo", "singleSession": false, "multiAccountDetection": true, "retentionDays": null, "features": {} }
+  },
+  "GET /v1/casino/backoffice/{brand}/currency-config": {
+    "body": { "offered": ["BRL", "EUR", "JPY", "KWD"], "defaultCurrency": "BRL" }
+  },
+  "GET /v1/casino/backoffice/{brand}/allow-list": {
+    "body": { "countries": ["BR", "JP", "KW", "PT"] }
+  },
+  "GET /v1/casino/backoffice/{brand}/players": {
+    "body": {
+      "items": [
+        { "playerId": "p-ana", "twinId": "casino-goldvibe/p-ana", "username": "ana.souza", "email": "ana@example.test", "accountStatus": "active", "country": "BR", "currency": "BRL", "registeredAt": "2026-09-01T13:00:00Z", "vipTier": null, "potVip": false, "suspectedDuplicate": false },
+        { "playerId": "p-kenji", "twinId": "casino-goldvibe/p-kenji", "username": "kenji.sato", "email": "kenji@example.test", "accountStatus": "active", "country": "JP", "currency": "JPY", "registeredAt": "2026-09-14T02:30:00Z", "vipTier": "gold", "potVip": false, "suspectedDuplicate": false },
+        { "playerId": "p-fahad", "twinId": "casino-goldvibe/p-fahad", "username": "fahad.k", "email": "fahad@example.test", "accountStatus": "suspended", "country": "KW", "currency": "KWD", "registeredAt": "2026-10-02T18:45:00Z", "vipTier": null, "potVip": true, "suspectedDuplicate": true },
+        { "playerId": "p-lena", "twinId": "casino-goldvibe/p-lena", "username": "lena.m", "email": "lena@example.test", "accountStatus": "active", "country": "PT", "currency": "EUR", "registeredAt": "2026-10-20T09:10:00Z", "vipTier": null, "potVip": false, "suspectedDuplicate": false }
+      ],
+      "total": 4
+    }
+  },
+  "GET /v1/casino/backoffice/{brand}/players/{playerId}/profile": {
+    "by": "playerId",
+    "answers": {
+      "p-ana": { "body": { "player": { "playerId": "p-ana", "status": "active", "email": "ana@example.test", "emailVerified": true, "currency": "BRL", "registeredAt": "2026-09-01T13:00:00Z", "vipTier": null, "profileComplete": true, "missingProfileFields": [], "firstName": "Ana", "lastName": "Souza", "dateOfBirth": "1990-04-12", "country": "BR" }, "wallet": null, "activeSessions": [], "pinnedNotes": [] } },
+      "p-kenji": { "body": { "player": { "playerId": "p-kenji", "status": "active", "email": "kenji@example.test", "emailVerified": true, "currency": "JPY", "registeredAt": "2026-09-14T02:30:00Z", "vipTier": "gold", "profileComplete": true, "missingProfileFields": [], "firstName": "Kenji", "lastName": "Sato", "dateOfBirth": "1985-11-30", "country": "JP" }, "wallet": null, "activeSessions": [], "pinnedNotes": [] } },
+      "p-fahad": { "body": { "player": { "playerId": "p-fahad", "status": "suspended", "email": "fahad@example.test", "emailVerified": false, "currency": "KWD", "registeredAt": "2026-10-02T18:45:00Z", "vipTier": null, "profileComplete": false, "missingProfileFields": ["dateOfBirth"], "firstName": "Fahad", "lastName": "K", "country": "KW" }, "wallet": null, "activeSessions": [], "pinnedNotes": [] } },
+      "p-lena": { "body": { "player": { "playerId": "p-lena", "status": "active", "email": "lena@example.test", "emailVerified": true, "currency": "EUR", "registeredAt": "2026-10-20T09:10:00Z", "vipTier": null, "profileComplete": true, "missingProfileFields": [], "firstName": "Lena", "lastName": "M", "dateOfBirth": "1998-02-03", "country": "PT" }, "wallet": null, "activeSessions": [], "pinnedNotes": [] } }
+    }
+  },
+  "GET /v1/casino/backoffice/{brand}/players/{playerId}/wallet": {
+    "by": "playerId",
+    "answers": {
+      "p-ana": { "body": { "realBalanceMinorUnits": 125050, "bonusBalanceMinorUnits": 2000, "currency": "BRL" } },
+      "p-kenji": { "body": { "realBalanceMinorUnits": 48000, "bonusBalanceMinorUnits": 0, "currency": "JPY" } },
+      "p-fahad": { "body": { "realBalanceMinorUnits": 1250, "bonusBalanceMinorUnits": 0, "currency": "KWD" } },
+      "p-lena": { "body": { "realBalanceMinorUnits": 9999, "bonusBalanceMinorUnits": 500, "currency": "EUR" } }
+    }
+  }
+}

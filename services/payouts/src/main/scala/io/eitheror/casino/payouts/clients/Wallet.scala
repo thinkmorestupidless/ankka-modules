@@ -42,7 +42,8 @@ object Wallet:
       wallet.get(s"${base(player, currency)}/preview?amount=$amount") match
         case Reply.Answered(200, Some(b), _) =>
           Right(Preview(b.text("refusal"), b.bool("confirmationRequired").getOrElse(false), b.long("bonusBalance").getOrElse(0L),
-            b.long("clawback").getOrElse(0L), b.long("totalForfeit").getOrElse(0L), b.long("mostWithdrawable").getOrElse(0L)))
+            b.long("clawback").getOrElse(0L), b.long("totalForfeit").getOrElse(0L), b.long("mostWithdrawable").getOrElse(0L),
+            b.long("available")))
         case Reply.Answered(404, _, _) => Left(Refusals.WalletNotFound)
         case _                         => Left(Refusals.Unavailable)
 

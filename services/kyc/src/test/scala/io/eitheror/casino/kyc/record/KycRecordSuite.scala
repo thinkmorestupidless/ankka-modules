@@ -375,3 +375,24 @@ class KycRecordSuite extends munit.FunSuite with LogCapturing:
     assertEquals(after.documents.map(kept), before.documents.map(kept))
     assertEquals((after.status, after.flags.map(_.reason)), (before.status, before.flags.map(_.reason)))
     assertEquals(kit.call(KycRecord.erase)(Erase(later(2))).events, ev(Erased(later(2))))
+
+  // spec 030 K3
+  test("decisions: each review, mode, status and override is recorded with its actor and time, in order; nothing personal; kept through erasure"):
+    val kit = fresh
+    upload(kit, Category.IdentityFront, "d-1"): Unit
+    review(kit, "d-1", Outcome.Rejected, Some("document_expired"), when = later(1)): Unit
+    kit.call(KycRecord.setMode)(SetMode(Mode.Manual, "op-2", identity, later(2))): Unit
+    kit.call(KycRecord.overrideStatus)(Override(Status.Verified, Some("seen in person"), "op-3", identity, later(3))): Unit
+    val ds = kit.currentState.decisions
+    // the confirm's derivation is the system's status change, before any operator's decision
+    assertEquals((ds.head.kind, ds.head.actor, ds.head.cause), ("status_changed", Actor.System, Some("document")))
+    assertEquals(ds.filterNot(_.kind == "status_changed").map(d => (d.kind, d.actor, d.at)),
+      Vector(("document_reviewed", Actor.operator("op-1"), later(1)), ("mode_changed", Actor.operator("op-2"), later(2))))
+    assertEquals(ds.find(_.kind == "document_reviewed").get, Decision("document_reviewed", Actor.operator("op-1"), later(1), documentId = Some("d-1"), category = Some("identity_front"),
+      outcome = Some("rejected"), reasonCode = Some("document_expired")))
+    assertEquals((ds.last.kind, ds.last.actor, ds.last.at, ds.last.to, ds.last.cause),
+      ("status_changed", Actor.operator("op-3"), later(3), Some("verified"), Some("override")))
+    assertEquals(ds.map(_.at), ds.map(_.at).sorted)
+    assert(!ds.toString.contains("seen in person"), ds.toString)
+    kit.call(KycRecord.erase)(Erase(later(4))): Unit
+    assertEquals(kit.currentState.decisions, ds)

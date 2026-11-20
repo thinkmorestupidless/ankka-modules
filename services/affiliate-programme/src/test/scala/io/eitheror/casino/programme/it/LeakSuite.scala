@@ -155,9 +155,11 @@ class LeakSuite extends munit.FunSuite with LogCapturing:
     kit.publish(facts.playerClosed(player, kit.now))
     kit.eventually("closed")(Option(kit.components.forEventSourcedEntity(PlayerAttribution.entityId("goldvibe", player))
       .call(PlayerAttribution.get).invoke()).filter(_.closed.isDefined)): Unit
-    kit.eventually("the click forgotten")(Option(kit.components.forKeyValueEntity(ClickRecord.entityId("goldvibe", click.factId))
+    // The close and then the forgetting are each a consumer's: on a loaded runner the two took more than
+    // 20 seconds (run 44759942273), so each wait is as long as the suite's other consumer chains.
+    kit.eventually("the click forgotten", 60.seconds)(Option(kit.components.forKeyValueEntity(ClickRecord.entityId("goldvibe", click.factId))
       .call(ClickRecord.get).invoke()).filter(c => c.clickId.isEmpty && c.country.isEmpty)): Unit
-    kit.eventually("the click's row forgotten")(Option(kit.views.forView(Clicks).ask(Clicks.withClickId, "brand" -> "goldvibe",
+    kit.eventually("the click's row forgotten", 60.seconds)(Option(kit.views.forView(Clicks).ask(Clicks.withClickId, "brand" -> "goldvibe",
       "click_id" -> clickId)).filter(_.isEmpty)): Unit
     // Bounded by the waits above, which the same handlers wrote first: this covers the views' last poll.
     Thread.sleep(1500)

@@ -1,0 +1,42 @@
+/* The worklist (contracts/design.md): the kinds and their counts above, the list, the item opened beside it. */
+
+.bo-worklist-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+.bo-worklist-kinds button[aria-pressed="true"] {
+  border-color: var(--primary);
+}
+
+.bo-worklist-kinds li[data-state="unavailable"] button {
+  border-style: dashed;
+}
+
+.bo-worklist-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.bo-worklist-body:has(.bo-worklist-item) {
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+
+.bo-worklist-item {
+  border: 1px solid var(--surface-2);
+  border-radius: var(--radius-card);
+  background: var(--surface-1);
+  padding: 12px 16px;
+  align-self: start;
+}
+
+.bo-worklist-detail {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}

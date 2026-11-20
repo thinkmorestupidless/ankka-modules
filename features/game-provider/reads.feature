@@ -40,3 +40,13 @@ Feature: The game provider reads a balance or a player profile, or moves money o
     When the game provider credits "15.00" outside any round under transaction id "t6"
     Then a provider credit keyed "t6" is made
     And the balance is answered
+
+  Scenario: a round is found by its id whatever its game provider
+    Given a round of a player at one of the brand's game providers
+    When an operator reads the round by its id, naming no game provider
+    Then the round is answered with its player and its game provider
+
+  Scenario: a round is found by the id of one of its transactions
+    Given a round of a player with a bet and a win
+    When an operator reads the round by the id of its win
+    Then the round is answered with its player

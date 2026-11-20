@@ -9,7 +9,8 @@
   },
   "secrets": [
     { "name": "goldvibe-st8", "keys": ["API_KEY"] },
-    { "name": "goldvibe-players", "keys": ["REALM_ADMIN", "WEBHOOK_SECRET", "REALM_SECRET", "EMAIL_TOKEN", "LOOKUP_KEY", "MERCHANT_KEY"] }
+    { "name": "goldvibe-players", "keys": ["REALM_ADMIN", "WEBHOOK_SECRET", "REALM_SECRET", "EMAIL_TOKEN", "LOOKUP_KEY", "MERCHANT_KEY"] },
+    { "name": "goldvibe-backoffice", "keys": ["CLIENT_SECRET"] }
   ],
   "values": {
     "player-site-base": "https://goldvibe.127.0.0.1.sslip.io:8443",
@@ -21,6 +22,7 @@
     "predictions-currencies": "EUR",
     "predictions-max-order-cost": "100000",
     "predictions-max-position": "10000",
-    "public-api-host": "https://public-api-goldvibe.127.0.0.1.sslip.io:8443"
+    "public-api-host": "https://public-api-goldvibe.127.0.0.1.sslip.io:8443",
+    "backoffice-host": "https://backoffice-goldvibe.127.0.0.1.sslip.io:8443"
   }
 }

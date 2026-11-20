@@ -1,0 +1,84 @@
+/* The dashboard (contracts/design.md): cards with no border, 20 px radius, 16 px between; figures at
+   28 to 40 px with a change chip (arrow and word, not colour alone); range and currency pills. */
+.bo-dashboard { display: grid; gap: var(--gap-card); }
+
+.bo-dashboard-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+}
+
+.bo-dashboard-head h1 { margin: 0; margin-inline-end: auto; }
+
+.bo-pills { display: inline-flex; gap: 4px; padding: 4px; border-radius: var(--radius-pill); background: var(--surface-1); }
+
+.bo-pill {
+  border: 0;
+  border-radius: var(--radius-pill);
+  padding: 6px 14px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.bo-pill[aria-pressed="true"] { background: var(--primary); color: var(--on-primary); }
+
+.bo-card {
+  background: var(--surface-1);
+  border-radius: var(--radius-card);
+  padding: 20px;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  min-width: 0;
+}
+
+.bo-card-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
+.bo-card-head h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.bo-panel-freshness { font-size: 12px; color: var(--text-muted); }
+
+.bo-dashboard-currencies,
+.bo-dashboard-grid {
+  display: grid;
+  gap: var(--gap-card);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+}
+
+.bo-dashboard-grid .bo-card[data-wide] { grid-column: 1 / -1; }
+
+.bo-figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin: 0;
+}
+
+.bo-figure dt { font-size: 12px; color: var(--text-muted); }
+.bo-figure dd { margin: 4px 0 0; display: grid; gap: 6px; justify-items: start; }
+
+.bo-figure-value {
+  font-size: clamp(var(--figure-min), 2.4vw, var(--figure-max));
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* the change chip: its own class, so players.css's .bo-chip (a tag) does not take its gap; one line */
+.bo-change {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  font-size: 12px;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.bo-change[data-trend="up"] > svg { color: var(--primary); }
+.bo-change[data-trend="down"] > svg { color: var(--danger); }

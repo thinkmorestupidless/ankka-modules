@@ -1,0 +1,7 @@
+{
+  "name": "backoffice-probe",
+  "service": {
+    "image": "backoffice-probe:v1",
+    "hosting": "web"
+  }
+}

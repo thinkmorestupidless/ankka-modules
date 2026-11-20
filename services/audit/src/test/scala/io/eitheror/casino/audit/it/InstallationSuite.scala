@@ -72,5 +72,5 @@ class InstallationSuite extends munit.FunSuite:
     assertEquals((brand.status, brand.json.has("shared")), (200, false))
     assertEquals(kit.request("GET", "/v1/audit-status", headers = kit.asBrandCompliance("goldvibe")).status, 403)
     assertEquals(kit.request("GET", "/v1/audit-status?brand=spinvibe", headers = kit.asBrandCompliance("goldvibe")).status, 403)
-    assertEquals(kit.request("GET", "/v1/audit-status", headers = kit.as("op-1", "brand_admin", "brand_goldvibe")).status, 403)
+    assertEquals(kit.request("GET", "/v1/audit-status", headers = kit.as("op-1", "brand_admin@goldvibe", "brand_goldvibe")).status, 403)
   }

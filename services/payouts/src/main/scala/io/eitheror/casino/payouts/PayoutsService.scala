@@ -4,6 +4,7 @@ import com.thinkmorestupidless.ankka.auth.oidc.Oidc
 import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, HttpServer}
 import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime}
+import io.eitheror.casino.contract.access.RoleBags
 import io.eitheror.casino.payouts.api.{ConfigEndpoint, Ctx, OperatorEndpoint, OutcomeEndpoint, PlayerEndpoint, ServiceEndpoint, SupportEndpoint}
 import io.eitheror.casino.payouts.consumers.{DepositsConsumer, PlayersConsumer, RequestsConsumer}
 import io.eitheror.casino.payouts.facts.{AuditPublisher, ConfigAuditPublisher, PlayerAuditPublisher, WithdrawalPublisher}
@@ -33,11 +34,14 @@ object PayoutsService:
     ConfigAuditPublisher.descriptor,
     WithdrawalWorkflow.descriptor,
     WithdrawalQueue.descriptor
-  )
+  ) ++ io.eitheror.casino.payouts.freshness.ViewFollower.descriptors
 
-  /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */
-  def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] =
-    def ctx(c: EndpointClients) = Ctx(authenticate, c)
+  /**
+   * One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. `bags` is
+   * the brand's roles the operator routes decide from: by default read from the brand's `players`.
+   */
+  def endpoints(authenticate: () => Acl, bags: Option[EndpointClients => RoleBags] = None): Seq[EndpointClients => HttpEndpoint] =
+    def ctx(c: EndpointClients) = Ctx(authenticate, c, bags)
     Seq[Ctx => HttpEndpoint](PlayerEndpoint(_), OperatorEndpoint(_), ConfigEndpoint(_), OutcomeEndpoint(_), ServiceEndpoint(_), SupportEndpoint(_)).map(e => (c: EndpointClients) => e(ctx(c)))
 
   /** Once the service has started: the timers reachable from the components, and the catalogue's refresh scheduled. */

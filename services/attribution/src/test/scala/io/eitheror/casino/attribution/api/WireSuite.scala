@@ -43,7 +43,8 @@ class WireSuite extends munit.FunSuite with LogCapturing:
   roundTrips("SubscriptionAnswer", subscription)
   roundTrips("Subscriptions", Subscriptions(Vector(subscription)))
   roundTrips("Undelivered", Undelivered(Vector(UndeliveredAnswer("w1/click/c-1", "w1", "n1", "click/c-1", "click", 8,
-    Some(503), None))))
+    Some(503), None, Some(at))), total = 1))
+  roundTrips("Undelivered, paged", Undelivered(Vector.empty, total = 3, page = Some(2), pageSize = Some(50)))
 
   test("an absent value is left out, an empty list is written"):
     assertEquals(writeToString(ErasureAnswer("p-1", erased = false)), """{"player":"p-1","erased":false,"personalFields":[]}""")

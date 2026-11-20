@@ -98,7 +98,7 @@ class FreeRoundsRoutesSuite extends munit.FunSuite with io.eitheror.casino.rewar
     val down = spinValues("?gameId=g-1&currency=EUR")
     assertEquals((down.status, down.str("error")), (502, "provider_unavailable"))
 
-  test("spin values: the game and the currency are required; only the admin roles may ask"):
+  test("spin values: the game and the currency are required; only a role holding offer.manage may ask"):
     assertEquals(spinValues("?currency=EUR").str("field"), "gameId")
     assertEquals(spinValues("?gameId=g-1").status, 400)
     assertEquals(spinValues("?gameId=g-1&currency=EUR", kit.asOperator("brand_support")).status, 403)

@@ -5,13 +5,14 @@ import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.http.*
 import com.thinkmorestupidless.ankka.http.openapi.Description
 import io.eitheror.casino.contract.http.Json as JsonBody
-import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.access.{RoleBags, Routes}
 import io.eitheror.casino.rg.Json
 import io.eitheror.casino.rg.Json.*
 import io.eitheror.casino.rg.profile.*
 import io.eitheror.casino.rg.settings.{BrandSettingsEntity, ChangeSettings}
 import io.eitheror.casino.rg.usage.{DayAt, SessionDayEntity}
 
+import java.time.Instant
 import scala.util.Try
 
 import Answers.*
@@ -84,9 +85,17 @@ final class PlayerEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/rg/${ctx.
     postBody("/{player}/reality-check/acknowledge") { (p: String, body: JsonBody) => mine(p)(profileRoutes.acknowledge(p, body.text)) }
   }
 
-/** `/v1/casino/backoffice/<slug>/rg`: the brand's operators (FR-004, FR-016, FR-019, FR-025, FR-026, FR-029). */
-final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoffice/${ctx.slug}/rg"):
-  val acl: Acl = Routes.operator(ctx.slug, ctx.authenticate())
+/**
+ * `/v1/casino/backoffice/<slug>/rg`: the brand's operators (FR-004, FR-016, FR-019, FR-025, FR-026, FR-029),
+ * each route requiring one permission of the brand's roles as `bags` last read them (spec 030 amendment G1,
+ * `Routes.operatorMay`): `protection.read` for the reads, `protection.change` for limits, breaks,
+ * self-exclusion, the return and cases, `config.brand` for changing the brand's protection settings.
+ */
+final class OperatorEndpoint(ctx: Ctx, bags: RoleBags) extends HttpEndpoint(s"/v1/casino/backoffice/${ctx.slug}/rg"):
+  private def may(permission: String): Acl = Routes.operatorMay(ctx.slug, permission, bags, ctx.authenticate())
+
+  // every route names its own permission; this is never reached
+  val acl: Acl = Acl.DenyAll
 
   private val profileRoutes = ProfileRoutes(ctx)
   private def operator = Actor.operator(principal.subject)
@@ -95,53 +104,124 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
   private def settingsBody(s: io.eitheror.casino.rg.settings.BrandSettings) =
     Json.obj("minSessionMinutes" -> s.minSessionMinutes, "maxBreakDays" -> s.maxBreakDays)
 
-  get("/settings") { () => ok(settingsBody(ctx.brandSettings)) }
-  putBody("/settings") { (text: String) =>
-    body(text) { b =>
-      def int(f: String): Either[String, Option[Int]] =
-        if b.text(f).isEmpty then Right(None) else b.long(f).filter(_.isValidInt).map(v => Some(v.toInt)).toRight(f)
-      (for m <- int("minSessionMinutes"); d <- int("maxBreakDays") yield ChangeSettings(m, d, principal.subject, ctx.now())) match
-        case Left(field) => refusal(400, "invalid_setting", s"$field is not a whole number", "field" -> field)
-        case Right(c) =>
-          val a = ctx.clients.componentClient.forEventSourcedEntity(EntityId(ctx.slug)).call(BrandSettingsEntity.change).invoke(c)
-          a.refusal.fold(ok(settingsBody(a.settings)))(code => refusal(400, code, s"${a.field.getOrElse("")} is out of range", "field" -> a.field))
+  withAcl(may("protection.read")) {
+    get("/settings") { () => ok(settingsBody(ctx.brandSettings)) }
+  }
+  withAcl(may("config.brand")) {
+    putBody("/settings") { (text: String) =>
+      body(text) { b =>
+        def int(f: String): Either[String, Option[Int]] =
+          if b.text(f).isEmpty then Right(None) else b.long(f).filter(_.isValidInt).map(v => Some(v.toInt)).toRight(f)
+        (for m <- int("minSessionMinutes"); d <- int("maxBreakDays") yield ChangeSettings(m, d, principal.subject, ctx.now())) match
+          case Left(field) => refusal(400, "invalid_setting", s"$field is not a whole number", "field" -> field)
+          case Right(c) =>
+            val a = ctx.clients.componentClient.forEventSourcedEntity(EntityId(ctx.slug)).call(BrandSettingsEntity.change).invoke(c)
+            a.refusal.fold(ok(settingsBody(a.settings)))(code => refusal(400, code, s"${a.field.getOrElse("")} is out of range", "field" -> a.field))
+      }
     }
   }
 
-  get("/{player}") { (p: String) =>
-    Try(ctx.state(p)).fold(_ => refusal(503, "service_unavailable", "The profile cannot be read"),
-      s => ok(Render.full(ctx, s.copy(playerId = p), query.raw("currency"))))
+  /**
+   * The brand's cases (spec 030 G2): `status` `open` or `closed` (none, or `all`, for every one), oldest opened
+   * first; `page` from 1 and `pageSize` from 1 to 200 (50 by default); a value out of range is a 400 naming it.
+   */
+  withAcl(may("protection.read")) {
+    get("/cases") { () => OperatorEndpoint.cases(ctx, query.raw) }
   }
-  putBody("/{player}/limits/{type}") { (p: String, t: String, text: String) => profileRoutes.setLimit(p, t, text, operator) }
-  delete("/{player}/limits/{type}") { (p: String, t: String) => profileRoutes.removeLimit(p, t, query.raw("currency"), operator) }
-  putBody("/{player}/cooling-off") { (p: String, text: String) => profileRoutes.setBreak(p, text, operator) }
-  postBody("/{player}/cooling-off/lift") { (p: String, text: String) => profileRoutes.liftBreak(p, text, principal.subject) }
-  postBody("/{player}/self-exclude") { (p: String, text: String) =>
-    body(text)(b => profileRoutes.exclude(p, b.textOr("period", ""), operator))
+
+  withAcl(may("protection.read")) {
+    get("/{player}") { (p: String) =>
+      Try(ctx.state(p)).fold(_ => refusal(503, "service_unavailable", "The profile cannot be read"),
+        s => ok(Render.full(ctx, s.copy(playerId = p), query.raw("currency"))))
+    }
   }
-  post("/{player}/return") { (p: String) => profileRoutes.requestReturn(p, operator) }
+
+  /**
+   * The player's history for an operator (spec 030 G3): what the player's own `{player}/history` answers, newest
+   * first; `from` (inclusive) and `to` (exclusive), ISO instants, bound it.
+   */
+  withAcl(may("protection.read")) {
+    get("/{player}/history") { (p: String) =>
+      OperatorEndpoint.period(query.raw) match
+        case Left(field) => refusal(400, "invalid_request", s"$field is not an ISO instant", "field" -> field)
+        case Right((from, to)) =>
+          Try(ctx.state(p)).fold(_ => refusal(503, "service_unavailable", "The history cannot be read"), s =>
+            ok(Render.history(s.copy(history = s.history.filter(h => from.forall(!h.occurredAt.isBefore(_)) && to.forall(h.occurredAt.isBefore))))))
+    }
+  }
 
   private def caseReply(status: Int)(a: ProfileAnswer): Reply =
     a.refusal.fold(a.caseId.flatMap(a.state.caseOf).fold(refusal(404, "case_not_found", "No such case"))(c => json(status, Render.rgCase(c))))(refused)
 
-  postBody("/{player}/cases") { (p: String, text: String) =>
-    body(text)(b => caseReply(201)(ctx.profile(p).call(ProfileEntity.openCase)
-      .invoke(OpenCase(p, b.textOr("caseType", ""), b.textOr("note", ""), principal.subject, ctx.now()))))
+  withAcl(may("protection.change")) {
+    putBody("/{player}/limits/{type}") { (p: String, t: String, text: String) => profileRoutes.setLimit(p, t, text, operator) }
+    delete("/{player}/limits/{type}") { (p: String, t: String) => profileRoutes.removeLimit(p, t, query.raw("currency"), operator) }
+    putBody("/{player}/cooling-off") { (p: String, text: String) => profileRoutes.setBreak(p, text, operator) }
+    postBody("/{player}/cooling-off/lift") { (p: String, text: String) => profileRoutes.liftBreak(p, text, principal.subject) }
+    postBody("/{player}/self-exclude") { (p: String, text: String) =>
+      body(text)(b => profileRoutes.exclude(p, b.textOr("period", ""), operator))
+    }
+    post("/{player}/return") { (p: String) => profileRoutes.requestReturn(p, operator) }
+
+    postBody("/{player}/cases") { (p: String, text: String) =>
+      body(text)(b => caseReply(201)(ctx.profile(p).call(ProfileEntity.openCase)
+        .invoke(OpenCase(p, b.textOr("caseType", ""), b.textOr("note", ""), principal.subject, ctx.now()))))
+    }
+    postBody("/{player}/cases/{caseId}/notes") { (p: String, c: String, text: String) =>
+      body(text)(b => caseReply(200)(ctx.profile(p).call(ProfileEntity.noteCase).invoke(NoteCase(c, b.textOr("note", ""), principal.subject, ctx.now()))))
+    }
+    postBody("/{player}/cases/{caseId}/close") { (p: String, c: String, text: String) =>
+      body(text)(b => caseReply(200)(ctx.profile(p).call(ProfileEntity.closeCase).invoke(CloseCase(c, b.textOr("reason", ""), principal.subject, ctx.now()))))
+    }
   }
-  postBody("/{player}/cases/{caseId}/notes") { (p: String, c: String, text: String) =>
-    body(text)(b => caseReply(200)(ctx.profile(p).call(ProfileEntity.noteCase).invoke(NoteCase(c, b.textOr("note", ""), principal.subject, ctx.now()))))
-  }
-  postBody("/{player}/cases/{caseId}/close") { (p: String, c: String, text: String) =>
-    body(text)(b => caseReply(200)(ctx.profile(p).call(ProfileEntity.closeCase).invoke(CloseCase(c, b.textOr("reason", ""), principal.subject, ctx.now()))))
-  }
+
+object OperatorEndpoint:
+  /** `from` and `to` as instants when given; Left names the first that is not one. */
+  def period(q: String => Option[String]): Either[String, (Option[Instant], Option[Instant])] =
+    def instant(name: String): Either[String, Option[Instant]] =
+      q(name).map(_.trim).filter(_.nonEmpty).fold(Right(None))(v => Try(Instant.parse(v)).toOption.map(Some(_)).toRight(name))
+    for f <- instant("from"); t <- instant("to") yield (f, t)
+
+  /** The query as a status, a page and a page size, or the first parameter that is not valid. */
+  def casesQuery(q: String => Option[String]): Either[String, (Option[String], Int, Int)] =
+    def opt(name: String) = q(name).map(_.trim).filter(_.nonEmpty)
+    def number(name: String, default: Int, max: Int) =
+      opt(name).fold[Either[String, Int]](Right(default))(v => v.toIntOption.filter(n => n >= 1 && n <= max).toRight(name))
+    for
+      status <- opt("status").map(_.toLowerCase) match
+        case None | Some("all")                           => Right(None)
+        case Some(s) if io.eitheror.casino.rg.cases.CasesView.Statuses(s) => Right(Some(s))
+        case Some(_)                                      => Left("status")
+      page <- number("page", 1, 1_000_000)
+      size <- number("pageSize", 50, io.eitheror.casino.rg.cases.CasesView.MaxPageSize)
+    yield (status, page, size)
+
+  def cases(ctx: Ctx, q: String => Option[String]): Reply =
+    import io.eitheror.casino.rg.cases.CasesView
+    casesQuery(q) match
+      case Left(field) => refusal(400, "invalid_request", s"$field is not a valid value", "field" -> field)
+      case Right((status, page, size)) =>
+        val p = CasesView.page(ctx.clients.viewClient, status, page, size)
+        ok(Json.obj("cases" -> Json.arr(p.rows.map { r =>
+          Json.obj("caseId" -> r.caseId, "playerId" -> r.playerId, "caseType" -> r.caseType, "trigger" -> r.trigger, "status" -> r.status,
+            "openedAt" -> CasesView.instant(r.openedAt), "closesAt" -> r.closesAt.map(CasesView.instant),
+            "closedAt" -> r.closedAt.map(CasesView.instant), "closeReason" -> r.closeReason)
+        }*), "total" -> p.total, "page" -> p.page, "pageSize" -> p.pageSize))
 
 /**
  * `/v1/casino/brands/<slug>/rg`: the checks the brand's services ask (FR-007 to FR-011), the GAMSTOP
  * report (FR-022), and erasure and export (FR-032). Every check is one profile read and the request's
  * figures, no call out; an unreadable request is `400`, which every caller takes as a refusal.
  */
-final class ServiceEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${ctx.slug}/rg"):
+final class ServiceEndpoint(ctx: Ctx, bags: RoleBags) extends HttpEndpoint(s"/v1/casino/brands/${ctx.slug}/rg"):
   val acl: Acl = Routes.service()
+
+  // spec 030 G4 (F): the views' freshness, for an operator who may read protection, or for the project's services
+  withAcl(Acl.anyOf(Routes.operatorMay(ctx.slug, "protection.read", bags, ctx.authenticate()), Routes.service())) {
+    get("/status") { () =>
+      io.eitheror.casino.rg.freshness.Freshness.answer(io.eitheror.casino.rg.freshness.Freshness.of(ctx.clients.componentClient))
+    }
+  }
 
   private def body(text: String)(f: JsonNode => Reply): Reply = Json.parseObject(text).fold(badBody)(f)
 

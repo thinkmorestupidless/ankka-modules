@@ -164,7 +164,8 @@ object ExportWorkflow
       ProfileRoutes.message(r, components.forEventSourcedEntity(EntityId(r.messageId)).call(MessageEntity.get).invoke()))
     Json.obj("service" -> "players", "playerId" -> p.playerId, "profile" -> ProfileRoutes.profileOf(p),
       "consents" -> ProfileRoutes.consentsOf(p.consents), "sessions" -> Json.arr(sessions.map(r => GameSessionRoutes.wire(r).put("kind", r.kind))*),
-      "activity" -> Json.arr(activity.map(ProfileRoutes.event)*), "messages" -> Json.arr(messages*))
+      "activity" -> Json.arr(activity.map(ProfileRoutes.event)*), "messages" -> Json.arr(messages*),
+      "devices" -> io.eitheror.casino.players.api.OperatorStatusRoutes.devicesOf(p))
 
   val ownStep    = step("own")(_.ownStep)
   val othersStep = step("others")(_.othersStep)

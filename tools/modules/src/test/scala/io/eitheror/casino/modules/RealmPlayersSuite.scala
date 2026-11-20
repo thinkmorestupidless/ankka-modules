@@ -71,3 +71,29 @@ class RealmPlayersSuite extends munit.FunSuite:
       Vector(("casino-goldvibe", "true")))
     assertEquals(audiences(Realm.withPlayers(json, None, Map.empty)).size, 1)
   }
+
+  test("ensure adds the default roles and the brand's confidential backoffice client to an existing realm, once (spec 030 D3)") {
+    val admin = InMemoryRealms()
+    admin.realms(Realm.OperatorsRealm) = "{}"
+    admin.realms("casino-goldvibe") = "{}"
+    Seq("brand_admin", "brand_finance", "brand_compliance").foreach(r => admin.createRole(Realm.OperatorsRealm, r, r))
+    val made = Realm.ensure(admin, "goldvibe", "{}", None, Some("https://backoffice-goldvibe.example/" -> Some("s3cret")))
+    assert(made.contains("role brand_support added to realm eitheror"), made.toString)
+    assert(!made.contains("role brand_admin added to realm eitheror"), made.toString)
+    assert(made.contains("role brand_admin@goldvibe added to realm eitheror"), made.toString)
+    assert(made.contains("client backoffice-goldvibe added to realm eitheror"), made.toString)
+    val c = ObjectMapper().readTree(admin.clients(Realm.OperatorsRealm -> "backoffice-goldvibe"))
+    assertEquals(c.path("publicClient").asBoolean(true), false)
+    assertEquals(c.path("standardFlowEnabled").asBoolean, true)
+    assertEquals(c.path("directAccessGrantsEnabled").asBoolean(true), false)
+    assertEquals(c.path("secret").asText, "s3cret")
+    assertEquals(c.path("attributes").path("pkce.code.challenge.method").asText, "S256")
+    assertEquals(c.path("redirectUris").elements().asScala.map(_.asText).toVector, Vector("https://backoffice-goldvibe.example/auth/callback"))
+    assert(c.path("defaultClientScopes").elements().asScala.map(_.asText).toSet("eitheror-casino-audience"))
+    // a second run changes nothing
+    assertEquals(Realm.ensure(admin, "goldvibe", "{}", None, Some("https://backoffice-goldvibe.example" -> Some("s3cret"))), Vector.empty)
+    // no address, no client: a brand without the backoffice
+    val other = InMemoryRealms()
+    other.realms(Realm.OperatorsRealm) = "{}"; other.realms("casino-spinvibe") = "{}"
+    assert(!Realm.ensure(other, "spinvibe", "{}").exists(_.startsWith("client")))
+  }

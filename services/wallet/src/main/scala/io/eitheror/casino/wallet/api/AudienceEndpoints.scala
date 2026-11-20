@@ -7,9 +7,10 @@ import com.thinkmorestupidless.ankka.http.*
 import com.thinkmorestupidless.ankka.http.openapi.Description
 import com.thinkmorestupidless.ankka.runtime.ViewClient
 import com.thinkmorestupidless.ankka.sdk.ComponentClient
-import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.access.{RoleBags, Routes}
 import io.eitheror.casino.contract.money.{Currency, Key}
-import io.eitheror.casino.wallet.config.{BrandConfig, BrandConfigEntity, SetTurnoverTerms}
+import io.eitheror.casino.contract.personal.Personal.reveal
+import io.eitheror.casino.wallet.config.{BrandConfig, BrandConfigEntity, RewardSettings, SetBetSwitches, SetTurnoverTerms}
 import io.eitheror.casino.wallet.entity.*
 import io.eitheror.casino.wallet.views.*
 import io.eitheror.casino.wallet.wire.*
@@ -26,24 +27,59 @@ final case class MajorTransaction(transactionId: String, `type`: String, walletT
     createdAt: String, depositPart: String, convertedPart: String, depositPoolAfter: String, convertedPoolAfter: String,
     reference: Option[String] = None)
 final case class MajorTransactions(transactions: Vector[MajorTransaction], page: Int, pageSize: Int, total: Long)
+/**
+ * The row as an operator reads it (spec 030 W2): the player's row and an adjustment's reason (personal,
+ * FR-033), category, cause and actor. Its own type, so the player route's kept description (spec 031)
+ * names none of the four.
+ */
+final case class OperatorTransaction(transactionId: String, `type`: String, walletType: String, amount: String, balanceBefore: String,
+    balanceAfter: String, status: String, roundId: Option[String], awardRef: Option[String], paymentReference: Option[String],
+    createdAt: String, depositPart: String, convertedPart: String, depositPoolAfter: String, convertedPoolAfter: String,
+    reference: Option[String] = None,
+    reason: Option[String] = None, category: Option[String] = None, cause: Option[Cause] = None, actorId: Option[String] = None)
+final case class OperatorTransactions(transactions: Vector[OperatorTransaction], page: Int, pageSize: Int, total: Long)
 final case class MajorLifetime(totalDeposited: String, totalWagered: String, totalWon: String)
 /** Spec 022 FR-009: an operator's adjustment of a non-player account, in major units; the reason names no player. */
 final case class OperatorAccountAdjustRequest(key: Option[String], currency: String, amount: String, reason: String = "", category: String = "other")
 final case class MajorAccountBalance(balance: String, creditLine: String, floor: String, owner: String, currency: String,
     txnId: Option[String] = None)
-final case class OperatorAdjustRequest(key: Option[String], walletType: String = "real", amount: String, reason: String = "", category: String = "other")
+/**
+ * Spec 030 W2: `amountMinor` (signed minor units) is accepted beside `amount` (signed major text);
+ * both given must agree. `cause` is what the adjustment corrects.
+ */
+final case class OperatorAdjustRequest(key: Option[String], walletType: String = "real", amount: String = "", reason: String = "",
+    category: String = "other", amountMinor: Option[Long] = None, cause: Option[Cause] = None)
+/**
+ * The adjustment's answer: the balance read as before (major units), and, from the adjustment's own
+ * outcome (so a repeat under its key answers the first), the transaction, the signed amount and the
+ * adjusted balance before and after in minor units, and the cause (spec 030 W2, FR-027); `repeated`
+ * is true when the key replayed that first outcome and false when the adjustment was made now.
+ */
+final case class MajorAdjustment(realBalance: String, bonusBalance: String, currency: String, primary: Option[MajorPrimary],
+    depositPoolBalance: String, convertedPoolBalance: String, reserved: String, available: String,
+    txnId: Option[String], walletType: String, amountMinor: Long, before: Long, after: Long, cause: Option[Cause],
+    repeated: Boolean)
 
 private[api] object Major:
   /** reserved and available are written at "0.00" too: the read reports both (spec 022). */
   given JsonValueCodec[MajorBalance] =
     com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker.make(com.github.plokhotnyuk.jsoniter_scala.macros.CodecMakerConfig.withDiscriminatorFieldName(Some("type")).withAllowRecursiveTypes(true).withRequireDiscriminatorFirst(false).withTransientEmpty(false).withTransientNone(false).withTransientDefault(false))
+  given JsonValueCodec[MajorAdjustment] =
+    com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker.make(com.github.plokhotnyuk.jsoniter_scala.macros.CodecMakerConfig.withTransientEmpty(false).withTransientNone(true).withTransientDefault(false))
   given JsonValueCodec[MajorTransactions]     = Codecs.make[MajorTransactions]
+  given JsonValueCodec[OperatorTransactions]  = Codecs.make[OperatorTransactions]
   given JsonValueCodec[MajorLifetime]         = Codecs.make[MajorLifetime]
   given JsonValueCodec[OperatorAdjustRequest] = Codecs.make[OperatorAdjustRequest]
   given JsonValueCodec[TurnoverTermsRequest]  = Codecs.make[TurnoverTermsRequest]
   given JsonValueCodec[TurnoverOverrideRequest] = Codecs.make[TurnoverOverrideRequest]
   given JsonValueCodec[RestrictedFundsStatus] = Codecs.make[RestrictedFundsStatus]
-  given JsonValueCodec[BrandConfig]           = Codecs.make[BrandConfig]
+  /**
+   * The configuration as the operator routes answer it (spec 030 W3): every field written, a default
+   * too, and no limit on concurrent awards (or a configuration never written) as `null`, so the page
+   * reads what is in force rather than a default it would have to know.
+   */
+  val configAnswer: JsonValueCodec[BrandConfig] =
+    com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker.make(com.github.plokhotnyuk.jsoniter_scala.macros.CodecMakerConfig.withTransientEmpty(false).withTransientNone(false).withTransientDefault(false))
   given JsonValueCodec[OperatorAccountAdjustRequest] = Codecs.make[OperatorAccountAdjustRequest]
   given JsonValueCodec[MajorAccountBalance]   = Codecs.make[MajorAccountBalance]
 
@@ -57,18 +93,70 @@ private[api] object Major:
       b.primary.map(p => MajorPrimary(p.grantRef, p.status, Wire.major(p.requirement, c), Wire.major(p.wagered, c), p.progressPercent)),
       Wire.major(b.depositPoolBalance, c), Wire.major(b.convertedPoolBalance, c), Wire.major(b.reserved, c), Wire.major(b.available, c))
 
+  /** The rows in major units by the currency's exponent, as the player reads them: none of an operator's fields. */
   def transactions(p: TransactionsPage, c: Currency): MajorTransactions =
-    MajorTransactions(p.transactions.map(r => MajorTransaction(r.transactionId, r.`type`, r.walletType, Wire.major(r.amount, c),
-      Wire.major(r.balanceBefore, c), Wire.major(r.balanceAfter, c), r.status, r.roundKey, r.awardRef, r.paymentReference, r.createdAt,
-      Wire.major(r.depositPart, c), Wire.major(r.convertedPart, c), Wire.major(r.depositPoolAfter, c), Wire.major(r.convertedPoolAfter, c),
-      r.reference)),
-      p.page, p.pageSize, p.total)
+    MajorTransactions(p.transactions.map { r =>
+      MajorTransaction(r.transactionId, r.`type`, r.walletType, Wire.major(r.amount, c),
+        Wire.major(r.balanceBefore, c), Wire.major(r.balanceAfter, c), r.status, r.roundKey, r.awardRef, r.paymentReference, r.createdAt,
+        Wire.major(r.depositPart, c), Wire.major(r.convertedPart, c), Wire.major(r.depositPoolAfter, c), Wire.major(r.convertedPoolAfter, c),
+        r.reference)
+    }, p.page, p.pageSize, p.total)
+
+  /**
+   * The rows as an operator reads them: an adjustment's category, cause and actor (spec 030 W2) and its
+   * reason (research R10: the timeline shows it), the reason left out once `players` has asked the wallet
+   * to erase the player (review S1).
+   */
+  def operatorTransactions(p: TransactionsPage, c: Currency, erased: Boolean): OperatorTransactions =
+    OperatorTransactions(p.transactions.map { r =>
+      OperatorTransaction(r.transactionId, r.`type`, r.walletType, Wire.major(r.amount, c),
+        Wire.major(r.balanceBefore, c), Wire.major(r.balanceAfter, c), r.status, r.roundKey, r.awardRef, r.paymentReference, r.createdAt,
+        Wire.major(r.depositPart, c), Wire.major(r.convertedPart, c), Wire.major(r.depositPoolAfter, c), Wire.major(r.convertedPoolAfter, c),
+        r.reference, if erased then None else r.reason.map(_.reveal), r.category, r.cause, r.actorId)
+    }, p.page, p.pageSize, p.total)
+
+  def adjustment(b: Balance, o: Outcome, target: String, c: Currency): MajorAdjustment =
+    val m = balance(b, c)
+    val before = o.balanceBefore.getOrElse(if target == "restricted" then o.restrictedBalance else o.realBalance)
+    MajorAdjustment(m.realBalance, m.bonusBalance, m.currency, m.primary, m.depositPoolBalance, m.convertedPoolBalance, m.reserved,
+      m.available, o.transactionId, if target == "restricted" then "bonus" else "real", o.amount.getOrElse(0L), before,
+      o.balanceAfter.getOrElse(before), o.cause, o.repeated.contains(true))
+
+  /** The amount an adjustment names: `amount`, `amountMinor`, or both when they agree (spec 030 W2). */
+  def adjustAmount(r: OperatorAdjustRequest, currency: Currency): Either[(String, Map[String, String]), Long] =
+    (Option(r.amount).map(_.trim).filter(_.nonEmpty), r.amountMinor) match
+      case (None, None)        => Left(("an adjustment names its amount, as amount or amountMinor", Map.empty))
+      case (None, Some(minor)) if minor.abs > MaxMinor || minor == Long.MinValue =>
+        Left((s"an adjustment is at most $MaxMinor minor units either way", Map("amountMinor" -> minor.toString)))
+      case (None, Some(minor)) => Right(minor)
+      case (Some(text), minor) =>
+        parse(text, currency) match
+          case Left(message) => Left((message, Map("amount" -> text)))
+          case Right(a) if minor.exists(_ != a) =>
+            Left((s"amount '$text' and amountMinor ${minor.get} name different amounts", Map("amount" -> text, "amountMinor" -> minor.get.toString)))
+          case Right(a) => Right(a)
+
+  /** A cause names one of the contract's kinds and a reference of at most 200 characters (spec 030 W2). */
+  def checkCause(cause: Option[Cause]): Either[(String, Map[String, String]), Option[Cause]] =
+    cause match
+      case None => Right(None)
+      case Some(c) if !io.eitheror.casino.contract.facts.AdjustmentCause.Kinds(c.kind) =>
+        Left((s"a cause's kind is one of ${io.eitheror.casino.contract.facts.AdjustmentCause.Kinds.toVector.sorted.mkString(", ")}", Map("kind" -> c.kind)))
+      case Some(c) if c.ref.trim.isEmpty || c.ref.trim.length > 200 =>
+        Left(("a cause names its reference, at most 200 characters", Map("kind" -> c.kind)))
+      case Some(c) => Right(Some(c.copy(ref = c.ref.trim)))
+
+  /**
+   * The largest amount an operator's adjustment or account adjustment names, either way: 10^15 minor
+   * units (review S3). A balance stays far from `Long`'s range, and no text or number wraps.
+   */
+  val MaxMinor: Long = 1_000_000_000_000_000L
 
   /**
    * An operator's amount in major units by the currency's exponent, as the reads write it (spec 027
    * FR-058): EUR "10.00" → 1000, CLP "5000" → 5000, KWD "1.234" → 1234; a sign is kept (an
-   * adjustment may debit); more decimals than the currency has, or anything else, names the amount
-   * (spec 001 FR-026).
+   * adjustment may debit); more decimals than the currency has, more than [[MaxMinor]] either way,
+   * or anything else, names the amount (spec 001 FR-026).
    */
   def parse(text: String, currency: Currency): Either[String, Long] =
     val exp     = io.eitheror.casino.contract.money.Amounts.exponent(currency)
@@ -77,22 +165,28 @@ private[api] object Major:
       case Pattern(sign, whole, fraction) if Option(fraction).forall(f => f.length <= exp) =>
         val minor = Option(fraction).fold(0L)(f => (f + "0" * exp).take(exp).toLong)
         // Exact arithmetic: 15 digits of a currency of 4 decimals pass a Long (review).
-        scala.util.Try(Math.multiplyExact(Math.addExact(Math.multiplyExact(whole.toLong, BigInt(10).pow(exp).toLong), minor), if sign == "-" then -1L else 1L))
-          .toOption.toRight(s"the amount '$text' is not an amount of ${currency.code}")
+        scala.util.Try(Math.addExact(Math.multiplyExact(whole.toLong, BigInt(10).pow(exp).toLong), minor)).toOption match
+          case Some(m) if m <= MaxMinor => Right(if sign == "-" then -m else m)
+          case Some(_)                  => Left(s"the amount '$text' is more than $MaxMinor minor units either way")
+          case None                     => Left(s"the amount '$text' is not an amount of ${currency.code}")
       case _ => Left(s"the amount '$text' is not an amount of ${currency.code}")
 
 /**
- * The backoffice (`Routes.operator(slug)`: a staff token whose realm roles name this brand): the
- * adjustment with its personal reason (FR-026, FR-033), the turnover terms and override (FR-004a),
- * and the reads, in major units.
+ * The backoffice: a staff token of this brand whose roles' bags hold the route's permission (spec 030
+ * amendment W1, `Routes.operatorMay` over the brand's roles as `bags` last read them): the adjustment
+ * with its personal reason (FR-026, FR-033), the turnover terms and override (FR-004a), and the reads,
+ * in major units.
  */
 final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: String,
-    authenticate: => Acl = Oidc.authenticate(), clock: () => Instant = () => Instant.now())
+    authenticate: => Acl = Oidc.authenticate(), clock: () => Instant = () => Instant.now(), bags: RoleBags)
     extends HttpEndpoint(s"/v1/casino/backoffice/$brand"):
   import Major.given
   import ServiceEndpoint.given
 
-  val acl: Acl = Routes.operator(brand, authenticate)
+  private def may(permission: String): Acl = Routes.operatorMay(brand, permission, bags, authenticate)
+
+  // every route names its own permission; this is never reached
+  val acl: Acl = Acl.DenyAll
 
   private val transactions = views.forView(TransactionsView)
   private val lifetime     = views.forView(LifetimeTotalsView)
@@ -101,19 +195,24 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
   private def checked(currency: String)(answer: Currency => Respond[Json]): Respond[Json] =
     Currency.from(currency).fold(m => Wire.refusal("INVALID_REQUEST", m), answer)
 
+  withAcl(may("adjustment.make")) {
   postBody("/wallets/{player}/{currency}/adjustments") { (player: String, currency: String, r: OperatorAdjustRequest) =>
     checked(currency) { c =>
-      (Key.from(r.key), Major.parse(r.amount, c)) match
-        case (Left(_), _)        => Wire.missingKey
-        case (_, Left(message))  => Wire.refusal("INVALID_REQUEST", message, Map("amount" -> r.amount))
-        case (Right(k), Right(a)) =>
+      (Key.from(r.key), Major.adjustAmount(r, c), Major.checkCause(r.cause)) match
+        case (Left(_), _, _)                  => Wire.missingKey
+        case (_, Left((message, details)), _) => Wire.refusal("INVALID_REQUEST", message, details)
+        case (_, _, Left((message, details))) => Wire.refusal("INVALID_REQUEST", message, details)
+        case (Right(k), Right(a), Right(cause)) =>
           val target = if r.walletType == "bonus" || r.walletType == "restricted" then "restricted" else "real"
-          val o = wallet(player, currency).call(WalletEntity.adjust).invoke(Adjust(k.value, target, a, r.reason, r.category, principal.subject, clock()))
-          if o.accepted then Wire.json(200, Major.balance(wallet(player, currency).call(WalletEntity.balance).invoke(), c))
+          val o = wallet(player, currency).call(WalletEntity.adjust)
+            .invoke(Adjust(k.value, target, a, r.reason, r.category, principal.subject, clock(), cause))
+          if o.accepted then Wire.json(200, Major.adjustment(wallet(player, currency).call(WalletEntity.balance).invoke(), o, target, c))
           else Wire.outcome(o, currency)
     }
   }
+  }
 
+  withAcl(may("turnover.override")) {
   putBody("/wallets/{player}/{currency}/turnover-override") { (player: String, currency: String, r: TurnoverOverrideRequest) =>
     checked(currency) { c =>
       val terms = r.multiplier.map(m => TurnoverTerms(m, r.definition.getOrElse("gross_wagered")))
@@ -123,24 +222,37 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
         Wire.json(200, Major.balance(wallet(player, currency).call(WalletEntity.balance).invoke(), c))
     }
   }
+  }
 
+  withAcl(may("wallet.read")) {
   get("/wallets/{player}/{currency}/balance") { (player: String, currency: String) =>
     checked(currency)(c => Wire.json(200, Major.balance(wallet(player, currency).call(WalletEntity.balance).invoke(), c)))
   }
+  }
 
+  withAcl(may("wallet.read")) {
   get("/wallets/{player}/{currency}/restricted-funds") { (player: String, currency: String) =>
     checked(currency)(_ => Wire.json(200, wallet(player, currency).call(WalletEntity.restrictedFundsStatus).invoke()))
   }
-
-  get("/wallets/{player}/{currency}/transactions") { (player: String, currency: String) =>
-    checked(currency)(c => Wire.json(200, Major.transactions(TransactionsQuery.page(transactions, s"$player/$currency",
-      query.optional[String]("type"), query.optional[String]("walletType"), query.optional[Long]("from"), query.optional[Long]("to"),
-      query.optional[Int]("page").getOrElse(0), query.optional[Int]("pageSize").getOrElse(50)), c)))
   }
 
+  withAcl(may("wallet.read")) {
+  get("/wallets/{player}/{currency}/transactions") { (player: String, currency: String) =>
+    checked(currency) { c =>
+      val erased = client.forKeyValueEntity(io.eitheror.casino.wallet.erasure.ErasedPlayerEntity.id(player))
+        .call(io.eitheror.casino.wallet.erasure.ErasedPlayerEntity.get).invoke().erased
+      Wire.json(200, Major.operatorTransactions(TransactionsQuery.page(transactions, s"$player/$currency",
+        query.optional[String]("type"), query.optional[String]("walletType"), query.optional[Long]("from"), query.optional[Long]("to"),
+        query.optional[Int]("page").getOrElse(0), query.optional[Int]("pageSize").getOrElse(50)), c, erased))
+    }
+  }
+  }
+
+  withAcl(may("wallet.read")) {
   get("/wallets/{player}/{currency}/lifetime-totals") { (player: String, currency: String) =>
     val t = lifetime.get(s"$player/$currency").getOrElse(LifetimeTotals(s"$player/$currency", 0L, 0L, 0L))
     checked(currency)(c => Wire.json(200, MajorLifetime(Wire.major(t.deposited, c), Wire.major(t.wagered, c), Wire.major(t.won, c))))
+  }
   }
 
   // ── spec 022: non-player accounts (FR-009, FR-012) ────────────────────────
@@ -152,6 +264,7 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
     if !io.eitheror.casino.wallet.accounts.AccountState.Kinds(kind) then Wire.refusal("INVALID_REQUEST", s"an account is pool or clearing, not '$kind'")
     else checked(currency)(answer)
 
+  withAcl(may("adjustment.make")) {
   postBody("/accounts/{kind}/{name}/adjustments") { (kind: String, name: String, r: OperatorAccountAdjustRequest) =>
     accountChecked(kind, r.currency) { c =>
       (Key.from(r.key), Major.parse(r.amount, c)) match
@@ -165,7 +278,9 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
           else Wire.json(200, Major.accountBalance(acc.call(io.eitheror.casino.wallet.accounts.AccountEntity.balance).invoke(), c, o.transactionId))
     }
   }
+  }
 
+  withAcl(may("wallet.read")) {
   get("/accounts/{kind}/{name}/balance") { (kind: String, name: String) =>
     val currency = query.required[String]("currency")
     accountChecked(kind, currency) { c =>
@@ -174,15 +289,36 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
       else Wire.json(200, Major.accountBalance(b, c))
     }
   }
+  }
 
+  withAcl(may("config.brand")) {
   putBody("/wallet-config/turnover") { (r: TurnoverTermsRequest) =>
     if r.multiplier < 0 then Wire.refusal("INVALID_REQUEST", "a turnover multiplier is a whole, non-negative number")
     else Wire.json(200, client.forKeyValueEntity(BrandConfigEntity.Id).call(BrandConfigEntity.setTurnoverTerms)
-      .invoke(SetTurnoverTerms(TurnoverTerms(r.multiplier, r.definition), principal.subject, clock())))
+      .invoke(SetTurnoverTerms(TurnoverTerms(r.multiplier, r.definition), principal.subject, clock())))(using Major.configAnswer)
+  }
   }
 
+  /**
+   * Spec 030 W3: the brand's reward settings, replaced whole and the turnover terms left, recorded as
+   * the operator's (`updatedBy`, `updatedAt`) as the turnover terms are; the answer is the configuration,
+   * as `GET /wallet-config` reads it. A wrong value is refused 400 naming its field (`details.field`).
+   */
+  withAcl(may("config.brand")) {
+  putBody("/wallet-config/rewards") { (text: String) =>
+    RewardSettings.parse(text) match
+      case Left(invalid) => Wire.refusal("INVALID_REQUEST", invalid.message, Map("field" -> invalid.field))
+      case Right(s) =>
+        Wire.json(200, client.forKeyValueEntity(BrandConfigEntity.Id).call(BrandConfigEntity.setBetSwitches)
+          .invoke(SetBetSwitches(s.contributionRateByGameType, s.bonusWageringCounts, s.partialSplitsAllowed, s.maxConcurrentAwards,
+            principal.subject, clock())))(using Major.configAnswer)
+  }
+  }
+
+  withAcl(may("wallet.read")) {
   get("/wallet-config") { () =>
-    Wire.json(200, client.forKeyValueEntity(BrandConfigEntity.Id).call(BrandConfigEntity.get).invoke())
+    Wire.json(200, client.forKeyValueEntity(BrandConfigEntity.Id).call(BrandConfigEntity.get).invoke())(using Major.configAnswer)
+  }
   }
 
 /**

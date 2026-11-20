@@ -3,7 +3,7 @@ package io.eitheror.casino.merchant.api
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.thinkmorestupidless.ankka.core.{CommandError, EntityId, ErrorCode}
-import com.thinkmorestupidless.ankka.http.{Acl, Bytes, EndpointClients, Principal, Respond}
+import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Bytes, EndpointClients, Principal, RequestContext, Respond}
 import com.thinkmorestupidless.ankka.sdk.SecretStore
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.merchant.{Json, Settings}
@@ -86,3 +86,53 @@ object Operator:
     val level = p.claims.get(Routes.ScopeLevelClaim).flatMap(Level.from).getOrElse(Level.SubBrand)
     val id    = p.claims.get(Routes.ScopeIdClaim).getOrElse(if level == Level.Platform then "*" else "")
     Operator(p.subject, p.roles, Scope(level, id))
+
+/**
+ * Who reads the payments list, the summary and a payment (spec 030 H1): a payments operator, held to
+ * their level as before, or an operator holding `brand_<slug>`, who reads the sub-brands naming those
+ * brands and no other. `platform_admin` without a payments level holds every brand (`Routes.brandsOf`).
+ * A sub-brand naming no brand is never a brand operator's.
+ */
+enum Reader:
+  case Payments(op: Operator)
+  case Brand(brands: Routes.BrandSet)
+
+  def permits(s: SubBrandState, target: => Target): Boolean = this match
+    case Payments(op) => op.permits(target)
+    case Brand(set)   => s.exists && s.brand.exists(set.holds)
+
+object Reader:
+  /** Set by [[PaymentsReaders.acl]] on the principal it admits, over any claim of that name a token carries. */
+  val AdmittedAs = "merchant_admitted_as"
+  val AsPayments = "payments"
+  val AsBrand    = "brand"
+
+  def of(p: Principal): Reader =
+    if p.claims.get(AdmittedAs).contains(AsBrand) then Brand(Routes.brandsOf(p)) else Payments(Operator.of(p))
+
+/**
+ * The ACL of the three payments reads (spec 030 H1), composed of `contract.access.Routes` and nothing
+ * else: `Routes.paymentsOperator` admits exactly whom it admitted before; a staff token it refuses that
+ * holds a `brand_<slug>` (`Routes.staff`, `Routes.brandsOf`) is admitted as a brand's reader; anyone
+ * else gets the payments operator's refusal, as before.
+ */
+object PaymentsReaders:
+  def acl(authenticate: => Acl): Acl =
+    lazy val verifier = authenticate
+    lazy val payments = Routes.paymentsOperator(verifier)
+    lazy val staff    = Routes.staff(verifier)
+    Acl.Authenticate { (context: RequestContext) =>
+      decide(payments, context) match
+        case AuthDecision.Allow(p) => AuthDecision.Allow(tagged(p, Reader.AsPayments))
+        case refused @ AuthDecision.Forbidden(_) =>
+          decide(staff, context) match
+            case AuthDecision.Allow(p) if !Routes.brandsOf(p).isEmpty => AuthDecision.Allow(tagged(p, Reader.AsBrand))
+            case _                                                    => refused
+        case other => other
+    }
+
+  private def tagged(p: Principal, as: String): Principal = p.copy(claims = p.claims + (Reader.AdmittedAs -> as))
+
+  private def decide(acl: Acl, context: RequestContext): AuthDecision = acl match
+    case Acl.Authenticate(f) => f(context)
+    case other               => AuthDecision.Forbidden(s"unexpected ACL $other")

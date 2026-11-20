@@ -116,8 +116,9 @@ object Wire:
   final case class Transition(firstDay: Option[String], endsAt: Option[String], endedOn: Option[String], endedBy: Option[String],
       legacyTagsLast30Days: Long)
   final case class NetworkStatus(id: String, reachable: Boolean, lastFetch: Option[Instant], boundPlayers: Long, undelivered: Long)
+  /** `roles`: when the brand's roles were last read from `players` (spec 030 E1). */
   final case class Status(networks: Vector[NetworkStatus], transition: Transition, openDays: Long,
-      legacyPerDay: Map[String, Long] = Map.empty)
+      legacyPerDay: Map[String, Long] = Map.empty, roles: String = "")
 
   final case class TouchAnswer(kind: String, value: String, at: Instant, outcome: String)
   final case class BindingAnswer(network: String, affiliate: String, link: String, campaign: Option[String], subIds: Vector[String],
@@ -139,8 +140,8 @@ object Wire:
   final case class Subscriptions(subscriptions: Vector[SubscriptionAnswer])
 
   final case class UndeliveredAnswer(delivery: String, subscription: String, network: String, factId: String, kind: String,
-      attempts: Int, lastStatus: Option[Int], lastError: Option[String])
-  final case class Undelivered(undelivered: Vector[UndeliveredAnswer])
+      attempts: Int, lastStatus: Option[Int], lastError: Option[String], firstAttemptAt: Option[Instant] = None)
+  final case class Undelivered(undelivered: Vector[UndeliveredAnswer], total: Long, page: Option[Int] = None, pageSize: Option[Int] = None)
 
   /** The wire's codec settings: an absent value is left out, an empty list and a default are written. */
   inline def wire[A]: JsonValueCodec[A] =

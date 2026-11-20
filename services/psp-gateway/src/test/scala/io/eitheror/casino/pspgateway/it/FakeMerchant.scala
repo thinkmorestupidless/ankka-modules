@@ -28,6 +28,7 @@ final case class ScriptStep(status: Int, silentMs: Long = 0)
  */
 final class FakeMerchant(bind: Int = 0) extends FakeServer(bind):
   private val credentials = ConcurrentHashMap[(String, String), Map[String, String]]()
+  private val named       = ConcurrentHashMap[(String, String, String), Map[String, String]]()
   private val properties  = ConcurrentHashMap[String, Map[String, String]]()
   private val terminals   = ConcurrentHashMap[String, Vector[ObjectNode]]()
   private val outcomes    = java.util.concurrent.ConcurrentLinkedQueue[Delivered]()
@@ -40,6 +41,10 @@ final class FakeMerchant(bind: Int = 0) extends FakeServer(bind):
 
   def credential(subBrandId: String, provider: String, values: Map[String, String]): Unit =
     credentials.put(subBrandId -> provider.toUpperCase, values): Unit
+
+  /** A credential kept under a name, read with `?name=` (the test payment, spec 030 T2). */
+  def namedCredential(subBrandId: String, provider: String, name: String, values: Map[String, String]): Unit =
+    named.put((subBrandId, provider.toUpperCase, name), values): Unit
 
   /** A credential's values changed in the store (US5's rotation): the next read sees them. */
   def rotate(subBrandId: String, provider: String, values: Map[String, String]): Unit = credential(subBrandId, provider, values)
@@ -59,14 +64,14 @@ final class FakeMerchant(bind: Int = 0) extends FakeServer(bind):
   def deliveredTo(paymentId: String): Vector[Delivered] = delivered.filter(_.key.startsWith(s"$paymentId/"))
 
   def reset(): Unit =
-    credentials.clear(); properties.clear(); terminals.clear(); outcomes.clear(); scripts.clear(); clearReceived()
+    credentials.clear(); named.clear(); properties.clear(); terminals.clear(); outcomes.clear(); scripts.clear(); clearReceived()
     answer = Scripted.Ok; credentialsUnavailable = false
 
   protected def route(r: Received): Answer =
     r.path.split('/').toList.drop(1) match
       case "internal" :: "v1" :: "sub-brands" :: sb :: "psp-credentials" :: provider :: Nil if r.method == "GET" =>
         if credentialsUnavailable then Answer(503, """{"error":"UNAVAILABLE"}""")
-        else Option(credentials.get(sb -> provider)) match
+        else r.query.get("name").fold(Option(credentials.get(sb -> provider)))(n => Option(named.get((sb, provider, n)))) match
           case Some(values) => Answer.ok(Json.obj("provider" -> provider, "credentials" -> Json.objOf(values)))
           case None         => Answer(404, """{"error":"NOT_FOUND"}""")
       case "internal" :: "v1" :: "terminals" :: id :: "properties" :: Nil if r.method == "GET" =>
