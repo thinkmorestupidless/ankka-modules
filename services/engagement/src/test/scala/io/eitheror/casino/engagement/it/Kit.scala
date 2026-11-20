@@ -8,7 +8,7 @@ import com.thinkmorestupidless.ankka.core.{EntityId, Metadata}
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, HttpServer, Principal}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.AnkkaTestKit
-import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.access.{BrandRoles, OperatorPermissions, Routes}
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.engagement.{EngagementRuntime, EngagementService, Json, Settings}
 import io.eitheror.casino.engagement.config.{ConfigChange, Configuration, CrmConfig, Secrets}
@@ -126,8 +126,16 @@ final class Kit(base: Settings = Kit.Base):
 
   private def gatewayCaller = testKit.asCaller(Caller.Gateway)
   def asPlayer(playerId: String): Seq[(String, String)] = Seq(gatewayCaller, "Authorization" -> s"Bearer player|$playerId")
+  /**
+   * An operator of the brand holding `roles` beside the brand's own role. Each role a brand may hold is given named
+   * for this brand (spec 032, `brand_admin@goldvibe`); a reserved role (`platform_admin`, the payments roles) and one
+   * already named are given as written.
+   */
   def asOperator(roles: String = "brand_admin", subject: String = "op-1"): Seq[(String, String)] =
-    Seq(gatewayCaller, "Authorization" -> s"Bearer staff|$subject|brand_$slug,$roles")
+    Seq(gatewayCaller, "Authorization" -> s"Bearer staff|$subject|brand_$slug,${roles.split(',').filter(_.nonEmpty).map(named).mkString(",")}")
+  /** `role` as this brand's realm role names it, unless it is reserved or already named. */
+  def named(role: String): String =
+    if OperatorPermissions.reserved(role) || BrandRoles.brandOf(role).isDefined then role else BrandRoles.nameIn(slug, role)
   /** Any token of [[Kit.authenticate]]'s forms, through the gateway. */
   def bearer(token: String): Seq[(String, String)] = Seq(gatewayCaller, "Authorization" -> s"Bearer $token")
   def asService(name: String, project: String = "local"): Seq[(String, String)] = Seq(testKit.asCaller(Caller.Service(project, name)))

@@ -44,7 +44,7 @@ object Documents:
    * The operator's permissions (already admitted as one of the brand's), from the brand's roles as `ctx.bags` last read
    * them; `None` until they are first read.
    */
-  private def held(ctx: Ctx, p: Principal): Option[Set[String]] = ctx.bags.permissionsOf(p.roles)
+  private def held(ctx: Ctx, p: Principal): Option[Set[String]] = ctx.bags.permissionsOf(ctx.slug, p.roles)
 
   /** Whether an operator holding `permissions` may have the document. */
   def admitted(permissions: Set[String], d: DocumentState): Boolean = permissions(permissionOf(d))

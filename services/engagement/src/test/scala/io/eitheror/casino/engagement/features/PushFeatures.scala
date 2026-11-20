@@ -183,7 +183,7 @@ class PushFeatures extends EngagementFeatures("push.feature"):
   Given("an operator's or a part's sign-in without a player id") { () => () }
 
   When("it opens the stream") { () =>
-    refused = Vector(s"staff|op-1|brand_${kit.slug},brand_admin", s"part|part-${player.drop(2)}")
+    refused = Vector(s"staff|op-1|brand_${kit.slug},${kit.named("brand_admin")}", s"part|part-${player.drop(2)}")
       .map(t => SseReader(kit.baseUrl + "/v1/stream", kit.bearer(t).toMap))
   }
 

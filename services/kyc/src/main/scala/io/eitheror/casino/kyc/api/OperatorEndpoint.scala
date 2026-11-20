@@ -26,7 +26,7 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
   private def may(permission: String): Acl = Routes.operatorMay(ctx.slug, permission, ctx.bags, ctx.authenticate())
 
   /** Whether the caller's roles hold `permission`, for what a route shows beyond what admitted them. */
-  private def holds(permission: String): Boolean = ctx.bags.permissionsOf(principal.roles).exists(_(permission))
+  private def holds(permission: String): Boolean = ctx.bags.permissionsOf(ctx.slug, principal.roles).exists(_(permission))
 
   private val documents = DocumentRoutes(ctx)
 

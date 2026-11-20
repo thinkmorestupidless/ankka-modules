@@ -9,7 +9,7 @@ import com.thinkmorestupidless.ankka.core.{EntityId, Metadata}
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, HttpServer, Principal}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.AnkkaTestKit
-import io.eitheror.casino.contract.access.{OperatorPermissions, RoleBags, Routes}
+import io.eitheror.casino.contract.access.{BrandRoles, OperatorPermissions, RoleBags, Routes}
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.kyc.{Json, KycRuntime, KycService, Settings}
 import io.eitheror.casino.kyc.documents.{S3Store, Store}
@@ -151,7 +151,9 @@ final class Kit(base: Settings = Kit.Base):
 
   private def gateway = testKit.asCaller(Caller.Gateway)
   def asPlayer(playerId: String): Seq[(String, String)] = Seq(gateway, "Authorization" -> s"Bearer player|$playerId")
-  def asOperator(subject: String = "op-1", roles: String = s"brand_$slug,brand_admin"): Seq[(String, String)] =
+  /** A role held in this brand: the realm role named for it (spec 032). */
+  def named(role: String): String = BrandRoles.nameIn(slug, role)
+  def asOperator(subject: String = "op-1", roles: String = s"brand_$slug,${named("brand_admin")}"): Seq[(String, String)] =
     Seq(gateway, "Authorization" -> s"Bearer staff|$subject|$roles")
   def asService(name: String): Seq[(String, String)] = Seq(testKit.asCaller(Caller.Service("local", name)))
   def asPublic: Seq[(String, String)]                = Seq(gateway)

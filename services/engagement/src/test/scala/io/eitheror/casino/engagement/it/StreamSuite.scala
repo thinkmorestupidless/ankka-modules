@@ -135,7 +135,7 @@ class StreamSuite extends munit.FunSuite:
     val none = SseReader(url, Map(kit.bearer("x").head))
     open = open :+ none
     assertEquals(none.status, 401, none.body)
-    for t <- Vector(s"staff|op-1|brand_${kit.slug},brand_admin", "part|a-part") do
+    for t <- Vector(s"staff|op-1|brand_${kit.slug},${kit.named("brand_admin")}", "part|a-part") do
       val r = reader(t)
       assertEquals(r.status, 403, r.body)
       assert(r.awaitClosed(5.seconds))

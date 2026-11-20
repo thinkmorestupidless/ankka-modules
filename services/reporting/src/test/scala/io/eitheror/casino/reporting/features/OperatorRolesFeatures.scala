@@ -58,7 +58,7 @@ class OperatorRolesFeatures extends ReportingFeatures("operator-roles.feature"):
   Given("operators of the brand holding each of the roles {string}, {string}, {string} and {string}, each carrying its default permissions") {
     (a: String, b: String, c: String, d: String) =>
       assertEquals(Vector(a, b, c, d), Roles)
-      for r <- Roles do assertEquals(kit.roles.permissionsOf(Set(r)), Some(OperatorPermissions.DefaultRoles(r)))
+      for r <- Roles do assertEquals(kit.roles.permissionsOf(kit.brand, Set(kit.named(r))), Some(OperatorPermissions.DefaultRoles(r)))
       tokens = Roles.map(r => r -> kit.asStaff(Seq(r), s"op-$r")).toMap
   }
 

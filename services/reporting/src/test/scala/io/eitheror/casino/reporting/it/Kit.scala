@@ -5,6 +5,7 @@ import com.thinkmorestupidless.ankka.core.{EntityId, Metadata}
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, HttpServer, LocalCallers, Principal}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.{AnkkaTestKit, MovableClock, TimerProbe}
+import io.eitheror.casino.contract.access.{BrandRoles, OperatorPermissions}
 import io.eitheror.casino.contract.facts.{Fact, Topic}
 import io.eitheror.casino.reporting.{ReportingService, Settings}
 import io.eitheror.casino.reporting.intake.Coverage
@@ -151,10 +152,18 @@ final class Kit(val brand: String = "goldvibe", modules: Set[String] = Set("casi
   /** A request from the internet, through the gateway, with no token. */
   def fromInternet: Seq[(String, String)] = Seq(LocalCallers.header(Caller.Gateway))
 
-  /** An operator through the gateway holding `roles`; the brand's role is added unless `brandRole` is false. */
+  /**
+   * An operator through the gateway holding `roles`; the brand's role is added unless `brandRole` is false. A role a
+   * brand may hold (a default role or one it made) is given named for this brand (spec 032, `brand_admin@goldvibe`);
+   * a reserved role (`platform_admin`, the payments roles) and one already named are given as written.
+   */
   def asStaff(roles: Seq[String], op: String = "op-1", brandRole: Boolean = true): Seq[(String, String)] =
-    val all = (if brandRole then Seq(s"brand_$brand") else Nil) ++ roles
+    val all = (if brandRole then Seq(s"brand_$brand") else Nil) ++ roles.map(named)
     fromInternet :+ ("Authorization" -> s"Bearer staff|$op|${all.mkString(",")}")
+
+  /** `role` as this brand's realm role names it, unless it is reserved or already named. */
+  def named(role: String): String =
+    if OperatorPermissions.reserved(role) || BrandRoles.brandOf(role).isDefined then role else BrandRoles.nameIn(brand, role)
 
   /** Finance: an operator of the brand holding `brand_admin`, whom the Reports tab admits. */
   def asFinance: Seq[(String, String)] = asStaff(Seq("brand_admin"), "finance-1")

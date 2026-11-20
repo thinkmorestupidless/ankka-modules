@@ -129,7 +129,7 @@ class OperatorsSuite extends munit.FunSuite:
       assertEquals((r.status, r.str("error")), (409, "not_parked"), r.text)
       val none = post(s"/parked-sends/${id("deposit_confirmed/nothing")}/$act", body)
       assertEquals((none.status, none.str("error")), (404, "send_not_found"), none.text)
-    val other = kit.request("GET", path(s"/players/$p/sends"), None, kit.bearer("staff|op-2|brand_another,brand_admin"))
+    val other = kit.request("GET", path(s"/players/$p/sends"), None, kit.bearer("staff|op-2|brand_another,brand_admin@another"))
     assertEquals(other.status, 403, other.text)
   }
 
