@@ -948,7 +948,7 @@ seeded brand fills in the rest.
     service with a topic view or a producer; at the default `small` both were OOMKilled under the
     seed (18 and 22 restarts in 14 hours). kind-ankka's Docker was raised to fit them.
 - Decision (Trevor, 2026-11-17): the integration runs move to an ephemeral GKE installation, spec
-  031. One 10-core, 32 GB Mac cannot hold a brand at production sizes beside the platform: goldvibe
+  033 (numbered 031 until 2026-11-20, when 031 went to the move to ankka 0.18.0). One 10-core, 32 GB Mac cannot hold a brand at production sizes beside the platform: goldvibe
   needs 10.61 CPUs of the node's 10. T123 to T128 and T133 are written (`tests/it/`, the seed, the
   recipes) and type-check, but have not run against a running brand; they stay unticked, and the
   pull request says so. T136's local half (features, unit and service suites, modules validate)
