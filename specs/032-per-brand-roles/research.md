@@ -1,7 +1,7 @@
 # Research: Per-brand realm roles
 
 Phase 0 of the plan. Each decision says what was chosen, why, and what else was weighed. Code
-references are to this branch (`032-per-brand-roles`, cut from `030-backoffice` at `cffcf762`).
+references are to this branch (`032-per-brand-roles`, cut from `030-backoffice` at `b3f0dc1e`).
 
 ## R1. A brand role's name in the realm
 
