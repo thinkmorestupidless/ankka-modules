@@ -368,7 +368,7 @@ This covers the third area listed under *Not reviewed* above: `services/backoffi
 - `services/backoffice/src/web/areas/affiliates/account.tsx:563` with `affiliates/payouts.tsx:52-70`
   - issue (non-blocking): "view as affiliate" renders `PayoutsTable` with `done={() => undefined}`. Every row shows live approve, reject and pay actions in what is meant to be the affiliate's view, and nothing is re-read after one runs.
   - Suggestion: a `readOnly` prop on `PayoutsTable` that renders no actions.
-  - Resolved in part: PayoutsTable takes readOnly and renders no actions, 1c8caf84. The call site is not changed: account.tsx is open in the person's editor; the change is to pass readOnly to the view-as PayoutsTable at account.tsx:563, named in the pull request
+  - Resolved in part: PayoutsTable takes readOnly and renders no actions, 1c8caf84. The call site is not changed: account.tsx is open in the person's editor; the change is to pass readOnly to the view-as PayoutsTable at account.tsx:563, named in the pull request (done since: e6a95e83)
 - `services/backoffice/src/web/areas/configuration/games.tsx:69`, `configuration/crm.tsx:39-41` and `components/config-form.tsx:216`
   - issue (non-blocking): `operatorPrivateKey` and the CRM track, app and webhook keys are visible `text` fields. ConfigForm's confirmation echoes `label: value`, so the private key is printed in the dialog.
   - Suggestion: a `secret` field kind (`type="password"`) whose value the confirmation shows as "changed", never as text.
@@ -412,7 +412,7 @@ This covers the third area listed under *Not reviewed* above: `services/backoffi
   - A session-minutes limit shows a bare number with no unit; `protection.tsx:27`'s `Value` handles it.
   - `sessions.tsx:211` and `notes.tsx:91` have Next but no Previous.
   - `affiliates/account.tsx:338`'s effect shows the typed amount, not the formatted one.
-  - Resolved: limits use protection's value formatter (LimitValue), 5eb4299e; sessions and notes page back as well as forward, 0a1475f1. The account.tsx:338 part is left: the file is open in the person's editor; the change is to show the amount there with <Money> from amountOf(f.amount, currency)
+  - Resolved: limits use protection's value formatter (LimitValue), 5eb4299e; sessions and notes page back as well as forward, 0a1475f1. The account.tsx:338 part is left: the file is open in the person's editor; the change is to show the amount there with <Money> from amountOf(f.amount, currency) (done since: e6a95e83)
 - `services/backoffice/src/web/areas/team/roles.tsx:145` — nitpick (non-blocking): creating a role has no `ready`, so an empty name sends `PUT …/roles/`. Use `ready={name.trim() !== ""}`.
   - Resolved: create has ready={name !== '' && !taken}, 2480354c
 - `services/backoffice/src/web/areas/payments/routing.tsx:236-241` — nitpick (non-blocking): after a deploy the state is folded locally with `setQueryData` and never re-read, and `answer.json()` has no catch. `team/assign.tsx:78`'s async `onDone` can reject unhandled in the same way. Invalidate and re-read.
@@ -435,7 +435,7 @@ This covers the third area listed under *Not reviewed* above: `services/backoffi
 ### Questions
 
 - `services/backoffice/src/web/areas/affiliates/account.tsx:342` — question: the adjustment keeps its idempotency key only on a 503 or when the fetch throws. A 502 or 504 from the ingress, or a 500 after the programme committed, gets a new key, so a retry can adjust twice. Should every 5xx or unknown outcome keep the key?
-  - Answered: yes, any 5xx or thrown fetch is an unknown outcome and must keep the key; the page's rule is now settles() in corrections/shared.tsx (783f4921). account.tsx is not changed: it is open in the person's editor; the change is to use useKeyed/settles there and lock the fields while the outcome is unknown, named in the pull request
+  - Answered: yes, any 5xx or thrown fetch is an unknown outcome and must keep the key; the page's rule is now settles() in corrections/shared.tsx (783f4921). account.tsx is not changed: it is open in the person's editor; the change is to use useKeyed/settles there and lock the fields while the outcome is unknown, named in the pull request (done since: e6a95e83)
 - `services/backoffice/src/web/areas/rewards/grant.tsx:230` — question: the award is posted with no idempotency key, and rewards' operator awards read none. Is a double award after a lost answer guarded only by rewards' open-reward and duplicate rules? If not, the fix is an amendment to rewards (FR-007), not the page.
   - Answered: no. Bonuses go through the PlayerRewards claim, which holds the duplicate and open-reward rules, but free rounds by hand make a new manual:<uuid> offer each time (OperatorAwards.freeRounds), so a retry after a lost answer awards twice. Rewards reads no key, so the fix is a rewards amendment (FR-007), not the page; left open, named in the pull request
 - `services/backoffice/src/web/areas/team/roles.tsx:96` — question: creating a role is a `PUT` upsert. Does players refuse a new role whose name is already taken, or does it silently replace that role's permissions?
@@ -468,11 +468,11 @@ resolution line names the one it shares.
 - `services/backoffice/src/web/areas/corrections/adjust.tsx:152`, `corrections/accounts.tsx:60`, `affiliates/account.tsx:342`
   - issue (should fix): the idempotency key is renewed on any status but 503; a 502 or 504 from the ingress, or a wallet 500 after it committed, also means "answer not known", and a retry then makes a second adjustment.
   - Suggestion: renew only on a definite answer (2xx, or 4xx but 408 and 429); keep the key on 5xx and on a thrown fetch.
-  - Resolved: as the third report's corrections/adjust.tsx:146-153, 783f4921. The account.tsx:342 part is not changed: the file is open in the person's editor
+  - Resolved: as the third report's corrections/adjust.tsx:146-153, 783f4921. The account.tsx:342 part is not changed: the file is open in the person's editor (done since: e6a95e83)
 - `services/backoffice/src/web/areas/corrections/adjust.tsx:132-153`
   - issue (should fix): after an unknown answer the key is kept but the fields stay editable; the wallet then answers 409 `KEY_REUSED`, the page renews the key and tells the operator to start again, though the first adjustment may have been made. `affiliates/account.tsx:311` renews the key on any edit instead.
   - Suggestion: lock the composed fields while a key's outcome is unknown, or word `refusal.key_reused.next` to check the recent adjustments first; show the wallet's `repeated: true`.
-  - Resolved: as the third report's corrections/adjust.tsx:146-153, 783f4921 (fields locked while unknown, repeated shown, key_reused.next reworded). The account.tsx:311 part is not changed: the file is open in the person's editor
+  - Resolved: as the third report's corrections/adjust.tsx:146-153, 783f4921 (fields locked while unknown, repeated shown, key_reused.next reworded). The account.tsx:311 part is not changed: the file is open in the person's editor (done since: e6a95e83)
 - `services/backoffice/src/shared/dates.ts:22-29`
   - issue (should fix): `startOfDay` is an hour early where daylight saving skips midnight (America/Santiago 2026-09-06 gives 03:00Z, not 04:00Z), and `endOfDay` the day before ends an hour early.
   - Suggestion: move forward to the first instant of the day; a Santiago test beside the London one.
@@ -553,12 +553,12 @@ resolution line names the one it shares.
   - Suggestion: either decode both forms of the two fields in the state codec (a string read as `Personal(subject, value)`), or set `snapshotEvery` to `None` on the companion. Alternatively, say in data-model.md that no installation holds sessions written before fbc1a7e2 (none has run 030 against a brand yet) and drop `Opened`/`Refreshed`. Add a test that decodes a stored state of the old shape.
   - Resolved by the third option: backoffice-state has never been deployed (it is not on main), so no installation holds a session or snapshot in the old form; data-model.md says so and names what a later change to SessionState must do, e3ac1217
 - `services/backoffice/src/web/areas/affiliates/account.tsx:342` (and :311, :563)
-  - issue (non-blocking): four findings were marked resolved or answered with "account.tsx is not changed: it is open in the person's editor". The defects are still on the branch (the file is unchanged in the range, and `.account.tsx.swp` is untracked beside it):
+  - issue (non-blocking): four findings were marked resolved or answered with "account.tsx is not changed: it is open in the person's editor". The defects are still on the branch (the file is unchanged in the range, and `.account.tsx.swp` is untracked beside it): (done since: e6a95e83)
     - :342 renews the programme adjustment's key on any status but 503, so a 502, 504 or 500 after commit followed by a retry adjusts twice;
     - :311 renews the key on any edit while the outcome is unknown;
     - :563 renders `PayoutsTable` without `readOnly`, so the "view as affiliate" view still shows live approve, reject and pay actions.
   - Suggestion: once the editor session is closed, apply the changes the resolutions describe: `useKeyed`/`settles` from `corrections/shared.tsx` with the fields locked while the outcome is unknown, `readOnly` on the view-as `PayoutsTable`, and `<Money>` for the :338 effect. Then add unit tests like the ones `corrections` and `affiliates-payouts` already have.
-  - Declined for now: account.tsx has been open in the person's vimdiff (since 2026-11-16) for the whole review, so no agent wrote to it; the three changes are named in the pull request as open and are made once the file is free
+  - Resolved: with the editor session closed, account.tsx takes useKeyed and settles with its fields locked while the outcome is unknown, readOnly on the view-as PayoutsTable, and the effect's amount by moneyText; affiliates-adjustment.test.tsx shows a 502 locking the fields and the same body sent again under the same key, e6a95e83
 
 ### Nits
 
@@ -589,13 +589,13 @@ The resolutions below do not hold. Every other Resolved line was checked against
 - First report, `Description` todo (T123 to T128, T133 and T136 not run): "Resolved: the pull request's body says …". There is no pull request yet, so nothing says it. The same applies to the other resolutions that leave something "named in the pull request" (the timeline export as a job, rewards' free-rounds key, the account.tsx changes). It holds once the body is written. Until then it is a todo.
   - Answered: the pull request is raised after this report; its body carries every item named 'in the pull request'
 - Third report, Should fix, `affiliates/account.tsx:563` ("Resolved in part"): `PayoutsTable` takes `readOnly`, but the one call site the finding named does not pass it. The defect is unchanged.
-  - Declined for now: account.tsx has been open in the person's vimdiff (since 2026-11-16) for the whole review, so no agent wrote to it; the three changes are named in the pull request as open and are made once the file is free
+  - Resolved: with the editor session closed, account.tsx takes useKeyed and settles with its fields locked while the outcome is unknown, readOnly on the view-as PayoutsTable, and the effect's amount by moneyText; affiliates-adjustment.test.tsx shows a 502 locking the fields and the same body sent again under the same key, e6a95e83
 - Third report, Questions, `affiliates/account.tsx:342` ("Answered: yes …"): the answer agrees it is a defect and leaves it unfixed. An answer that confirms a defect resolves the question, but not the defect.
-  - Declined for now: account.tsx has been open in the person's vimdiff (since 2026-11-16) for the whole review, so no agent wrote to it; the three changes are named in the pull request as open and are made once the file is free
+  - Resolved: with the editor session closed, account.tsx takes useKeyed and settles with its fields locked while the outcome is unknown, readOnly on the view-as PayoutsTable, and the effect's amount by moneyText; affiliates-adjustment.test.tsx shows a 502 locking the fields and the same body sent again under the same key, e6a95e83
 - Fourth report, Should fix, `corrections/adjust.tsx:152` …, the `affiliates/account.tsx:342` part: not changed, so a 502, 504 or 500 still renews the key there.
-  - Declined for now: account.tsx has been open in the person's vimdiff (since 2026-11-16) for the whole review, so no agent wrote to it; the three changes are named in the pull request as open and are made once the file is free
+  - Resolved: with the editor session closed, account.tsx takes useKeyed and settles with its fields locked while the outcome is unknown, readOnly on the view-as PayoutsTable, and the effect's amount by moneyText; affiliates-adjustment.test.tsx shows a 502 locking the fields and the same body sent again under the same key, e6a95e83
 - Fourth report, Should fix, `corrections/adjust.tsx:132-153`, the `affiliates/account.tsx:311` part: not changed, so the key is still renewed on any edit while the outcome is unknown.
-  - Declined for now: account.tsx has been open in the person's vimdiff (since 2026-11-16) for the whole review, so no agent wrote to it; the three changes are named in the pull request as open and are made once the file is free
+  - Resolved: with the editor session closed, account.tsx takes useKeyed and settles with its fields locked while the outcome is unknown, readOnly on the view-as PayoutsTable, and the effect's amount by moneyText; affiliates-adjustment.test.tsx shows a 502 locking the fields and the same body sent again under the same key, e6a95e83
 
 ### Checks applied
 

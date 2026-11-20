@@ -970,7 +970,7 @@ seeded brand fills in the rest.
   so a retry after a lost answer awards twice (a rewards amendment, FR-007); the timeline export is
   not yet a job (FR-029, a server job kind); wallet's service-to-service transactions route, older
   than this branch, still carries an adjustment's reason; and three small changes to
-  `areas/affiliates/account.tsx`, which was open in the person's editor.
+  `areas/affiliates/account.tsx`, which was open in the person's editor (made 2026-11-20 once it was closed, e6a95e83).
 
 ### Rebased on spec 027, 2026-11-19
 
