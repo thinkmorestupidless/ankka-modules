@@ -99,7 +99,7 @@ services/players/src/main/scala/io/eitheror/casino/players/
 └── roles/RoleRules.scala      # names a brand may give
 
 services/backoffice/src/server/{roles.ts,main.ts}   # the filter, /api/me
-services/backoffice/src/web/areas/operators/         # the giving's state shown
+services/backoffice/src/web/areas/team/         # the giving's state shown
 
 services/affiliate-programme/src/main/scala/io/eitheror/casino/programme/api/{Managers,Access}.scala
 services/public-api/…/api/KeysEndpoint.scala, services/markets/…/api/OperatorEndpoint.scala,
