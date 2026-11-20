@@ -88,7 +88,7 @@ parallel; never touch `services/backoffice/src/web/areas/affiliates/account.tsx`
 
 - [X] T033 [P] Amend spec 030's `specs/030-backoffice/contracts/roles.md` ("How a service opens a bag") and `contracts/amendments.md` (H6, P13) to point at this spec's contracts
 - [X] T034 [P] Update `CLAUDE.md`'s spec table with 032, and `GLOSSARY.md`'s `operator role` if the build changed its meaning
-- [ ] T035 Run `specs/032-per-brand-roles/quickstart.md` end to end; `just features` reports `0 findings`
+- [X] T035 Run `specs/032-per-brand-roles/quickstart.md` end to end; `just features` reports `0 findings`
 
 ## Dependencies
 
