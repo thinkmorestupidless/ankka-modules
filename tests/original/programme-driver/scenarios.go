@@ -196,6 +196,7 @@ var NotDriven = map[string]string{
 	"a parent chain that forms a cycle is visited once and the computation ends":                                            "the original refuses a cycle on write (409 parent_cycle), so none can be made through its routes",
 	"facts in two currencies close as two payouts":                                                                          "the original's payout is one per affiliate and period whatever the currency (marked divergence 6)",
 	"an export of approved payouts lists every figure and is audited as a read of payment details":                          "the original has no export route; the backoffice builds the file in the browser",
+	"the manager role given for one brand manages no other brand the operator's roles name":                                 "spec 032: the original's realm roles hold in every brand; it has no role named for a brand",
 }
 
 // NotDrivenFeatures are the features the original has nothing of, and why.
