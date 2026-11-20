@@ -91,7 +91,7 @@ class OperatorSuite extends munit.FunSuite with LogCapturing:
     for (method, path, body) <- routes(sub); role <- Vector("brand_support", "brand_finance", "brand_compliance", "resource_admin") do
       val permission = permissionOf(path)
       val r = kit.request(method, path, body, kit.asOperator(roles = s"brand_goldvibe,$role"))
-      if kit.roles.permissionsOf(Set(role)).exists(_(permission)) then
+      if kit.roles.permissionsOf(kit.brand, Set(kit.named(role))).exists(_(permission)) then
         assert(!Set(401, 403, 405).contains(r.status), s"$role: $method $path answered ${r.status}: ${r.text}")
       else
         assertEquals(r.status, 403, s"$role: $method $path")

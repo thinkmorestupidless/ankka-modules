@@ -10,6 +10,7 @@ import io.eitheror.casino.attribution.carriers.WebhookHttp
 import io.eitheror.casino.attribution.networks.{AddNetwork, Addresses, DocumentFetch, DocumentRefresh, Network, NetworkState}
 import io.eitheror.casino.attribution.record.{AttributionRecord, Record}
 import io.eitheror.casino.attribution.tag.Pseudonyms
+import io.eitheror.casino.contract.access.{BrandRoles, OperatorPermissions}
 import io.eitheror.casino.contract.facts.{AffiliatesAttribution, AttributionFact, CasinoPlayers, PlayerRegistered, Topic}
 
 import java.net.URI
@@ -111,9 +112,19 @@ final class Kit(val brand: String = "goldvibe", modules: Set[String] = Set("casi
   /** A request from the internet, through the gateway, with no token. */
   def fromInternet: Seq[(String, String)] = Seq(LocalCallers.header(Caller.Gateway))
 
-  /** An operator of this brand holding `brand_admin`, whose bag holds every permission, through the gateway. */
+  /**
+   * An operator of this brand holding `brand_admin`, whose bag holds every permission, through the gateway. Each of
+   * `roles` that is a brand's default role is held named for this brand (spec 032, [[inBrand]]).
+   */
   def asOperator(op: String = "op-1", roles: String = s"brand_$brand,brand_admin"): Seq[(String, String)] =
-    fromInternet :+ ("Authorization" -> s"Bearer staff|$op|$roles")
+    fromInternet :+ ("Authorization" -> s"Bearer staff|$op|${inBrand(roles)}")
+
+  /** `role` as the realm role held in brand `slug` when it is a brand's default role (spec 032); any other role bare. */
+  def named(role: String, slug: String = brand): String =
+    if OperatorPermissions.DefaultRoles.contains(role) then BrandRoles.nameIn(slug, role) else role
+
+  /** `roles` (comma separated), each [[named]] for brand `slug`. */
+  def inBrand(roles: String, slug: String = brand): String = roles.split(',').filter(_.nonEmpty).map(named(_, slug)).mkString(",")
 
   /** A player of the brand's realm, through the gateway: what an operator route refuses `wrong_issuer`. */
   def asPlayer(player: String = "p-1"): Seq[(String, String)] =

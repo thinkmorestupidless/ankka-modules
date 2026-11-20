@@ -47,7 +47,7 @@ object Realm:
   val json: String =
     s"""{
        |  "realm": "eitheror", "enabled": true, "accessTokenLifespan": 25, "ssoSessionIdleTimeout": 1800,
-       |  "roles": {"realm": [{"name": "brand_goldvibe"}, {"name": "brand_support"}]},
+       |  "roles": {"realm": [{"name": "brand_goldvibe"}, {"name": "brand_support@goldvibe"}]},
        |  "clients": [{
        |    "clientId": "$Client", "enabled": true, "publicClient": false, "secret": "$Secret",
        |    "standardFlowEnabled": true, "directAccessGrantsEnabled": false,
@@ -57,7 +57,7 @@ object Realm:
        |    "username": "ada", "enabled": true, "email": "ada@example.com", "emailVerified": true,
        |    "firstName": "Ada", "lastName": "Operator",
        |    "credentials": [{"type": "password", "value": "ada-password", "temporary": false}],
-       |    "realmRoles": ["brand_goldvibe", "brand_support"]
+       |    "realmRoles": ["brand_goldvibe", "brand_support@goldvibe"]
        |  }]
        |}""".stripMargin
 
@@ -178,8 +178,8 @@ class StateIt extends munit.FunSuite:
     val t = token(session)
     assertEquals(t.status, 200, t.text)
     assertEquals(t.json.path("accessToken").asText.count(_ == '.'), 2)
-    assertEquals(t.json.path("roles").elements.asScala.map(_.asText).toSet.intersect(Set("brand_goldvibe", "brand_support")),
-      Set("brand_goldvibe", "brand_support"))
+    assertEquals(t.json.path("roles").elements.asScala.map(_.asText).toSet.intersect(Set("brand_goldvibe", "brand_support@goldvibe")),
+      Set("brand_goldvibe", "brand_support@goldvibe"))
     assertEquals(summary(session).subject, opened.path("subject").asText)
   }
 

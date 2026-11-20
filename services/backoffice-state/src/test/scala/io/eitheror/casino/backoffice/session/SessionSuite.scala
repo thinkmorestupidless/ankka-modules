@@ -27,7 +27,7 @@ object SessionSuite:
   val t0: Instant = Instant.parse("2026-11-15T10:00:00Z")
 
   /** The realm's answer `n`: an access token for five minutes, the session for thirty. */
-  def tokens(n: Int, at: Instant, roles: Set[String] = Set("brand_goldvibe", "brand_support")): RealmTokens =
+  def tokens(n: Int, at: Instant, roles: Set[String] = Set("brand_goldvibe", "brand_support@goldvibe")): RealmTokens =
     RealmTokens(Secret(s"access-token-$n"), Secret(s"refresh-token-$n"), at.plusSeconds(300), at.plusSeconds(1800), "8c1f-sub",
       "Ada Operator", "ada@example.com", roles)
 
@@ -77,7 +77,7 @@ class SessionSuite extends munit.FunSuite:
       case TokenResult.Answered(token, expiresAt, roles, rolesChanged) =>
         assertEquals(token.reveal, "access-token-0")
         assertEquals(expiresAt, t0.plusSeconds(300))
-        assertEquals(roles, Set("brand_goldvibe", "brand_support"))
+        assertEquals(roles, Set("brand_goldvibe", "brand_support@goldvibe"))
         assert(!rolesChanged)
       case other => fail(s"answered $other")
     assertEquals(w.realm.refreshes.get, 0)
@@ -187,12 +187,12 @@ class SessionSuite extends munit.FunSuite:
   test("roles changed by a refresh are answered rolesChanged once, to the call that refreshed") {
     val w = Wired()
     StateRuntime.realm = w.realm
-    w.realm.onRefresh = (_, at) => Right(tokens(1, at, Set("brand_goldvibe", "brand_admin")))
+    w.realm.onRefresh = (_, at) => Right(tokens(1, at, Set("brand_goldvibe", "brand_admin@goldvibe")))
     w.open()
     w.now = t0.plusSeconds(290)
     w.tokensFlow.token("s-1") match
       case TokenResult.Answered(_, _, roles, changed) =>
-        assertEquals(roles, Set("brand_goldvibe", "brand_admin"))
+        assertEquals(roles, Set("brand_goldvibe", "brand_admin@goldvibe"))
         assert(changed)
       case other => fail(s"answered $other")
     w.tokensFlow.token("s-1") match
