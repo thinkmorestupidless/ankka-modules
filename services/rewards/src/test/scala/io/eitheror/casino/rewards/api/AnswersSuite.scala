@@ -35,7 +35,7 @@ class AnswersSuite extends munit.FunSuite:
     assertEquals(AllowedBy.of("WALLET_NOT_FOUND"), Vector("wallet_opened"))
     assertEquals(AllowedBy.of("SOMETHING_ELSE"), Vector.empty)
     val unknown = Answers.ineligible("SOMETHING_ELSE")
-    assert(body(unknown).get("allowedBy").isArray && body(unknown).get("allowedBy").isEmpty, String(unknown.body.body, UTF_8))
+    assert(body(unknown).get("allowedBy").isArray && body(unknown).get("allowedBy").isEmpty, unknown.body.text)
 
   test("each endpoint's table"):
     val cases = Vector(

@@ -26,7 +26,7 @@ object Answers:
 
   /** A whole answer on a route that streams (spec 030 K5): the same status, headers and bytes. */
   def whole(r: Reply): Respond[Streamed] =
-    Respond(Streamed(r.body.contentType, Some(r.body.body.length.toLong), ByteArrayInputStream(r.body.body)), r.status, r.headers)
+    Respond(Streamed(JsonBody.toResponse.contentType, Some(r.body.bytes.length.toLong), ByteArrayInputStream(r.body.bytes)), r.status, r.headers)
 
   def refusal(status: Int, error: String, message: String, fields: (String, Any)*): Reply =
     json(status, Json.obj((Seq[(String, Any)]("error" -> error, "message" -> message) ++ fields)*))
