@@ -2,6 +2,7 @@
 // what the next read of the roles answers, and a role given is what the realm's next token carries.
 // players' own rules (the giver's permissions, the last role changer, reserved names) are held by its
 // own suites; the double keeps only what the backoffice's scenarios read back.
+import { GivenRoles } from "../../src/shared/permissions.ts";
 import permissions from "../../src/shared/generated/operator-permissions.v1.json" with { type: "json" };
 import type { Answer } from "./owner.ts";
 
@@ -20,7 +21,7 @@ interface Giving {
 }
 
 /** The roles routes check by name that a brand gives as it gives its others (spec 032 FR-012). */
-const NamedRoles = new Set(["api_keys", "markets"]);
+const NamedRoles = new Set(GivenRoles);
 
 interface Role {
   name: string;

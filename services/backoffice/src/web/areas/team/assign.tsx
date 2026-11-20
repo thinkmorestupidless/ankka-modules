@@ -94,7 +94,7 @@ export function AssignPage({ operator: initial = "", held: listed }: { operator?
   const operatorId = useId();
   const [operator, setOperator] = useState(initial);
   // the ticks as the person changed them; until then, the brand's last giving, or the roles merchant listed
-  const [ticked, setChosen] = useState<Set<string> | undefined>(undefined);
+  const [ticked, setTicked] = useState<Set<string> | undefined>(undefined);
   const [given, setGiven] = useState<{ operator: string; roles: string[] } | undefined>(undefined);
   const who = operator.trim();
   const giving = useQuery({
@@ -108,11 +108,13 @@ export function AssignPage({ operator: initial = "", held: listed }: { operator?
   if (roles.isError) return <RefusalNotice refusal={roles.error} />;
   if (!roles.data) return <p role="status">{t("roles.loading")}</p>;
   const brandRoles = new Set([...roles.data.map((r) => r.name), ...NamedRoles]);
-  // a giving the brand made says what it holds them to; else what is held is known only for the operator the list opened
+  // the ticks start from the brand's last giving; else from the roles listed, known only for the operator the list opened
   const asked = giving.data?.state !== undefined ? giving.data.roles : undefined;
   const listedHere = listed !== undefined && who === initial.trim() ? listed : undefined;
-  const held = (asked ?? listedHere)?.filter((r) => brandRoles.has(r)).sort();
-  const chosen = ticked ?? new Set(held ?? []);
+  const brandOnly = (rs: readonly string[] | undefined) => rs?.filter((r) => brandRoles.has(r)).sort();
+  // what a giving gives and takes away is against what the realm holds now (P13r's `held`), when it was read
+  const held = brandOnly(giving.data?.held ?? asked ?? listedHere);
+  const chosen = ticked ?? new Set(brandOnly(asked ?? listedHere) ?? []);
   const picked = [...chosen].filter((r) => brandRoles.has(r)).sort();
 
   return (
@@ -122,7 +124,7 @@ export function AssignPage({ operator: initial = "", held: listed }: { operator?
         <label htmlFor={operatorId}>{t("assign.operator")}</label>
         <input id={operatorId} value={operator} onChange={(e) => {
             setOperator(e.target.value);
-            setChosen(undefined);
+            setTicked(undefined);
           }} aria-describedby={`${operatorId}-hint`} />
         <span id={`${operatorId}-hint`} className="bo-muted">
           {t("assign.operatorHint")}
@@ -146,7 +148,7 @@ export function AssignPage({ operator: initial = "", held: listed }: { operator?
                   const next = new Set(chosen);
                   if (next.has(r.name)) next.delete(r.name);
                   else next.add(r.name);
-                  setChosen(next);
+                  setTicked(next);
                 }}
               />
               <span>{r.name}</span>
@@ -170,7 +172,7 @@ export function AssignPage({ operator: initial = "", held: listed }: { operator?
                 const next = new Set(chosen);
                 if (next.has(name)) next.delete(name);
                 else next.add(name);
-                setChosen(next);
+                setTicked(next);
               }}
             />
             <span>{name}</span>
