@@ -50,7 +50,7 @@
       "name": "backoffice-state",
       "descriptor": {
         "image": "europe-west1-docker.pkg.dev/eitheror/casino/backoffice-state:0.0.0",
-        "runtime": "0.16.3",
+        "runtime": "0.18.0",
         "resources": {
           "instanceType": "small"
         },

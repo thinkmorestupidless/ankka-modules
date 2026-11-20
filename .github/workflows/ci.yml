@@ -940,8 +940,8 @@ jobs:
 
   # backoffice-state (spec 030): its own sbt build against the contract published from this commit.
   backoffice-state:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.backoffice-state == 'true'
+    needs: [changes, sbt-deps]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.backoffice-state == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -949,8 +949,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: ./.github/actions/sbt-deps
       - name: Publish the contract locally
         run: sbt contract/publishLocal
       - name: backoffice-state's suites

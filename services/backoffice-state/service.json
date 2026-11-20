@@ -2,7 +2,7 @@
   "name": "backoffice-state",
   "service": {
     "image": "backoffice-state:latest",
-    "runtime": "0.16.3",
+    "runtime": "0.18.0",
     "personal": true,
     "env": {
       "ANKKA_HTTP_PORT": "9030",
