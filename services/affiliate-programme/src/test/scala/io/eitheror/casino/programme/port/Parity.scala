@@ -1,5 +1,6 @@
 package io.eitheror.casino.programme.port
 
+import scala.concurrent.duration.*
 import com.fasterxml.jackson.databind.JsonNode
 import io.eitheror.casino.contract.port.{JsonPath, Recording}
 import io.eitheror.casino.programme.it.{FakeServer, Kit, Reply, SharedKit}
@@ -201,7 +202,7 @@ object Parity:
     def sum = rows.map(_.amount).sum
     val observed =
       if ids.isEmpty then 0L
-      else scala.util.Try(kit.eventually(s"the ledger's GGR for ${e.affiliate}")(Option(sum).filter(_ == e.amount))).getOrElse(sum)
+      else scala.util.Try(kit.eventually(s"the ledger's GGR for ${e.affiliate}", 20.seconds)(Option(sum).filter(_ == e.amount))).getOrElse(sum)
     Option.when(observed != e.amount)(Difference(recording.path, e.from, "ggr", e.amount.toString,
       s"$observed of ${kit.views.forView(Ledger).ask(Ledger.ofAffiliate, "affiliate" -> e.affiliate, "brand" -> e.brand, "from" -> "0000-00",
         "to" -> "9999-99").map(r => s"${r.currency} ${r.factId} ${r.amount}").mkString("[", ", ", "]")} for ${ids.mkString(",")}")).toVector

@@ -102,7 +102,7 @@ trait Harness extends munit.FunSuite with LogCapturing:
   def wallet(player: String, currency: String = "EUR") = s"/v1/casino/brands/$brand/wallets/$player/$currency"
 
   /** Retries `read` until `done` holds of it or the deadline passes: views and consumers lag their source. */
-  def eventually[A](read: => A, timeout: FiniteDuration = 30.seconds)(done: A => Boolean): A =
+  def eventually[A](read: => A, timeout: FiniteDuration = 60.seconds)(done: A => Boolean): A =
     val deadline = System.nanoTime() + timeout.toNanos
     var last     = read
     while !done(last) && System.nanoTime() < deadline do

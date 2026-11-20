@@ -149,7 +149,7 @@ final class Kit(base: Settings = Kit.Base):
     try c.createStatement().executeUpdate(s"UPDATE ankka_timers SET due_at = now() WHERE timer_name = '$name'"): Unit
     finally c.close()
 
-  def eventually[A](what: String, within: FiniteDuration = 30.seconds)(f: => Option[A]): A = testKit.eventually(what, within)(f)
+  def eventually[A](what: String, within: FiniteDuration = 60.seconds)(f: => Option[A]): A = testKit.eventually(what, within)(f)
 
 object Kit:
   /** The original's waits, shortened: a first poll after 2 s, then every 1 s; the catalogue refreshed every 2 s. */

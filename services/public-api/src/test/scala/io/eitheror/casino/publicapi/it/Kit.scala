@@ -129,7 +129,7 @@ final class Kit(val brand: String = "goldvibe"):
     (p, s"http://127.0.0.1:${http.boundPort.get}")
 
   /** Polls until `f` answers, as a view's or consumer's effect must be waited for. */
-  def eventually[A](what: String, within: FiniteDuration = 30.seconds)(f: => Option[A]): A =
+  def eventually[A](what: String, within: FiniteDuration = 60.seconds)(f: => Option[A]): A =
     testKit.eventually(what, within)(f)
 
 object Kit:

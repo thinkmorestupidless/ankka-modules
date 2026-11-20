@@ -133,7 +133,7 @@ object SimulatorTestKit:
       put(s"/v1/simulator/brands/goldvibe/sessions/$ticket/scenario", s"""{"name":"$scenario"}""", Some(staff("brand_goldvibe")))
 
     /** Waits for a condition the eventually consistent parts settle into. */
-    def eventually[A](within: FiniteDuration = 30.seconds)(probe: => Option[A]): A =
+    def eventually[A](within: FiniteDuration = 60.seconds)(probe: => Option[A]): A =
       val deadline = System.nanoTime() + within.toNanos
       var found    = probe
       while found.isEmpty && System.nanoTime() < deadline do

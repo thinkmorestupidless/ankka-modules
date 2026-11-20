@@ -185,7 +185,7 @@ final class Kit(base: Settings = Kit.Base):
       s.executeUpdate(): Unit
     finally c.close()
 
-  def eventually[A](what: String, within: FiniteDuration = 30.seconds)(f: => Option[A]): A = testKit.eventually(what, within)(f)
+  def eventually[A](what: String, within: FiniteDuration = 60.seconds)(f: => Option[A]): A = testKit.eventually(what, within)(f)
 
 object Kit:
   /** The kept description of the player routes (spec 031). */

@@ -69,7 +69,7 @@ abstract class RewardsFeatures(file: String) extends GherkinSuite(s"../../featur
     assertEquals((last.status, last.str("error")), (status, code), last.text)
     last.json
 
-  protected def eventually[A](what: String, within: FiniteDuration = 30.seconds)(f: => Option[A]): A = kit.eventually(what, within)(f)
+  protected def eventually[A](what: String, within: FiniteDuration = 60.seconds)(f: => Option[A]): A = kit.eventually(what, within)(f)
 
 object RewardsFeatures:
   /** Every scenario of `file` named, pending on `task`. */

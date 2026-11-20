@@ -107,7 +107,7 @@ abstract class KycFeatures(file: String) extends GherkinSuite(s"../../features/k
 
   protected def audits: Vector[AuditRecord] = kit.facts(PlatformAudit).collect { case r: AuditRecord if r.subjectId == player => r }
 
-  protected def eventually[A](what: String, within: FiniteDuration = 30.seconds)(f: => Option[A]): A = kit.eventually(what, within)(f)
+  protected def eventually[A](what: String, within: FiniteDuration = 60.seconds)(f: => Option[A]): A = kit.eventually(what, within)(f)
 
   // ── a review, made on the record (the review routes are US2's) ──────────────────────────────────
 

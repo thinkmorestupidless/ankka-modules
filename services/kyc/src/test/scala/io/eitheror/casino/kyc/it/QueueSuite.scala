@@ -1,5 +1,6 @@
 package io.eitheror.casino.kyc.it
 
+import scala.concurrent.duration.DurationInt
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
@@ -74,7 +75,7 @@ class QueueSuite extends munit.FunSuite with LogCapturing with io.eitheror.casin
     def pass() =
       val counts = queue("filter=awaiting").get("counts")
       filters.map((filter, count) => (filter, count, queue(filter).objects("rows").size.toLong, counts.get(count).asLong))
-    val agreed = scala.util.Try(kit.eventually("the counts and the rows agree")(Some(pass()).filter(_.forall(r => r._3 == r._4))))
+    val agreed = scala.util.Try(kit.eventually("the counts and the rows agree", 30.seconds)(Some(pass()).filter(_.forall(r => r._3 == r._4))))
     for (filter, count, rows, counted) <- agreed.getOrElse(pass()) do assertEquals(rows, counted, s"$filter against $count")
     assert(ids(queue("filter=pending")).contains(a))
     assert(ids(queue("filter=unverified")).contains(b))

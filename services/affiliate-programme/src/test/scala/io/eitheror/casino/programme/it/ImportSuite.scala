@@ -1,5 +1,6 @@
 package io.eitheror.casino.programme.it
 
+import scala.concurrent.duration.DurationInt
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
@@ -70,7 +71,7 @@ class ImportSuite extends munit.FunSuite with LogCapturing:
     for (aff, period) <- s.periods do
       val expected = s.folded(aff, period)
       // Every field, not the total alone: the views settle field by field.
-      val figure   = scala.util.Try(kit.eventually(s"$aff $period")(revenue(aff, period).filter(f => expected.forall((k, v) => f.path(k).asLong == v))))
+      val figure   = scala.util.Try(kit.eventually(s"$aff $period", 20.seconds)(revenue(aff, period).filter(f => expected.forall((k, v) => f.path(k).asLong == v))))
         .getOrElse(revenue(aff, period).getOrElse(fail(s"no EUR figure for $aff $period")))
       expected.foreach((k, v) => assertEquals(figure.path(k).asLong, v, s"$aff $period $k"))
     val paid = payout(s.parent, s.Aug)

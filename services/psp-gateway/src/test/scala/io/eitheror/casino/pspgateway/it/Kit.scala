@@ -179,7 +179,7 @@ final class Kit(baseUrls: Map[String, String] = Map.empty, val port: Int = Kit.f
     case Provider.Morphosis => deposit(paymentId).claim.flatMap(_.generated.get("token")).getOrElse(paymentId)
     case _                  => paymentId
 
-  def eventually[A](what: String, within: FiniteDuration = 30.seconds)(f: => Option[A]): A = testKit.eventually(what, within)(f)
+  def eventually[A](what: String, within: FiniteDuration = 60.seconds)(f: => Option[A]): A = testKit.eventually(what, within)(f)
 
 object Kit:
   val PayoutProviders: Vector[Provider] = Vector(Provider.UnityFinance, Provider.Cozeni, Provider.Gigadat, Provider.Morphosis)

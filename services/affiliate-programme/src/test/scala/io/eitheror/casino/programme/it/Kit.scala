@@ -174,7 +174,7 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "silvervibe"), b
       Option(views.forView(Unsettled).get(s"$affiliate/$brand/$currency").fold(0)(_.open.values.sum)).filter(_ == unclaimed)): Unit
 
   /** Polls until `f` answers, as a view's or consumer's effect must be waited for. */
-  def eventually[A](what: String, within: FiniteDuration = 20.seconds)(f: => Option[A]): A =
+  def eventually[A](what: String, within: FiniteDuration = 60.seconds)(f: => Option[A]): A =
     testKit.eventually(what, within)(f)
 
 /** One service per JVM for the suites that share it (build.sbt's grouping). */

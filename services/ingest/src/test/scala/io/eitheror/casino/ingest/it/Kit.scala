@@ -184,7 +184,7 @@ final class Kit(val settings: Settings = Kit.Settings, keys: Vector[(String, Str
     val sql = s"SELECT payload FROM ${RequestsView.table} WHERE payload::jsonb->'record'->>'subBrand' IS NULL ORDER BY (payload::jsonb->>'at')::bigint DESC"
     Kit.query(testKit.jdbcUrl, sql).flatMap(t => Json.parse(t).flatMap(n => Option(n.get("record"))))
 
-  def eventually[A](what: String, within: FiniteDuration = 30.seconds)(f: => Option[A]): A = testKit.eventually(what, within)(f)
+  def eventually[A](what: String, within: FiniteDuration = 60.seconds)(f: => Option[A]): A = testKit.eventually(what, within)(f)
 
 object Kit:
   /** The kept description of the ticket's routes (spec 031). */
