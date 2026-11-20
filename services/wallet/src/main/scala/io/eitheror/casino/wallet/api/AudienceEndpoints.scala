@@ -25,10 +25,19 @@ final case class MajorPrimary(grantRef: String, status: String, wageringRequirem
 final case class MajorTransaction(transactionId: String, `type`: String, walletType: String, amount: String, balanceBefore: String,
     balanceAfter: String, status: String, roundId: Option[String], awardRef: Option[String], paymentReference: Option[String],
     createdAt: String, depositPart: String, convertedPart: String, depositPoolAfter: String, convertedPoolAfter: String,
-    reference: Option[String] = None,
-    /** Spec 030 W2: an adjustment's reason (personal, FR-033), category, cause and actor. */
-    reason: Option[String] = None, category: Option[String] = None, cause: Option[Cause] = None, actorId: Option[String] = None)
+    reference: Option[String] = None)
 final case class MajorTransactions(transactions: Vector[MajorTransaction], page: Int, pageSize: Int, total: Long)
+/**
+ * The row as an operator reads it (spec 030 W2): the player's row and an adjustment's reason (personal,
+ * FR-033), category, cause and actor. Its own type, so the player route's kept description (spec 031)
+ * names none of the four.
+ */
+final case class OperatorTransaction(transactionId: String, `type`: String, walletType: String, amount: String, balanceBefore: String,
+    balanceAfter: String, status: String, roundId: Option[String], awardRef: Option[String], paymentReference: Option[String],
+    createdAt: String, depositPart: String, convertedPart: String, depositPoolAfter: String, convertedPoolAfter: String,
+    reference: Option[String] = None,
+    reason: Option[String] = None, category: Option[String] = None, cause: Option[Cause] = None, actorId: Option[String] = None)
+final case class OperatorTransactions(transactions: Vector[OperatorTransaction], page: Int, pageSize: Int, total: Long)
 final case class MajorLifetime(totalDeposited: String, totalWagered: String, totalWon: String)
 /** Spec 022 FR-009: an operator's adjustment of a non-player account, in major units; the reason names no player. */
 final case class OperatorAccountAdjustRequest(key: Option[String], currency: String, amount: String, reason: String = "", category: String = "other")
@@ -58,6 +67,7 @@ private[api] object Major:
   given JsonValueCodec[MajorAdjustment] =
     com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker.make(com.github.plokhotnyuk.jsoniter_scala.macros.CodecMakerConfig.withTransientEmpty(false).withTransientNone(true).withTransientDefault(false))
   given JsonValueCodec[MajorTransactions]     = Codecs.make[MajorTransactions]
+  given JsonValueCodec[OperatorTransactions]  = Codecs.make[OperatorTransactions]
   given JsonValueCodec[MajorLifetime]         = Codecs.make[MajorLifetime]
   given JsonValueCodec[OperatorAdjustRequest] = Codecs.make[OperatorAdjustRequest]
   given JsonValueCodec[TurnoverTermsRequest]  = Codecs.make[TurnoverTermsRequest]
@@ -83,27 +93,26 @@ private[api] object Major:
       b.primary.map(p => MajorPrimary(p.grantRef, p.status, Wire.major(p.requirement, c), Wire.major(p.wagered, c), p.progressPercent)),
       Wire.major(b.depositPoolBalance, c), Wire.major(b.convertedPoolBalance, c), Wire.major(b.reserved, c), Wire.major(b.available, c))
 
-  /** Who reads a transactions page: the player, or an operator, and whether the player is erased (review S1). */
-  enum Reader:
-    case Player
-    case Operator(erased: Boolean)
-
-  /**
-   * The rows in major units by the currency's exponent. An operator reads an adjustment's category, cause
-   * and actor (spec 030 W2) and its reason (research R10: the timeline shows it), the reason left out once
-   * `players` has asked the wallet to erase the player. The player reads none of the four: they are the
-   * operator's.
-   */
-  def transactions(p: TransactionsPage, c: Currency, reader: Reader): MajorTransactions =
+  /** The rows in major units by the currency's exponent, as the player reads them: none of an operator's fields. */
+  def transactions(p: TransactionsPage, c: Currency): MajorTransactions =
     MajorTransactions(p.transactions.map { r =>
-      val row = MajorTransaction(r.transactionId, r.`type`, r.walletType, Wire.major(r.amount, c),
+      MajorTransaction(r.transactionId, r.`type`, r.walletType, Wire.major(r.amount, c),
         Wire.major(r.balanceBefore, c), Wire.major(r.balanceAfter, c), r.status, r.roundKey, r.awardRef, r.paymentReference, r.createdAt,
         Wire.major(r.depositPart, c), Wire.major(r.convertedPart, c), Wire.major(r.depositPoolAfter, c), Wire.major(r.convertedPoolAfter, c),
         r.reference)
-      reader match
-        case Reader.Player           => row
-        case Reader.Operator(erased) =>
-          row.copy(reason = if erased then None else r.reason.map(_.reveal), category = r.category, cause = r.cause, actorId = r.actorId)
+    }, p.page, p.pageSize, p.total)
+
+  /**
+   * The rows as an operator reads them: an adjustment's category, cause and actor (spec 030 W2) and its
+   * reason (research R10: the timeline shows it), the reason left out once `players` has asked the wallet
+   * to erase the player (review S1).
+   */
+  def operatorTransactions(p: TransactionsPage, c: Currency, erased: Boolean): OperatorTransactions =
+    OperatorTransactions(p.transactions.map { r =>
+      OperatorTransaction(r.transactionId, r.`type`, r.walletType, Wire.major(r.amount, c),
+        Wire.major(r.balanceBefore, c), Wire.major(r.balanceAfter, c), r.status, r.roundKey, r.awardRef, r.paymentReference, r.createdAt,
+        Wire.major(r.depositPart, c), Wire.major(r.convertedPart, c), Wire.major(r.depositPoolAfter, c), Wire.major(r.convertedPoolAfter, c),
+        r.reference, if erased then None else r.reason.map(_.reveal), r.category, r.cause, r.actorId)
     }, p.page, p.pageSize, p.total)
 
   def adjustment(b: Balance, o: Outcome, target: String, c: Currency): MajorAdjustment =
@@ -232,9 +241,9 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
     checked(currency) { c =>
       val erased = client.forKeyValueEntity(io.eitheror.casino.wallet.erasure.ErasedPlayerEntity.id(player))
         .call(io.eitheror.casino.wallet.erasure.ErasedPlayerEntity.get).invoke().erased
-      Wire.json(200, Major.transactions(TransactionsQuery.page(transactions, s"$player/$currency",
+      Wire.json(200, Major.operatorTransactions(TransactionsQuery.page(transactions, s"$player/$currency",
         query.optional[String]("type"), query.optional[String]("walletType"), query.optional[Long]("from"), query.optional[Long]("to"),
-        query.optional[Int]("page").getOrElse(0), query.optional[Int]("pageSize").getOrElse(50)), c, Major.Reader.Operator(erased)))
+        query.optional[Int]("page").getOrElse(0), query.optional[Int]("pageSize").getOrElse(50)), c, erased))
     }
   }
   }
@@ -355,6 +364,6 @@ final class PlayerEndpoint(client: ComponentClient, views: ViewClient, brand: St
     get("/{currency}/transactions") { (currency: String) =>
       checked(currency)(c => Wire.json(200, Major.transactions(TransactionsQuery.page(transactions, s"$player/$currency",
         query.optional[String]("type"), query.optional[String]("walletType"), query.optional[Long]("from"), query.optional[Long]("to"),
-        query.optional[Int]("page").getOrElse(0), query.optional[Int]("pageSize").getOrElse(50)), c, Major.Reader.Player)))
+        query.optional[Int]("page").getOrElse(0), query.optional[Int]("pageSize").getOrElse(50)), c)))
     }
   }

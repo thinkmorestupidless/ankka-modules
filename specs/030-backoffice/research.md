@@ -994,3 +994,24 @@ seeded brand fills in the rest.
   main; its codes are 030's fixed list (`Currencies.Codes`), so the file is the same whichever JDK
   writes it. `money/currencies.v1.json` is gone; the backoffice copies `currencies.v1.json`. Contract
   C2 is amended to match.
+
+### Rebased on spec 031 and ankka 0.18.0, 2026-11-20
+
+The branch, spec 032 (#47) in it, moved onto main after #44 (CI's sbt dependencies resolved once), #45
+(every service on ankka 0.18.0) and #46 (spec 031: the player routes of nine services described,
+kept in `openapi.player.json` and held; the SDK's clients generated from them).
+
+- **One ankka.** `backoffice-state` and the `backoffice` module run 0.18.0, as every service now
+  does; the eviction block goes. Its CI job restores the shared sbt dependencies (#44).
+- **Each kit both holds and decides.** The kits keep 031's `held.hold(…)` around the server and pass
+  030's roles (`bags`) into it, so a test of an operator route is decided by the roles and a player
+  route's answer is held to its description.
+- **A JSON answer is `contract.http.Json`** (031). kyc's identity-document stream reads its bytes
+  and content type from it.
+- **The player's transaction row names no operator field.** 030 had added an adjustment's reason,
+  category, cause and actor to the row both readers share, empty for the player; the player route's
+  kept description is generated from that type, so it would have named them. The operator's row is
+  now its own type (`OperatorTransaction`), and the player's is main's, so wallet's kept description
+  is unchanged and the generated clients name none of the four.
+- **The nine kept descriptions are current** (`just describe-check`), and the SDK's generated clients
+  with them.
