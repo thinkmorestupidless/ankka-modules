@@ -39,12 +39,12 @@ class RoleBagsSuite extends munit.FunSuite:
   test("until the first read it decides unavailable, never admit or refuse") {
     val (bags, _, _, _) = fixture(Left("players is not reachable"))
     assertEquals(bags.state, RoleBags.State.Unread)
-    decide(acl(bags, "adjustment.make"), Request(token = Some(operatorWith("brand_goldvibe", "brand_finance"))), self) match
+    decide(acl(bags, "adjustment.make"), Request(token = Some(operatorWith("brand_goldvibe", "brand_finance@goldvibe"))), self) match
       case Outcome.Refused(503, reason) => assert(reason.contains("roles"), reason)
       case other                        => fail(other.toString)
     bags.refresh()
     assertEquals(bags.state, RoleBags.State.Unread)
-    decide(acl(bags, "adjustment.make"), Request(token = Some(operatorWith("brand_goldvibe", "brand_finance"))), self) match
+    decide(acl(bags, "adjustment.make"), Request(token = Some(operatorWith("brand_goldvibe", "brand_finance@goldvibe"))), self) match
       case Outcome.Refused(503, _) => ()
       case other                   => fail(other.toString)
   }
@@ -53,7 +53,7 @@ class RoleBagsSuite extends munit.FunSuite:
     val (bags, _, calls, _) = fixture(Right(answer("brand_finance" -> Seq("adjustment.make"), "brand_support" -> Seq("player.read"))))
     bags.refresh()
     assertEquals(calls.get, 1)
-    val finance = Request(token = Some(operatorWith("brand_goldvibe", "brand_finance")))
+    val finance = Request(token = Some(operatorWith("brand_goldvibe", "brand_finance@goldvibe")))
     assertEquals(decide(acl(bags, "adjustment.make"), finance, self), Outcome.Served)
     // no call is made in the request
     assertEquals(calls.get, 1)
@@ -62,7 +62,7 @@ class RoleBagsSuite extends munit.FunSuite:
   test("a role whose bag lacks the permission is refused forbidden, naming the permission") {
     val (bags, _, _, _) = fixture(Right(answer("brand_support" -> Seq("player.read"))))
     bags.refresh()
-    decide(acl(bags, "adjustment.make"), Request(token = Some(operatorWith("brand_goldvibe", "brand_support"))), self) match
+    decide(acl(bags, "adjustment.make"), Request(token = Some(operatorWith("brand_goldvibe", "brand_support@goldvibe"))), self) match
       case Outcome.Refused(403, reason) => assertEquals(reason, "forbidden: the adjustment.make permission is needed")
       case other                        => fail(other.toString)
   }
@@ -87,7 +87,7 @@ class RoleBagsSuite extends munit.FunSuite:
   test("a payments role confers no casino action") {
     val (bags, _, _, _) = fixture(Right(answer("brand_finance" -> Seq("adjustment.make"))))
     bags.refresh()
-    val token = Request(token = Some(operatorWith("brand_goldvibe", "resource_admin", "resource_finance")))
+    val token = Request(token = Some(operatorWith("brand_goldvibe", "resource_admin@goldvibe", "resource_finance@goldvibe")))
     assertEquals(decide(acl(bags, "adjustment.make"), token, self).asInstanceOf[Outcome.Refused].status, 403)
   }
 
@@ -102,7 +102,7 @@ class RoleBagsSuite extends munit.FunSuite:
     clock.at = clock.at.plusSeconds(1)
     bags.refreshIfDue()
     assertEquals(calls.get, 2)
-    assertEquals(decide(acl(bags, "adjustment.make"), Request(token = Some(operatorWith("brand_goldvibe", "brand_finance"))), self), Outcome.Served)
+    assertEquals(decide(acl(bags, "adjustment.make"), Request(token = Some(operatorWith("brand_goldvibe", "brand_finance@goldvibe"))), self), Outcome.Served)
     assertEquals(RoleBags.Interval.toSeconds, 10L)
   }
 
@@ -119,7 +119,7 @@ class RoleBagsSuite extends munit.FunSuite:
         assertEquals(at, readAt)
         assertEquals(problem, Some("players answered 503"))
       case other => fail(other.toString)
-    assertEquals(decide(acl(bags, "adjustment.make"), Request(token = Some(operatorWith("brand_goldvibe", "brand_finance"))), self), Outcome.Served)
+    assertEquals(decide(acl(bags, "adjustment.make"), Request(token = Some(operatorWith("brand_goldvibe", "brand_finance@goldvibe"))), self), Outcome.Served)
   }
 
   test("an answer that is not the roles' shape is a failed read, not an empty brand") {
@@ -142,16 +142,16 @@ class RoleBagsSuite extends munit.FunSuite:
 
   test("the operator's permissions are opened from the kept copy, None while unread") {
     val (bags, _, _, _) = fixture(Right(answer("desk" -> Seq("player.read"), "cashier" -> Seq("withdrawal.review"))))
-    assertEquals(bags.permissionsOf(Set("desk")), None)
+    assertEquals(bags.permissionsOf("goldvibe", Set("desk@goldvibe")), None)
     bags.refresh()
-    assertEquals(bags.permissionsOf(Set("desk", "cashier")), Some(Set("player.read", "withdrawal.review")))
-    assertEquals(bags.permissionsOf(Set(OperatorPermissions.PlatformAdmin)), Some(OperatorPermissions.All.toSet))
+    assertEquals(bags.permissionsOf("goldvibe", Set("desk@goldvibe", "cashier@goldvibe")), Some(Set("player.read", "withdrawal.review")))
+    assertEquals(bags.permissionsOf("goldvibe", Set(OperatorPermissions.PlatformAdmin)), Some(OperatorPermissions.All.toSet))
   }
 
   test("an empty answer, or one missing a default role, is a failed read: the kept copy stays (review S2)") {
     val (bags, next, _, _) = fixture(Right(answer("brand_finance" -> Seq("adjustment.make"))))
     bags.refresh()
-    val finance = Request(token = Some(operatorWith("brand_goldvibe", "brand_finance")))
+    val finance = Request(token = Some(operatorWith("brand_goldvibe", "brand_finance@goldvibe")))
     for body <- Seq("""{"roles":[]}""", """{"roles":[{"description":"no name"}]}""", bare("brand_finance" -> Seq("adjustment.make"), "brand_support" -> Seq())) do
       next.set(Right(body))
       bags.refresh()
@@ -172,7 +172,7 @@ class RoleBagsSuite extends munit.FunSuite:
 
   test("a fixed copy holds the roles it is given, default roles or not") {
     val bags = RoleBags.fixed(Map("desk" -> Set("player.read", "player.teleport")))
-    assertEquals(bags.permissionsOf(Set("desk")), Some(Set("player.read")))
+    assertEquals(bags.permissionsOf("goldvibe", Set("desk@goldvibe")), Some(Set("player.read")))
   }
 
   test("a second start while the reader runs starts no second reader") {

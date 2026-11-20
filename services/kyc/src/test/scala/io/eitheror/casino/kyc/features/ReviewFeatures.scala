@@ -314,12 +314,12 @@ class ReviewFeatures extends KycFeatures("review.feature"):
 
   Given("an operator with the role {string} for the brand") { (role: String) =>
     subject = s"op-$role"
-    roles = s"brand_${kit.slug},$role"
+    roles = s"brand_${kit.slug},${kit.named(role)}"
   }
 
   Given("an operator of another brand") { () =>
     subject = "op-elsewhere"
-    roles = "brand_otherbrand,brand_compliance"
+    roles = "brand_otherbrand,brand_compliance@otherbrand"
   }
 
   When("they view a document of the player") { () =>

@@ -76,9 +76,9 @@ describe("roles kept by the brand, changed while it runs", () => {
     expect(refused.body).toMatchObject({ error: "forbidden", permission: "adjustment.make" });
     // a role within the giver's own permissions is given (a giving replaces the brand's roles: brand_support is given back)
     try {
-      expect((await giveRoles(made, other, [role])).status).toBe(200);
+      expect((await giveRoles(made, other, [role])).status).toBe(202);
     } finally {
-      expect((await giveRoles(admin, other, ["brand_support"])).status).toBe(200);
+      expect((await giveRoles(admin, other, ["brand_support"])).status).toBe(202);
     }
   });
 

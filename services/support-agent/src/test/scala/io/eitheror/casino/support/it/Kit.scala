@@ -5,7 +5,7 @@ import com.thinkmorestupidless.ankka.agent.judgment.{Answers, TestJudgmentProvid
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, HttpServer, Principal}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, ServiceIdentity, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.{AnkkaTestKit, MovableClock}
-import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.access.{BrandRoles, OperatorPermissions, Routes}
 import io.eitheror.casino.contract.facts.{AuditRecord, PlatformAudit}
 import io.eitheror.casino.support.{Json, Settings, SupportRuntime, SupportService}
 import io.eitheror.casino.support.Json.*
@@ -168,8 +168,16 @@ final class Kit(base: Settings = Kit.Base):
 
   private def gatewayCaller = testKit.asCaller(Caller.Gateway)
   def asPlayer(playerId: String): Seq[(String, String)] = Seq(gatewayCaller, "Authorization" -> s"Bearer player|$playerId")
+  /** An operator of this brand; each of `roles` that is a brand's default role is held named for it (spec 032, [[inBrand]]). */
   def asOperator(roles: String = "brand_admin", subject: String = "op-1"): Seq[(String, String)] =
-    Seq(gatewayCaller, "Authorization" -> s"Bearer staff|$subject|brand_$slug,$roles")
+    Seq(gatewayCaller, "Authorization" -> s"Bearer staff|$subject|brand_$slug,${inBrand(roles)}")
+
+  /** `role` as the realm role held in brand `in` when it is a brand's default role (spec 032); any other role bare. */
+  def named(role: String, in: String = slug): String =
+    if OperatorPermissions.DefaultRoles.contains(role) then BrandRoles.nameIn(in, role) else role
+
+  /** `roles` (comma separated), each [[named]] for brand `in`. */
+  def inBrand(roles: String, in: String = slug): String = roles.split(',').filter(_.nonEmpty).map(named(_, in)).mkString(",")
   def asService(name: String, project: String = "local"): Seq[(String, String)] = Seq(testKit.asCaller(Caller.Service(project, name)))
 
   def eventually[A](what: String, within: FiniteDuration = 30.seconds)(f: => Option[A]): A = testKit.eventually(what, within)(f)

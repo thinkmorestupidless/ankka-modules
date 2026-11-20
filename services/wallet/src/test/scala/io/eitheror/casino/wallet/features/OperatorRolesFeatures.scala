@@ -51,8 +51,8 @@ class OperatorRolesFeatures extends RouteFeatures("operator-roles.feature"):
   Given("operators of the brand holding each of the roles {string}, {string}, {string} and {string}, each carrying its default permissions") {
     (a: String, b: String, c: String, d: String) =>
       assertEquals(Vector(a, b, c, d), Roles)
-      for r <- Roles do assertEquals(roles.permissionsOf(Set(r)), Some(OperatorPermissions.DefaultRoles(r)))
-      tokens = Roles.map(r => r -> TestTokens.operator(s"op-$r", s"brand_$brand,$r")).toMap
+      for r <- Roles do assertEquals(roles.permissionsOf(brand, Set(TestTokens.in(r, brand))), Some(OperatorPermissions.DefaultRoles(r)))
+      tokens = Roles.map(r => r -> TestTokens.operator(s"op-$r", s"brand_$brand,${TestTokens.in(r, brand)}")).toMap
   }
 
   When("each asks for the action {string} on a wallet") { (action: String) =>

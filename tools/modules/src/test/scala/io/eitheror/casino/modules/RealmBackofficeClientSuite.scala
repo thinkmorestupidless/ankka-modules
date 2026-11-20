@@ -15,6 +15,7 @@ class RealmBackofficeClientSuite extends munit.FunSuite:
     admin.realms("casino-goldvibe") = "{}"
     io.eitheror.casino.contract.access.OperatorPermissions.DefaultRoles.keys.foreach(r => admin.createRole(Realm.OperatorsRealm, r, r))
     Seq("brand_goldvibe", "audit_compliance_goldvibe", "reidentify_goldvibe").foreach(r => admin.createRole(Realm.OperatorsRealm, r, r))
+    Realm.BrandRoleNames.foreach(r => admin.createRole(Realm.OperatorsRealm, s"$r@goldvibe", r))
     admin
 
   private def clientOf(admin: InMemoryRealms) = mapper.readTree(admin.clients(Realm.OperatorsRealm -> "backoffice-goldvibe"))

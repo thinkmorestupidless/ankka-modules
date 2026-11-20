@@ -21,10 +21,11 @@ class ManagerSteps extends ProgrammeFeatures("managers.feature"):
   private var player: String       = null
   private var flagId: String       = null
   private var roles: Set[String]   = Set.empty
+  private var managed: Option[Seq[String]] = None
 
   override def beforeEach(context: BeforeEach): Unit =
     super.beforeEach(context)
-    brands = Nil; replies = Map.empty; scenes = Map.empty; player = null; flagId = null; roles = Set.empty
+    brands = Nil; managed = None; replies = Map.empty; scenes = Map.empty; player = null; flagId = null; roles = Set.empty
 
   private def slug(name: String): String = ids.getOrElse(s"brand:$name", if name == "A" then "goldvibe" else "silvervibe")
 
@@ -35,7 +36,7 @@ class ManagerSteps extends ProgrammeFeatures("managers.feature"):
     ids(s"brand:$name") = s
     s
 
-  private def manager = kit.asManager(brands.map(slug))
+  private def manager = kit.asManager(brands.map(slug), roleIn = managed.map(_.map(slug)))
   private def admin   = kit.asManager(brands.map(slug), "admin-1", "brand_admin")
   private def get(path: String): Reply = kit.request("GET", s"/v1/affiliates$path", headers = manager)
   private def send(method: String, path: String, body: String, as: Seq[(String, String)] = manager): Reply =
@@ -69,6 +70,13 @@ class ManagerSteps extends ProgrammeFeatures("managers.feature"):
     assert(items(replies("revenue"), Some("figures")).forall(_.get("brandId").asText == brand))
     assert(items(replies("payouts")).forall(_.get("brandId").asText == brand))
     assert(items(replies("flags")).forall(_.get("brandId").asText == brand))
+  }
+
+  // spec 032 FR-012: the manager role is held named for a brand, and manages that brand only.
+  Given("an operator whose roles name the brands {string} and {string}") { (a: String, b: String) => brands = Seq(a, b) }
+  Given("the operator holds the manager role for brand {string} only") { (b: String) =>
+    managed = Some(Seq(b))
+    assertEquals(get(s"/${slug(b)}/accounts").status, 200)
   }
 
   When("they list the accounts of brand {string}") { (b: String) => last = get(s"/${slug(b)}/accounts") }
@@ -224,7 +232,7 @@ class ManagerSteps extends ProgrammeFeatures("managers.feature"):
     assertEquals(kit.realm.user(user).get.roles, Set.empty[String])
   }
   Then("the manager is provisioned with the manager role and the role for brand {string}") { (b: String) =>
-    assertEquals(roles, Set("affiliate_manager", s"brand_${slug(b)}"))
+    assertEquals(roles, kit.managerRoles(slug(b)))
   }
   Then("the action is audited") { () =>
     kit.eventually("audited")(Option(Seq("MANAGER_ADDED", "MANAGER_PASSWORD_RESET", "MANAGER_REVOKED").forall(audited(_, slug("A")))).filter(identity)): Unit

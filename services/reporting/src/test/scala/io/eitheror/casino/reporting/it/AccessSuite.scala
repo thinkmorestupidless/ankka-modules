@@ -26,7 +26,7 @@ class AccessSuite extends munit.FunSuite with LogCapturing:
     "markets"          -> kit.asStaff(Seq("markets")),
     "platform_admin"   -> kit.asStaff(Seq("platform_admin"), brandRole = false),
     "operator"         -> kit.asStaff(Nil),
-    "another brand"    -> kit.fromInternet.:+("Authorization" -> "Bearer staff|op-9|brand_silvervibe,brand_admin"),
+    "another brand"    -> kit.fromInternet.:+("Authorization" -> "Bearer staff|op-9|brand_silvervibe,brand_admin@silvervibe"),
     "player"           -> kit.asPlayer(),
     "nobody"           -> kit.fromInternet
   )

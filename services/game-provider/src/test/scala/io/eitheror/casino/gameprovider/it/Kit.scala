@@ -5,7 +5,7 @@ import com.thinkmorestupidless.ankka.core.{EntityId, Metadata}
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, HttpServer, Principal}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.AnkkaTestKit
-import io.eitheror.casino.contract.access.{OperatorPermissions, RoleBags, Routes}
+import io.eitheror.casino.contract.access.{BrandRoles, OperatorPermissions, RoleBags, Routes}
 import io.eitheror.casino.contract.facts.{CasinoPlayers, CasinoPlayersFact, CasinoRounds, RoundOpened, RoundSettled}
 import io.eitheror.casino.gameprovider.{GameProviderService, Json, TestKeys, api, players}
 import io.eitheror.casino.gameprovider.Json.*
@@ -101,9 +101,16 @@ final class Kit(val brand: String = "goldvibe", realMoney: Boolean = false, befo
     Reply(r.statusCode, r.body)
 
   def asPlayer(player: String): Seq[(String, String)]  = Seq("Authorization" -> s"Bearer player|$player")
-  /** An operator of this brand; `brand_admin` by default, whose default bag holds every permission (spec 030 GP1). */
+  /**
+   * An operator of this brand; `brand_admin` by default, whose default bag holds every permission (spec 030 GP1).
+   * Each of `roles` that is a brand's default role is held named for this brand (spec 032, [[inBrand]]).
+   */
   def asOperator(op: String = "op-1", roles: String = "brand_admin"): Seq[(String, String)] =
-    Seq("Authorization" -> s"Bearer staff|$op|brand_$brand,$roles")
+    Seq("Authorization" -> s"Bearer staff|$op|brand_$brand,${inBrand(roles)}")
+
+  /** `roles` (comma separated) with each default role named for brand `slug` (spec 032); every other role bare. */
+  def inBrand(roles: String, slug: String = brand): String =
+    roles.split(',').filter(_.nonEmpty).map(r => if OperatorPermissions.DefaultRoles.contains(r) then BrandRoles.nameIn(slug, r) else r).mkString(",")
 
   // ── The provider ────────────────────────────────────────────────────────────────────────────────
 

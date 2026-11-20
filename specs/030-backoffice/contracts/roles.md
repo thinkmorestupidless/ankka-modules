@@ -99,7 +99,10 @@ Roles: **S** `brand_support`, **F** `brand_finance`, **C** `brand_compliance`, *
 - it asks the brand's `players` service for the roles (`GET …/roles`, admitted to every service of
   the project) and keeps the answer; it asks again every 10 seconds;
 - `Routes.operatorMay(slug, permission)` admits a token when the bag of one of its roles holds the
-  permission, from the kept answer; it makes no call in the request;
+  permission, from the kept answer; it makes no call in the request. *Amended by spec 032:* only the
+  roles named for the brand (`<role>@<slug>`) open its bags, and `platform_admin` every permission;
+  `RoleBags.permissionsOf(slug, roles)` names the brand at the call
+  (`specs/032-per-brand-roles/contracts/brand-roles.md`);
 - until the first answer it decides `Unavailable` (503 with `Retry-After`), never admit or refuse;
   when `players` cannot be reached it keeps the last answer and says so in the service's status;
 - `players` itself reads its own roles directly.
@@ -153,3 +156,7 @@ never read from this file.
 Each keeps `brand_<slug>` for every brand their original scope reached, and their payments roles
 for payments administration. The mapping gives default roles only; a brand's own roles are given
 afterwards, in its backoffice.
+
+*Amended by spec 032 (FR-011):* the role given is named for each of those brands
+(`brand_admin@<slug>`), as a giving of that brand through H6, so the brand can change it or take it
+away; `platform_admin` stays bare.

@@ -43,12 +43,12 @@ class OperatorSuite extends munit.FunSuite with LogCapturing with io.eitheror.ca
   test("identity.review is shown the documents, identity.read alone the status without them; a payments role and a player are refused"):
     submit("identity_front")
     def read(role: String) = kit.request("GET", kit.operatorPath(s"/$player"), None, kit.asOperator(s"op-$role", s"brand_${kit.slug},$role"))
-    Seq("brand_compliance", "brand_admin", "platform_admin").foreach { role =>
+    Seq(kit.named("brand_compliance"), kit.named("brand_admin"), "platform_admin").foreach { role =>
       val r = read(role)
       assertEquals(r.status, 200, s"$role: ${r.text}")
       assert(r.text.contains("\"documentId\""), s"$role: ${r.text}")
     }
-    Seq("brand_support", "brand_finance").foreach { role =>
+    Seq(kit.named("brand_support"), kit.named("brand_finance")).foreach { role =>
       val r = read(role)
       assertEquals(r.status, 200, s"$role: ${r.text}")
       assert(r.json.has("status") && r.json.has("flags"), r.text)
@@ -63,7 +63,7 @@ class OperatorSuite extends munit.FunSuite with LogCapturing with io.eitheror.ca
   // spec 030 K3
   test("decisions are listed oldest first with who made each and when; identity.read alone without document ids; bounded by from and to"):
     val doc = submit("identity_front")
-    val as  = kit.asOperator("op-k3", s"brand_${kit.slug},brand_compliance")
+    val as  = kit.asOperator("op-k3", s"brand_${kit.slug},${kit.named("brand_compliance")}")
     assertEquals(kit.json("POST", kit.operatorPath(s"/$player/reviews/$doc"), Json.obj("outcome" -> "rejected", "reasonCode" -> "other"), as).status, 200)
     kit.advance(java.time.Duration.ofMinutes(5))
     val middle = kit.now()
@@ -92,7 +92,7 @@ class OperatorSuite extends munit.FunSuite with LogCapturing with io.eitheror.ca
     assertEquals((overridden.text("to"), overridden.text("cause"), overridden.get("actor").text("id")), (Some("verified"), Some("override"), Some("op-k3")))
     assert(!all.text.contains("a reason of the operator's"), all.text)
 
-    val support = decisions(who = kit.asOperator("op-s", s"brand_${kit.slug},brand_support"))
+    val support = decisions(who = kit.asOperator("op-s", s"brand_${kit.slug},${kit.named("brand_support")}"))
     assertEquals(support.json.objects("decisions").size, items.size)
     assert(!support.text.contains("documentId"), support.text)
 
@@ -107,7 +107,7 @@ class OperatorSuite extends munit.FunSuite with LogCapturing with io.eitheror.ca
     assert(payments.status == 403 && payments.text.contains("the identity.read permission is needed"), payments.toString)
 
   test("an operator of another brand is refused before any route runs"):
-    val r = kit.request("GET", kit.operatorPath(s"/$player"), None, kit.asOperator("op-y", "brand_otherbrand,brand_compliance"))
+    val r = kit.request("GET", kit.operatorPath(s"/$player"), None, kit.asOperator("op-y", "brand_otherbrand,brand_compliance@otherbrand"))
     assertEquals(r.status, 403, r.text)
 
   test("a player with no record is player_not_found"):

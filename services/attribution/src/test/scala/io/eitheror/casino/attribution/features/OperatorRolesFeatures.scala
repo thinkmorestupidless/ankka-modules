@@ -78,7 +78,7 @@ class OperatorRolesFeatures extends AttributionFeatures("operator-roles.feature"
   /** The permission each action's route requires, so that only an admitted caller takes an undelivered fact. */
   private val Permission = Map(Actions(0) -> "player.read", Actions(1) -> "fact.redeliver", Actions(2) -> "config.attribution")
 
-  private def holds(roles: Set[String], action: String): Boolean = kit.roles.permissionsOf(roles).exists(_(Permission(action)))
+  private def holds(roles: Set[String], action: String): Boolean = kit.roles.permissionsOf(kit.brand, roles.map(kit.named(_))).exists(_(Permission(action)))
 
   private def admitted(r: Reply): Boolean      = r.status / 100 == 2
   private def refusedNaming(r: Reply): Boolean = r.status == 403 && r.text.contains("permission is needed")
@@ -93,7 +93,7 @@ class OperatorRolesFeatures extends AttributionFeatures("operator-roles.feature"
   Given("operators of the brand holding each of the roles {string}, {string}, {string} and {string}, each carrying its default permissions") {
     (a: String, b: String, c: String, d: String) =>
       assertEquals(Vector(a, b, c, d), Roles)
-      for r <- Roles do assertEquals(kit.roles.permissionsOf(Set(r)), Some(OperatorPermissions.DefaultRoles(r)))
+      for r <- Roles do assertEquals(kit.roles.permissionsOf(kit.brand, Set(kit.named(r))), Some(OperatorPermissions.DefaultRoles(r)))
       tokens = Roles.map(r => r -> operator(s"op-$r", r)).toMap
   }
 

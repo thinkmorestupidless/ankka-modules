@@ -77,7 +77,7 @@ class ConfigSuite extends munit.FunSuite with io.eitheror.casino.support.it.Held
 
   test("an operator of another brand, or one whose roles do not carry the route's permission, is refused by the ACL"):
     val other = kit.request("GET", path("/"), headers = Seq(kit.asOperator().head,
-      "Authorization" -> "Bearer staff|op-2|brand_other,brand_admin"))
+      "Authorization" -> "Bearer staff|op-2|brand_other,brand_admin@other"))
     assertEquals(other.status, 403)
     assertEquals(get("/", roles = "support_agent").status, 403)
     val support = get("/", roles = "brand_support")

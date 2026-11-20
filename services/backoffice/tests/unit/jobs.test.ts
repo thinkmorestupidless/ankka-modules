@@ -14,7 +14,7 @@ const Ref = "0b6d4a52-6f0e-4b8e-9d55-2f3a1c9e7a10";
 
 function jobs(answer: (call: Call) => Response | Promise<Response>, over: Parameters<typeof harness>[0] = {}) {
   const h = harness({ table, ...over });
-  h.state.sessions.set("s-j", { accessToken: token, expiresAt: Date.now() + 60_000, roles: [`brand_${Brand}`, "brand_finance"] });
+  h.state.sessions.set("s-j", { accessToken: token, expiresAt: Date.now() + 60_000, roles: [`brand_${Brand}`, `brand_finance@${Brand}`] });
   h.answer(answer);
   return h;
 }
@@ -163,7 +163,7 @@ describe("job_done", () => {
         reads: { bags: new Kept<Bags>(async () => OperatorBags, 0, () => Date.now()), modules: new Kept<string[]>(async () => ["core"], 0, () => Date.now()), zone: new Kept<string>(async () => "America/Sao_Paulo", 0, () => Date.now()) },
       },
     );
-    h.state.sessions.set("s-j", { accessToken: token, expiresAt: Date.now() + 10_000, roles: [`brand_${Brand}`, "brand_finance"] });
+    h.state.sessions.set("s-j", { accessToken: token, expiresAt: Date.now() + 10_000, roles: [`brand_${Brand}`, `brand_finance@${Brand}`] });
     h.state.prefs = { ...h.state.prefs, jobs: [{ reference: Ref, kind: "revenue", startedAt: new Date().toISOString() }] };
     const r = await h.ask("GET", "/api/events", { session: "s-j" });
     setTimeout(() => void (status = "ready"), 80);

@@ -18,3 +18,23 @@ class KeycloakAdminSuite extends munit.FunSuite with LogCapturing:
     assert(KeycloakAdmin.validUserId("op_7"))
     for bad <- Vector("", "..", "a/b", "a b", "a%2Fb", "é", "x" * 65) do assert(!KeycloakAdmin.validUserId(bad), bad)
   }
+
+  test("an answer the realm may give again is unreachable; any other refusal is refused (spec 032 R5)") {
+    for s <- Vector(502, 503, 504, 429) do
+      val e = RealmError.of(s, "busy", "roles of u-1")
+      assert(e.isInstanceOf[RealmError.Unreachable], s"$s: $e")
+      assert(RealmError.retryable(e), s.toString)
+    for s <- Vector(400, 401, 403, 404, 409, 422) do
+      val e = RealmError.of(s, "{\"error\":\"no\"}", "roles of u-1")
+      assertEquals(e.asInstanceOf[RealmError.Refused].status, s)
+      assert(!RealmError.retryable(e), s.toString)
+    val erring = RealmError.of(500, "db", "roles of u-1")
+    assert(erring.isInstanceOf[RealmError.Erring] && RealmError.retryable(erring), erring.toString)
+    assert(RealmError.retryable(RealmError.NotConfigured("no credentials")))
+    assert(!RealmError.retryable(RealmError.NotFound("u-1")))
+  }
+
+  test("a role named for a brand is one path segment: its @ reaches the one role") {
+    assertEquals(KeycloakAdmin.segment("brand_admin@goldvibe"), "brand_admin%40goldvibe")
+    assertEquals(KeycloakAdmin.segment("a b@x/y"), "a%20b%40x%2Fy")
+  }

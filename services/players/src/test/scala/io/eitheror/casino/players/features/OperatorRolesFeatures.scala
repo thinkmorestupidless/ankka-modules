@@ -61,11 +61,11 @@ class OperatorRolesFeatures extends PlayersFeatures("operator-roles.feature"):
   Given("operators of the brand holding each of the roles {string}, {string}, {string} and {string}, each carrying its default permissions") {
     (a: String, b: String, c: String, d: String) =>
       assertEquals(Vector(a, b, c, d), Roles)
-      for r <- Roles do assertEquals(PlayersRuntime.bags.permissionsOf(Set(r)), Some(OperatorPermissions.DefaultRoles(r)), r)
+      for r <- Roles do assertEquals(PlayersRuntime.bags.permissionsOf(kit.slug, Set(kit.in(r))), Some(OperatorPermissions.DefaultRoles(r)), r)
   }
 
   When("each asks for the action {string} on a player") { (action: String) =>
-    answers = Roles.map(r => r -> ask(action, s"brand_${kit.slug},$r", s"op-$r")).toMap
+    answers = Roles.map(r => r -> ask(action, s"brand_${kit.slug},${kit.in(r)}", s"op-$r")).toMap
   }
 
   Then("the support operator is {string}") { (o: String) => expect(OperatorPermissions.Support, o) }

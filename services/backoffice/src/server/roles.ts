@@ -2,7 +2,7 @@
 // what each carries, read again at most every 10 seconds, and the brand's enabled modules, every
 // minute (amendment P14). A failed read keeps the last copy; before the first, there is none.
 import permissionsFile from "../shared/generated/operator-permissions.v1.json" with { type: "json" };
-import { paymentsPermissionsOf, programmePermissionsOf } from "../shared/access.ts";
+import { heldIn, PaymentsLevels, paymentsPermissionsOf, programmePermissionsOf } from "../shared/access.ts";
 
 export const PlatformAdmin = "platform_admin";
 export const AllPermissions: readonly string[] = permissionsFile.permissions;
@@ -53,16 +53,27 @@ export function parseBags(body: unknown): Bags {
 }
 
 /**
- * The permissions `roles` carry with the brand's `bags`; `platform_admin` carries every one. The
- * affiliate programme's and the shared payments', which realm roles give and no bag does, follow
- * (`programmePermissionsOf`, `paymentsPermissionsOf`).
+ * The permissions a token's `roles` carry in `brand` with the brand's `bags`: only the roles named for
+ * `brand` open a bag (spec 032, the contract's `OperatorPermissions.permissionsOf`); `platform_admin`
+ * carries every one. The affiliate programme's and the shared payments', which realm roles give and no
+ * bag does, follow (`programmePermissionsOf`, `paymentsPermissionsOf`).
  */
-export function permissionsOf(roles: readonly string[], bags: Bags): string[] {
-  const programme = [...programmePermissionsOf(roles), ...paymentsPermissionsOf(roles)];
+export function permissionsOf(brand: string, roles: readonly string[], bags: Bags): string[] {
+  const programme = [...programmePermissionsOf(brand, roles), ...paymentsPermissionsOf(roles)];
   if (roles.includes(PlatformAdmin)) return [...AllPermissions, ...programme];
   const held = new Set<string>();
-  for (const r of roles) for (const p of bags[r] ?? []) held.add(p);
+  for (const r of heldIn(brand, roles)) for (const p of bags[r] ?? []) held.add(p);
   return [...AllPermissions.filter((p) => held.has(p)), ...programme];
+}
+
+/**
+ * The roles `/api/me` shows in `brand` (spec 032 US4): those held named for it, by their names without
+ * the brand, and the installation's own (`platform_admin`, the payments roles), which hold everywhere.
+ * Another brand's roles, and a role with no brand in its name, are not shown.
+ */
+export function shownRoles(brand: string, roles: readonly string[]): string[] {
+  const installation = roles.filter((r) => r === PlatformAdmin || PaymentsLevels[r] !== undefined);
+  return [...new Set([...heldIn(brand, roles), ...installation])].sort();
 }
 
 /** Whether `roles` make the operator one of `brand`'s (contract `Routes.operator`). */

@@ -46,3 +46,27 @@ Feature: Operators of the shared payments are provisioned, invited and placed at
     When the brand "goldvibe" asks for that operator to hold the role "brand_support"
     Then the operator still holds the role naming the brand "spinvibe"
 
+
+  Scenario: a giving ends as asked when the realm stops answering part-way through it
+    Given an operator holding the support role in "goldvibe"
+    And the realm stops answering part-way through the next giving
+    When "goldvibe" gives the operator the finance role instead
+    Then once the realm answers again the operator holds the finance role in "goldvibe" and not the support role
+    And nobody has asked again
+
+  Scenario: two brands giving one operator roles at the same moment each end as their own brand asked
+    Given an operator whose roles name the brands "goldvibe" and "spinvibe"
+    When "goldvibe" gives the operator the finance role at the same moment as "spinvibe" gives the operator the compliance role
+    Then the operator holds the finance role in "goldvibe" only
+    And the compliance role in "spinvibe" only
+
+  Scenario: a brand's later giving replaces its earlier one, even before the earlier is in force
+    Given "goldvibe" has given an operator the finance role, not yet in force
+    When "goldvibe" gives the operator the support role
+    Then the operator ends holding the support role in "goldvibe" and not the finance role
+
+  Scenario: a giving the realm refuses ends as failed and is not tried again
+    Given an operator of "goldvibe" the realm no longer knows
+    When "goldvibe" gives the operator the finance role
+    Then the giving ends as failed, with the realm's reason
+    And it is not tried again

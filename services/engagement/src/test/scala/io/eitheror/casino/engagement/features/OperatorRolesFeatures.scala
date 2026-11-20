@@ -31,7 +31,7 @@ class OperatorRolesFeatures extends EngagementFeatures("operator-roles.feature")
 
   override def afterEach(context: AfterEach): Unit =
     for key <- parked if facts.state(key).outcome == Outcome.Parked do
-      discard(key, s"staff|op-cleanup|brand_${kit.slug},${OperatorPermissions.Admin}"): Unit
+      discard(key, s"staff|op-cleanup|brand_${kit.slug},${kit.named(OperatorPermissions.Admin)}"): Unit
     super.afterEach(context)
 
   private def backoffice(rest: String) = s"/v1/casino/backoffice/${kit.slug}$rest"
@@ -75,8 +75,8 @@ class OperatorRolesFeatures extends EngagementFeatures("operator-roles.feature")
   Given("operators of the brand holding each of the roles {string}, {string}, {string} and {string}, each carrying its default permissions") {
     (a: String, b: String, c: String, d: String) =>
       assertEquals(Vector(a, b, c, d), Roles)
-      for r <- Roles do assertEquals(kit.roles.permissionsOf(Set(r)), Some(OperatorPermissions.DefaultRoles(r)))
-      tokens = Roles.map(r => r -> s"staff|op-$r|brand_${kit.slug},$r").toMap
+      for r <- Roles do assertEquals(kit.roles.permissionsOf(kit.slug, Set(kit.named(r))), Some(OperatorPermissions.DefaultRoles(r)))
+      tokens = Roles.map(r => r -> s"staff|op-$r|brand_${kit.slug},${kit.named(r)}").toMap
   }
 
   When("each asks for the action {string} on engagement") { (action: String) =>

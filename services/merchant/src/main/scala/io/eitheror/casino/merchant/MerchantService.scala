@@ -42,6 +42,7 @@ object MerchantService:
     io.eitheror.casino.merchant.operators.InvitationToken.descriptor,
     io.eitheror.casino.merchant.operators.OperatorsView.descriptor,
     io.eitheror.casino.merchant.operators.OperatorSync.descriptor,
+    io.eitheror.casino.merchant.operators.BrandRolesApplier.descriptor,
     Seed.descriptor,
     io.eitheror.casino.merchant.cashier.SessionsByCustomer.descriptor
   ) ++ io.eitheror.casino.merchant.audit.AuditConsumers.descriptors

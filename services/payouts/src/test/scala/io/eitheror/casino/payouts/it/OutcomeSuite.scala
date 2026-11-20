@@ -47,7 +47,7 @@ class OutcomeSuite extends munit.FunSuite with LogCapturing:
     assertEquals((r.status, r.str("status")), (200, "COMPLETED"), r.text)
     scene.at(id, Flow.Completed)
     val late = kit.request("POST", s"/v1/casino/brands/${kit.slug}/withdrawal-requests/$id/mark-payout-failed", Some("{}"),
-      kit.asOperator("op-9", s"brand_${kit.slug},brand_finance"))
+      kit.asOperator("op-9", s"brand_${kit.slug},${kit.in("brand_finance")}"))
     assertEquals(late.status, 409, late.text)
     assertEquals(scene.state(id).status, Status.Completed)
 

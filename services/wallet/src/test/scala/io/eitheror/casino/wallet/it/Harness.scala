@@ -135,7 +135,10 @@ object TestTokens:
   val Header = "X-Test-Token"
 
   def player(subject: String, realm: String = "casino-goldvibe"): String = s"$subject|player|$realm|"
-  def operator(subject: String, roles: String = "brand_goldvibe,brand_admin"): String = s"$subject|staff|eitheror|$roles"
+  /** `role` named for brand `slug` (spec 032): how a token carries a role a brand gives. */
+  def in(role: String, slug: String = "goldvibe"): String = io.eitheror.casino.contract.access.BrandRoles.nameIn(slug, role)
+
+  def operator(subject: String, roles: String = s"brand_goldvibe,${in("brand_admin")}"): String = s"$subject|staff|eitheror|$roles"
 
   val authenticate: com.thinkmorestupidless.ankka.http.Acl =
     import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Principal}

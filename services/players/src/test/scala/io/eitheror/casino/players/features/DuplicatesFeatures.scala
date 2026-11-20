@@ -193,7 +193,7 @@ class DuplicatesFeatures extends PlayersFeatures("duplicates.feature"):
   }
   When("an operator with a compliance or admin role clears the block") { () =>
     val r = kit.request("POST", kit.operatorPath(s"/players/$second/clear-no-deposit-block"), Some("{}"),
-      kit.asOperator(roles = s"brand_${kit.slug},brand_compliance", subject = "op-8"))
+      kit.asOperator(roles = s"brand_${kit.slug},${kit.in("brand_compliance")}", subject = "op-8"))
     assertEquals((r.status, r.json.get("blockCleared").asBoolean), (200, true), r.text)
   }
   Then("the block is lifted with the operator and the time recorded") { () =>

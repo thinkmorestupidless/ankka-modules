@@ -105,7 +105,7 @@ class DocumentsSuite extends munit.FunSuite with LogCapturing with io.eitheror.c
     assert(kit.store.delete(name).isRight)
     assertEquals(error(kit.request("GET", kit.operatorPath(s"/$player/views/$gone"), None, kit.asOperator())), (404, "document_not_found"))
     val id      = submit("other")
-    val support = kit.request("GET", kit.operatorPath(s"/$player/views/$id"), None, kit.asOperator(roles = s"brand_${kit.slug},brand_support"))
+    val support = kit.request("GET", kit.operatorPath(s"/$player/views/$id"), None, kit.asOperator(roles = s"brand_${kit.slug},${kit.named("brand_support")}"))
     assert(support.status == 403 && support.text.contains("the identity.review permission is needed"), support.toString)
     val store = FakeStore()
     store.outage(true)
@@ -135,7 +135,7 @@ class DocumentsSuite extends munit.FunSuite with LogCapturing with io.eitheror.c
     assertEquals(error(offer("identity")), (400, "invalid_category"))
 
   test("an operator without identity.review is forbidden, naming it; an upload without a reason is reason_required"):
-    val support = kit.asOperator(roles = s"brand_${kit.slug},brand_support")
+    val support = kit.asOperator(roles = s"brand_${kit.slug},${kit.named("brand_support")}")
     val refused = kit.json("POST", kit.operatorPath(s"/$player/uploads"),
       Json.obj("category" -> "other", "contentType" -> "image/png", "reason" -> "x"), support)
     assert(refused.status == 403 && refused.text.contains("the identity.review permission is needed"), refused.toString)

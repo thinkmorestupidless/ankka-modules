@@ -77,7 +77,10 @@ object OperatorPermissions:
   /** A role's name: lower case letters, digits and `_`, at most 40 (data-model.md *Role*). */
   def validRoleName(name: String): Boolean = name.matches("[a-z0-9_]{1,40}")
 
-  /** The permissions `roles` carry under `bags`; every permission for `platform_admin`. */
-  def permissionsOf(roles: Set[String], bags: Map[String, Set[String]]): Set[String] =
+  /**
+   * The permissions a token's `roles` carry in brand `slug` under that brand's `bags`: only the roles
+   * named for `slug` (spec 032 FR-002, [[BrandRoles]]); every permission for `platform_admin`.
+   */
+  def permissionsOf(slug: String, roles: Set[String], bags: Map[String, Set[String]]): Set[String] =
     if roles.contains(PlatformAdmin) then AllSet
-    else roles.flatMap(r => bags.getOrElse(r, Set.empty))
+    else BrandRoles.heldIn(slug, roles).flatMap(r => bags.getOrElse(r, Set.empty))

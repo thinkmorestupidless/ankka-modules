@@ -8,7 +8,7 @@ import com.thinkmorestupidless.ankka.core.Metadata
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, HttpServer, Principal}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.AnkkaTestKit
-import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.access.{BrandRoles, Routes}
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.payouts.{Json, PayoutsRuntime, PayoutsService, Settings}
 import io.eitheror.casino.payouts.clients.{Gateway, Wallet}
@@ -109,7 +109,9 @@ final class Kit(base: Settings = Kit.Base):
 
   private def gatewayCaller = testKit.asCaller(Caller.Gateway)
   def asPlayer(playerId: String): Seq[(String, String)] = Seq(gatewayCaller, "Authorization" -> s"Bearer player|$playerId")
-  def asOperator(subject: String = "op-1", roles: String = s"brand_$slug,brand_finance"): Seq[(String, String)] =
+  /** `role` named for `brand` (spec 032), this kit's brand by default: how a token carries a role a brand gives. */
+  def in(role: String, brand: String = slug): String = BrandRoles.nameIn(brand, role)
+  def asOperator(subject: String = "op-1", roles: String = s"brand_$slug,${in("brand_finance")}"): Seq[(String, String)] =
     Seq(gatewayCaller, "Authorization" -> s"Bearer staff|$subject|$roles")
   def asService(name: String, project: String = "local"): Seq[(String, String)] = Seq(testKit.asCaller(Caller.Service(project, name)))
   /** `payments`/`psp-gateway`, as it delivers an outcome. */

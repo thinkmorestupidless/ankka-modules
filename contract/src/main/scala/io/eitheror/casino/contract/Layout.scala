@@ -47,7 +47,9 @@ object Layout:
   val ServiceOnly: Set[String] = Set.empty
 
   /** Ids no brand may take: the shared projects and ankka's own reservations (FR-001, research R2). */
-  val ReservedSlugs: Set[String] = SharedProjects.keySet ++ Set("platform", "local", "machine")
+  val ReservedSlugs: Set[String] = SharedProjects.keySet ++ Set("platform", "local", "machine") ++
+    // spec 032: `brand_<slug>` for these would be a default role's name (`brand_admin`)
+    access.OperatorPermissions.DefaultRoles.keySet.map(_.stripPrefix("brand_"))
 
   /**
    * A slug is at most 42 characters: `<service>-<slug>` is one DNS label of at most 63, and the

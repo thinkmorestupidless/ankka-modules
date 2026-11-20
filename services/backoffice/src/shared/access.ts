@@ -37,9 +37,27 @@ export const ProgrammePermissions: Readonly<Record<string, readonly string[]>> =
   "programme.managers": ["brand_admin", "platform_admin"],
 };
 
-/** The programme's permissions `roles` give. */
-export function programmePermissionsOf(roles: readonly string[]): string[] {
-  return Object.keys(ProgrammePermissions).filter((p) => ProgrammePermissions[p]!.some((r) => roles.includes(r)));
+/** Spec 032: a role held in a brand is the realm role `<role>@<slug>`; the contract's `BrandRoles.Separator`. */
+export const BrandSeparator = "@";
+
+/** The roles of `roles` named for `brand`, by their names without it (the contract's `BrandRoles.heldIn`). */
+export function heldIn(brand: string, roles: readonly string[]): string[] {
+  const out = new Set<string>();
+  for (const r of roles) {
+    const at = r.lastIndexOf(BrandSeparator);
+    if (at > 0 && at < r.length - 1 && r.slice(at + 1) === brand) out.add(r.slice(0, at));
+  }
+  return [...out].sort();
+}
+
+/**
+ * The programme's permissions `roles` give in `brand`: its manager roles held named for the brand
+ * (spec 032 FR-012), `platform_admin` bare.
+ */
+export function programmePermissionsOf(brand: string, roles: readonly string[]): string[] {
+  const here = new Set(heldIn(brand, roles));
+  const holds = (r: string) => (r === "platform_admin" ? roles.includes(r) : here.has(r));
+  return Object.keys(ProgrammePermissions).filter((p) => ProgrammePermissions[p]!.some(holds));
 }
 
 /**

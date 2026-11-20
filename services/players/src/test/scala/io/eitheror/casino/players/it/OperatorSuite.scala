@@ -322,17 +322,20 @@ class OperatorSuite extends munit.FunSuite with LogCapturing with io.eitheror.ca
 
   private def profileOf(id: String) = op("GET", s"/players/$id/profile").json.get("player")
 
+  /** A brand's bag role is held named for the brand (spec 032); a realm role (fraud_analyst, …) is held bare. */
+  private def held(role: String): String = if role.startsWith("brand_") then kit.in(role) else role
+
   test("clear-no-deposit-block (spec 011 FR-036, spec 030 flag.clear): forbidden without flag.clear; with it, lifted and recorded") {
     val id = blocked()
     assert(profileOf(id).get("noDepositOfferBlocked").asBoolean)
     val path = kit.operatorPath(s"/players/$id/clear-no-deposit-block")
     for role <- Vector("brand_support", "brand_finance", "fraud_analyst", "compliance_officer", "resource_admin") do
-      val refused = kit.request("POST", path, Some("{}"), kit.asOperator(roles = s"brand_${kit.slug},$role", subject = "op-7"))
+      val refused = kit.request("POST", path, Some("{}"), kit.asOperator(roles = s"brand_${kit.slug},${held(role)}", subject = "op-7"))
       assertEquals(refused.status, 403, role)
       assert(refused.text.contains("flag.clear"), refused.text)
     assert(player(id).noDepositBlocked)
     for role <- Vector("brand_admin", "brand_compliance") do
-      val r = kit.request("POST", path, Some("{}"), kit.asOperator(roles = s"brand_${kit.slug},$role", subject = "op-7"))
+      val r = kit.request("POST", path, Some("{}"), kit.asOperator(roles = s"brand_${kit.slug},${held(role)}", subject = "op-7"))
       assertEquals((r.status, r.str("playerId"), r.json.get("blockCleared").asBoolean), (200, id, true), role)
     val block = player(id).noDepositBlock.get
     assertEquals((block.active, block.clearedBy, block.signals), (false, Some("op-7"), Set("email_variant")))

@@ -11,7 +11,7 @@ Feature: The original's operators are given their roles at the cutover
   Scenario Outline: an operator of the original is given the role their original role maps to
     Given an operator of the original holding the role "<original>"
     When the approved mapping is applied at the cutover
-    Then the operator holds the role "<given>" for every brand their original level reached
+    Then the operator holds the role "<given>" in each brand their original level reached, separately
 
     Examples:
       | original           | given            |
@@ -25,3 +25,8 @@ Feature: The original's operators are given their roles at the cutover
     When the approved mapping is applied at the cutover
     Then the operator holds the role "brand_support"
     And the operator is listed for review
+
+  Scenario: a role the cutover gave can be taken away by its brand
+    Given an operator given the finance role in "spinvibe" at the cutover
+    When "spinvibe" gives the operator only the support role
+    Then the operator no longer holds the finance role in "spinvibe"

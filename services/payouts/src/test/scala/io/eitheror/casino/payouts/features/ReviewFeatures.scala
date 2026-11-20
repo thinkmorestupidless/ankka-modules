@@ -83,7 +83,7 @@ class ReviewFeatures extends PayoutsFeatures("review.feature"):
 
   Given("an operator whose roles name another brand") { () => () }
 
-  When("they open this brand's queue") { () => operator("GET", "/", roles = "brand_other,brand_finance"): Unit }
+  When("they open this brand's queue") { () => operator("GET", "/", roles = s"brand_other,${kit.in("brand_finance", "other")}"): Unit }
 
   Then("they are refused") { () => assertEquals(last.status, 403, last.text) }
 

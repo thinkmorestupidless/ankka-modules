@@ -59,6 +59,7 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
 | 027 | brand | the player SDK (`sdk/player`) and the reference player site, the module `player-site` (web-hosted; amends 002, 003, 008, 021) | TypeScript |
 | 030 | brand (the `backoffice` module) | the backoffice, one per brand: every operator capability of the original, reworked from its use; calls the owning services as the signed-in operator; permissions, and roles as bags of them kept by the brand (amends the constitution) | TypeScript (web), Scala (sign-in, preferences) |
 | 031 | all | every service on ankka 0.18.0; the player routes of nine services described, kept (`openapi.player.json`) and held; the SDK's route tables and shapes generated from them (amends 001, 027) | Scala, TypeScript |
+| 032 | all | per-brand realm roles: a role holds in one brand, named `<role>@<slug>` (`contract.access.BrandRoles`); a brand's giving is recorded by merchant and put in force by its `BrandRolesApplier`; applying a brand carries old roles over (amends 001, 013, 016, 019, 023, 030) | Scala, TypeScript |
 
 ## Working here
 

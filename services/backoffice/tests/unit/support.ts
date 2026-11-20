@@ -56,7 +56,7 @@ export function harness(over: Partial<Deps> = {}) {
   const logs: string[] = [];
   const calls: Call[] = [];
   const state = new FakeState();
-  state.sessions.set("s-1", { accessToken: SecretToken, expiresAt: Date.now() + 5 * 60_000, roles: [`brand_${Brand}`, "brand_admin"] });
+  state.sessions.set("s-1", { accessToken: SecretToken, expiresAt: Date.now() + 5 * 60_000, roles: [`brand_${Brand}`, `brand_admin@${Brand}`] });
   let answer: (call: Call) => Response | Promise<Response> = () => Response.json({ ok: true });
   let bags: () => Bags = () => OperatorBags;
   let modules: () => string[] = () => ["casino", "core"];

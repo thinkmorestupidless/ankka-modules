@@ -6,7 +6,7 @@
 import { expect, type Page } from "@playwright/test";
 import { createBdd, test as base } from "playwright-bdd";
 import { DoublesClient } from "../doubles/client.ts";
-import { BackofficeUrl, DoublesUrl, operator, type Who } from "../doubles/env.ts";
+import { BackofficeUrl, backofficeUrlOf, DoublesUrl, operator, type Who } from "../doubles/env.ts";
 import type { Identity } from "../doubles/realm.ts";
 import type { Seed } from "../doubles/server.ts";
 import { signIn } from "../doubles/sign-in.ts";
@@ -26,10 +26,13 @@ export class World {
     this.brand = brand;
   }
 
-  /** Sign in as one of the brand's default roles, a brand-less operator, `platform_admin`, or any identity. */
-  async signInAs(who: Who | Identity, opts: { preferences?: Partial<Preferences>; to?: string } = {}): Promise<Identity> {
+  /**
+   * Sign in as one of the brand's default roles, a brand-less operator, `platform_admin`, or any identity;
+   * at the seeded brand's backoffice, or at `brand`'s (spec 032: the second brand's runs beside it).
+   */
+  async signInAs(who: Who | Identity, opts: { preferences?: Partial<Preferences>; to?: string; brand?: string } = {}): Promise<Identity> {
     const identity = typeof who === "string" ? operator(who) : who;
-    await signIn(this.page, this.doubles, identity, opts);
+    await signIn(this.page, this.doubles, identity, { ...opts, at: opts.brand === undefined ? undefined : backofficeUrlOf(opts.brand) });
     this.operator = identity;
     return identity;
   }

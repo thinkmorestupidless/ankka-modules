@@ -120,7 +120,10 @@ final class Kit(val base: Settings = Kit.Base):
 
   private def gateway = testKit.asCaller(Caller.Gateway)
   def asPlayer(playerId: String): Seq[(String, String)] = Seq(gateway, "Authorization" -> s"Bearer player|$playerId")
-  def asOperator(subject: String = "op-1", roles: String = s"brand_$slug,markets"): Seq[(String, String)] =
+  /** `role` as the realm role named for `brand` (spec 032), `markets@<brand>`; by default this kit's. */
+  def heldIn(role: String, brand: String = slug): String = io.eitheror.casino.contract.access.BrandRoles.nameIn(brand, role)
+
+  def asOperator(subject: String = "op-1", roles: String = s"brand_$slug,${heldIn("markets")}"): Seq[(String, String)] =
     Seq(gateway, "Authorization" -> s"Bearer staff|$subject|$roles")
   def asService(name: String): Seq[(String, String)] = Seq(testKit.asCaller(Caller.Service("local", name)))
 

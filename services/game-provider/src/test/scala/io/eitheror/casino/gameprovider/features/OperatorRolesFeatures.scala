@@ -1,6 +1,6 @@
 package io.eitheror.casino.gameprovider.features
 
-import io.eitheror.casino.contract.access.OperatorPermissions
+import io.eitheror.casino.contract.access.{BrandRoles, OperatorPermissions}
 import io.eitheror.casino.gameprovider.Json
 import io.eitheror.casino.gameprovider.Json.*
 import io.eitheror.casino.gameprovider.it.Reply
@@ -73,8 +73,8 @@ class OperatorRolesFeatures extends ProviderFeatures("operator-roles.feature"):
   Given("operators of the brand holding each of the roles {string}, {string}, {string} and {string}, each carrying its default permissions") {
     (a: String, b: String, c: String, d: String) =>
       assertEquals(Vector(a, b, c, d), Roles)
-      for r <- Roles do assertEquals(kit.roles.permissionsOf(Set(r)), Some(OperatorPermissions.DefaultRoles(r)))
-      tokens = Roles.map(r => r -> bearer(s"op-$r", s"brand_${kit.brand},$r")).toMap
+      for r <- Roles do assertEquals(kit.roles.permissionsOf(kit.brand, Set(BrandRoles.nameIn(kit.brand, r))), Some(OperatorPermissions.DefaultRoles(r)))
+      tokens = Roles.map(r => r -> bearer(s"op-$r", s"brand_${kit.brand},${BrandRoles.nameIn(kit.brand, r)}")).toMap
   }
 
   When("each asks for the action {string} on the game provider part") { (action: String) =>

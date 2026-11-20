@@ -22,8 +22,8 @@ describe("the role a disabled action needs", () => {
   test("a programme permission names the realm roles that give it, whatever the bags", () => {
     expect(rolesGiving("programme.manage", OperatorBags)).toEqual(["affiliate_manager", "brand_admin", "platform_admin"]);
     expect(rolesGiving("programme.managers", {})).toEqual(["brand_admin", "platform_admin"]);
-    expect(programmePermissionsOf(["brand_goldvibe", "affiliate_manager"])).toEqual(["programme.manage"]);
-    expect(programmePermissionsOf(["brand_goldvibe", "brand_support"])).toEqual([]);
+    expect(programmePermissionsOf("goldvibe", ["brand_goldvibe", "affiliate_manager@goldvibe"])).toEqual(["programme.manage"]);
+    expect(programmePermissionsOf("goldvibe", ["brand_goldvibe", "brand_support@goldvibe"])).toEqual([]);
   });
 
   test("a payments permission comes from the payments role's level, and names the roles at or above it (T112)", () => {

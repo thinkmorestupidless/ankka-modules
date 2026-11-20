@@ -48,3 +48,9 @@ Feature: Operators run a market's lifecycle under their brand's roles
     And the operator drafts a market "m8" with a maximum position of "500" and approves it
     Then the book of market "m7" opens with a maximum order cost of "100000" and a maximum position of "5000"
     And the book of market "m8" opens with a maximum order cost of "100000" and a maximum position of "500"
+
+  Scenario: the markets permission given in one brand opens no other brand's markets
+    Given an operator whose roles name the brands "goldvibe" and "spinvibe"
+    And the operator holds the markets permission in "goldvibe" only
+    When the operator drafts a market in "spinvibe"
+    Then it is refused, naming the markets permission

@@ -203,7 +203,7 @@ Given("two finance operators each with the same withdrawal request in their work
   s.request = `withdrawals_pending:${pending.requestId}`;
   await world.doubles.fixtures("payouts", payoutsFixtures([pending]));
   await world.signInAs("brand_finance", { to: "/" });
-  s.approver = { sub: "op-finance-two", name: "Fiona Second", roles: [`brand_${world.brand.slug}`, "brand_finance"] };
+  s.approver = { sub: "op-finance-two", name: "Fiona Second", roles: [`brand_${world.brand.slug}`, `brand_finance@${world.brand.slug}`] };
   s.other = await second(world, browser, s.approver);
   for (const page of [world.page, s.other]) {
     await expect(rowsOf(page)).toHaveCount(1);

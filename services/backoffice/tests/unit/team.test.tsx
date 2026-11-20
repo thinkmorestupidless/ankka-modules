@@ -205,6 +205,25 @@ describe("an operator's roles", () => {
     await waitFor(() => expect(calls.find((c) => c.method === "PUT")).toMatchObject({ body: { roles: ["vip_host"] } }));
   });
 
+  it("starts from the brand's last giving, says what is lost against what the realm holds, and starts again for another operator", async () => {
+    players((method, url) => {
+      if (method === "GET" && url.endsWith("/role-assignments/op-b"))
+        return Response.json({ brand: "goldvibe", roles: ["vip_host"], version: 2, state: "in_force", held: ["vip_host", "brand_support"] });
+      if (method === "GET" && url.includes("/role-assignments/")) return Response.json({ brand: "goldvibe" });
+      return Response.json({});
+    });
+    team();
+    fireEvent.change(await screen.findByLabelText("Operator"), { target: { value: "op-b" } });
+    await waitFor(() => expect((screen.getByRole("checkbox", { name: "vip_host" }) as HTMLInputElement).checked).toBe(true));
+    expect((screen.getByRole("checkbox", { name: "brand_support" }) as HTMLInputElement).checked).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Give these roles" }));
+    // brand_support was carried over, never asked: the realm holds it, so the giving takes it away
+    expect((await screen.findByRole("dialog")).querySelector("[data-takes]")!.textContent).toBe("op-b loses brand_support.");
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" }));
+    fireEvent.change(screen.getByLabelText("Operator"), { target: { value: "op-c" } });
+    await waitFor(() => expect((screen.getByRole("checkbox", { name: "vip_host" }) as HTMLInputElement).checked).toBe(false));
+  });
+
   it("shows the refusal when the brand's roles cannot be read, not a loading line for ever", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => Response.json({ error: "forbidden", message: "forbidden: the roles.read permission is needed" }, { status: 403 })));
     render(

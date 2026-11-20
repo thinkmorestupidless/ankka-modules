@@ -62,7 +62,7 @@ describe("a document viewed", () => {
 
   test("is refused, and nothing asked, for an operator whose roles do not name the brand", async () => {
     const h = app();
-    h.state.sessions.set("s-other", { accessToken: SecretToken, expiresAt: Date.now() + 60_000, roles: ["brand_spinvibe", "brand_support"] });
+    h.state.sessions.set("s-other", { accessToken: SecretToken, expiresAt: Date.now() + 60_000, roles: ["brand_spinvibe", "brand_support@spinvibe"] });
     const r = await h.ask("GET", View, { session: "s-other" });
     expect(r.status).toBe(403);
     expect((await r.json()) as unknown).toMatchObject({ error: "brand_not_in_roles" });

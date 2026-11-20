@@ -63,11 +63,14 @@ final class RoleBags(fetch: () => Either[String, String], clock: Clock = Clock.s
     val due = lastTry.get.forall(t => !clock.instant().isBefore(t.plus(RoleBags.Interval)))
     if due then refresh()
 
-  /** The permissions `roles` carry, from the kept copy; `None` until the first read, except for `platform_admin`. */
-  def permissionsOf(roles: Set[String]): Option[Set[String]] =
+  /**
+   * The permissions a token's `roles` carry in brand `slug`, from the kept copy: only the roles named
+   * for `slug` open a bag (spec 032). `None` until the first read, except for `platform_admin`.
+   */
+  def permissionsOf(slug: String, roles: Set[String]): Option[Set[String]] =
     if roles.contains(OperatorPermissions.PlatformAdmin) then Some(OperatorPermissions.All.toSet)
     else state match
-      case RoleBags.State.Read(bags, _, _) => Some(OperatorPermissions.permissionsOf(roles, bags))
+      case RoleBags.State.Read(bags, _, _) => Some(OperatorPermissions.permissionsOf(slug, roles, bags))
       case RoleBags.State.Unread           => None
 
   /**

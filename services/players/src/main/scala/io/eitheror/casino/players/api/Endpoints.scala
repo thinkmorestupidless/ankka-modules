@@ -358,6 +358,7 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
   private val roles = RolesRoutes(ctx)
   withAcl(may("roles.read")) {
     get("/roles") { () => roles.list }
+    get("/role-assignments/{operator}") { (operator: String) => roles.assignment(operator) }
   }
   withAcl(may("roles.change")) {
     putBody("/roles/{name}") { (name: String, text: String) => roles.set(principal, name, text) }

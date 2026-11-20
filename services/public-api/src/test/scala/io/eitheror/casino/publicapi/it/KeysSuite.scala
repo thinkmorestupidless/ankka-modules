@@ -80,13 +80,13 @@ class KeysSuite extends munit.FunSuite:
 
   test("an unknown key is 404; another brand's segment is 404") {
     assertEquals(kit.request("GET", path("/aaaaaaaaaaaaaaaa"), headers = kit.asKeyManager).status, 404)
-    assertEquals(kit.request("GET", "/access-keys/spinvibe", headers = kit.asStaff(Seq("api_keys", "brand_spinvibe"))).status, 404)
+    assertEquals(kit.request("GET", "/access-keys/spinvibe", headers = kit.asStaff(kit.held("api_keys") ++ kit.heldIn("spinvibe", "api_keys") :+ "brand_spinvibe")).status, 404)
   }
 
   test("an operator without the access keys permission, or of another brand, is refused; platform_admin is admitted") {
     assertEquals(kit.request("GET", path(), headers = kit.asStaff(Nil)).status, 403)
     assertEquals(kit.request("POST", path(), Some("""{"name":"x"}"""), kit.asStaff(Nil)).status, 403)
-    assertEquals(kit.request("GET", path(), headers = kit.asStaff(Seq("api_keys", "brand_spinvibe"), brandRole = false)).status, 403)
+    assertEquals(kit.request("GET", path(), headers = kit.asStaff(kit.heldIn("spinvibe", "api_keys") :+ "brand_spinvibe", brandRole = false)).status, 403)
     assertEquals(kit.request("GET", path(), headers = kit.fromInternet).status, 401)
     assertEquals(kit.request("GET", path(), headers = kit.asStaff(Seq("platform_admin"), brandRole = false)).status, 200)
   }

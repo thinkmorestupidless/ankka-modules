@@ -9,7 +9,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { table } from "../../src/server/routes.ts";
 import { Owner, type Answer, type Asked, type Fixtures, type Script } from "./owner.ts";
-import { BrandRoles } from "./roles.ts";
+import { Brands, type GivingOutcome } from "./roles.ts";
 import { FraudCases, type FraudSeed } from "./fraud.ts";
 import { Wallets, type WalletSeed } from "./wallet.ts";
 import { ProgrammeFlags, type FlagSeed } from "./programme.ts";
@@ -95,7 +95,7 @@ export async function startDoubles(port = 0): Promise<Doubles> {
   const owners = new Map<string, Owner>();
   for (const name of ownerNames())
     owners.set(name, new Owner(name, scripted, name === "backoffice-state" ? (a) => realm.state(a) : undefined));
-  const roles = new BrandRoles((operator, given) => realm.setRoles(operator, given));
+  const roles = new Brands((operator, brand, given) => realm.giveIn(operator, brand, given), (operator, brand) => realm.heldIn(operator, brand));
   const fraud = new FraudCases();
   const wallets = new Wallets();
   const flags = new ProgrammeFlags();
@@ -146,6 +146,11 @@ export async function startDoubles(port = 0): Promise<Doubles> {
     if (req.method === "PUT" && what === "subjects" && a && b === "roles") {
       realm.setRoles(a, (given().roles as string[]) ?? []);
       return send(res, { body: { subject: a } });
+    }
+    if (req.method === "PUT" && what === "givings" && a && b) {
+      // spec 032: how the realm ends brand `a`'s next giving to operator `b`
+      roles.of(a).outcome(b, given() as unknown as GivingOutcome);
+      return send(res, { body: { brand: a, operator: b } });
     }
     if (req.method === "PUT" && what === "fraud-cases") {
       fraud.seed(given() as unknown as FraudSeed);

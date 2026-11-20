@@ -23,7 +23,7 @@ import { withdrawals } from "./composite/withdrawals.ts";
 import { batchStream, readBatch } from "./composite/batch.ts";
 import { standing } from "./composite/standing.ts";
 import { kindsOf, operatorNames, timeline } from "./composite/timeline.ts";
-import { brandReads, inBrand, permissionsOf, PlatformAdmin, type BrandReads } from "./roles.ts";
+import { brandReads, inBrand, permissionsOf, PlatformAdmin, shownRoles, type BrandReads } from "./roles.ts";
 
 export interface Deps {
   /** The brand this backoffice is, from `CASINO_BRAND`; the browser never names one. */
@@ -142,11 +142,11 @@ export function createApp(deps: Deps): Hono<Env> {
     return c.json({
       subject: claims.sub ?? null,
       name: claims.name ?? claims.preferred_username ?? null,
-      roles: [...token.roles].sort(),
+      roles: shownRoles(deps.brand, token.roles),
       // players' default zone when its configuration has never been read: the dates still name the zone they are in
       brand: { slug: deps.brand, name: deps.brand, modules: modules ?? null, zone: zone ?? DefaultZone },
       preferences,
-      permissions: permissionsOf(token.roles, bags ?? {}),
+      permissions: permissionsOf(deps.brand, token.roles, bags ?? {}),
     });
   });
 
@@ -191,13 +191,13 @@ export function createApp(deps: Deps): Hono<Env> {
     if (q.length > 256) return c.json({ error: "invalid_search", message: "a search is at most 256 characters" }, 400);
     const token = c.get("token");
     const bags = await reads.bags.get();
-    const held = new Set(permissionsOf(token.roles, bags ?? {}));
+    const held = new Set(permissionsOf(deps.brand, token.roles, bags ?? {}));
     return c.json(await search({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 3_000) }, q, token.accessToken, (p) => held.has(p)));
   });
 
   // A player's standing and timeline (contracts/routes.md; FR-020 to FR-022): each source asked as the operator, bounded.
   const heldBy = async (roles: string[]) => {
-    const held = new Set(permissionsOf(roles, (await reads.bags.get()) ?? {}));
+    const held = new Set(permissionsOf(deps.brand, roles, (await reads.bags.get()) ?? {}));
     return (p: string) => held.has(p);
   };
   const names = operatorNames({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 3_000) }, deps.now);
@@ -266,7 +266,7 @@ export function createApp(deps: Deps): Hono<Env> {
   // The operator's worklist (contracts/sources.md): the kinds their roles admit, each asked of its owner as them, 3 s each.
   const admittedKinds = async (roles: string[]) => {
     const [bags, modules] = await Promise.all([reads.bags.get(), reads.modules.get()]);
-    return kindsFor({ brand: { modules: modules ?? null }, permissions: permissionsOf(roles, bags ?? {}) });
+    return kindsFor({ brand: { modules: modules ?? null }, permissions: permissionsOf(deps.brand, roles, bags ?? {}) });
   };
   const worklistDeps = () => ({ ...deps, timeoutMs: Math.min(deps.timeoutMs, 3_000) });
   app.get("/api/worklist", async (c) => {
@@ -342,7 +342,7 @@ export function createApp(deps: Deps): Hono<Env> {
   app.post("/api/adjustment-batches", async (c) => {
     c.set("logPath", "/api/adjustment-batches");
     const token = c.get("token");
-    const held = new Set(permissionsOf(token.roles, (await reads.bags.get()) ?? {}));
+    const held = new Set(permissionsOf(deps.brand, token.roles, (await reads.bags.get()) ?? {}));
     if (!held.has("adjustment.make")) return c.json({ error: "forbidden", message: "forbidden: the adjustment.make permission is needed" }, 403);
     let body: unknown;
     try {

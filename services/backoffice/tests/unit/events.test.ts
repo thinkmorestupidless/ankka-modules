@@ -13,7 +13,7 @@ function live() {
     eventsEveryMs: 20,
     reads: { bags: new Kept<Bags>(async () => { if (bags instanceof Error) throw bags; return bags; }, 0, () => Date.now()), modules: new Kept<string[]>(async () => ["core"], 0, () => Date.now()), zone: new Kept<string>(async () => "America/Sao_Paulo", 0, () => Date.now()) },
   });
-  h.state.sessions.set("s-ev", { accessToken: "a.e30.s", expiresAt: Date.now() + 10_000, roles: [`brand_${Brand}`, "brand_support"] });
+  h.state.sessions.set("s-ev", { accessToken: "a.e30.s", expiresAt: Date.now() + 10_000, roles: [`brand_${Brand}`, `brand_support@${Brand}`] });
   return { ...h, bags: (b: Bags | Error) => void (bags = b) };
 }
 
@@ -61,14 +61,14 @@ describe("/api/events", () => {
   test("says permissions_changed when the operator is given a role", async () => {
     const h = live();
     const r = await h.ask("GET", "/api/events", { session: "s-ev" });
-    setTimeout(() => h.state.sessions.set("s-ev", { accessToken: "a.e30.s", expiresAt: Date.now() + 10_000, roles: [`brand_${Brand}`, "brand_support", "brand_finance"] }), 50);
+    setTimeout(() => h.state.sessions.set("s-ev", { accessToken: "a.e30.s", expiresAt: Date.now() + 10_000, roles: [`brand_${Brand}`, `brand_support@${Brand}`, `brand_finance@${Brand}`] }), 50);
     expect(await until(r, "permissions_changed")).toContain("event: permissions_changed");
   });
 
   test("says permissions_changed when the operator loses the brand, so the page learns it from /api/me", async () => {
     const h = live();
     const r = await h.ask("GET", "/api/events", { session: "s-ev" });
-    setTimeout(() => h.state.sessions.set("s-ev", { accessToken: "a.e30.s", expiresAt: Date.now() + 10_000, roles: ["brand_support"] }), 50);
+    setTimeout(() => h.state.sessions.set("s-ev", { accessToken: "a.e30.s", expiresAt: Date.now() + 10_000, roles: [`brand_support@${Brand}`] }), 50);
     expect(await until(r, "permissions_changed")).toContain("event: permissions_changed");
   });
 
@@ -89,7 +89,7 @@ describe("/api/events", () => {
   test("ends when the instance is stopping, without waiting for its next comparison", async () => {
     const stopping = new AbortController();
     const h = harness({ eventsEveryMs: 60_000, shutdown: stopping.signal });
-    h.state.sessions.set("s-ev", { accessToken: "a.e30.s", expiresAt: Date.now() + 120_000, roles: [`brand_${Brand}`, "brand_support"] });
+    h.state.sessions.set("s-ev", { accessToken: "a.e30.s", expiresAt: Date.now() + 120_000, roles: [`brand_${Brand}`, `brand_support@${Brand}`] });
     const r = await h.ask("GET", "/api/events", { session: "s-ev" });
     const reader = r.body!.getReader();
     expect(new TextDecoder().decode((await reader.read()).value)).toMatch(/^: open/);
@@ -226,7 +226,7 @@ describe("online notices", () => {
   function asking(asked: boolean) {
     const e = engagement();
     const h = harness({ eventsEveryMs: 20, table: [...rows, ...Engagement] });
-    h.state.sessions.set("s-on", { accessToken: Token, expiresAt: Date.now() + 10_000, roles: [`brand_${Brand}`, "brand_support"] });
+    h.state.sessions.set("s-on", { accessToken: Token, expiresAt: Date.now() + 10_000, roles: [`brand_${Brand}`, `brand_support@${Brand}`] });
     h.state.prefs = { ...h.state.prefs, onlineNotices: asked };
     h.answer(e.answer);
     return { ...h, e };
@@ -270,7 +270,7 @@ describe("online notices", () => {
     const r = await h.ask("GET", "/api/events", { session: "s-on" });
     const read = until(r, "nothing", 1_500); // the page reads its stream all the while
     await expect.poll(() => h.e.streams.length).toBe(1);
-    h.state.sessions.set("s-on", { accessToken: Token, expiresAt: Date.now() + 10_000, roles: ["brand_support"] });
+    h.state.sessions.set("s-on", { accessToken: Token, expiresAt: Date.now() + 10_000, roles: [`brand_support@${Brand}`] });
     await expect.poll(() => h.e.cancelled()).toBe(1);
     expect(await read).not.toContain("event: player_online");
   });

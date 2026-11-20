@@ -11,7 +11,7 @@ One commercial casino; one ankka project. Identified by its slug.
 
 | Field | Type | Rule |
 |---|---|---|
-| `slug` | string | `^[a-z][a-z0-9-]{0,41}$`; not `payments`, `programme`, `reasoner`, `platform`, `local`, `machine` (FR-001, R2); never reused after deletion |
+| `slug` | string | `^[a-z][a-z0-9-]{0,41}$`; not `payments`, `programme`, `reasoner`, `platform`, `local`, `machine` (FR-001, R2), nor `admin`, `support`, `finance`, `compliance` (spec 032: `brand_<slug>` would be a default role's name); never reused after deletion |
 | `name` | string | shown in the console and the status |
 | `realMoney` | boolean | gates on Readiness (FR-040) |
 | `realm` | Realm | `casino-<slug>`, derived, not written |

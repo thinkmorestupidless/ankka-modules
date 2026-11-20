@@ -63,6 +63,12 @@ class LayoutSuite extends munit.FunSuite:
       Vector(Grant("service:goldvibe/players", GrantTarget.Route("merchant", "PUT", "/v1/operators/{id}/brand-roles/{brand}"))))
   }
 
+  test("a slug whose brand role would be a default role's name is reserved (spec 032)") {
+    for s <- Vector("admin", "support", "finance", "compliance") do
+      assertEquals(Layout.slugProblems(s), Vector(s"slug '$s' is reserved"), s)
+    assertEquals(Layout.slugProblems("goldvibe"), Vector.empty)
+  }
+
   test("the longest brand service still sets the slug's limit") {
     assertEquals(Layout.MaxSlugLength, 42)
   }

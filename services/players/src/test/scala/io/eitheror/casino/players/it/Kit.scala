@@ -8,7 +8,7 @@ import com.thinkmorestupidless.ankka.core.Metadata
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, HttpServer, Principal}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.AnkkaTestKit
-import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.access.{BrandRoles, Routes}
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.players.{Json, Neighbours, PlayersRuntime, PlayersService, Secrets, Settings}
 import io.eitheror.casino.players.Json.*
@@ -91,7 +91,7 @@ final class Kit(base: Settings = Kit.Base):
   def rolesRead(): Unit =
     testKit.eventually("the brand's roles read", 30.seconds) {
       io.eitheror.casino.players.PlayersRuntime.bags.refresh()
-      io.eitheror.casino.players.PlayersRuntime.bags.permissionsOf(Set("brand_admin")).filter(_.contains("roles.change"))
+      io.eitheror.casino.players.PlayersRuntime.bags.permissionsOf(slug, Set(in("brand_admin"))).filter(_.contains("roles.change"))
     }: Unit
 
   def components = testKit.componentClient
@@ -163,9 +163,12 @@ final class Kit(base: Settings = Kit.Base):
   def asPlayer(playerId: String): Seq[(String, String)] = asVisitor :+ ("Authorization" -> s"Bearer ${playerToken(playerId)}")
   def asToken(token: String): Seq[(String, String)]     = asVisitor :+ ("Authorization" -> s"Bearer $token")
 
+  /** `role` named for this brand (spec 032): how a token carries a role the brand gives. */
+  def in(role: String): String = BrandRoles.nameIn(slug, role)
+
   /** An operator of the brand; by default holding `brand_admin`, whose bag the role matrix fills with every permission. */
-  def staffToken(roles: String = s"brand_$slug,brand_admin", subject: String = "op-1"): String = s"staff|$subject|$roles"
-  def asOperator(roles: String = s"brand_$slug,brand_admin", subject: String = "op-1"): Seq[(String, String)] =
+  def staffToken(roles: String = s"brand_$slug,${in("brand_admin")}", subject: String = "op-1"): String = s"staff|$subject|$roles"
+  def asOperator(roles: String = s"brand_$slug,${in("brand_admin")}", subject: String = "op-1"): Seq[(String, String)] =
     asVisitor :+ ("Authorization" -> s"Bearer ${staffToken(roles, subject)}")
 
   /** Another service of this project (or of `project`), by its certificate. */

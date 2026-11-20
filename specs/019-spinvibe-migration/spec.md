@@ -501,7 +501,10 @@ it, apply it, and sign in as one operator of each original role.
   `brand_compliance` and `fraud_analyst` give `brand_compliance`; `support_agent`, `brand_support`
   and `resource_viewer` give `brand_support`), with `brand_<slug>` for every brand their original
   level reached; an operator holding a role the mapping does not name, or roles mapping to more than
-  one default role, MUST be given `brand_support` and listed for review.
+  one default role, MUST be given `brand_support` and listed for review. *Amended by spec 032
+  (FR-011, research R10):* the default role is given named for each brand the original's scope
+  reached (`brand_finance@<slug>`), by a giving of that brand through merchant's H6, so each brand
+  can change it or take it away; no role is given with no brand in its name.
 - **FR-040**: The mapping MUST give the default roles only and MUST leave each operator's payments
   roles as they are, for payments administration; the roles are set through `merchant`, which owns
   the operators (spec 030 FR-008c), and a brand's own roles are given afterwards in its backoffice.

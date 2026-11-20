@@ -69,8 +69,12 @@ object Routes:
   def operatorRefusal(p: Principal, slug: String, roles: String*): Option[String] =
     if !p.issuer.contains(StaffIssuer) then Some(s"${Refusal.WrongIssuer}: operators sign in at the eitheror realm")
     else if !(p.roles.contains(s"brand_$slug") || p.roles.contains("platform_admin")) then Some(s"${Refusal.BrandNotInRoles}: no role names brand $slug")
-    else if roles.nonEmpty && !roles.exists(p.roles.contains) then Some(s"$Forbidden: the ${roles.head} permission is needed")
+    else if roles.nonEmpty && !roles.exists(heldInBrand(p, slug, _)) then Some(s"$Forbidden: the ${roles.head} permission is needed")
     else None
+
+  /** `role` held in brand `slug` (spec 032): named for it, except `platform_admin`, which is held bare. */
+  private def heldInBrand(p: Principal, slug: String, role: String): Boolean =
+    if role == OperatorPermissions.PlatformAdmin then p.roles.contains(role) else BrandRoles.holds(slug, p.roles, role)
 
   /**
    * Any staff token at the `eitheror` realm: the ACL of an endpoint whose routes name the brand in
@@ -93,7 +97,7 @@ object Routes:
       operatorRefusal(principal, slug) match
         case Some(refusal) => AuthDecision.Forbidden(refusal)
         case None =>
-          bags.permissionsOf(principal.roles) match
+          bags.permissionsOf(slug, principal.roles) match
             case None                           => AuthDecision.Unavailable(s"${Refusal.RolesUnread}: the brand's roles have not been read yet")
             case Some(held) if held(permission) => allowed
             case Some(_)                        => AuthDecision.Forbidden(s"$Forbidden: the $permission permission is needed")
@@ -181,8 +185,11 @@ object Routes:
       else Some(s"${Refusal.NotAffiliate}: the affiliate role is required")
     }
 
-  /** The realm roles that make an affiliate manager of the programme (spec 013 research R11). */
-  val AffiliateManagerRoles: Set[String] = Set("affiliate_manager", "brand_admin", "platform_admin")
+  /**
+   * The roles that make an affiliate manager of a brand in the programme (spec 013 research R11), each
+   * held named for that brand (spec 032 FR-012); `platform_admin` manages every brand.
+   */
+  val AffiliateManagerRoles: Set[String] = Set("affiliate_manager", "brand_admin")
 
   /** A refusal on the programme's manager routes. */
   val NotAffiliateManager = "not_affiliate_manager"
@@ -190,14 +197,23 @@ object Routes:
   /**
    * A manager of the shared affiliate programme (spec 013 FR-004): signed in at the `eitheror` realm
    * holding `affiliate_manager`, `brand_admin` or `platform_admin`. Which brands they manage is
-   * [[brandsOf]], checked by the route.
+   * [[managedBrands]], checked by the route.
    */
   def affiliateManager(authenticate: => Acl = Oidc.authenticate()): Acl =
     refine(authenticate) { p =>
       if !p.issuer.contains(StaffIssuer) then Some(s"${Refusal.WrongIssuer}: managers sign in at the eitheror realm")
-      else if p.roles.exists(AffiliateManagerRoles) then None
+      else if !managedBrands(p).isEmpty then None
       else Some(s"$NotAffiliateManager: the affiliate_manager role is required")
     }
+
+  /**
+   * The brands `p` manages in the programme: every brand for `platform_admin`, else each brand `b` it
+   * holds (`brand_<b>`) and holds `affiliate_manager` or `brand_admin` named for `b` (spec 032 FR-012).
+   */
+  def managedBrands(p: Principal): BrandSet =
+    brandsOf(p) match
+      case BrandSet.Every       => BrandSet.Every
+      case BrandSet.Only(slugs) => BrandSet.Only(slugs.filter(b => AffiliateManagerRoles.exists(BrandRoles.holds(b, p.roles, _))))
 
   /** The brands a staff principal holds: every brand for `platform_admin`, else its `brand_<slug>` roles. */
   enum BrandSet:
@@ -214,7 +230,15 @@ object Routes:
 
   def brandsOf(p: Principal): BrandSet =
     if p.roles.contains("platform_admin") then BrandSet.Every
-    else BrandSet.Only(p.roles.collect { case r if r.startsWith("brand_") && r.length > 6 => r.drop(6) }.toSet)
+    else BrandSet.Only(p.roles.flatMap(brandOfRole))
+
+  /**
+   * The brand `brand_<slug>` names; never a default role (`brand_admin` is not the brand `admin`) nor a
+   * role named for a brand (spec 032 research R3).
+   */
+  def brandOfRole(role: String): Option[String] =
+    Option.when(role.startsWith("brand_") && role.length > 6 && !role.contains(BrandRoles.Separator) &&
+      !OperatorPermissions.DefaultRoles.contains(role))(role.drop(6))
 
   /** Refusals on the shared audit's routes (spec 018 contracts/routes.md). */
   val NotAuditCompliance  = "not_audit_compliance"

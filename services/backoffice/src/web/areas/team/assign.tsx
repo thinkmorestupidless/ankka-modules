@@ -4,15 +4,59 @@
 // answers no read of an operator's current roles; opened from the operators list, the roles merchant
 // lists for them start ticked (those that are this brand's), and the confirmation says what is given and
 // what is taken away. Typed by hand, the confirmation says that every role not ticked is taken away.
+// Spec 032: a giving is put in force by merchant after players answers, so the screen reads players'
+// account of the brand's last giving (asked, in force, or failed and why) and any role held in the brand
+// that no giving asked for; `api_keys` and `markets` are given here too.
 import { useId, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { holds, type Me } from "../../../shared/access.ts";
 import { t } from "../../../shared/messages/index.ts";
 import { Actions } from "../../actions/index.ts";
-import { difference } from "../../../shared/permissions.ts";
+import { difference, GivenRoles } from "../../../shared/permissions.ts";
 import { Action, RefusalNotice } from "../../components/action/index.ts";
 import { useOperator, useReadOnlyMode } from "../../frame/context.ts";
 import { bagsOf, send, useRoles, type Role } from "./roles.tsx";
+
+/** The roles routes check by name that a brand gives as it gives its others (spec 032 FR-012); in no bag. */
+export const NamedRoles = GivenRoles;
+
+/** The brand's last giving to an operator, as players answers it (P13r). */
+export interface Giving {
+  roles: string[];
+  state?: "pending" | "in_force" | "failed";
+  reason?: string;
+  held?: string[];
+}
+
+export async function readGiving(operator: string, fetchFn: typeof fetch = fetch): Promise<Giving> {
+  const r = await fetchFn(`/api/s/players/role-assignments/${encodeURIComponent(operator)}`, { headers: { Accept: "application/json" } });
+  if (!r.ok) throw new Error(`${r.status}`);
+  const b = (await r.json()) as Record<string, unknown>;
+  const strings = (v: unknown) => (Array.isArray(v) ? v.map(String).sort() : undefined);
+  const state = b.state === "pending" || b.state === "in_force" || b.state === "failed" ? b.state : undefined;
+  return { roles: strings(b.roles) ?? [], state, reason: typeof b.reason === "string" ? b.reason : undefined, held: strings(b.held) };
+}
+
+/** How far the brand's last giving got, and what the brand holds that no giving asked for. */
+export function GivingState({ operator, giving }: { operator: string; giving: Giving }) {
+  const unasked = (giving.held ?? []).filter((r) => !giving.roles.includes(r));
+  if (giving.state === undefined && giving.roles.length === 0 && unasked.length === 0)
+    return <p data-giving="none">{t("assign.giving.none", { operator })}</p>;
+  return (
+    <div data-giving={giving.state ?? "unread"} role="group" aria-label={t("assign.giving.title")}>
+      <h3>{t("assign.giving.title")}</h3>
+      <p data-asked>{giving.roles.length > 0 ? t("assign.giving.asked", { roles: giving.roles.join(", ") }) : t("assign.giving.askedNone")}</p>
+      <p data-state>
+        {giving.state === "failed"
+          ? t("assign.giving.failed", { reason: giving.reason ?? "" })
+          : giving.state
+            ? t(`assign.giving.${giving.state}`)
+            : t("assign.giving.unread")}
+      </p>
+      {unasked.length > 0 ? <p data-unasked>{t("assign.giving.heldUnasked", { roles: unasked.join(", ") })}</p> : null}
+    </div>
+  );
+}
 
 /** The first permission the role carries that the giver does not hold, or none. */
 export function lacking(giver: Pick<Me, "permissions">, role: Role): string | undefined {
@@ -49,22 +93,39 @@ export function AssignPage({ operator: initial = "", held: listed }: { operator?
   const roles = useRoles();
   const operatorId = useId();
   const [operator, setOperator] = useState(initial);
-  const [chosen, setChosen] = useState<Set<string>>(() => new Set(listed ?? []));
+  // the ticks as the person changed them; until then, the brand's last giving, or the roles merchant listed
+  const [ticked, setTicked] = useState<Set<string> | undefined>(undefined);
   const [given, setGiven] = useState<{ operator: string; roles: string[] } | undefined>(undefined);
+  const who = operator.trim();
+  const giving = useQuery({
+    queryKey: ["roles", "giving", who],
+    queryFn: () => readGiving(who),
+    enabled: who !== "",
+    staleTime: 2_000,
+    // a giving not yet in force is read again until it is, or fails
+    refetchInterval: (q) => (q.state.data?.state === "pending" ? 2_000 : false),
+  });
   if (roles.isError) return <RefusalNotice refusal={roles.error} />;
   if (!roles.data) return <p role="status">{t("roles.loading")}</p>;
-  const who = operator.trim();
-  const brandRoles = new Set(roles.data.map((r) => r.name));
+  const brandRoles = new Set([...roles.data.map((r) => r.name), ...NamedRoles]);
+  // the ticks start from the brand's last giving; else from the roles listed, known only for the operator the list opened
+  const asked = giving.data?.state !== undefined ? giving.data.roles : undefined;
+  const listedHere = listed !== undefined && who === initial.trim() ? listed : undefined;
+  const brandOnly = (rs: readonly string[] | undefined) => rs?.filter((r) => brandRoles.has(r)).sort();
+  // what a giving gives and takes away is against what the realm holds now (P13r's `held`), when it was read
+  const held = brandOnly(giving.data?.held ?? asked ?? listedHere);
+  const chosen = ticked ?? new Set(brandOnly(asked ?? listedHere) ?? []);
   const picked = [...chosen].filter((r) => brandRoles.has(r)).sort();
-  // what they hold is known only for the operator the list opened, as it listed them
-  const held = listed !== undefined && who === initial.trim() ? listed.filter((r) => brandRoles.has(r)).sort() : undefined;
 
   return (
     <section>
       <h2>{t("assign.title")}</h2>
       <div className="bo-field">
         <label htmlFor={operatorId}>{t("assign.operator")}</label>
-        <input id={operatorId} value={operator} onChange={(e) => setOperator(e.target.value)} aria-describedby={`${operatorId}-hint`} />
+        <input id={operatorId} value={operator} onChange={(e) => {
+            setOperator(e.target.value);
+            setTicked(undefined);
+          }} aria-describedby={`${operatorId}-hint`} />
         <span id={`${operatorId}-hint`} className="bo-muted">
           {t("assign.operatorHint")}
         </span>
@@ -87,7 +148,7 @@ export function AssignPage({ operator: initial = "", held: listed }: { operator?
                   const next = new Set(chosen);
                   if (next.has(r.name)) next.delete(r.name);
                   else next.add(r.name);
-                  setChosen(next);
+                  setTicked(next);
                 }}
               />
               <span>{r.name}</span>
@@ -99,7 +160,26 @@ export function AssignPage({ operator: initial = "", held: listed }: { operator?
             </label>
           );
         })}
+        <p className="bo-muted">{t("assign.named")}</p>
+        {NamedRoles.map((name) => (
+          <label key={name}>
+            <input
+              type="checkbox"
+              name={name}
+              disabled={readOnly}
+              checked={chosen.has(name)}
+              onChange={() => {
+                const next = new Set(chosen);
+                if (next.has(name)) next.delete(name);
+                else next.add(name);
+                setTicked(next);
+              }}
+            />
+            <span>{name}</span>
+          </label>
+        ))}
       </fieldset>
+      {who !== "" && giving.data ? <GivingState operator={who} giving={giving.data} /> : null}
       {readOnly || who === "" ? null : (
         <Action
           action={Actions["role.give"]}
@@ -115,6 +195,7 @@ export function AssignPage({ operator: initial = "", held: listed }: { operator?
               )
               .catch(() => setGiven({ operator: who, roles: picked }));
             void client.invalidateQueries({ queryKey: ["payments", "operators"] });
+            void client.invalidateQueries({ queryKey: ["roles", "giving", who] });
           }}
         />
       )}
