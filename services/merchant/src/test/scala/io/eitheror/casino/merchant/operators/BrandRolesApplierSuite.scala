@@ -44,6 +44,13 @@ class BrandRolesApplierSuite extends munit.FunSuite with LogCapturing:
     assertEquals(realm.roles.toSet, Set("brand_goldvibe", "brand_finance@goldvibe"))
   }
 
+  test("a giving leaves the programme's manager role named for the brand in place (research R8)") {
+    val realm = Realm("brand_goldvibe", "affiliate_manager@goldvibe", "brand_support@goldvibe")
+    assertEquals(BrandRolesApplier.apply(realm, "u-1", "goldvibe", Set("brand_finance")), Right(()))
+    assertEquals(realm.roles.toSet, Set("brand_goldvibe", "affiliate_manager@goldvibe", "brand_finance@goldvibe"))
+    assert(!realm.writes.exists(_.contains("affiliate_manager")), realm.writes.toString)
+  }
+
   test("an empty giving keeps the operator in the brand; applying a giving twice writes nothing the second time") {
     val realm = Realm("brand_support@goldvibe")
     assertEquals(BrandRolesApplier.apply(realm, "u-1", "goldvibe", Set.empty), Right(()))

@@ -66,7 +66,10 @@ object BrandRolesApplier extends Consumer.Companion[BrandRolesApplier, OperatorE
   /** Unreachable answers in a row, by operator and brand; reset when the giving is in force or refused. */
   private[operators] val failures = ConcurrentHashMap[String, Integer]()
 
-  /** The realm brought to `roles` for `brand`: roles named for it created and assigned, others named for it removed. */
+  /**
+   * The realm brought to `roles` for `brand`: roles named for it created and assigned, others named for it
+   * removed, except the programme's ([[BrandRoles.ProgrammeGiven]]), which no giving gives or takes away.
+   */
   def apply(realm: KeycloakAdmin, id: String, brand: String, roles: Set[String]): Either[RealmError, Unit] =
     val target = roles.map(BrandRoles.nameIn(brand, _)) + s"brand_$brand"
     def each(rs: Set[String])(f: String => Either[RealmError, Unit]) =
@@ -75,7 +78,7 @@ object BrandRolesApplier extends Consumer.Companion[BrandRolesApplier, OperatorE
       held <- realm.realmRoles(id)
       _    <- each(target -- held)(realm.ensureRole)
       _    <- each(target -- held)(realm.assignRole(id, _))
-      _    <- each(held.filter(r => BrandRoles.brandOf(r).exists(_._2 == brand)) -- target)(realm.removeRole(id, _))
+      _    <- each(held.filter(BrandRoles.givenBy(brand, _)) -- target)(realm.removeRole(id, _))
     yield ()
 
   /** The realm's refusal as the brand reads it. */
