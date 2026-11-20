@@ -1,0 +1,42 @@
+{
+  "about": "Spec 032 contracts/brand-roles.md: what a token's roles hold and carry in one brand. Run by the contract's BrandRolesSuite and the backoffice's roles.test.ts, so the two readers cannot drift.",
+  "bags": {
+    "brand_support": ["player.read"],
+    "brand_finance": ["player.read", "adjustment.make"],
+    "vip_host": ["message.send"]
+  },
+  "cases": [
+    {"name": "a role named for this brand opens its bag",
+     "slug": "goldvibe", "roles": ["brand_goldvibe", "brand_finance@goldvibe"],
+     "held": ["brand_finance"], "permissions": ["adjustment.make", "player.read"]},
+    {"name": "a role named for another brand opens nothing",
+     "slug": "goldvibe", "roles": ["brand_goldvibe", "brand_spinvibe", "brand_finance@spinvibe"],
+     "held": [], "permissions": []},
+    {"name": "each brand opens only its own of two roles",
+     "slug": "spinvibe", "roles": ["brand_goldvibe", "brand_spinvibe", "brand_finance@goldvibe", "brand_support@spinvibe"],
+     "held": ["brand_support"], "permissions": ["player.read"]},
+    {"name": "a role with no brand in its name opens nothing",
+     "slug": "goldvibe", "roles": ["brand_goldvibe", "brand_finance", "vip_host"],
+     "held": [], "permissions": []},
+    {"name": "a role the brand made opens its bag when named for the brand",
+     "slug": "goldvibe", "roles": ["brand_goldvibe", "vip_host@goldvibe"],
+     "held": ["vip_host"], "permissions": ["message.send"]},
+    {"name": "a role whose bag the brand deleted carries nothing",
+     "slug": "goldvibe", "roles": ["brand_goldvibe", "night_desk@goldvibe"],
+     "held": ["night_desk"], "permissions": []},
+    {"name": "platform_admin carries every permission, held bare",
+     "slug": "goldvibe", "roles": ["platform_admin"],
+     "held": [], "permissions": "all"},
+    {"name": "a slug that contains the brand of another is not that brand",
+     "slug": "gold", "roles": ["brand_gold", "brand_finance@goldvibe"],
+     "held": [], "permissions": []},
+    {"name": "a role's name split at the last separator only",
+     "slug": "goldvibe", "roles": ["brand_goldvibe", "x@spinvibe@goldvibe"],
+     "held": ["x@spinvibe"], "permissions": []}
+  ],
+  "brands": [
+    {"name": "brand_<slug> is the brand", "roles": ["brand_goldvibe"], "brands": ["goldvibe"]},
+    {"name": "a default role is not a brand", "roles": ["brand_admin", "brand_support", "brand_finance", "brand_compliance"], "brands": []},
+    {"name": "a role named for a brand is not a brand", "roles": ["brand_admin@goldvibe"], "brands": []}
+  ]
+}

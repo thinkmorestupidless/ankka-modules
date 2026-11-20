@@ -18,7 +18,7 @@ object BrandRoles:
 
 | Reader | Before | After |
 |---|---|---|
-| `RoleBags(slug, …).permissionsOf(roles)` | every role's bag | the bags of `heldIn(slug, roles)` |
+| `RoleBags.permissionsOf(slug, roles)` | every role's bag | the bags of `heldIn(slug, roles)`; the brand is named at the call (research, *Found during implementation*) |
 | `OperatorPermissions.permissionsOf` | `(roles, bags)` | `(slug, roles, bags)`; `platform_admin` still every permission |
 | `Routes.operatorMay(slug, permission, bags)` | via the bag | unchanged signature; the bag is slug-aware |
 | `Routes.operatorHolding(slug, roles*)` | `p.roles.contains(r)` | `p.roles.contains(nameIn(slug, r))`, `platform_admin` bare |

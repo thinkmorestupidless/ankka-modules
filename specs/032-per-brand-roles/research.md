@@ -25,8 +25,8 @@ references are to this branch (`032-per-brand-roles`, cut from `030-backoffice` 
 
 ## R2. Where a role is opened: once, in the contract
 
-- **Decision**: `RoleBags` takes the brand's slug when it is made. `RoleBags.permissionsOf(roles)`
-  opens only `heldIn(slug, roles)`. `OperatorPermissions.permissionsOf(roles, bags)` gains the slug.
+- **Decision**: `RoleBags.permissionsOf(slug, roles)` opens only `heldIn(slug, roles)`; the brand is
+  named at the call (*Found during implementation*). `OperatorPermissions.permissionsOf(roles, bags)` gains the slug.
   `Routes.operatorHolding(slug, roles*)` and `Routes.accessKeys(slug)` check `nameIn(slug, role)`.
   `platform_admin` stays a bare name everywhere.
 - **Rationale**: the readers today are `Routes.operatorMay` (every service), and three direct
@@ -162,6 +162,13 @@ references are to this branch (`032-per-brand-roles`, cut from `030-backoffice` 
 - A manager's revoke removes `brand_<slug>` (`Managers.scala:84`), which an operator of that brand
   also holds. 032 keeps that behaviour; whether a revoke should only remove the manager role is the
   programme's question.
+
+## Found during implementation
+
+- **RoleBags names the brand at the call** (Trevor, 2026-11-20, T006): `RoleBags.permissionsOf(slug,
+  roles)` and `OperatorPermissions.permissionsOf(slug, roles, bags)` rather than a slug given when a
+  `RoleBags` is made. Every reader states its brand where it decides, the compiler finds every caller,
+  and no construction in a service or test kit changes. `contracts/brand-roles.md` amended.
 
 ## Design finished
 

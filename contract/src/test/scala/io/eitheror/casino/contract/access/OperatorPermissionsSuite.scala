@@ -59,16 +59,18 @@ class OperatorPermissionsSuite extends munit.FunSuite:
   }
 
   test("platform_admin carries every permission whatever a brand's roles say") {
-    assertEquals(permissionsOf(Set(PlatformAdmin), Map.empty), All.toSet)
-    assertEquals(permissionsOf(Set(PlatformAdmin), Map("brand_admin" -> Set.empty)), All.toSet)
+    assertEquals(permissionsOf("goldvibe", Set(PlatformAdmin), Map.empty), All.toSet)
+    assertEquals(permissionsOf("goldvibe", Set(PlatformAdmin), Map("brand_admin" -> Set.empty)), All.toSet)
   }
 
   test("an operator's permissions are the union of the bags of the roles they hold, and nothing else") {
     val bags = Map("desk" -> Set("player.read", "note.write"), "cashier" -> Set("withdrawal.review"))
-    assertEquals(permissionsOf(Set("brand_goldvibe", "desk", "cashier", "resource_admin"), bags), Set("player.read", "note.write", "withdrawal.review"))
-    assertEquals(permissionsOf(Set("brand_goldvibe"), bags), Set.empty[String])
+    assertEquals(permissionsOf("goldvibe", Set("brand_goldvibe", "desk@goldvibe", "cashier@goldvibe", "resource_admin"), bags), Set("player.read", "note.write", "withdrawal.review"))
+    assertEquals(permissionsOf("goldvibe", Set("brand_goldvibe"), bags), Set.empty[String])
     // a role's name in a token carries nothing the bag does not hold
-    assertEquals(permissionsOf(Set("brand_admin"), bags), Set.empty[String])
+    assertEquals(permissionsOf("goldvibe", Set("brand_admin@goldvibe"), bags), Set.empty[String])
+    // spec 032: a role with no brand in its name, or another brand's, carries nothing
+    assertEquals(permissionsOf("goldvibe", Set("brand_goldvibe", "desk", "cashier@spinvibe"), bags), Set.empty[String])
   }
 
   test("a role's name is lower case letters, digits and _, at most 40") {
