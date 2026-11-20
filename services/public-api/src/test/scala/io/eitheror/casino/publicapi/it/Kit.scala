@@ -93,8 +93,14 @@ final class Kit(val brand: String = "goldvibe"):
     val all = (if brandRole then Seq(s"brand_$brand") else Nil) ++ roles
     fromInternet :+ ("Authorization" -> s"Bearer staff|$op|${all.mkString(",")}")
 
+  /** `roles` as realm roles named for `slug` (spec 032), `api_keys@<slug>`; the brand's own is this kit's. */
+  def heldIn(slug: String, roles: String*): Seq[String] = roles.map(io.eitheror.casino.contract.access.BrandRoles.nameIn(slug, _))
+
+  /** `roles` named for this kit's brand. */
+  def held(roles: String*): Seq[String] = heldIn(brand, roles*)
+
   /** An operator of the brand holding the access keys permission. */
-  def asKeyManager: Seq[(String, String)] = asStaff(Seq("api_keys"), "keys-1")
+  def asKeyManager: Seq[(String, String)] = asStaff(held("api_keys"), "keys-1")
 
   /** A service of this project, as `players` calls the erasure route. */
   def asService(name: String = "players", project: String = "local"): Seq[(String, String)] =

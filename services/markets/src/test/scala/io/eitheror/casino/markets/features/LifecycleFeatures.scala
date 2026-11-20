@@ -102,6 +102,40 @@ class LifecycleFeatures extends MarketsFeatures("lifecycle.feature"):
     assert(last.text.contains("markets permission"), last.text)
   }
 
+  // Spec 032: the markets permission is held in a brand, as `markets@<slug>`. The kit serves one brand,
+  // so it plays the brand the scenario drafts in, and the other brand the scenario names is played by
+  // one the kit does not serve.
+  private var named      = Vector.empty[String]
+  private var permitted  = ""
+  private var draftedIn  = ""
+  private val elsewhere  = "elsewhere"
+  private def played(brand: String): String = if brand == draftedIn then kit.slug else elsewhere
+
+  Given("an operator whose roles name the brands {string} and {string}") { (a: String, b: String) =>
+    assertNotEquals(a, b); named = Vector(a, b)
+  }
+
+  Given("the operator holds the markets permission in {string} only") { (brand: String) =>
+    assert(named.contains(brand), s"$brand is not among $named"); permitted = brand
+  }
+
+  When("the operator drafts a market in {string}") { (brand: String) =>
+    assert(named.contains(brand) && brand != permitted, s"$brand: named $named, permitted in $permitted")
+    draftedIn = brand
+    val roles = named.map(b => s"brand_${played(b)}") :+ kit.heldIn("markets", played(permitted))
+    operator = kit.asOperator("op-3", roles.mkString(","))
+    draft("elsewhere-permitted"): Unit
+  }
+
+  Then("it is refused, naming the markets permission") { () =>
+    assertEquals(last.status, 403, last.text)
+    assert(last.text.contains("the markets permission is needed"), last.text)
+    // the same operator, given the permission in this brand too, is served
+    val roles = named.map(b => s"brand_${played(b)}") ++ Vector(kit.heldIn("markets", played(permitted)), kit.heldIn("markets"))
+    operator = kit.asOperator("op-3", roles.mkString(","))
+    ok(draft("elsewhere-permitted"))
+  }
+
   Then("a fact for each change to market {string} is written on the brand's markets topic, keyed by the market") { (m: String) =>
     val market = id(m)
     val facts = kit.eventually("the draft, approval and opening as facts") {

@@ -25,7 +25,9 @@ class KeysFeatures extends PublicApiFeatures("keys.feature"):
     assertEquals(brand, kit.brand); operator = kit.asStaff(Nil)
   }
   Given("an operator holding the access keys permission in brand {string} only") { (brand: String) =>
-    operator = kit.asStaff(Seq("api_keys", s"brand_$brand"), brandRole = false)
+    assertNotEquals(brand, kit.brand)
+    // of this brand too, so the refusal is the permission's being held in the other brand only (spec 032)
+    operator = kit.asStaff(kit.heldIn(brand, "api_keys") :+ s"brand_$brand")
   }
   When("they create an access key named {string}") { (name: String) =>
     last = kit.request("POST", keys(), Some(s"""{"name":"$name"}"""), operator)
