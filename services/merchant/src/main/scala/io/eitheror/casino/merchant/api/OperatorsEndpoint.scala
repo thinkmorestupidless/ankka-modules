@@ -29,6 +29,7 @@ final class OperatorsEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/operators"):
     case RealmError.NotFound(_)      => refuse(404, "OPERATOR_NOT_FOUND")
     case RealmError.NotConfigured(w) => refuse(503, "KEYCLOAK_NOT_CONFIGURED", w)
     case RealmError.Unreachable(w)   => refuse(503, "KEYCLOAK_UNREACHABLE", w)
+    case RealmError.Erring(w)        => refuse(500, "KEYCLOAK_ERROR", w)
     case RealmError.Refused(_, w)    => refuse(500, "KEYCLOAK_ERROR", w)
 
   /** The entity's parents an operator placed at it records (the original's `resolveAncestors`). */
@@ -219,10 +220,9 @@ final class OperatorsEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/operators"):
         }
     refusal match
       case Some((by, answer, code)) =>
-        // recorded on an operator that exists (FR-014); a refusal naming no operator writes no entity
-        if operator(id).call(OperatorEntity.get).invoke().exists then
-          operator(id).call(OperatorEntity.rejectBrandRoles).invoke(RejectBrandRoles(brand, by, asked.take(64), code, ctx.now())): Unit
-        else log.info("a giving by {} for no operator {} was refused: {}", by, id, code)
+        // the entity records it when the operator exists (FR-014); a refusal naming no operator is only logged
+        val s = operator(id).call(OperatorEntity.rejectBrandRoles).invoke(RejectBrandRoles(brand, by, asked, code, ctx.now()))
+        if !s.exists then log.info("a giving by {} for no operator {} was refused: {}", by, id, code)
         answer
       case None =>
         val giving = operator(id).call(OperatorEntity.askBrandRoles).invoke(AskBrandRoles(brand, asked - s"brand_$brand", ctx.now()))

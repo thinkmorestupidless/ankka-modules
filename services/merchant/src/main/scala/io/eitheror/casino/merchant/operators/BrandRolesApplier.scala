@@ -14,9 +14,12 @@ import scala.concurrent.duration.*
  *
  *  1. When a later giving is recorded for the brand, or this one is no longer pending, it does nothing.
  *  2. It creates each realm role the giving names, assigns what is asked and not held, and removes every
- *     role named for the brand that is held and not asked, whoever gave it (`brand_<slug>` stays).
+ *     role named for the brand that is held and not asked, whoever gave it (`brand_<slug>` stays), except
+ *     the programme's (`BrandRoles.ProgrammeGiven`).
  *  3. In force: `BrandRolesApplied`. Refused by the realm (or the operator is not in it): `BrandRolesFailed`,
- *     not tried again. Unreachable: it waits, then fails the change, so it is delivered again.
+ *     not tried again. Unreachable: it waits, then fails the change, so it is delivered again. Erring (500):
+ *     the same, until [[MaxErring]] in a row, when the giving fails, so one bad request does not hold back
+ *     its slice for ever.
  *
  * Every realm write sets the brand's roles to the asked set, so applying a giving twice is safe.
  */
@@ -34,7 +37,7 @@ final class BrandRolesApplier(context: ConsumerContext) extends Consumer[Operato
               BrandRolesApplier.failures.remove(key)
               entity.call(Operator.brandRolesApplied).invoke(BrandRolesDone(brand, version, DepositRuntime.now())): Unit
               effects.done()
-            case Left(e) if RealmError.retryable(e) =>
+            case Left(e) if RealmError.retryable(e) && !BrandRolesApplier.givesUp(e, BrandRolesApplier.failures.getOrDefault(key, 0)) =>
               val wait = BrandRolesApplier.backoff(BrandRolesApplier.failures.merge(key, 1, _ + _))
               Thread.sleep(wait.toMillis)
               throw IllegalStateException(s"the realm could not apply version $version of $brand's giving to $id: $e")
@@ -49,6 +52,14 @@ object BrandRolesApplier extends Consumer.Companion[BrandRolesApplier, OperatorE
       source = ChangeSource.eventsOf(Operator)
     ):
   def create(ctx: ConsumerContext) = new BrandRolesApplier(ctx)
+
+  /** 500s in a row for one operator and brand before the giving fails: about 5 minutes at the ceiling. */
+  val MaxErring = 30
+
+  /** Whether the applier stops trying `e` after `attempts` failed tries: only a realm erring, at [[MaxErring]]. */
+  def givesUp(e: RealmError, attempts: Int): Boolean = e match
+    case _: RealmError.Erring => attempts >= MaxErring
+    case _                    => false
 
   /** The first wait and the ceiling (research R4): a giving is in force within 30 s of the realm answering again (SC-002). */
   val MinBackoff: FiniteDuration = 1.second
@@ -85,5 +96,6 @@ object BrandRolesApplier extends Consumer.Companion[BrandRolesApplier, OperatorE
   def reason(e: RealmError): String = e match
     case RealmError.NotFound(_)        => "the operator is not in the realm"
     case RealmError.Refused(_, reason) => reason
+    case RealmError.Erring(why)        => s"the realm kept failing: $why"
     case RealmError.AlreadyExists(e)   => s"$e exists"
     case other                         => other.toString

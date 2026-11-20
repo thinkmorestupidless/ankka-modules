@@ -80,7 +80,10 @@ references are to this branch (`032-per-brand-roles`, cut from `030-backoffice` 
 - **Decision**: `KeycloakAdmin`'s `RealmError.Failed` is split into `Unreachable` (no answer, a
   timeout, 5xx, 429) and `Refused(status, reason)` (any other 4xx). `NotFound` (the operator) is a
   refusal. The applier retries `Unreachable` and records the rest as failed (clarification
-  2026-11-20).
+  2026-11-20). *Found in review:* a 500 is `Erring`: tried again as `Unreachable` is, but a giving
+  answered 500 thirty times in a row (about 5 minutes) fails with "the realm kept failing", so one
+  request the realm fails on cannot hold back its consumer slice for ever. A realm that does not
+  answer, or whose gateway answers 502, 503 or 504, is tried for as long as it lasts.
 - **Rationale**: today `Failed` folds a refused connection and a 400 together
   (`KeycloakAdmin.scala:80-98`), so nothing could tell a retry from an end.
 

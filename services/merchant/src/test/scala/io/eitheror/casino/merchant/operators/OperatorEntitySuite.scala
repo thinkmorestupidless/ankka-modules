@@ -18,6 +18,19 @@ class OperatorEntitySuite extends munit.FunSuite with LogCapturing:
     kit.call(Operator.create)(CreateOperator(Personal("ops@acme.example"), "resource_admin", "company", "c-1", Vector("h-1"), None, None, op, at)): Unit
     kit
 
+  test("a refused giving is recorded on an operator that exists, bounded, and on no other (FR-014)") {
+    val kit = created
+    val many = (1 to 200).map(i => f"role_$i%03d").toSet + ("a" * 500)
+    kit.call(Operator.rejectBrandRoles)(RejectBrandRoles("goldvibe", "spinvibe", many, "FORBIDDEN", at)): Unit
+    val rejected = kit.allEvents.collect { case r: OperatorEvent.BrandRolesRejected => r }
+    assertEquals(rejected.map(r => (r.brand, r.caller, r.code)), Vector(("goldvibe", "spinvibe", "FORBIDDEN")))
+    assertEquals(rejected.head.roles.size, 64)
+    assert(rejected.head.roles.forall(_.length <= 128) && rejected.head.roles("a" * 128), rejected.head.roles.toString)
+    val none = EventSourcedTestKit.of(Operator, "u-unknown")
+    none.call(Operator.rejectBrandRoles)(RejectBrandRoles("goldvibe", "goldvibe", Set("brand_admin"), "RESERVED_ROLE", at)): Unit
+    assertEquals(none.allEvents, Vector.empty)
+  }
+
   test("an operator is created pending with its role, level and ancestors, and invited") {
     val kit = created
     val s   = kit.currentState

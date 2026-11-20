@@ -60,6 +60,14 @@ class BrandRolesApplierSuite extends munit.FunSuite with LogCapturing:
     assertEquals(realm.writes.toVector, Vector.empty)
   }
 
+  test("a realm erring is tried again up to 30 times in a row; a realm unreachable is tried for as long as it is (SC-002)") {
+    val erring = RealmError.Erring("roles of u-1: 500")
+    assert(!BrandRolesApplier.givesUp(erring, 29))
+    assert(BrandRolesApplier.givesUp(erring, 30))
+    assert(!BrandRolesApplier.givesUp(RealmError.Unreachable("503"), 10_000))
+    assertEquals(BrandRolesApplier.reason(erring), "the realm kept failing: roles of u-1: 500")
+  }
+
   test("the realm's answer decides: unreachable is tried again, refused and not found are not") {
     val realm = Realm()
     realm.refuse = Some(RealmError.Unreachable("503"))

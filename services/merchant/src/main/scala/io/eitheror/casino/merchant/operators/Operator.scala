@@ -167,8 +167,13 @@ final class Operator(context: EventSourcedEntityContext) extends EventSourcedEnt
     else effects.reply(currentState)
 
   /** A giving H6 refused, recorded for the audit; nothing else changes. */
+  /** A refused giving's audit record (FR-014), on an operator that exists: one naming no operator writes nothing. */
   def rejectBrandRoles(cmd: RejectBrandRoles): Effect[OperatorState] =
-    effects.persist(OperatorEvent.BrandRolesRejected(cmd.brand, cmd.caller, cmd.roles, cmd.code, cmd.at)).thenReplyState
+    if !currentState.exists then effects.reply(currentState)
+    else
+      // bounded, whatever a caller sends: the first 64 names in order (the refused one is the first), 128 characters each
+      val roles = cmd.roles.toVector.sorted.take(64).map(_.take(128)).toSet
+      effects.persist(OperatorEvent.BrandRolesRejected(cmd.brand, cmd.caller, roles, cmd.code, cmd.at)).thenReplyState
 
   def get: ReadOnlyEffect[OperatorState] = effects.reply(currentState)
 

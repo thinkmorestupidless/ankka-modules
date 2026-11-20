@@ -170,7 +170,8 @@ shown are only those named for this brand.
   role (`brand_<slug>`): never a role named for another brand, and never a role with no brand in its name.
 - **FR-007**: A giving MUST be recorded as the set asked before the realm is changed. The realm MUST
   then be brought to the last set recorded for that brand and operator. While the realm cannot be
-  reached, this MUST be retried, with backoff, until it holds, without anyone asking again. When the
+  reached, this MUST be retried, with backoff, until it holds, without anyone asking again; a realm
+  that answers but fails the change (500) is retried for about 5 minutes, then the giving fails. When the
   realm refuses a change outright (for example, it no longer knows the operator), the giving MUST end
   as failed, with the realm's reason, and not be tried again; the brand may give again. A role named
   for the brand that is held but not in that set MUST be taken away, whoever gave it, the cutover

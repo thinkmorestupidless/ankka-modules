@@ -22,13 +22,15 @@ enum RealmError:
   case NotFound(userId: String)
   case NotConfigured(why: String)
   case Unreachable(why: String)
+  /** The realm answered 500: down behind its gateway, or failing on this request; tried again, a bounded number of times. */
+  case Erring(why: String)
   case Refused(status: Int, reason: String)
 
 object RealmError:
   /** What an answer that is not a success says: worth trying again, or refused. */
   def of(status: Int, body: String, what: String): RealmError =
-    // a 500 is this request failing (one user's data), and would be tried for ever: it is refused
     if Retried(status) then Unreachable(s"$what: $status")
+    else if status >= 500 then Erring(s"$what: $status ${body.take(200)}".trim)
     else Refused(status, s"$what: $status ${body.take(200)}".trim)
 
   /** The answers of a realm that is not answering yet: its gateway's, or too many requests. */
@@ -36,7 +38,7 @@ object RealmError:
 
   /** Whether trying again may succeed: the realm did not answer, or this service has no credentials yet. */
   def retryable(e: RealmError): Boolean = e match
-    case _: Unreachable | _: NotConfigured => true
+    case _: Unreachable | _: Erring | _: NotConfigured => true
     case _                                 => false
 
 /** A user of the operators' realm, as the sync reads it back. */

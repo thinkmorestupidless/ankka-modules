@@ -24,10 +24,12 @@ class KeycloakAdminSuite extends munit.FunSuite with LogCapturing:
       val e = RealmError.of(s, "busy", "roles of u-1")
       assert(e.isInstanceOf[RealmError.Unreachable], s"$s: $e")
       assert(RealmError.retryable(e), s.toString)
-    for s <- Vector(400, 401, 403, 404, 409, 422, 500) do
+    for s <- Vector(400, 401, 403, 404, 409, 422) do
       val e = RealmError.of(s, "{\"error\":\"no\"}", "roles of u-1")
       assertEquals(e.asInstanceOf[RealmError.Refused].status, s)
       assert(!RealmError.retryable(e), s.toString)
+    val erring = RealmError.of(500, "db", "roles of u-1")
+    assert(erring.isInstanceOf[RealmError.Erring] && RealmError.retryable(erring), erring.toString)
     assert(RealmError.retryable(RealmError.NotConfigured("no credentials")))
     assert(!RealmError.retryable(RealmError.NotFound("u-1")))
   }
