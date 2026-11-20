@@ -14,7 +14,7 @@ import scala.concurrent.duration.*
  * project: one send per key, the verification's fallback, `not_configured`, `suppressed`, `refused`, the body's
  * refusals, and a caller from another project refused. The links never reach the log above debug.
  */
-class SendRouteSuite extends munit.FunSuite:
+class SendRouteSuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   override val munitTimeout = 180.seconds
   private lazy val kit   = SharedKit.kit
   private lazy val facts = Facts(kit)

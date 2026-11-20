@@ -10,7 +10,7 @@ import scala.jdk.CollectionConverters.*
  * The operator's view of the conversations (T050; contracts/routes.md `GET /status`, `GET /conversations`): the
  * conversations view, read as the status's counts and as a player's list, newest activity first.
  */
-class ConversationsSuite extends munit.FunSuite:
+class ConversationsSuite extends munit.FunSuite with io.eitheror.casino.support.it.Held:
   override val munitTimeout = 120.seconds
   private lazy val kit = SharedKit.kit
 

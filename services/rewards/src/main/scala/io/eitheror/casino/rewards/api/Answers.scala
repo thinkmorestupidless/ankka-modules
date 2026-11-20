@@ -1,13 +1,14 @@
 package io.eitheror.casino.rewards.api
 
 import com.fasterxml.jackson.databind.JsonNode
-import com.thinkmorestupidless.ankka.http.{Bytes, Respond}
+import com.thinkmorestupidless.ankka.http.Respond
 import io.eitheror.casino.contract.money.AmountNotWhole
 import io.eitheror.casino.rewards.Json
 import io.eitheror.casino.rewards.offers.Refusal
 import io.eitheror.casino.rewards.reward.Refused
 
 import java.nio.charset.StandardCharsets.UTF_8
+import io.eitheror.casino.contract.http.Json as JsonBody
 
 /**
  * How the routes answer (contracts/routes.md): a body, or a refusal as `{"error": <code>, …named fields}` with the
@@ -16,9 +17,9 @@ import java.nio.charset.StandardCharsets.UTF_8
  * (FR-032). The 401s and 403s of a caller the ACL refuses are the ACL's, written before a handler runs.
  */
 object Answers:
-  type Reply = Respond[Bytes]
+  type Reply = Respond[JsonBody]
 
-  def json(status: Int, body: JsonNode): Reply = Respond(Bytes("application/json", Json.render(body).getBytes(UTF_8)), status, Vector.empty)
+  def json(status: Int, body: JsonNode): Reply = Respond(JsonBody(Json.render(body).getBytes(UTF_8)), status, Vector.empty)
   def ok(body: JsonNode): Reply                = json(200, body)
   def created(body: JsonNode): Reply           = json(201, body)
   val okTrue: Reply                            = ok(Json.obj("ok" -> true))

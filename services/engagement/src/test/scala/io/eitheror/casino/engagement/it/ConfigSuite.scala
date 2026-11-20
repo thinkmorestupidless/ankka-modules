@@ -13,7 +13,7 @@ import scala.jdk.CollectionConverters.*
  * masked keys; the keys in the secret store and none in the entity; a masked value keeping the stored one;
  * `invalid_config`; the audit record naming keys, never values; and the seed's thirty-two pairs at `_seed_<slug>`.
  */
-class ConfigSuite extends munit.FunSuite:
+class ConfigSuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   override val munitTimeout = 180.seconds
   private lazy val kit = SharedKit.kit
 

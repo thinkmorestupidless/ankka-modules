@@ -12,7 +12,7 @@ import java.time.Instant
 import scala.concurrent.duration.*
 
 /** The realm's listener, its authenticators and the reconciler (FR-008, FR-009, FR-013, SC-002, SC-004). */
-class RealmSuite extends munit.FunSuite with LogCapturing:
+class RealmSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.players.it.Held:
   override val munitTimeout = 240.seconds
   private lazy val kit = SharedKit.kit
 

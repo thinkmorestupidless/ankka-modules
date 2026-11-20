@@ -14,7 +14,7 @@ import scala.concurrent.duration.*
  * FR-008 through the broker: a player's life fact by fact, each published once the last one's identify has arrived, and
  * the identify read at the fake by attribute name and JSON type.
  */
-class IdentifySuite extends munit.FunSuite:
+class IdentifySuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   override val munitTimeout = 180.seconds
   private lazy val kit = SharedKit.kit
   private val eur      = io.eitheror.casino.contract.money.Currency.unsafe("EUR")

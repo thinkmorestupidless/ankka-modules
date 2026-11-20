@@ -13,7 +13,7 @@ import java.nio.file.Files
  * is reported ignored with where it is demonstrated instead; and a route of the table no recording reaches is reported
  * ignored as unhit.
  */
-class CoverageSuite extends munit.FunSuite:
+class CoverageSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private val paths           = Parity.recordings()
   private lazy val recordings = paths.map(p => Recording.load(p).fold(e => throw AssertionError(e), identity))
 

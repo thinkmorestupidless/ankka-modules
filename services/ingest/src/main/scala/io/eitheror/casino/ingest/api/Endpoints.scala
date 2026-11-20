@@ -1,6 +1,8 @@
 package io.eitheror.casino.ingest.api
 
 import com.thinkmorestupidless.ankka.http.*
+import com.thinkmorestupidless.ankka.http.openapi.Description
+import io.eitheror.casino.contract.http.Json as JsonBody
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.ingest.requests.Route
 
@@ -30,17 +32,39 @@ final class CashierEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/cashier"):
     }
   }
 
-  postBody("/sessions/{ticket}/submit") { (ticket: String, body: String) => Ticket(ctx, context(Route.Submit), ticket).submit(body) }
+  // Spec 031: the ticket's two routes described for the player SDK, tagged `ticket` beside `player`
+  // because their admission (the ticket, under `Routes.public`) does not show it. `POST /sessions`, a
+  // sub-brand's server's, is not tagged.
+  override protected def description: Description = Described.refusals
 
-  post("/sessions/{ticket}/abandon") { (ticket: String) => Ticket(ctx, context(Route.Abandon), ticket).abandon() }
+  described(_.summary("Submit the cashier session: start the payment at the terminal chosen")
+    .body[Described.Submit].answers[Described.Submitted](200)
+    .refuses(400, "not_json, INVALID_REQUEST, terminal_not_found, missing_crypto_currency, PAYMENT_REJECTED")
+    .refuses(404, "SESSION_NOT_FOUND").refuses(429, "TOO_MANY_REQUESTS").refuses(502, "psp_error")
+    .refuses(503, "TRY_AGAIN, OUTCOME_PENDING, psp_unavailable").tag("player", "ticket")) {
+    postBody("/sessions/{ticket}/submit") { (ticket: String, body: JsonBody) => Ticket(ctx, context(Route.Submit), ticket).submit(body.text) }
+  }
+
+  described(_.summary("Abandon the cashier session's payment; answers the payment as it now stands")
+    .answers[Described.Payment](200).refuses(404, "SESSION_NOT_FOUND, PAYMENT_NOT_FOUND").refuses(429, "TOO_MANY_REQUESTS")
+    .refuses(503, "TRY_AGAIN").tag("player", "ticket")) {
+    post("/sessions/{ticket}/abandon") { (ticket: String) => Ticket(ctx, context(Route.Abandon), ticket).abandon() }
+  }
 
 /** `/v1/payments`: the original's public read path, which the frontend's proxy maps `payments*` to. */
 final class PaymentsEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/payments"):
   val acl: Acl = Routes.public
 
-  get("/{paymentId}") { (paymentId: String) =>
-    val r = request
-    Read(ctx, Context(ctx, Route.Read, r.header), paymentId, r.header).run()
+  override protected def description: Description = Described.refusals
+
+  // Spec 031: read by the session's `cashierTicket` (the player's) or the sub-brand's key.
+  described(_.summary("A payment, by the cashier ticket of the session that made it")
+    .answers[Described.Payment](200).refuses(401, "UNAUTHENTICATED, INVALID_MERCHANT_KEY").refuses(404, "PAYMENT_NOT_FOUND")
+    .refuses(429, "TOO_MANY_REQUESTS").refuses(503, "TRY_AGAIN").tag("player", "ticket")) {
+    get("/{paymentId}") { (paymentId: String) =>
+      val r = request
+      Read(ctx, Context(ctx, Route.Read, r.header), paymentId, r.header).run()
+    }
   }
 
 /** `/v1/ingest`: payments operators at the installation's level, as 005's outcome routes (research R12). */

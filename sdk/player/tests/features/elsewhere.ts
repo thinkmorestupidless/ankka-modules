@@ -14,6 +14,7 @@ export const elsewhere: readonly Elsewhere[] = [
   { feature: "composing.feature", scenario: "a behaviour run with no appearance takes every step it takes at a player site", harness: "T047: services/player-site/tests/second-appearance" },
   { feature: "composing.feature", scenario: "two sites of different appearance run the same deposit", harness: "T047: services/player-site/tests/second-appearance" },
   { feature: "amounts-and-refusals.feature", scenario: "every refusal code a behaviour can meet has words in each language the reference site offers", harness: "T042: services/player-site/tests/words.test.ts" },
+  { feature: "generated-clients.feature", scenario: "the generated module clients answer the running brand as the module clients written by hand did", harness: "spec 031 T060: tests/contract/clients.test.ts, on the local brand" },
 ];
 
 /** Feature files bound wholly elsewhere: the reference site's, by playwright-bdd (T046), its render (T049), the installation (T051). */
@@ -23,5 +24,4 @@ export const wholly: Readonly<Record<string, string>> = {
 
 /** Feature files whose steps are not written yet, by the task that writes them. Each task removes its line. */
 export const unbound: Readonly<Record<string, string>> = {
-  "generated-clients.feature": "spec 031 T056: tests/features/generated-clients.steps.ts",
 };

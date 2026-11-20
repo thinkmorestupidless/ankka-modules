@@ -16,7 +16,7 @@ import scala.concurrent.duration.*
  * before `restartService()` holds after it; the leases of an instance that died expire at the sweep and take the
  * player offline. The kit is one instance; a dead instance's connection is opened on the channel directly.
  */
-class ChannelSuite extends munit.FunSuite:
+class ChannelSuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   override val munitTimeout = 180.seconds
   private lazy val kit = SharedKit.kit
   private var open     = Vector.empty[SseReader]

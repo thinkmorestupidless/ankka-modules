@@ -11,7 +11,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.*
 
 /** T033 (US2; FR-010, SC-002): a request id is answered once per sub-brand; a repeat is the first answer. */
-class RepeatSuite extends munit.FunSuite with LogCapturing:
+class RepeatSuite extends munit.FunSuite with LogCapturing with Held:
   private lazy val kit = SharedKit.kit
 
   override def beforeEach(context: BeforeEach): Unit = kit.reset()

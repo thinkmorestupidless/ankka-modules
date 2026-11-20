@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets.UTF_8
 import java.time.Instant
 
 /** data-model.md's `AgentChannel`: the original's `AgentStreamConsumerSpec` and `AgentStreamRegistry`, as a poll. */
-class AgentChannelSuite extends munit.FunSuite:
+class AgentChannelSuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   private val at = Instant.parse("2026-11-07T10:00:00Z")
 
   private def kit(brand: String = "spinvibe") = EventSourcedTestKit.of(AgentChannel, brand)

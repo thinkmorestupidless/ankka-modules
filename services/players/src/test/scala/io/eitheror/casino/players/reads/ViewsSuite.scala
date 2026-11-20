@@ -10,7 +10,7 @@ import io.eitheror.casino.players.sessions.*
 import java.time.Instant
 
 /** The keyed views' folds and the players view's, on the kit (T016); a row per view over Postgres is T027's. */
-class ViewsSuite extends munit.FunSuite with LogCapturing:
+class ViewsSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.players.it.Held:
 
   private val at  = Instant.parse("2026-10-25T10:00:00Z")
   private val eur = Currency.unsafe("EUR")

@@ -28,11 +28,14 @@ object PlayerCaller:
    * Every player route with a player id in its path (T042): a token naming no player is `401
    * missing_token`, one naming another player `403 player_id_mismatch`.
    */
-  def matching(p: Principal, pathPlayerId: String)(f: PlayerCaller => Reply): Reply =
+  def matching(p: Principal, pathPlayerId: String)(f: PlayerCaller => Reply): Reply = matchingAs(p, pathPlayerId, identity)(f)
+
+  /** `matching` for a route whose answer is not `Reply` (the activity's CSV): its refusals made `A` by `as`. */
+  def matchingAs[A](p: Principal, pathPlayerId: String, as: Reply => com.thinkmorestupidless.ankka.http.Respond[A])(f: PlayerCaller => com.thinkmorestupidless.ankka.http.Respond[A]): com.thinkmorestupidless.ankka.http.Respond[A] =
     val c = of(p)
     c.playerId match
-      case None                           => refusal(401, "missing_token", "the token names no player")
-      case Some(id) if id != pathPlayerId => refusal(403, "player_id_mismatch", "Authenticated player does not match requested player ID")
+      case None                           => as(refusal(401, "missing_token", "the token names no player"))
+      case Some(id) if id != pathPlayerId => as(refusal(403, "player_id_mismatch", "Authenticated player does not match requested player ID"))
       case Some(_)                        => f(c)
 
 /**

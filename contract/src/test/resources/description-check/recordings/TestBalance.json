@@ -1,0 +1,20 @@
+{
+  "scenario": "a player reads a balance, a missing wallet, a refused status, a wrong field and a skipped step",
+  "runs": 2,
+  "steps": [
+    { "name": "allowed", "request": { "method": "GET", "path": "/v1/casino/players/goldvibe/wallets/USD/balance?x=1", "service": "wallet" },
+      "response": { "status": 200, "body": { "realBalance": "10.00", "currency": "USD" } } },
+    { "name": "named refusal", "request": { "method": "GET", "path": "/v1/casino/players/goldvibe/wallets/XYZ/balance", "service": "wallet" },
+      "response": { "status": 404, "body": { "error": "no wallet" } } },
+    { "name": "platform status", "request": { "method": "GET", "path": "/v1/casino/players/goldvibe/wallets/USD/balance", "service": "wallet" },
+      "response": { "status": 401, "body": null } },
+    { "name": "unnamed status", "request": { "method": "GET", "path": "/v1/casino/players/goldvibe/wallets/USD/balance", "service": "wallet" },
+      "response": { "status": 409, "body": { "error": "conflict" } } },
+    { "name": "field outside the schema", "request": { "method": "GET", "path": "/v1/casino/players/goldvibe/wallets/USD/balance", "service": "wallet" },
+      "response": { "status": 200, "body": { "realBalance": 10, "currency": "USD" } } },
+    { "name": "skipped", "request": { "method": "GET", "path": "/v1/casino/players/goldvibe/wallets/USD/balance", "service": "wallet" },
+      "response": { "status": 418, "body": null } },
+    { "name": "another host", "request": { "method": "GET", "path": "/v1/casino/players/goldvibe/wallets/USD/balance", "service": "players" },
+      "response": { "status": 409, "body": null } }
+  ]
+}

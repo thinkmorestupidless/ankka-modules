@@ -6,7 +6,7 @@ import java.time.{Duration, Instant}
 import scala.concurrent.duration.*
 
 /** SC-005: a fact's send is accepted within 60 s of the fact, healthy and after one 503. */
-class LatencySuite extends munit.FunSuite:
+class LatencySuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   override val munitTimeout = 180.seconds
   private lazy val kit   = SharedKit.kit
   private lazy val facts = Facts(kit)

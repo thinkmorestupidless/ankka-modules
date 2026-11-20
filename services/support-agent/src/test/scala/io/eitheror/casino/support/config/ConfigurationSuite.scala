@@ -5,7 +5,7 @@ import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
 import java.time.Instant
 
 /** data-model.md's `AgentConfiguration` and `ConfigVersion` (T020). */
-class ConfigurationSuite extends munit.FunSuite:
+class ConfigurationSuite extends munit.FunSuite with io.eitheror.casino.support.it.Held:
   private val at = Instant.parse("2026-11-09T10:00:00Z")
 
   private def note(v: Int) = ConfigNote(v, "op-1", Vector("enabled"), Map("enabled" -> "true"), at)

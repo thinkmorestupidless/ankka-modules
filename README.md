@@ -20,3 +20,8 @@ The player SDK (`sdk/player/`, spec 027) and the reference player site built on 
 `features/player-site/` to its behaviours with no browser, `just player-site-run` runs the site on
 this machine, `just player-site-features` runs `reference-site.feature` against the built site,
 and `just player-site-it` runs the client contract tests against an installation.
+
+Nine services describe their player routes (spec 031): `just describe <service>` writes
+`services/<service>/openapi.player.json` from the service's own routes, `just describe-check
+<service>` fails, naming each operation added, removed or changed, when the kept one is out of date,
+and `just descriptions` writes all nine, then the SDK's module clients from them.

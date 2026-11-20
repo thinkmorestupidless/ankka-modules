@@ -48,7 +48,10 @@ final class Kit(val brand: String = "goldvibe", realMoney: Boolean = false, befo
     keyDocuments = KeyDocuments.http(), now = () => clock)
 
   private val timers = TimerRuntime(200.millis)
-  private val server = HttpServer.at("127.0.0.1", 0)(GameProviderService.endpoints(settings)*)
+  /** The launch and the lobby's reads held to the kept description (spec 031 FR-015); `Held` asserts it after each test. */
+  val held = io.eitheror.casino.contract.port.HeldToPlayerRoutes(Kit.description, brand)
+  private val server = held.hold(HttpServer.at("127.0.0.1", 0)(GameProviderService.endpoints(settings)*))
+  Kit.started.add(this): Unit
 
   GameProviderService.wire(settings, timers)
   RefreshRuntime.sleep = _ => ()
@@ -71,10 +74,12 @@ final class Kit(val brand: String = "goldvibe", realMoney: Boolean = false, befo
     RefreshRuntime.views = Some(testKit.service.viewClient)
 
   def stop(): Unit =
+    Kit.started.remove(this)
     testKit.stop(); wallet.stop(); neighbours.stop(); st8.stop(); acme.stop()
 
   /** Clears the fakes and every cache, between scenarios. The database keeps what earlier scenarios wrote; ids are fresh per scenario. */
   def reset(): Unit =
+    held.violations.clear()
     wallet.reset(); neighbours.reset(); st8.reset(); acme.reset()
     settings.configurations(testKit.secrets).invalidate()
     CatalogueReads.shared(testKit.service.viewClient, brand, testKit.componentClient).invalidate()
@@ -159,6 +164,19 @@ final class Kit(val brand: String = "goldvibe", realMoney: Boolean = false, befo
   def money(json: (String, Any)*): JsonNode = Json.obj(json*)
 
 object Kit:
+  /** The kept description of the player routes (spec 031). */
+  val description: java.nio.file.Path =
+    java.nio.file.Paths.get(sys.props.getOrElse("casino.root", "../..")).resolve("services/game-provider/openapi.player.json")
+
+  /** Every kit started and not stopped, for `Held`. */
+  private[gameprovider] val started: java.util.Set[Kit] = java.util.concurrent.ConcurrentHashMap.newKeySet[Kit]()
+
+  /** Fails, naming each answer since the last check that a kit's description does not allow; clears them all. */
+  def assertHeld(): Unit =
+    import scala.jdk.CollectionConverters.*
+    val failures = started.asScala.toVector.flatMap(k => scala.util.Try(k.held.assertHeld()).failed.toOption)
+    failures.headOption.foreach(throw _)
+
   /** Stands in for Keycloak: what is tested is what the route classes decide once a token is verified. */
   def authenticate(brand: String): Acl = Acl.Authenticate { context =>
     context.header("authorization").map(_.stripPrefix("Bearer ")) match

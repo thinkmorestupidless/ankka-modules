@@ -14,7 +14,7 @@ import java.util.UUID
  * the records' non-personal fields kept, a late object removed by the next call, no certificate while the
  * store cannot be reached, and no other path deleting a recorded document's object.
  */
-class ErasureSuite extends munit.FunSuite with LogCapturing:
+class ErasureSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.kyc.it.Held:
   override def munitTimeout = scala.concurrent.duration.Duration(180, "s")
 
   private lazy val kit = SharedKit.kit

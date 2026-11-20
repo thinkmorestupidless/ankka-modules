@@ -8,7 +8,7 @@ import io.eitheror.casino.contract.port.Recording
  * to still differ. A step wire.md marks not carried is named in the test and answered as recorded; another service's
  * step is stood in for as [[Parity]] says.
  */
-class ParitySuite extends munit.FunSuite:
+class ParitySuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   override val munitTimeout = scala.concurrent.duration.Duration(300, "s")
 
   private val found = Parity.recordings()

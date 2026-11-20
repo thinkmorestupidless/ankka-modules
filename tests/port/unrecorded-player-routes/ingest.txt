@@ -1,0 +1,2 @@
+# No recording abandons a cashier session: the original's frontend abandoned by closing the page.
+POST /v1/cashier/sessions/{ticket}/abandon

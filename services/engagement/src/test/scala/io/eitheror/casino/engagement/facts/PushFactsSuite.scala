@@ -9,7 +9,7 @@ import io.eitheror.casino.engagement.channel.ChannelEvent.*
 import java.time.Instant
 
 /** contracts/facts.md's `casino.push`, from the channel's events: presence crossing zero, delivery of created items only. */
-class PushFactsSuite extends munit.FunSuite:
+class PushFactsSuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   private val at = Instant.parse("2026-11-07T12:00:00Z")
 
   test("the first open is online since then; a second open, and a close leaving one, make nothing"):

@@ -12,7 +12,7 @@ import java.time.LocalDate
 import java.util.UUID
 
 /** The operator's routes (US2, FR-002, FR-014, FR-018): who is admitted, and what each change leaves in `platform.audit`. */
-class OperatorSuite extends munit.FunSuite with LogCapturing:
+class OperatorSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.kyc.it.Held:
   override def munitTimeout = scala.concurrent.duration.Duration(180, "s")
 
   private lazy val kit = SharedKit.kit

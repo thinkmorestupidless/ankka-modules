@@ -12,7 +12,7 @@ import scala.concurrent.duration.*
  * has a player and a session of its own, since the database outlives scenarios. A step a story has not bound yet
  * fails, so each file is red until its story's tasks land.
  */
-abstract class SupportFeatures(file: String) extends GherkinSuite(s"../../features/support-agent/$file") with LogCapturing:
+abstract class SupportFeatures(file: String) extends GherkinSuite(s"../../features/support-agent/$file") with LogCapturing with io.eitheror.casino.support.it.Held:
   override val munitTimeout: Duration = 300.seconds
 
   protected def kit: Kit = SharedKit.kit

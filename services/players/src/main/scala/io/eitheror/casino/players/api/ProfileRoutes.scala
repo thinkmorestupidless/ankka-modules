@@ -105,14 +105,14 @@ final class ProfileRoutes(ctx: Ctx):
    * The original's history: `format=json` or, by default, a CSV attachment; newest first. Paged here
    * (`page`, 100 a page) where the original capped at 500, and filtered by `category`.
    */
-  def activity(p: Principal, playerId: String, category: Option[String], page: Option[String], format: Option[String]): Reply =
-    PlayerCaller.matching(p, playerId) { _ =>
+  def activity(p: Principal, playerId: String, category: Option[String], page: Option[String], format: Option[String]): Respond[Bytes] =
+    PlayerCaller.matchingAs(p, playerId, Answers.bytes) { _ =>
       val cat  = category.map(_.trim.toLowerCase(Locale.ROOT)).filter(ActivityCategory.all.contains)
       val n    = page.flatMap(_.toIntOption).filter(_ >= 1).getOrElse(1)
       val rows = ActivityView.ofPlayer(views, playerId, cat, (n - 1) * PageSize, PageSize)
       if format.exists(_.equalsIgnoreCase("json")) then
-        ok(Json.obj("events" -> Json.arr(rows.map(event)*), "from" -> null, "until" -> null, "generatedAt" -> now().toString,
-          "page" -> n))
+        Answers.bytes(ok(Json.obj("events" -> Json.arr(rows.map(event)*), "from" -> null, "until" -> null,
+          "generatedAt" -> now().toString, "page" -> n)))
       else
         val day = LocalDate.ofInstant(now(), ZoneOffset.UTC)
         Respond(Bytes("text/csv", csv(rows).getBytes(UTF_8)), 200,

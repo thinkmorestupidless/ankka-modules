@@ -14,7 +14,7 @@ import java.util.UUID
  * `WalletStep` wired to `Reward` (research R5) over the whole service: an award activates the reward, a timer's
  * forfeit expires it, and an award landing on a reward that ended while it was in flight cancels the record.
  */
-class WiringSuite extends munit.FunSuite:
+class WiringSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit = SharedKit.kit
   override def munitTimeout = scala.concurrent.duration.Duration(120, "s")
   override def beforeEach(context: BeforeEach): Unit = kit.reset()

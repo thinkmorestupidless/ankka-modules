@@ -2,6 +2,7 @@ import { behaviour, machine, type Answer, type Behaviour } from "../behaviour.ts
 import type { Clock } from "../clock.ts";
 import type { CoreClient } from "../core/client.ts";
 import type { EngagementClient, Push } from "./client.ts";
+import { pushEvent } from "./events.ts";
 
 /** The inbox behaviour's steps (data-model.md, *Inbox*). */
 export type InboxStep =
@@ -73,12 +74,13 @@ export function inboxBehaviour(options: { engagement: EngagementClient; core: Co
       try {
         for await (const e of r.value.events) {
           if (mine !== generation) return;
-          if (e.event === "ready") {
+          const event = pushEvent(e);
+          if (event === "ready") {
             attempt = 0;
             m.set({ kind: "connected", allowed: ["refresh"], unread: unread ?? 0 });
             read();
-          } else if (e.event === "signal") read();
-          else if (e.event === "closing") break;
+          } else if (event === "signal") read();
+          else if (event === "closing") break;
         }
       } catch {
         // a connection that broke is one that ended

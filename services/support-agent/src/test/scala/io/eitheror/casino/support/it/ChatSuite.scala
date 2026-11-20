@@ -10,7 +10,7 @@ import scala.concurrent.duration.*
  * The chat route (contracts/routes.md; T028, T037): the turn streamed as `delta`s then `done`, its first frame within
  * 5 s at the 95th percentile on the scripted provider (SC-002), and the refusals made before the stream opens.
  */
-class ChatSuite extends munit.FunSuite:
+class ChatSuite extends munit.FunSuite with io.eitheror.casino.support.it.Held:
   override val munitTimeout = scala.concurrent.duration.Duration(300, "s")
   private lazy val kit = SharedKit.kit
 

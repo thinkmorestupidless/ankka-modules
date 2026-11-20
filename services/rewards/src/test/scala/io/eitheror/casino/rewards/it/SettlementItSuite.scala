@@ -21,7 +21,7 @@ import scala.concurrent.duration.*
  * (`<reward>/winnings`) below every open record with a 30-day expiry; nothing won calls nothing; a round after
  * finalisation is paid on its own under `<reward>/late/<round>`. Each destination with and without an active reward.
  */
-class SettlementItSuite extends munit.FunSuite:
+class SettlementItSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit = SharedKit.kit
   override def munitTimeout = Duration(120, "s")
   override def beforeEach(context: BeforeEach): Unit = kit.reset()

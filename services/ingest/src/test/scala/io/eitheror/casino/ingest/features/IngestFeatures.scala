@@ -10,7 +10,7 @@ import scala.concurrent.duration.*
  * `FakeMerchant`, a sub-brand a key issued through the broker, and every id a scenario names is its own,
  * since the database outlives scenarios.
  */
-abstract class IngestFeatures(file: String) extends GherkinSuite(s"../../features/payments/$file") with LogCapturing:
+abstract class IngestFeatures(file: String) extends GherkinSuite(s"../../features/payments/$file") with LogCapturing with io.eitheror.casino.ingest.it.Held:
   override val munitTimeout: Duration = 300.seconds
 
   protected def kit: Kit = SharedKit.kit

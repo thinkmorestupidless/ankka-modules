@@ -12,7 +12,7 @@ import scala.jdk.CollectionConverters.*
  * the brand's order with the reason each is visible; `GET /rewards/{playerId}/grants` answers the player's rewards to
  * the player and to `support-agent` by its identity, with the wallet's wagering.
  */
-class PlayerGrantsSuite extends munit.FunSuite:
+class PlayerGrantsSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit   = SharedKit.kit
   private lazy val paths = ClaimPaths(kit)
   override def munitTimeout = scala.concurrent.duration.Duration(300, "s")

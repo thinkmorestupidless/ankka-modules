@@ -59,7 +59,10 @@ final class Kit(base: Settings = Kit.Base):
 
   private val timers = TimerRuntime(pollInterval = 200.millis, clock = clock)
   SupportRuntime.timers = () => timers.timerScheduler
-  private val server = HttpServer.at("127.0.0.1", 0)(SupportService.endpoints(() => Kit.authenticate)*)
+  /** The player routes held to the kept description (spec 031 FR-015); `Held` asserts it after each test. */
+  val held = io.eitheror.casino.contract.port.HeldToPlayerRoutes(Kit.description, slug)
+  private val server = held.hold(HttpServer.at("127.0.0.1", 0)(SupportService.endpoints(() => Kit.authenticate)*))
+  Kit.started.add(this): Unit
   private val agents = SupportService.agents(settings, compactor, Some(judge))
 
   val testKit: AnkkaTestKit = AnkkaTestKit.start(
@@ -81,6 +84,7 @@ final class Kit(base: Settings = Kit.Base):
   def baseUrl    = s"http://127.0.0.1:${server.boundPort.get}"
 
   def stop(): Unit =
+    Kit.started.remove(this)
     testKit.stop()
     fakes.foreach(_.stop())
 
@@ -93,6 +97,7 @@ final class Kit(base: Settings = Kit.Base):
    * it, and ankka's resumed turn takes that test's scripted reply.
    */
   def reset(s: Settings = Kit.Base): Unit =
+    held.violations.clear()
     chatted.keys.foreach { session =>
       val calls = components.forAgent(Motoko.session(session))
       scala.util.Try(calls.approvals()).getOrElse(Vector.empty).foreach { a =>
@@ -166,6 +171,19 @@ final class Kit(base: Settings = Kit.Base):
   def eventually[A](what: String, within: FiniteDuration = 30.seconds)(f: => Option[A]): A = testKit.eventually(what, within)(f)
 
 object Kit:
+  /** The kept description of the player routes (spec 031). */
+  val description: java.nio.file.Path =
+    java.nio.file.Paths.get(sys.props.getOrElse("casino.root", "../..")).resolve("services/support-agent/openapi.player.json")
+
+  /** Every kit started and not stopped, for `Held`. */
+  private[support] val started: java.util.Set[Kit] = java.util.concurrent.ConcurrentHashMap.newKeySet[Kit]()
+
+  /** Fails, naming each answer since the last check that a kit's description does not allow; clears them all. */
+  def assertHeld(): Unit =
+    import scala.jdk.CollectionConverters.*
+    val failures = started.asScala.toVector.flatMap(k => scala.util.Try(k.held.assertHeld()).failed.toOption)
+    failures.headOption.foreach(throw _)
+
   /** The judge is on, so every turn runs the judged guardrails; each reset has it answer no to both. */
   val Base: Settings = Settings(brand = FakeNeighbours.Brand, project = FakeNeighbours.Brand, judge = Some("jev"))
 

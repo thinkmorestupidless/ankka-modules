@@ -17,7 +17,7 @@ import java.util.UUID
  * its source, code and tag and a `ce-id` of `<reward>/<seq>`; a transition applied twice is one fact; an operator's
  * activation and revoke reach `platform.audit`, the reason on neither topic.
  */
-class PublishersSuite extends munit.FunSuite:
+class PublishersSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit = SharedKit.kit
   override def munitTimeout = scala.concurrent.duration.Duration(180, "s")
   override def beforeEach(context: BeforeEach): Unit = kit.reset()

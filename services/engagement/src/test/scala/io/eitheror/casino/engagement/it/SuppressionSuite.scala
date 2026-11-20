@@ -17,7 +17,7 @@ import scala.concurrent.duration.*
  * attributes, and a service class send is made; a closed player is refused both. The same holds at an operator's retry
  * of a parked send, and `rg_case_closed` and `player_reopened` lift it.
  */
-class SuppressionSuite extends munit.FunSuite:
+class SuppressionSuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   override val munitTimeout = 300.seconds
   private lazy val kit   = SharedKit.kit
   private lazy val facts = Facts(kit)

@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { routes as core } from "../core/routes.ts";
+import { Refreshed, SignedIn } from "../core/shapes.ts";
 import type { Route } from "../route.ts";
 import { clearCookie, cookieName, readCookies, secondsLeft, setCookie, ThirtyDays } from "./cookies.ts";
 import { traceHeaders, visitorHeaders, type ServerDeps } from "./context.ts";
@@ -81,9 +82,9 @@ export async function refreshWith(deps: ServerDeps, request: Request, token: str
   }, deps.fetch);
   if (!answer.answered || answer.response.status >= 500) return undefined;
   if (answer.response.status !== 200) return "expired";
-  const body = (await readJson(answer.response)) as { accessToken?: unknown; refreshToken?: unknown } | null;
-  if (typeof body?.accessToken !== "string" || typeof body.refreshToken !== "string") return undefined;
-  return { access: body.accessToken, refresh: body.refreshToken };
+  const body = Refreshed.safeParse(await readJson(answer.response));
+  if (!body.success) return undefined;
+  return { access: body.data.accessToken, refresh: body.data.refreshToken };
 }
 
 /** The site server's session routes (contracts/site-server.md, *Session routes*). */
@@ -105,10 +106,11 @@ export function sessionRoutes(deps: ServerDeps): Hono {
     if (!answer.answered) return json(503, { error: "service_unavailable", service: "players" });
     const read = await readJson(answer.response);
     if (answer.response.status !== 200) return json(answer.response.status, read);
-    const b = read as { token?: unknown; refreshToken?: unknown; playerId?: unknown; brandId?: unknown; currency?: unknown; country?: unknown } | null;
-    if (typeof b?.token !== "string" || typeof b.refreshToken !== "string" || typeof b.playerId !== "string") return json(502, { error: "malformed_answer", service: "players" });
-    const player = { playerId: b.playerId, currency: String(b.currency ?? ""), country: String(b.country ?? "") };
-    return json(200, { playerId: player.playerId, brand: typeof b.brandId === "string" ? b.brandId : config.brand, currency: player.currency, country: player.country }, issued(deps, b.token, b.refreshToken, player));
+    const parsed = SignedIn.safeParse(read);
+    if (!parsed.success) return json(502, { error: "malformed_answer", service: "players" });
+    const b = parsed.data;
+    const player = { playerId: b.playerId, currency: b.currency ?? "", country: b.country ?? "" };
+    return json(200, { playerId: player.playerId, brand: b.brandId, currency: player.currency, country: player.country }, issued(deps, b.token, b.refreshToken, player));
   });
 
   app.post("/api/session/refresh", async (c) => {

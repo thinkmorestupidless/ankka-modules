@@ -9,7 +9,7 @@ import io.eitheror.casino.engagement.it.SharedKit
  * and data keys, and the CRM calls as [[Parity]] compares them. A marked divergence is excepted and required to still
  * differ, and is named in the test.
  */
-class ParitySuite extends munit.FunSuite:
+class ParitySuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   override val munitTimeout = scala.concurrent.duration.Duration(300, "s")
   private lazy val kit = SharedKit.kit
 

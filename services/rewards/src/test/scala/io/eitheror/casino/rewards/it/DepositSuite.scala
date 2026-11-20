@@ -15,7 +15,7 @@ import java.util.UUID
  * The deposit path (FR-012; research R4) over the whole service: the wallet's `deposit_confirmed` on the broker, read
  * by `MoneyConsumer`, decides the player's pending selection on `PlayerRewards`, and the award goes to the wallet.
  */
-class DepositSuite extends munit.FunSuite:
+class DepositSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit = SharedKit.kit
   override def munitTimeout = scala.concurrent.duration.Duration(120, "s")
   override def beforeEach(context: BeforeEach): Unit = kit.reset()

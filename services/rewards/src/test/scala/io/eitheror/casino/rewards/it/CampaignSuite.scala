@@ -14,7 +14,7 @@ import java.time.Duration as JDuration
  * route resolving a stale offer by its role once, answering `alreadyProcessed` for a claim the player holds, a
  * decline's reason alone, and sizing a deposit match from the player's last deposit, never from the caller.
  */
-class CampaignSuite extends munit.FunSuite:
+class CampaignSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit   = SharedKit.kit
   private lazy val paths = ClaimPaths(kit)
   override def munitTimeout = scala.concurrent.duration.Duration(300, "s")

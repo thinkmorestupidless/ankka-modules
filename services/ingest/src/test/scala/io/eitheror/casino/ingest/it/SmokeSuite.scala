@@ -10,7 +10,7 @@ import java.time.Instant
 import java.util.UUID
 
 /** T022: the service starts and refreshes its keys, and each prefix admits its audience and no other (contracts/routes.md). */
-class SmokeSuite extends munit.FunSuite with LogCapturing:
+class SmokeSuite extends munit.FunSuite with LogCapturing with Held:
   private val raw = Vector("mk_smoke_one", "mk_smoke_two")
   private lazy val kit = Kit(keys = raw.zipWithIndex.map((k, i) => (Digests.ofKey(k), s"k-smoke-$i", "sb-smoke")))
 

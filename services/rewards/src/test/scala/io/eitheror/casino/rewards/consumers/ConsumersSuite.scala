@@ -11,7 +11,7 @@ import io.eitheror.casino.rewards.reward.{CloseReason, ForfeitReason, RewardEven
 import java.time.Instant
 
 /** data-model.md's `MoneyConsumer` and `IndexConsumer`: what each fact or event asks, and what is not read. */
-class ConsumersSuite extends munit.FunSuite with LogCapturing:
+class ConsumersSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.rewards.it.Held:
   private val at  = Instant.parse("2026-11-01T12:00:00Z")
   private val Eur = Currency.unsafe("EUR")
   private def m(v: Long) = MinorUnits.unsafe(v)

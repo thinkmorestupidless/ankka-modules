@@ -11,7 +11,7 @@ import java.nio.file.Files
  * no recording can reach (its *Demonstrated by* says "no recording" or names no recording) is reported
  * ignored as unhit.
  */
-class CoverageSuite extends munit.FunSuite with LogCapturing:
+class CoverageSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.kyc.it.Held:
   private val paths           = Parity.recordings()
   private lazy val recordings = paths.map(p => Recording.load(p).fold(e => throw AssertionError(e), identity))
 

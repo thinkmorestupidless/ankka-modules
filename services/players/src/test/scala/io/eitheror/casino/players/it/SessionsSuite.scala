@@ -12,7 +12,7 @@ import java.time.Instant
 import scala.concurrent.duration.*
 
 /** US2's sign-in cases through the routes (FR-010 to FR-015, SC-003, SC-007). */
-class SessionsSuite extends munit.FunSuite with LogCapturing:
+class SessionsSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.players.it.Held:
   override val munitTimeout = 120.seconds
   private lazy val kit = SharedKit.kit
 

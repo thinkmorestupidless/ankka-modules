@@ -12,7 +12,7 @@ import java.util.UUID
  * (`services/game-provider/.../clients/Neighbours.scala`), so a drift in shape fails here. A refusal is an
  * answer, never read as an outage (R5).
  */
-class CallersSuite extends munit.FunSuite with LogCapturing:
+class CallersSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.kyc.it.Held:
   override def munitTimeout = scala.concurrent.duration.Duration(180, "s")
 
   private lazy val kit = SharedKit.kit

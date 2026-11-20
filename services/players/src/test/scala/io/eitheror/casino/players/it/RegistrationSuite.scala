@@ -12,7 +12,7 @@ import scala.concurrent.duration.*
 import scala.jdk.CollectionConverters.*
 
 /** US1 through the routes on the kit (FR-001 to FR-006, SC-007; quickstart §5). */
-class RegistrationSuite extends munit.FunSuite with LogCapturing:
+class RegistrationSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.players.it.Held:
   override val munitTimeout = 120.seconds
   private lazy val kit = SharedKit.kit
 

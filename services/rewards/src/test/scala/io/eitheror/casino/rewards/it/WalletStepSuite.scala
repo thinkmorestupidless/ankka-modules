@@ -14,7 +14,7 @@ import scala.jdk.CollectionConverters.*
  * route keyed as R5's table says, every kind of answer the wallet gives, a transport failure tried again, a repeat
  * start, and the delivery receiving exactly one answer per step.
  */
-class WalletStepSuite extends munit.FunSuite:
+class WalletStepSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit = SharedKit.kit
   override def munitTimeout = scala.concurrent.duration.Duration(120, "s")
 

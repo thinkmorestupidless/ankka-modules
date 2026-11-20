@@ -8,7 +8,7 @@ import io.eitheror.casino.engagement.channel.AgentTicketCommand.{Issue, Redeem}
 import java.time.Instant
 
 /** data-model.md's `AgentTicket`: the original's `AgentStreamTicketStoreSpec`, and why each refusal was made. */
-class AgentTicketSuite extends munit.FunSuite:
+class AgentTicketSuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   private val at = Instant.parse("2026-11-07T10:00:00Z")
 
   private def issued(ticket: String = "t-1", brand: String = "brand-a") =

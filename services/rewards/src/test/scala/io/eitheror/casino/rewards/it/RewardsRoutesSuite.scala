@@ -6,7 +6,7 @@ import io.eitheror.casino.rewards.Json.*
 import java.util.UUID
 
 /** `/rewards`' refusals and the state with nothing held (contracts/routes.md); the paths that award are offers.feature's. */
-class RewardsRoutesSuite extends munit.FunSuite:
+class RewardsRoutesSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit = SharedKit.kit
   override def munitTimeout = scala.concurrent.duration.Duration(120, "s")
   override def beforeEach(context: BeforeEach): Unit = kit.reset()

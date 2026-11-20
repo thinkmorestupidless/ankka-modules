@@ -15,7 +15,7 @@ import scala.concurrent.duration.*
  * reason, every refusal before the stream opens, and two devices converging on a read. The stream's times are the
  * kit's clock, moved a minute at most at a time and waited on until the stream has ticked.
  */
-class StreamSuite extends munit.FunSuite:
+class StreamSuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   override val munitTimeout = 180.seconds
   private lazy val kit = SharedKit.kit
   private var open     = Vector.empty[SseReader]

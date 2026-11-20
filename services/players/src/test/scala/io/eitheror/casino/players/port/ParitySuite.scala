@@ -10,7 +10,7 @@ import io.eitheror.casino.players.it.SharedKit
  * replayed against the whole service and its answer compared field by field with the original's. With
  * no recording yet (T029 makes them), the suite says so as an ignored test rather than passing empty.
  */
-class ParitySuite extends munit.FunSuite with LogCapturing:
+class ParitySuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.players.it.Held:
   override val munitTimeout = scala.concurrent.duration.Duration(300, "s")
 
   private val found = Parity.recordings()

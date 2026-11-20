@@ -7,7 +7,7 @@ import io.eitheror.casino.rewards.offers.ProgrammeEntry
 import java.time.{Duration, Instant}
 
 /** data-model.md's `CodeDocument` (research R13): the copy kept, its codes normalised, and when it is stale (FR-021). */
-class CodeDocumentSuite extends munit.FunSuite:
+class CodeDocumentSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private val at = Instant.parse("2026-11-01T12:00:00Z")
   private val doc = ProgrammeDocument("goldvibe", 7L, Some(at), Vector(
     ProgrammeCode(" AFF100 ", "o-1", "tag-1"), ProgrammeCode("aff100", "o-2", "tag-2"), ProgrammeCode("Spring", "o-3", ""),

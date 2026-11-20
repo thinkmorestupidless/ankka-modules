@@ -12,7 +12,7 @@ import java.net.http.{HttpClient, HttpRequest, HttpResponse}
  * an offer of one, two and no maximum; two selections at once; and the wallet refusing `BONUS_ALREADY_ACTIVE`, which
  * is recorded on the reward and leaves it as it was, and a later claim that is awarded.
  */
-class ConcurrencySuite extends munit.FunSuite:
+class ConcurrencySuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit   = SharedKit.kit
   private lazy val paths = ClaimPaths(kit)
   override def munitTimeout = scala.concurrent.duration.Duration(180, "s")

@@ -13,7 +13,7 @@ import scala.concurrent.duration.*
  * Spec 018 FR-019 (T048): an erasure request writes one record per state, filed, held, applied and
  * completed, on the brand's `platform.audit`, under the erasure's correlation id, with nothing personal.
  */
-class ErasureAuditSuite extends munit.FunSuite with LogCapturing:
+class ErasureAuditSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.players.it.Held:
   override val munitTimeout = 180.seconds
   private lazy val kit = SharedKit.kit
 

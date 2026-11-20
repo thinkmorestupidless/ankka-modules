@@ -1,9 +1,9 @@
-import { z } from "zod";
 import { minorOnWire, readMajor, type Amount } from "../amount.ts";
 import { ask, row, type Result } from "../client.ts";
 import { refusal } from "../refusal.ts";
 import type { Transport } from "../transport.ts";
 import { routes } from "./routes.ts";
+import * as shapes from "./shapes.ts";
 
 /** What a visitor gives to register (players' `POST /register`). */
 export interface Registration {
@@ -59,30 +59,7 @@ export interface Balance {
   readonly available: Amount;
 }
 
-const Registered = z.object({ playerId: z.string(), status: z.string() });
-const Verified = z.object({ status: z.string() }).partial().passthrough();
-const Resent = z.object({ result: z.string() }).partial().passthrough();
-const Anything = z.unknown();
-const Profile = z.record(z.string(), z.unknown());
-const Updated = z.object({ updated: z.boolean() }).partial().passthrough();
-const opt = z.string().nullish().transform((v) => v ?? undefined);
-const WireTerminal = z.object({ terminalEntityId: z.string(), name: z.string().nullish(), scheme: z.string(), gateway: opt, supportedCurrencies: z.array(z.string()).nullish() });
-const Started = z.object({ cashierTicket: z.string().min(1), terminals: z.array(WireTerminal), requestId: z.string() });
-const Submitted = z.object({ paymentId: z.string(), status: z.string() });
-const WirePayment = z.object({ status: z.string(), redirectUrl: opt, paymentAddress: opt, cryptoAmount: opt, cryptoCurrency: opt, validUntil: opt, failureCode: opt });
-const WireSession = z.object({ sessionId: z.string().optional(), status: z.string(), lastBetAt: z.string().nullish() });
-const Ended = z.object({ status: z.string() }).partial().passthrough();
-const Country = z.object({ country: z.string().nullish(), dialCode: z.string().nullish() });
-const Protection = z.object({
-  realityCheckIntervalMinutes: z.number().int().positive().nullish().catch(null),
-  isCoolingOff: z.boolean().catch(false).default(false),
-  coolingOffUntil: z.string().nullish().catch(null),
-});
-const Unread = z.object({ unreadCount: z.number().int().nonnegative() });
-const Acknowledged = z.object({ acknowledged: z.boolean() }).partial().passthrough();
-const MajorBalance = z.object({ realBalance: z.string(), bonusBalance: z.string(), available: z.string().nullish(), currency: z.string() });
-
-const terminal = (t: z.infer<typeof WireTerminal>): Terminal => ({
+const terminal = (t: NonNullable<shapes.Started["terminals"]>[number]): Terminal => ({
   id: t.terminalEntityId,
   name: t.name ?? "",
   scheme: t.scheme,
@@ -91,7 +68,15 @@ const terminal = (t: z.infer<typeof WireTerminal>): Terminal => ({
 });
 
 /** A payment as the page is given it: `failureReason` and the rest of the read are not passed on. */
-const payment = (p: z.infer<typeof WirePayment>): Payment => Object.fromEntries(Object.entries(p).filter(([, v]) => v !== undefined)) as unknown as Payment;
+const payment = (p: shapes.WirePayment): Payment => ({
+  status: p.status,
+  ...(typeof p.redirectUrl === "string" ? { redirectUrl: p.redirectUrl } : {}),
+  ...(typeof p.paymentAddress === "string" ? { paymentAddress: p.paymentAddress } : {}),
+  ...(typeof p.cryptoAmount === "string" ? { cryptoAmount: p.cryptoAmount } : {}),
+  ...(typeof p.cryptoCurrency === "string" ? { cryptoCurrency: p.cryptoCurrency } : {}),
+  ...(typeof p.validUntil === "string" ? { validUntil: p.validUntil } : {}),
+  ...(typeof p.failureCode === "string" ? { failureCode: p.failureCode } : {}),
+});
 
 const customer: Record<keyof CustomerDetails, string> = {
   firstName: "customerFirstName",
@@ -107,15 +92,15 @@ const customer: Record<keyof CustomerDetails, string> = {
 
 /** `core`'s client (contracts/module-clients.md): one function per row a page may call. */
 export interface CoreClient {
-  register(r: Registration): Promise<Result<z.infer<typeof Registered>>>;
-  verifyEmail(token: string): Promise<Result<z.infer<typeof Verified>>>;
-  resendVerification(email: string): Promise<Result<z.infer<typeof Resent>>>;
+  register(r: Registration): Promise<Result<{ playerId: string; status: string }>>;
+  verifyEmail(token: string): Promise<Result<{ status?: string }>>;
+  resendVerification(email: string): Promise<Result<{ result?: string }>>;
   requestPasswordReset(email: string): Promise<Result<unknown>>;
   profile(): Promise<Result<Record<string, unknown>>>;
   changeProfile(fields: Record<string, string>): Promise<Result<unknown>>;
   startDeposit(amount: Amount, requestId: string): Promise<Result<{ cashierTicket: string; terminals: Terminal[]; requestId: string }>>;
   balance(currency: string): Promise<Result<Balance>>;
-  submitCashier(ticket: string, terminalId: string, options?: { coin?: string; details?: CustomerDetails }): Promise<Result<z.infer<typeof Submitted>>>;
+  submitCashier(ticket: string, terminalId: string, options?: { coin?: string; details?: CustomerDetails }): Promise<Result<{ paymentId: string; status: string }>>;
   /** Sent with `keepalive`, so it outlives the page; nobody waits on it. */
   abandonCashier(ticket: string): Promise<Result<unknown>>;
   payment(ticket: string, paymentId: string): Promise<Result<Payment>>;
@@ -137,31 +122,34 @@ export function coreClient(transport: Transport, player: () => string | null = (
   const me = () => ({ player: player() ?? "" });
   const ticket = (t: string) => ({ cashierTicket: t });
   return {
-    register: (r) => ask(transport, row(routes, "register"), Registered, { body: r }),
-    verifyEmail: (token) => ask(transport, row(routes, "verifyEmail"), Verified, { body: { token } }),
-    resendVerification: (email) => ask(transport, row(routes, "resendVerification"), Resent, { body: { email } }),
-    requestPasswordReset: (email) => ask(transport, row(routes, "requestPasswordReset"), Anything, { body: { email } }),
-    profile: () => ask(transport, row(routes, "profile"), Profile, { path: me() }),
-    changeProfile: (fields) => ask(transport, row(routes, "changeProfile"), Updated, { path: me(), body: fields }),
+    register: (r) => ask(transport, row(routes, "register"), shapes.Registered, { body: { ...r } satisfies shapes.Register }),
+    verifyEmail: (token) => ask(transport, row(routes, "verifyEmail"), shapes.Verified, { body: { token } satisfies shapes.VerifyEmail }),
+    resendVerification: (email) => ask(transport, row(routes, "resendVerification"), shapes.Resent, { body: { email } satisfies shapes.ResendVerification }),
+    requestPasswordReset: (email) => ask(transport, row(routes, "requestPasswordReset"), shapes.ResetRequested, { body: { email } satisfies shapes.RequestPasswordReset }),
+    profile: () => ask(transport, row(routes, "profile"), shapes.Profile, { path: me() }),
+    changeProfile: (fields) => ask(transport, row(routes, "changeProfile"), shapes.Updated, { path: me(), body: fields satisfies shapes.ProfileEdit }),
     async startDeposit(amount, requestId) {
-      const r = await ask(transport, row(routes, "startDeposit"), Started, { path: me(), body: { amount: minorOnWire(amount), currency: amount.currency, requestId } });
-      return r.ok ? { ok: true, value: { cashierTicket: r.value.cashierTicket, terminals: r.value.terminals.map(terminal), requestId: r.value.requestId } } : r;
+      const r = await ask(transport, row(routes, "startDeposit"), shapes.Started, { path: me(), body: { amount: minorOnWire(amount), currency: amount.currency, requestId } satisfies shapes.StartDeposit });
+      if (!r.ok) return r;
+      // A cashier session with no ticket is none: the description says a string, the cashier needs one.
+      if (r.value.cashierTicket === "") return { ok: false, refusal: refusal("malformed_answer", 200, {}, "players") };
+      return { ok: true, value: { cashierTicket: r.value.cashierTicket, terminals: (r.value.terminals ?? []).map(terminal), requestId: r.value.requestId } };
     },
     async balance(currency) {
-      const r = await ask(transport, row(routes, "balance"), MajorBalance, { path: { currency } });
+      const r = await ask(transport, row(routes, "balance"), shapes.MajorBalance, { path: { currency } });
       if (!r.ok) return r;
       const real = readMajor(r.value.realBalance, currency);
       const restricted = readMajor(r.value.bonusBalance, currency);
-      const available = readMajor(r.value.available ?? r.value.realBalance, currency);
+      const available = readMajor(r.value.available, currency);
       // An amount that does not fit its currency is refused, never rounded (FR-037).
       if (!real.ok || !restricted.ok || !available.ok) return { ok: false, refusal: refusal("malformed_amount", 200, undefined, "wallet") };
       return { ok: true, value: { real: real.amount, restricted: restricted.amount, available: available.amount } };
     },
     async submitCashier(t, terminalId, options = {}) {
-      const body: Record<string, string> = { selectedTerminalEntityId: terminalId };
+      const body: shapes.Submit & Record<string, string> = { selectedTerminalEntityId: terminalId };
       if (options.coin) body.cryptoCurrency = options.coin;
       for (const [k, v] of Object.entries(options.details ?? {})) if (v) body[customer[k as keyof CustomerDetails]] = v;
-      const r = await ask(transport, row(routes, "submitCashier"), Submitted, { headers: ticket(t), body, words: true });
+      const r = await ask(transport, row(routes, "submitCashier"), shapes.Submitted, { headers: ticket(t), body, words: true });
       // Words are passed on from a provider's rejection only (FR-022); every other refusal's are dropped.
       if (!r.ok && r.refusal.code !== "PAYMENT_REJECTED" && r.refusal.words !== undefined) {
         const { words: _dropped, ...kept } = r.refusal;
@@ -169,27 +157,27 @@ export function coreClient(transport: Transport, player: () => string | null = (
       }
       return r;
     },
-    abandonCashier: (t) => ask(transport, row(routes, "abandonCashier"), Anything, { headers: ticket(t), keepalive: true }),
+    abandonCashier: (t) => ask(transport, row(routes, "abandonCashier"), shapes.Abandoned, { headers: ticket(t), keepalive: true }),
     async gameSession(sessionId) {
-      const r = await ask(transport, row(routes, "gameSession"), WireSession, { path: { sessionId } });
+      const r = await ask(transport, row(routes, "gameSession"), shapes.GameSession, { path: { sessionId } });
       return r.ok ? { ok: true, value: { status: r.value.status, lastBetAt: r.value.lastBetAt ?? null } } : r;
     },
-    endGameSession: (sessionId) => ask(transport, row(routes, "endGameSession"), Ended, { path: { sessionId }, keepalive: true }),
+    endGameSession: (sessionId) => ask(transport, row(routes, "endGameSession"), shapes.Ended, { path: { sessionId }, keepalive: true }),
     async country() {
-      const r = await ask(transport, row(routes, "country"), Country);
+      const r = await ask(transport, row(routes, "country"), shapes.Country);
       return r.ok ? { ok: true, value: { country: r.value.country ?? null, dialCode: r.value.dialCode ?? null } } : r;
     },
     async protection(currency) {
-      const r = await ask(transport, row(routes, "protection"), Protection, { path: me(), query: { currency } });
-      return r.ok ? { ok: true, value: { realityCheckIntervalMinutes: r.value.realityCheckIntervalMinutes ?? null, isCoolingOff: r.value.isCoolingOff, coolingOffUntil: r.value.coolingOffUntil ?? null } } : r;
+      const r = await ask(transport, row(routes, "protection"), shapes.Protection, { path: me(), query: { currency } });
+      return r.ok ? { ok: true, value: { realityCheckIntervalMinutes: (r.value.realityCheckIntervalMinutes ?? 0) > 0 ? r.value.realityCheckIntervalMinutes! : null, isCoolingOff: r.value.isCoolingOff, coolingOffUntil: r.value.coolingOffUntil ?? null } } : r;
     },
-    acknowledgeRealityCheck: (sessionId) => ask(transport, row(routes, "acknowledgeRealityCheck"), Acknowledged, { path: me(), body: { sessionId } }),
+    acknowledgeRealityCheck: (sessionId) => ask(transport, row(routes, "acknowledgeRealityCheck"), shapes.Acknowledged, { path: me(), body: { sessionId } satisfies shapes.Acknowledge }),
     async unread() {
-      const r = await ask(transport, row(routes, "unread"), Unread, { path: me() });
+      const r = await ask(transport, row(routes, "unread"), shapes.Unread, { path: me() });
       return r.ok ? { ok: true, value: r.value.unreadCount } : r;
     },
     async payment(t, paymentId) {
-      const r = await ask(transport, row(routes, "payment"), WirePayment, { headers: ticket(t), path: { paymentId } });
+      const r = await ask(transport, row(routes, "payment"), shapes.WirePayment, { headers: ticket(t), path: { paymentId } });
       return r.ok ? { ok: true, value: payment(r.value) } : r;
     },
   };

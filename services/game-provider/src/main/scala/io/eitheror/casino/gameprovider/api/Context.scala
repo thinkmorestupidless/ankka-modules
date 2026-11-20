@@ -1,6 +1,6 @@
 package io.eitheror.casino.gameprovider.api
 
-import com.thinkmorestupidless.ankka.http.{Acl, Bytes, EndpointClients, HttpProblem, Respond}
+import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpProblem, Respond}
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.sdk.SecretStore
 import io.eitheror.casino.contract.access.Routes
@@ -15,6 +15,7 @@ import io.eitheror.casino.gameprovider.provider.st8.St8Adapter
 import java.nio.charset.StandardCharsets.UTF_8
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
+import io.eitheror.casino.contract.http.Json as JsonBody
 
 /**
  * What the service is told at start: its brand (`CASINO_BRAND`, rendered by the brands tool), whether
@@ -102,14 +103,14 @@ final class Context(val settings: Settings, val clients: EndpointClients):
 
 object Context:
   /** A JSON answer under any status, written as the provider's or the frontend's shape is. */
-  def json(status: Int, body: JsonNode): Respond[Bytes] = Respond(Bytes("application/json", Json.render(body).getBytes(UTF_8)), status)
+  def json(status: Int, body: JsonNode): Respond[JsonBody] = Respond(JsonBody(Json.render(body).getBytes(UTF_8)), status)
 
-  def ok(body: JsonNode): Respond[Bytes] = json(200, body)
+  def ok(body: JsonNode): Respond[JsonBody] = json(200, body)
 
   /** A refusal `{error, …fields}`, the original's shape for the launch and the catalogue. */
-  def refuse(status: Int, error: String, fields: (String, Any)*): Respond[Bytes] =
+  def refuse(status: Int, error: String, fields: (String, Any)*): Respond[JsonBody] =
     json(status, Json.obj((("error" -> error) +: fields)*))
 
-  def noContent: Respond[Bytes] = Respond(Bytes("application/json", Array.emptyByteArray), 204)
+  def noContent: Respond[JsonBody] = Respond(JsonBody(Array.emptyByteArray), 204)
 
   def badRequest(message: String): Nothing = throw HttpProblem.badRequest(message)

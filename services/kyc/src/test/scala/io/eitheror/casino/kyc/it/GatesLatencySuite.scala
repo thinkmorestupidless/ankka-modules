@@ -9,7 +9,7 @@ import java.util.UUID
  * SC-003 and SC-006: each gate answers 1,000 asks with a p99 under 50 ms, calling nothing outside the
  * service (neither `players` nor the store hears of it), and a policy change is seen by the very next ask.
  */
-class GatesLatencySuite extends munit.FunSuite with LogCapturing:
+class GatesLatencySuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.kyc.it.Held:
   override def munitTimeout = scala.concurrent.duration.Duration(300, "s")
 
   private lazy val kit = SharedKit.kit

@@ -66,7 +66,10 @@ final class Kit(base: Settings = Kit.Base):
   LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).asInstanceOf[Logger].addAppender(log)
 
   private val timers = TimerRuntime(200.millis)
-  private val server = HttpServer.at("127.0.0.1", 0)(RewardsService.endpoints(() => Kit.authenticate, project = "local")*)
+  /** The player routes held to the kept description (spec 031 FR-015); `Held` asserts it after each test. */
+  val held = io.eitheror.casino.contract.port.HeldToPlayerRoutes(Kit.description, slug)
+  private val server = held.hold(HttpServer.at("127.0.0.1", 0)(RewardsService.endpoints(() => Kit.authenticate, project = "local")*))
+  Kit.started.add(this): Unit
 
   val testKit: AnkkaTestKit = AnkkaTestKit.start(
     RewardsService.descriptors,
@@ -83,6 +86,7 @@ final class Kit(base: Settings = Kit.Base):
   def baseUrl    = s"http://127.0.0.1:${server.boundPort.get}"
 
   def stop(): Unit =
+    Kit.started.remove(this)
     LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).asInstanceOf[Logger].detachAppender(log): Unit
     testKit.stop()
     wallet.stop()
@@ -92,6 +96,7 @@ final class Kit(base: Settings = Kit.Base):
 
   /** Back to the kit's own clock, settings and fakes, for the next suite. */
   def reset(): Unit =
+    held.violations.clear()
     wallet.reset()
     provider.reset()
     players.reset()
@@ -163,6 +168,19 @@ final class Kit(base: Settings = Kit.Base):
   def eventually[A](what: String, within: FiniteDuration = 30.seconds)(f: => Option[A]): A = testKit.eventually(what, within)(f)
 
 object Kit:
+  /** The kept description of the player routes (spec 031). */
+  val description: java.nio.file.Path =
+    java.nio.file.Paths.get(sys.props.getOrElse("casino.root", "../..")).resolve("services/rewards/openapi.player.json")
+
+  /** Every kit started and not stopped, for `Held`. */
+  private[rewards] val started: java.util.Set[Kit] = java.util.concurrent.ConcurrentHashMap.newKeySet[Kit]()
+
+  /** Fails, naming each answer since the last check that a kit's description does not allow; clears them all. */
+  def assertHeld(): Unit =
+    import scala.jdk.CollectionConverters.*
+    val failures = started.asScala.toVector.flatMap(k => scala.util.Try(k.held.assertHeld()).failed.toOption)
+    failures.headOption.foreach(throw _)
+
   /** The original's waits, shortened: the provider polled every 1 s, the code document refreshed every 2 s, stale after 6 s. */
   val Base: Settings = Settings(brand = "goldvibe", pollEvery = JDuration.ofSeconds(1), codesEvery = JDuration.ofSeconds(2),
     codesStaleAfter = JDuration.ofSeconds(6))

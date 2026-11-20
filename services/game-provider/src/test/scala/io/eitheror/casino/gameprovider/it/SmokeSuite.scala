@@ -6,7 +6,7 @@ import io.eitheror.casino.gameprovider.Json.*
 import io.eitheror.casino.gameprovider.catalogue.{Game, GameFields, UpsertGame}
 
 /** The money path end to end, on the whole service: the plumbing every other suite stands on. */
-class SmokeSuite extends munit.FunSuite with LogCapturing:
+class SmokeSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.gameprovider.it.Held:
   override val munitTimeout = scala.concurrent.duration.Duration(180, "s")
   private var kit: Kit = null
 

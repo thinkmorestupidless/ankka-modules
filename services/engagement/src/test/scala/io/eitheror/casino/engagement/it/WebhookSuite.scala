@@ -18,7 +18,7 @@ import scala.jdk.CollectionConverters.*
  * the fields the original reads and drops never relayed; and the webhook steps the original answered in the rewards
  * recordings (scenario 21, the free-spins grants, the duplicate check's) replayed with `rewards`' recorded answer.
  */
-class WebhookSuite extends munit.FunSuite:
+class WebhookSuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   override val munitTimeout = 180.seconds
   private lazy val kit = SharedKit.kit
 

@@ -8,7 +8,7 @@ import java.security.KeyPairGenerator
 import java.security.spec.ECGenParameterSpec
 
 /** SC-005: a callback signed with any key but the brand's is refused, 100 of 100, and reads and writes nothing. */
-class SignatureSuite extends munit.FunSuite with LogCapturing:
+class SignatureSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.gameprovider.it.Held:
   override val munitTimeout = scala.concurrent.duration.Duration(300, "s")
   private def kit = SharedKit.kit
 

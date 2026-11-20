@@ -16,7 +16,7 @@ import java.util.UUID
  * list newest first and their history of closed rewards; the operator's filters and pages; the free rounds the
  * provider may play. The view holds every suite's rewards, so each test's players are its own.
  */
-class RewardsViewSuite extends munit.FunSuite:
+class RewardsViewSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit = SharedKit.kit
   override def munitTimeout = scala.concurrent.duration.Duration(180, "s")
   override def beforeEach(context: BeforeEach): Unit = kit.reset()

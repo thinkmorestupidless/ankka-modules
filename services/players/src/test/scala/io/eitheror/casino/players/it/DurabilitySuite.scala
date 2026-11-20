@@ -16,7 +16,7 @@ import scala.concurrent.duration.*
  * again over the same database with a game session's timer set, an erasure in its hold and an export
  * under way, and each carries on from the database alone.
  */
-class DurabilitySuite extends munit.FunSuite with LogCapturing:
+class DurabilitySuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.players.it.Held:
   override val munitTimeout = 180.seconds
   private var kit: Kit = null
 

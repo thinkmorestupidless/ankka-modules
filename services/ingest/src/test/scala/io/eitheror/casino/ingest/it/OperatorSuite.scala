@@ -10,7 +10,7 @@ import java.util.UUID
 import scala.jdk.CollectionConverters.*
 
 /** T045 (US5; FR-014, FR-017, SC-007): payments operators read what a sub-brand sent, and the lost answers. */
-class OperatorSuite extends munit.FunSuite with LogCapturing:
+class OperatorSuite extends munit.FunSuite with LogCapturing with Held:
   private lazy val kit = Kit()
 
   override def afterAll(): Unit = kit.stop()

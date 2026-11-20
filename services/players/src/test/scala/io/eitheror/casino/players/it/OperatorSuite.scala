@@ -12,7 +12,7 @@ import java.time.Duration
 import scala.concurrent.duration.*
 
 /** T056: US5's operator, `kyc` and `responsible-gambling` routes (FR-031 to FR-034, FR-041, SC-002). */
-class OperatorSuite extends munit.FunSuite with LogCapturing:
+class OperatorSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.players.it.Held:
   override val munitTimeout = 120.seconds
   private lazy val kit = SharedKit.kit
 

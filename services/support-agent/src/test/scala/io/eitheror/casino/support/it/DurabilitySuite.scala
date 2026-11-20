@@ -16,7 +16,7 @@ import scala.concurrent.duration.*
  * size its oldest messages become a summary and the last ten stay verbatim; a stream the page drops mid-turn still
  * completes in the session, and the next turn's model is given that reply.
  */
-class DurabilitySuite extends munit.FunSuite:
+class DurabilitySuite extends munit.FunSuite with io.eitheror.casino.support.it.Held:
   override val munitTimeout = 180.seconds
   private lazy val kit = SharedKit.kit
 

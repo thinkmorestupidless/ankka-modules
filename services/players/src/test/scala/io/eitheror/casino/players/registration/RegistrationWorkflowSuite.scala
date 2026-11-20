@@ -17,7 +17,7 @@ import scala.concurrent.duration.*
  * realm's refusals, the undo of a realm user whose player could not be written (FR-002), the
  * verification send left pending, and two registrations of one address joining.
  */
-class RegistrationWorkflowSuite extends munit.FunSuite with LogCapturing:
+class RegistrationWorkflowSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.players.it.Held:
   override val munitTimeout = 180.seconds
   private lazy val kit = SharedKit.kit
 

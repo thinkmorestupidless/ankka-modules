@@ -287,6 +287,11 @@ the SDK's build fails until it is generated again.
   it holds of a player route MUST be checked against that route's description: the status and the
   answer's fields, after the translation the owning service's parity tests apply. A call the
   description does not allow fails the check, naming the recording, the route and what differed.
+  Where a service's translation runs one way only (the rebuild's answer into the original's
+  shape: players, kyc and rewards) or the answer is a stream (engagement, support-agent), the
+  recorded status alone is checked, and the fields are held by the parity replay running under
+  the service's held kit (FR-015). That is 34 of the 43 routes a recording calls;
+  `contracts/description-check.md` says which.
 - **FR-014**: The check MUST report the player routes no recording calls. That list is kept by name
   under `tests/port/`, one file per service, and the check fails when the reported list and the
   kept list differ, in either direction.

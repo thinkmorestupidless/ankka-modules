@@ -19,7 +19,7 @@ import scala.concurrent.duration.*
  * 1,000 other keys at the wallet (past which the wallet would carry it out afresh), awards, forfeits and claws back
  * once per reward. A step's start is the claim (research R5): a repeat answers the first state and calls nothing.
  */
-class RepeatSuite extends munit.FunSuite:
+class RepeatSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit = SharedKit.kit
   override def munitTimeout = Duration(180, "s")
   override def beforeEach(context: BeforeEach): Unit = kit.reset()

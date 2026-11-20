@@ -16,7 +16,7 @@ import java.util.UUID
  * `RoundsConsumer` over the whole service (task T055): `round_settled` on `casino.rounds` naming free rounds counts on
  * the reward once per round; one naming a reward this service does not hold is recorded on the player's record.
  */
-class RoundsSuite extends munit.FunSuite:
+class RoundsSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit = SharedKit.kit
   override def munitTimeout = scala.concurrent.duration.Duration(120, "s")
   override def beforeEach(context: BeforeEach): Unit = kit.reset()

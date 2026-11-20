@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets.UTF_8
 import java.time.{Instant, LocalDate}
 
 /** data-model.md's `Profile`: every family it reads, a repeat changing nothing, the reset and erasure. */
-class ProfileSuite extends munit.FunSuite:
+class ProfileSuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   private val at  = Instant.parse("2026-11-03T10:00:00Z")
   private val eur = Currency.unsafe("EUR")
 

@@ -14,7 +14,7 @@ import java.util.UUID
  * The document routes against Postgres and Garage (US1, FR-004 to FR-008, SC-005), at the level of their
  * answers: what the features say in the domain's words, here as statuses and refusal codes.
  */
-class DocumentsSuite extends munit.FunSuite with LogCapturing:
+class DocumentsSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.kyc.it.Held:
   override def munitTimeout = scala.concurrent.duration.Duration(180, "s")
 
   private lazy val kit = SharedKit.kit

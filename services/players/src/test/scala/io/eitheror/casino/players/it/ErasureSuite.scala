@@ -13,7 +13,7 @@ import java.time.Duration
 import scala.concurrent.duration.*
 
 /** T066 and T067: erasure and the export through the routes and the workflows (FR-038 to FR-040, SC-006). */
-class ErasureSuite extends munit.FunSuite with LogCapturing:
+class ErasureSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.players.it.Held:
   override val munitTimeout = 180.seconds
   private lazy val kit = SharedKit.kit
 

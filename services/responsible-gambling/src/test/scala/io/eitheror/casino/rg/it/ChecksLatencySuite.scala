@@ -16,6 +16,7 @@ class ChecksLatencySuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout = 5.minutes
 
   private lazy val kit = SharedKit.kit
+  override def afterEach(context: AfterEach): Unit = kit.assertHeld()
 
   private val Asks = 1_000
 

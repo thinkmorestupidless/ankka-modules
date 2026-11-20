@@ -21,7 +21,7 @@ import scala.concurrent.duration.*
  * scenario has a player of its own, since the database outlives scenarios; "a player" is one registered with an
  * address and email consent, made on the profile directly so the background makes no call of its own.
  */
-abstract class EngagementFeatures(file: String) extends GherkinSuite(s"../../features/engagement/$file") with LogCapturing:
+abstract class EngagementFeatures(file: String) extends GherkinSuite(s"../../features/engagement/$file") with LogCapturing with io.eitheror.casino.engagement.it.Held:
   override val munitTimeout: Duration = 300.seconds
 
   protected def kit: Kit = SharedKit.kit

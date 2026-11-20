@@ -1,0 +1,35 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "fixture", "version": "0" },
+  "paths": {
+    "/v1/casino/players/{brand}/wallets/{currency}/balance": {
+      "get": {
+        "operationId": "get /v1/casino/players/{brand}/wallets/{currency}/balance",
+        "summary": "The signed-in player's balance in one currency",
+        "tags": ["player"],
+        "responses": {
+          "200": { "description": "the balance", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Balance" } } } },
+          "404": { "description": "no wallet", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Refusal" } } } }
+        }
+      }
+    },
+    "/v1/casino/players/{brand}/wallets/{currency}/restricted-funds": {
+      "get": {
+        "operationId": "get /v1/casino/players/{brand}/wallets/{currency}/restricted-funds",
+        "summary": "The signed-in player's restricted funds",
+        "tags": ["player"],
+        "responses": { "200": { "description": "the status", "content": { "application/json": { "schema": { "type": "object" } } } } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Balance": {
+        "type": "object",
+        "required": ["realBalance", "currency"],
+        "properties": { "realBalance": { "type": "string" }, "currency": { "type": "string" }, "bonusBalance": { "type": "string" } }
+      },
+      "Refusal": { "type": "object", "required": ["error"], "properties": { "error": { "type": "string" } } }
+    }
+  }
+}

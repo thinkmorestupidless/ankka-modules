@@ -187,7 +187,7 @@ object Parity:
  * One test per recording in tests/port/game-provider (constitution I, SC-001): each step replayed against the
  * whole service and its answer compared field by field with the original's.
  */
-class ParitySuite extends munit.FunSuite with LogCapturing:
+class ParitySuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.gameprovider.it.Held:
   override val munitTimeout = scala.concurrent.duration.Duration(300, "s")
 
   private val found = Parity.recordings(TestKeys.root.resolve("tests/port/game-provider"))

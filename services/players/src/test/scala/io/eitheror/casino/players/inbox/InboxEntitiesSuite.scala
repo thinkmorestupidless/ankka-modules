@@ -6,7 +6,7 @@ import io.eitheror.casino.contract.personal.Personal
 import java.time.Instant
 
 /** The message and note entities (T013). */
-class InboxEntitiesSuite extends munit.FunSuite with LogCapturing:
+class InboxEntitiesSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.players.it.Held:
 
   private val at = Instant.parse("2026-10-25T10:00:00Z")
 

@@ -2,7 +2,7 @@ package io.eitheror.casino.kyc.api
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.core.EntityId
-import com.thinkmorestupidless.ankka.http.{Acl, Bytes, EndpointClients, Respond}
+import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, Respond}
 import io.eitheror.casino.kyc.{Json, KycRuntime, Settings}
 import io.eitheror.casino.kyc.documents.Store
 import io.eitheror.casino.kyc.policy.{Policy, PolicyEntity}
@@ -10,15 +10,16 @@ import io.eitheror.casino.kyc.record.{KycRecord, KycState, Refusal}
 
 import java.nio.charset.StandardCharsets.UTF_8
 import java.time.Instant
+import io.eitheror.casino.contract.http.Json as JsonBody
 
 /**
  * How the routes answer (contracts/routes.md): a body, or a refusal as `{"error", "message", ...named
  * fields}`. The 401s and 403s of a caller the ACL refuses are the ACL's, written before a handler runs.
  */
 object Answers:
-  type Reply = Respond[Bytes]
+  type Reply = Respond[JsonBody]
 
-  def json(status: Int, body: JsonNode): Reply = Respond(Bytes("application/json", Json.render(body).getBytes(UTF_8)), status, Vector.empty)
+  def json(status: Int, body: JsonNode): Reply = Respond(JsonBody(Json.render(body).getBytes(UTF_8)), status, Vector.empty)
   def ok(body: JsonNode): Reply             = json(200, body)
 
   def refusal(status: Int, error: String, message: String, fields: (String, Any)*): Reply =

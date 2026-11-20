@@ -6,6 +6,13 @@ by the site server; `{player}` by the client from the session. Audience: `public
 cashier ticket in the header `cashierTicket` and nowhere else; the site server fills `{ticket}` in
 the path from it and passes the header on). Types are written from the services' own `contracts/routes.md`.
 
+*Since spec 031* the tables below are generated: each row is a row of its module's
+`sdk/player/src/<module>/selection.ts`, which names the operation of the service's kept description
+(`services/<service>/openapi.player.json`) it is, and the wire shapes are generated beside it
+(`specs/031-generated-player-clients/contracts/generation.md`). This file stays as the record of
+the rows and of what each client function gives; where it and a selection disagree, the selection
+is right.
+
 ## core
 
 | id | Service | Method and path | Audience | Answer the client gives |

@@ -17,7 +17,7 @@ import scala.concurrent.duration.*
  * email address, name, date of birth or transactional text, though each was stored: in the profile, in a parked send
  * and in an accepted route's send.
  */
-class DumpSuite extends munit.FunSuite:
+class DumpSuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   override val munitTimeout = 180.seconds
   private lazy val kit   = SharedKit.kit
   private lazy val facts = Facts(kit)

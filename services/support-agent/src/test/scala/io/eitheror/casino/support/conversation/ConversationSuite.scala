@@ -5,7 +5,7 @@ import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
 import java.time.Instant
 
 /** data-model.md's `Conversation` commands: binding, another player, decided twice, ended and forgotten (T019). */
-class ConversationSuite extends munit.FunSuite:
+class ConversationSuite extends munit.FunSuite with io.eitheror.casino.support.it.Held:
   private val at = Instant.parse("2026-11-09T10:00:00Z")
 
   private def fresh = EventSourcedTestKit.of(Conversation, "s-1")

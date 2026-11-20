@@ -1,0 +1,21 @@
+# Reviewed against every recording (spec 031 T045): none of these is recorded under another path. The
+# recordings' close, exports and activity export are the operator's (backoffice) routes, not the player's.
+DELETE /v1/casino/players/the-brand/emails/{address}
+DELETE /v1/casino/players/the-brand/{playerId}/favourites/{gameId}
+GET /v1/casino/geo/lookup
+GET /v1/casino/players/the-brand/{playerId}/activity-history
+GET /v1/casino/players/the-brand/{playerId}/exports/{exportId}
+GET /v1/casino/players/the-brand/{playerId}/favourites
+GET /v1/casino/players/the-brand/{playerId}/recently-played
+POST /v1/casino/players/the-brand/email-change/verify
+POST /v1/casino/players/the-brand/emails/{address}/resend
+POST /v1/casino/players/the-brand/messages/{messageId}/delete
+POST /v1/casino/players/the-brand/password-reset/confirm
+POST /v1/casino/players/the-brand/password-reset/request
+POST /v1/casino/players/the-brand/resend-verification-email
+POST /v1/casino/players/the-brand/{playerId}/close
+POST /v1/casino/players/the-brand/{playerId}/deposits
+POST /v1/casino/players/the-brand/{playerId}/email-change
+POST /v1/casino/players/the-brand/{playerId}/erasure
+POST /v1/casino/players/the-brand/{playerId}/exports
+POST /v1/casino/players/the-brand/{playerId}/favourites/{gameId}

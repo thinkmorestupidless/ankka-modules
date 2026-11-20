@@ -13,7 +13,7 @@ import java.util.UUID
 import scala.concurrent.duration.*
 
 /** data-model.md's `SendsView` and `ProfilesView`: what the routes, the dashboard and the deposit-day reset read. */
-class ViewsSuite extends munit.FunSuite:
+class ViewsSuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   override val munitTimeout = 120.seconds
   private lazy val kit = SharedKit.kit
 

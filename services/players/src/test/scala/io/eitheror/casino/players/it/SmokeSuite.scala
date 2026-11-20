@@ -13,7 +13,7 @@ import java.util.UUID
 import scala.concurrent.duration.*
 
 /** T025: the service starts with every component, each prefix answers its audience, and the read and fact paths run. */
-class SmokeSuite extends munit.FunSuite with LogCapturing:
+class SmokeSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.players.it.Held:
   private lazy val kit = SharedKit.kit
 
   override def beforeAll(): Unit = kit.reset()

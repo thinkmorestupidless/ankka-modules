@@ -9,7 +9,7 @@ import java.util.UUID
 import scala.concurrent.duration.*
 
 /** `SessionEndWorkflow` on the integration kit (research R6): games, then the session, then the player. */
-class SessionEndWorkflowSuite extends munit.FunSuite with LogCapturing:
+class SessionEndWorkflowSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.players.it.Held:
   override val munitTimeout = 120.seconds
   private lazy val kit = SharedKit.kit
 

@@ -17,7 +17,7 @@ import scala.concurrent.duration.*
  * every 15 s, and a ticket that is used, late or unknown refused `invalid_ticket` (the original's
  * `AgentStreamTicketStoreSpec` and `AgentStreamConsumerSpec`, at the route).
  */
-class AgentStreamSuite extends munit.FunSuite:
+class AgentStreamSuite extends munit.FunSuite with io.eitheror.casino.engagement.it.Held:
   override val munitTimeout = 180.seconds
   private lazy val kit   = SharedKit.kit
   private lazy val facts = Facts(kit)

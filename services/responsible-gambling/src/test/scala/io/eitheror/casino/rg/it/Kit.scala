@@ -17,6 +17,7 @@ import java.time.{Duration as JDuration, Instant}
 import java.util.concurrent.ConcurrentLinkedQueue
 import scala.concurrent.duration.*
 import scala.jdk.CollectionConverters.*
+import io.eitheror.casino.contract.port.HeldToPlayerRoutes
 
 /** An HTTP answer from the service. */
 final case class Reply(status: Int, text: String):
@@ -74,7 +75,12 @@ final class Kit(base: Settings = Kit.Base):
   RgRuntime.wire(base, () => now())
 
   private val timers = TimerRuntime(200.millis)
-  private val server = HttpServer.at("127.0.0.1", 0)(RgService.endpoints(() => Kit.authenticate)*)
+  /** The player routes held to the kept description (spec 031 FR-015); a suite asserts it after each test. */
+  val held = HeldToPlayerRoutes(Kit.description, slug)
+  private val server = held.hold(HttpServer.at("127.0.0.1", 0)(RgService.endpoints(() => Kit.authenticate)*))
+
+  /** Fails, naming each answer of a player route its description does not allow since the last reset. */
+  def assertHeld(): Unit = held.assertHeld()
 
   val testKit: AnkkaTestKit = AnkkaTestKit.start(
     RgService.descriptors,
@@ -92,6 +98,7 @@ final class Kit(base: Settings = Kit.Base):
     players.stop()
 
   def reset(): Unit =
+    held.violations.clear()
     players.reset()
     clockOffset = JDuration.ZERO
     RgRuntime.wire(base, () => now())
@@ -146,6 +153,10 @@ final class Kit(base: Settings = Kit.Base):
 
 object Kit:
   val Base: Settings = Settings(brand = "goldvibe", syncRetry = JDuration.ofSeconds(1))
+
+  /** The kept description of the player routes (spec 031). */
+  val description: java.nio.file.Path =
+    java.nio.file.Paths.get(sys.props.getOrElse("casino.root", "../..")).resolve("services/responsible-gambling/openapi.player.json")
 
   /** Stands in for the token verifier: what is tested is what each audience's ACL decides once a token is verified. */
   val authenticate: Acl = Acl.Authenticate { context =>

@@ -57,6 +57,7 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
 | 023 | brand | the predictions module: `markets` and `exchange` on ankka-predictions' libraries (built) | Scala |
 | 026 | shared `games` | provider: eitheror's own game provider, ST8's protocol, on the `provider-core` library it shares with 020 (amends 001, 003, 009, 020) | Scala |
 | 027 | brand | the player SDK (`sdk/player`) and the reference player site, the module `player-site` (web-hosted; amends 002, 003, 008, 021) | TypeScript |
+| 031 | all | every service on ankka 0.18.0; the player routes of nine services described, kept (`openapi.player.json`) and held; the SDK's route tables and shapes generated from them (amends 001, 027) | Scala, TypeScript |
 
 ## Working here
 
@@ -75,6 +76,23 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
   spec 031), because a platform runs only its own minor version and the one below. In ankka no two
   endpoints may share a prefix, so a service groups its endpoints by prefix and sets each route's
   audience with `withAcl`.
+- A player route says what it is (spec 031): `described(_.summary(…).body[A].answers[B](200).refuses(404,
+  "code, …").query[String]("name").tag("player")) { route }`, with the shapes a route builds by hand
+  as case classes in the service's `api/Described.scala`, and its JSON answered as `contract.http.Json`
+  so the description says `application/json`. `just describe <service>` writes
+  `services/<service>/openapi.player.json`, the kept description (strict: a tagged route that states
+  no answer fails it); `just describe-check <service>` and the service's CI job fail when the routes
+  and the kept file differ, naming the operations. Nine services keep one: players, wallet, ingest,
+  game-provider, kyc, responsible-gambling, rewards, engagement, support-agent. A service's kit is
+  held to it (`it/Kit.scala`, the `Held` trait): any test that gets an answer the description does
+  not allow fails. `port/DescriptionSuite` checks the description against every recording under
+  `tests/port/`, and the player routes no recording calls are kept by name in
+  `tests/port/unrecorded-player-routes/<service>.txt`; the suite fails when the list is stale.
+- The SDK's module clients are generated from those descriptions (spec 031): per module,
+  `selection.ts` (by hand: which operation each row is) gives `routes.ts` and `shapes.ts`
+  (`just player-sdk-generate`; never edited), and `client.ts` is the mapping alone.
+  `just player-sdk-test` and CI fail when they are out of date. After changing a player route:
+  `just describe <service>`, then `just player-sdk-generate`.
 - The module model (spec 021, decision 0055): a brand project runs `core` and the modules its
   entitlement at ankka-vendor names. Each module is one manifest, `modules/<module>/module.json`, in
   the vendor's format (the schema is vendored in `tools/modules/src/main/resources/`); a brand

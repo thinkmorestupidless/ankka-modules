@@ -17,9 +17,10 @@ platform's, and its minor is the platform's or the one below. Patch versions are
 | 0.16.3 | 0.18.0 | unsupported |
 | not reported | any | unsupported |
 
-**Where it is called**: every apply, of a brand or of a shared project, whether or not the brand
-takes real money, in local mode and before a push to the vendor, after validation and before
-anything is deployed.
+**Where it is called**: every apply the tool makes, of a brand or of a shared project, whether or
+not the brand takes real money, after validation and before anything is deployed. The tool
+applies in local mode only. Through the vendor it pushes a brand's values (`values push`), which
+name no runtime, and the vendor's agent applies the modules and makes ankka's own check there.
 
 **The platform's version**: `GET /installation`'s `platformVersion` when the control plane is
 asked; else `PLATFORM_VERSION` in `installation/overlays/<name>/settings.env`, which states what

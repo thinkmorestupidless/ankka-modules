@@ -5,6 +5,8 @@ import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.players.clients.Geo
 
 import Answers.{notYet, refusal}
+import com.thinkmorestupidless.ankka.http.openapi.Description
+import io.eitheror.casino.contract.http.Json as JsonBody
 
 /*
  * The seven endpoints of contracts/routes.md, one prefix each with the brand's slug as a literal (R14).
@@ -19,49 +21,126 @@ final class PlayerEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/players/$
   private val sessions     = SessionRoutes(ctx)
   private val profile      = ProfileRoutes(ctx)
 
+  override protected def description: Description = Described.refusals
+
+  // Spec 031: every route described for the player SDK; the public ones before a token exists.
   withAcl(Routes.public) {
-    postBody("/register") { (text: String) => registration.register(text, request.header) }
-    postBody("/login") { (text: String) => sessions.login(text, request.header) }
-    postBody("/refresh") { (text: String) => sessions.refresh(text) }
-    postBody("/verify-email") { (text: String) => registration.verifyEmail(text) }
-    postBody("/resend-verification-email") { (text: String) => registration.resend(text) }
-    postBody("/password-reset/request") { (text: String) => profile.passwordResetRequest(text) }
+    described(_.summary("Register a player: the account opened in the realm, its verification email sent").body[Described.Register].answers[Described.Registered](201).refuses(400, "missing_fields").refuses(404, "brand_not_found").refuses(409, "email_already_exists").refuses(422, "password_too_weak").refuses(503, "service_unavailable").tag("player")) {
+    postBody("/register") { (b: JsonBody) => registration.register(b.text, request.header) }
+  }
+    described(_.summary("Sign in: the tokens, and the player's currency and country").body[Described.Login].answers[Described.LoggedIn](200).refuses(400, "missing_fields").refuses(401, "invalid_credentials, email_not_verified, missing_token").refuses(403, "account_restricted, cooling_off").refuses(503, "service_unavailable").tag("player")) {
+    postBody("/login") { (b: JsonBody) => sessions.login(b.text, request.header) }
+  }
+    described(_.summary("Refresh the sign-in's tokens").body[Described.Refresh].answers[Described.Refreshed](200).refuses(400, "missing_refresh_token").refuses(401, "refresh_expired").refuses(503, "service_unavailable").tag("player")) {
+    postBody("/refresh") { (b: JsonBody) => sessions.refresh(b.text) }
+  }
+    described(_.summary("Verify the registration's address, from the link the email holds").body[Described.Token].answers[Described.Status](200).refuses(400, "missing_token, invalid_or_expired_token").refuses(503, "service_unavailable").tag("player")) {
+    postBody("/verify-email") { (b: JsonBody) => registration.verifyEmail(b.text) }
+  }
+    described(_.summary("Send the registration's verification email again").body[Described.Email].answers[Described.Result](200).refuses(400, "missing_fields").refuses(429, "rate_limited").tag("player")) {
+    postBody("/resend-verification-email") { (b: JsonBody) => registration.resend(b.text) }
+  }
+    described(_.summary("Ask for a password reset email").body[Described.Email].answers[Described.Status](200).refuses(400, "missing_fields").tag("player")) {
+    postBody("/password-reset/request") { (b: JsonBody) => profile.passwordResetRequest(b.text) }
+  }
+    described(_.summary("Confirm a password reset: always refused, the reset is confirmed on the realm's page").answers[Described.Refusal](400).tag("player")) {
     post("/password-reset/confirm") { () => profile.passwordResetConfirm() }
-    postBody("/password-change/verify") { (text: String) => profile.passwordChangeVerify(text) }
-    postBody("/emails/verify") { (text: String) => profile.verifyEmail(text) }
-    postBody("/email-change/verify") { (text: String) => profile.emailChangeVerify(text) }
+  }
+    described(_.summary("Set the new password, from the link the password change sent").body[Described.PasswordChangeVerify].answers[Described.Status](200).refuses(400, "missing_fields, invalid_token, expired_token").refuses(409, "account_suspended").refuses(422, "password_too_weak").refuses(503, "service_unavailable").tag("player")) {
+    postBody("/password-change/verify") { (b: JsonBody) => profile.passwordChangeVerify(b.text) }
+  }
+    described(_.summary("Verify an added address, from the link the email holds").body[Described.Token].answers[Described.AddressVerified](200).refuses(400, "missing_fields, invalid_token, expired_token").refuses(503, "service_unavailable").tag("player")) {
+    postBody("/emails/verify") { (b: JsonBody) => profile.verifyEmail(b.text) }
+  }
+    described(_.summary("Change the sign-in address, from the link sent to the new one").body[Described.Token].answers[Described.Status](200).refuses(400, "missing_fields, invalid_token, expired_token").refuses(409, "email_already_registered").refuses(503, "service_unavailable").tag("player")) {
+    postBody("/email-change/verify") { (b: JsonBody) => profile.emailChangeVerify(b.text) }
+  }
   }
 
-  postBody("/password-change") { (text: String) => profile.passwordChange(principal, text) }
-  post("/{playerId}/logout") { (playerId: String) => sessions.logout(principal, playerId) }
-  get("/{playerId}") { (id: String) => profile.profile(principal, id) }
-  patchBody("/{playerId}") { (id: String, text: String) => profile.editProfile(principal, id, text) }
-  postBody("/{playerId}/close") { (id: String, text: String) => OperatorStatusRoutes(ctx).closeMine(principal, id, text) }
-  get("/{playerId}/consent") { (id: String) => profile.consent(principal, id) }
-  patchBody("/{playerId}/consent") { (id: String, text: String) => profile.changeConsent(principal, id, text) }
-  patchBody("/{playerId}/cookie-consent") { (id: String, text: String) => profile.cookieConsent(principal, id, text) }
-  get("/{playerId}/favourites") { (id: String) => profile.favourites(principal, id) }
-  post("/{playerId}/favourites/{gameId}") { (id: String, game: String) => profile.favourite(principal, id, game, add = true) }
-  delete("/{playerId}/favourites/{gameId}") { (id: String, game: String) => profile.favourite(principal, id, game, add = false) }
-  get("/{playerId}/recently-played") { (id: String) => profile.recentlyPlayed(principal, id, query.raw("limit")) }
-  get("/{playerId}/activity-history") { (id: String) =>
-    profile.activity(principal, id, query.raw("category"), query.raw("page"), query.raw("format"))
+  described(_.summary("Change the password: a link to set the new one, once the current one holds").body[Described.PasswordChange].answers[Described.Status](202).refuses(401, Described.noToken).refuses(400, "missing_fields, invalid_password").refuses(404, "player_not_found").refuses(503, "service_unavailable").tag("player")) {
+    postBody("/password-change") { (b: JsonBody) => profile.passwordChange(principal, b.text) }
   }
-  get("/{playerId}/messages") { (id: String) =>
-    profile.messages(principal, id, query.raw("status"), query.raw("page"), query.raw("pageSize"))
+  described(_.summary("Sign out: the session the token belongs to ended").answers[Described.Status](200).refuses(401, Described.noToken).refuses(403, Described.mine).tag("player")) {
+    post("/{playerId}/logout") { (playerId: String) => sessions.logout(principal, playerId) }
   }
-  post("/messages/{messageId}/read") { (m: String) => profile.markMessage(principal, m, delete = false) }
-  post("/messages/{messageId}/delete") { (m: String) => profile.markMessage(principal, m, delete = true) }
-  get("/{playerId}/emails") { (id: String) => profile.emails(principal, id) }
-  postBody("/{playerId}/emails") { (id: String, text: String) => profile.addEmail(principal, id, text) }
-  post("/emails/{address}/resend") { (a: String) => profile.resendEmail(principal, a) }
-  post("/emails/{address}/promote") { (a: String) => profile.promoteEmail(principal, a) }
-  delete("/emails/{address}") { (a: String) => profile.removeEmail(principal, a) }
-  postBody("/{playerId}/email-change") { (id: String, text: String) => profile.emailChange(principal, id, text) }
-  postBody("/{playerId}/deposits") { (id: String, text: String) => DepositRoutes(ctx).deposit(principal, id, text) }
-  post("/{playerId}/erasure") { (id: String) => ErasureRoutes(ctx).fileMine(principal, id) }
-  post("/{playerId}/exports") { (id: String) => ErasureRoutes(ctx).startMine(principal, id) }
-  get("/{playerId}/exports/{exportId}") { (id: String, exportId: String) => ErasureRoutes(ctx).readMine(principal, id, exportId) }
+  described(_.summary("The signed-in player's profile").answers[Described.Profile](200).refuses(401, Described.noToken).refuses(403, Described.mine).refuses(404, "player_not_found").tag("player")) {
+    get("/{playerId}") { (id: String) => profile.profile(principal, id) }
+  }
+  described(_.summary("Edit the player's profile").body[Described.ProfileEdit].answers[Described.Updated](200).refuses(401, Described.noToken).refuses(403, Described.mine).refuses(400, "invalid_country, no_editable_fields").tag("player")) {
+    patchBody("/{playerId}") { (id: String, b: JsonBody) => profile.editProfile(principal, id, b.text) }
+  }
+  described(_.summary("Close the player's own account, once the password holds").body[Described.Close].answers[Described.Status](200).refuses(401, Described.noToken).refuses(403, Described.mine).refuses(400, "invalid_password").refuses(404, "player_not_found").refuses(409, "already_closed").refuses(422, "account_closed").refuses(503, "service_unavailable").tag("player")) {
+    postBody("/{playerId}/close") { (id: String, b: JsonBody) => OperatorStatusRoutes(ctx).closeMine(principal, id, b.text) }
+  }
+  described(_.summary("The player's marketing consents").answers[Described.Consents](200).refuses(401, Described.noToken).refuses(403, Described.mine).tag("player")) {
+    get("/{playerId}/consent") { (id: String) => profile.consent(principal, id) }
+  }
+  described(_.summary("Change the player's marketing consents").body[Described.ConsentChange].answers[Described.Updated](200).refuses(401, Described.noToken).refuses(403, Described.mine).refuses(400, "a refusal of the record").refuses(404, "player_not_found, address_not_found").refuses(409, "address_already_in_list, already_closed, kyc_locked").refuses(422, "account_closed").tag("player")) {
+    patchBody("/{playerId}/consent") { (id: String, b: JsonBody) => profile.changeConsent(principal, id, b.text) }
+  }
+  described(_.summary("Record a device's cookie decision").body[Described.CookieConsent].answers[Described.Updated](200).refuses(401, Described.noToken).refuses(403, Described.mine).refuses(400, "a refusal of the record").refuses(404, "player_not_found, address_not_found").refuses(409, "address_already_in_list, already_closed, kyc_locked").refuses(422, "account_closed").tag("player")) {
+    patchBody("/{playerId}/cookie-consent") { (id: String, b: JsonBody) => profile.cookieConsent(principal, id, b.text) }
+  }
+  described(_.summary("The player's favourite games").answers[Described.GameIds](200).refuses(401, Described.noToken).refuses(403, Described.mine).tag("player")) {
+    get("/{playerId}/favourites") { (id: String) => profile.favourites(principal, id) }
+  }
+  described(_.summary("Add a favourite game: the favourites after").answers[Described.GameIds](200).refuses(401, Described.noToken).refuses(403, Described.mine).tag("player")) {
+    post("/{playerId}/favourites/{gameId}") { (id: String, game: String) => profile.favourite(principal, id, game, add = true) }
+  }
+  described(_.summary("Remove a favourite game: the favourites after").answers[Described.GameIds](200).refuses(401, Described.noToken).refuses(403, Described.mine).tag("player")) {
+    delete("/{playerId}/favourites/{gameId}") { (id: String, game: String) => profile.favourite(principal, id, game, add = false) }
+  }
+  described(_.summary("The games the player played last, newest first").answers[Described.GameIds](200).refuses(401, Described.noToken).refuses(403, Described.mine).query[Int]("limit").tag("player")) {
+    get("/{playerId}/recently-played") { (id: String) => profile.recentlyPlayed(principal, id, query.raw("limit")) }
+  }
+  // The history is a CSV attachment unless `format=json`: one route answering two content types, so the document gives
+  // the route's bytes as a string, and the JSON shape only in the summary's words.
+  described(_.summary("The player's activity, newest first: a CSV attachment, or with format=json the events").answers(200, Described.ActivitySchema).refuses(401, Described.noToken).refuses(403, Described.mine).query[String]("category").query[Int]("page").query[String]("format").tag("player")) {
+    get("/{playerId}/activity-history") { (id: String) =>
+      profile.activity(principal, id, query.raw("category"), query.raw("page"), query.raw("format"))
+    }
+  }
+  described(_.summary("The player's inbox, a page of it").answers[Described.Messages](200).refuses(401, Described.noToken).refuses(403, Described.mine).query[String]("status").query[Int]("page").query[Int]("pageSize").tag("player")) {
+    get("/{playerId}/messages") { (id: String) =>
+      profile.messages(principal, id, query.raw("status"), query.raw("page"), query.raw("pageSize"))
+    }
+  }
+  described(_.summary("Mark one of the player's messages read").answers[Described.Ok](200).refuses(401, Described.noToken).refuses(404, "message_not_found").tag("player")) {
+    post("/messages/{messageId}/read") { (m: String) => profile.markMessage(principal, m, delete = false) }
+  }
+  described(_.summary("Delete one of the player's messages").answers[Described.Ok](200).refuses(401, Described.noToken).refuses(404, "message_not_found").tag("player")) {
+    post("/messages/{messageId}/delete") { (m: String) => profile.markMessage(principal, m, delete = true) }
+  }
+  described(_.summary("The player's addresses").answers[Described.Addresses](200).refuses(401, Described.noToken).refuses(403, Described.mine).tag("player")) {
+    get("/{playerId}/emails") { (id: String) => profile.emails(principal, id) }
+  }
+  described(_.summary("Add an address: a link to verify it sent").body[Described.AddAddress].answers[Described.Status](202).refuses(401, Described.noToken).refuses(403, Described.mine).refuses(400, "missing_fields, a refusal of the record").refuses(404, "player_not_found").refuses(409, "address_already_registered, address_already_in_list").refuses(422, "account_closed").tag("player")) {
+    postBody("/{playerId}/emails") { (id: String, b: JsonBody) => profile.addEmail(principal, id, b.text) }
+  }
+  described(_.summary("Send an address's verification link again").answers[Described.Status](202).refuses(401, Described.noToken).refuses(400, "already_verified").refuses(404, "address_not_found").tag("player")) {
+    post("/emails/{address}/resend") { (a: String) => profile.resendEmail(principal, a) }
+  }
+  described(_.summary("Make a verified address the sign-in address").answers[Described.Promoted](200).refuses(401, Described.noToken).refuses(400, "not_verified, already_primary").refuses(404, "address_not_found").refuses(409, "email_conflict").refuses(503, "service_unavailable").tag("player")) {
+    post("/emails/{address}/promote") { (a: String) => profile.promoteEmail(principal, a) }
+  }
+  described(_.summary("Remove an address").answers[Described.Status](200).refuses(401, Described.noToken).refuses(400, "a refusal of the record").refuses(404, "player_not_found, address_not_found").refuses(409, "address_already_in_list, already_closed, kyc_locked").refuses(422, "account_closed").tag("player")) {
+    delete("/emails/{address}") { (a: String) => profile.removeEmail(principal, a) }
+  }
+  described(_.summary("Change the sign-in address: a link sent to the new one, once the password holds").body[Described.EmailChange].answers[Described.Status](202).refuses(401, Described.noToken).refuses(403, Described.mine).refuses(400, "missing_fields, invalid_password").refuses(404, "player_not_found").refuses(409, "email_already_registered").refuses(503, "service_unavailable").tag("player")) {
+    postBody("/{playerId}/email-change") { (id: String, b: JsonBody) => profile.emailChange(principal, id, b.text) }
+  }
+  described(_.summary("Start a deposit: the checks of kyc, the wallet and responsible gambling, then ingest's cashier").body[Described.Deposit].answers[Described.Cashier](200).refuses(400, "invalid_amount, invalid_currency, invalid_request_id, ingest's code").refuses(401, Described.noToken).refuses(403, "player_id_mismatch, account_restricted, kyc's code, responsible gambling's code").refuses(404, "player_not_found").refuses(409, "REQUEST_ID_REUSED, ingest's code").refuses(422, "ingest's code").refuses(429, "ingest's code").refuses(503, "service_unavailable").tag("player")) {
+    postBody("/{playerId}/deposits") { (id: String, b: JsonBody) => DepositRoutes(ctx).deposit(principal, id, b.text) }
+  }
+  described(_.summary("File the player's own erasure, once the account is closed").answers[Described.Erasure](202).refuses(401, Described.noToken).refuses(403, Described.mine).refuses(404, "player_not_found").refuses(409, "account_not_closed").tag("player")) {
+    post("/{playerId}/erasure") { (id: String) => ErasureRoutes(ctx).fileMine(principal, id) }
+  }
+  described(_.summary("Start an export of the player's own data").answers[Described.ExportStarted](202).refuses(401, Described.noToken).refuses(403, Described.mine).refuses(404, "player_not_found").tag("player")) {
+    post("/{playerId}/exports") { (id: String) => ErasureRoutes(ctx).startMine(principal, id) }
+  }
+  described(_.summary("The player's export, once it is assembled").answers(200, Described.ExportSchema).refuses(401, Described.noToken).refuses(403, Described.mine).refuses(404, "export_not_found").refuses(409, "export_not_ready").refuses(410, "export_expired").tag("player")) {
+    get("/{playerId}/exports/{exportId}") { (id: String, exportId: String) => ErasureRoutes(ctx).readMine(principal, id, exportId) }
+  }
 
 /** `/v1/casino/sessions/<slug>`: the player's sessions. */
 final class SessionEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/sessions/${ctx.slug}"):
@@ -69,9 +148,17 @@ final class SessionEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/sessions
 
   private val games = GameSessionRoutes(ctx)
 
-  get("/players/{playerId}") { (playerId: String) => games.mine(principal, playerId) }
-  get("/{sessionId}") { (sessionId: String) => games.one(principal, sessionId) }
-  patch("/{sessionId}/end") { (sessionId: String) => games.endMine(principal, sessionId) }
+  override protected def description: Description = Described.refusals
+
+  described(_.summary("The player's game sessions").answers[Described.Sessions](200).refuses(401, Described.noToken).refuses(403, Described.mine).tag("player")) {
+    get("/players/{playerId}") { (playerId: String) => games.mine(principal, playerId) }
+  }
+  described(_.summary("One of the player's game sessions").answers[Described.Session](200).refuses(404, "session_not_found").tag("player")) {
+    get("/{sessionId}") { (sessionId: String) => games.one(principal, sessionId) }
+  }
+  described(_.summary("End one of the player's game sessions").answers[Described.Ended](200).refuses(403, Described.mine).refuses(404, "session_not_found").tag("player")) {
+    patch("/{sessionId}/end") { (sessionId: String) => games.endMine(principal, sessionId) }
+  }
 
 /** `/v1/casino/backoffice/<slug>`: the brand's operators. */
 final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoffice/${ctx.slug}"):
@@ -188,11 +275,17 @@ final class RealmEndpoint(ctx: Ctx) extends HttpEndpoint(s"/internal/realm/${ctx
 final class GeoEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/casino/geo"):
   val acl: Acl = Routes.public
 
-  get("/lookup") { () =>
-    val r      = request
-    val answer = ctx.neighbours.geo.lookup(Geo.callerAddress(r.header))
-    val body   = com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode()
-    body.put("country", answer.country.orNull)
-    body.put("dialCode", answer.dialCode.orNull)
-    Answers.ok(body)
+  override protected def description: Description = Described.refusals
+
+  // Spec 031: described for the player SDK; public, so a visitor reads it too.
+  described(_.summary("The caller's country and its dialling code, from the caller's address; nulls when it is not known")
+    .answers[Described.Country](200).tag("player")) {
+    get("/lookup") { () =>
+      val r      = request
+      val answer = ctx.neighbours.geo.lookup(Geo.callerAddress(r.header))
+      val body   = com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode()
+      body.put("country", answer.country.orNull)
+      body.put("dialCode", answer.dialCode.orNull)
+      Answers.ok(body)
+    }
   }

@@ -8,7 +8,7 @@ import com.thinkmorestupidless.ankka.agent.Json as AgentJson
  * personal field it holds whatever is asked, so the service's own filter is what is tested. Every request the model
  * was sent is searched, the context and the tool results among them.
  */
-class PersonalSuite extends munit.FunSuite:
+class PersonalSuite extends munit.FunSuite with io.eitheror.casino.support.it.Held:
   override val munitTimeout = scala.concurrent.duration.Duration(120, "s")
   private lazy val kit = SharedKit.kit
 

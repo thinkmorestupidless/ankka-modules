@@ -18,7 +18,7 @@ import java.util.UUID
  * the role, the mode, the reward, the wallet's forfeit or reclaim through `WalletStep`, free rounds at the provider,
  * and the revoke on the reward, the fact and the audit with the reason named and never written.
  */
-class RevokeSuite extends munit.FunSuite:
+class RevokeSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit = SharedKit.kit
   override def munitTimeout = scala.concurrent.duration.Duration(120, "s")
   override def beforeEach(context: BeforeEach): Unit = kit.reset()

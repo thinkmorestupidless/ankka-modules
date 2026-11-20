@@ -16,7 +16,7 @@ import java.util.UUID
 import scala.concurrent.duration.*
 
 /** US4: the profile, the addresses, the password, consents, cookies, favourites, the histories and the inbox (FR-023 to FR-030). */
-class ProfileSuite extends munit.FunSuite with LogCapturing:
+class ProfileSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.players.it.Held:
   override val munitTimeout = 120.seconds
   private lazy val kit = SharedKit.kit
 

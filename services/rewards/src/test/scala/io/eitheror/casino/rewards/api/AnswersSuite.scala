@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets.UTF_8
 
 /** contracts/routes.md: the refusal shapes, the status tables per endpoint, the original's shapes, and FR-032's whole amounts. */
 class AnswersSuite extends munit.FunSuite:
-  private def body(r: Answers.Reply) = Json.parse(String(r.body.body, UTF_8)).get
+  private def body(r: Answers.Reply) = Json.parse(String(r.body.bytes, UTF_8)).get
 
   test("a refusal is {error, …fields} at its status"):
     val r = Answers.refusal(404, "grant_not_found", "grantRef" -> "g-1", "absent" -> None)

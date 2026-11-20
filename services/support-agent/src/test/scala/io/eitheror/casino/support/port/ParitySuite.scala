@@ -21,7 +21,7 @@ import scala.jdk.CollectionConverters.*
  * `action_name`, `success` and `detail`, each status, `Session already active`, and the keys of what a read tool told
  * the model. A difference plan.md's *Divergences* names is excepted, and must still be there.
  */
-class ParitySuite extends munit.FunSuite:
+class ParitySuite extends munit.FunSuite with io.eitheror.casino.support.it.Held:
   override val munitTimeout = scala.concurrent.duration.Duration(300, "s")
   private lazy val kit = SharedKit.kit
   import ParitySuite.*

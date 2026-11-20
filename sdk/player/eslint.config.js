@@ -48,4 +48,25 @@ export default tseslint.config(
     plugins: { amounts },
     rules: { "amounts/no-number-amounts": "error" },
   },
+  // Spec 031 (SC-006): in a module, the wire's shapes and the services' paths are generated. Zod is
+  // imported only by `shapes.ts` (generated) and `events.ts` (a stream's events, by hand); a path is
+  // written only in `routes.ts` (generated) and `selection.ts` (the operation a row names).
+  {
+    files: ["src/{core,casino,engagement,support}/**/*.ts", "src/{core,casino,engagement,support}/**/*.tsx"],
+    ignores: ["src/*/shapes.ts", "src/*/events.ts"],
+    rules: {
+      "no-restricted-imports": ["error", { paths: [{ name: "zod", message: "a module's shapes are generated: import them from ./shapes.ts (a stream's events from ./events.ts)" }] }],
+    },
+  },
+  {
+    files: ["src/{core,casino,engagement,support}/**/*.ts", "src/{core,casino,engagement,support}/**/*.tsx"],
+    ignores: ["src/*/routes.ts", "src/*/selection.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        { selector: "Literal[value=/^\\/v1\\//]", message: "a service's path is written in routes.ts, generated from selection.ts" },
+        { selector: "TemplateElement[value.raw=/^\\/v1\\//]", message: "a service's path is written in routes.ts, generated from selection.ts" },
+      ],
+    },
+  },
 );

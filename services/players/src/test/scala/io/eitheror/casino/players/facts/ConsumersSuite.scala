@@ -15,7 +15,7 @@ import scala.collection.mutable
 import scala.concurrent.duration.FiniteDuration
 
 /** What the service does with other services' facts (T018). */
-class ConsumersSuite extends munit.FunSuite with LogCapturing:
+class ConsumersSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.players.it.Held:
 
   private val at  = Instant.parse("2026-10-25T10:00:00Z")
   private val eur = Currency.unsafe("EUR")

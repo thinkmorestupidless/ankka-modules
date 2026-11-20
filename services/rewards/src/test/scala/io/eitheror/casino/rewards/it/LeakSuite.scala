@@ -19,7 +19,7 @@ import scala.concurrent.duration.*
  * Spans are not scanned: the integration kit exposes none. Their names are a component's and a handler's, both
  * declared in code, and their attributes the caller's subject and client key, so no request value can become one.
  */
-class LeakSuite extends munit.FunSuite with LogCapturing:
+class LeakSuite extends munit.FunSuite with LogCapturing with io.eitheror.casino.rewards.it.Held:
   private lazy val kit   = SharedKit.kit
   private lazy val paths = ClaimPaths(kit)
   override def munitTimeout = 300.seconds

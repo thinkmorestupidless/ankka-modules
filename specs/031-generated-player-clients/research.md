@@ -331,3 +331,242 @@ round; each was fixed after that round and not analysed again:
     an `answer <status>` whose type has no shape and none described (OA:209-211, 245-249, 315); a
     missing summary or tag is not incomplete, so the descriptions' summaries are held by T046's
     outline, not by strict mode.
+- T037 (the wallet): a `Respond[Bytes]` route's described answers came out under
+  `application/octet-stream`. With no fixed status, ankka takes the route's own content type for
+  them (`OpenApi.scala:254-255`), and `Bytes` reports octet-stream because its real type is chosen
+  per value. Fixed on our side with `contract.http.Json`, a JSON body with its own `ToResponse`
+  (`application/json`), the same bytes and header on the wire. It belongs in T062's issue draft:
+  line 256 already uses `describedContent` for a fixed status, and 255 could do the same.
+  `DescriptionCheck.recordings` skips a JSON file with no `steps`, such as the programme's
+  `import/bundle.json`.
+- T038 (responsible gambling): a route reading its own JSON as `String` files a described body
+  under `text/plain` (`FromBody[String]`), so `contract.http.Json` is a `FromBody` too
+  (`application/json`). ankka reads the bytes whatever the request's type, so callers are unaffected.
+  The description check found two things the original's recordings lack: a refusal's `message` and a
+  sum's `currency`. Both are optional in the description, since a field the original never sent is
+  not one a client may rely on; the rebuild's answers, which have both, are held by the kit.
+- T039 (ingest): ingest relays merchant's answers, so its description vouches for what ingest
+  guarantees: a payment's `status`, a submit's `paymentId` and `status`. Every other field of the
+  read is optional. The kit's `FakeMerchant` answers reads with fewer fields than merchant, and the
+  hold failed four suites on it until then. Ingest's kits are plain classes that some suites start
+  lazily, so `it.Held` asserts on the kits started (`Kit.started`) and starts none.
+- T040 (game-provider): a route that checks the brand (`ownBrand`, `?brand=`) refuses another
+  brand with ankka's problem (`{status, error, details?}`). Its `error` is the service's
+  refusal shape's one required field, so each such route names `404 wrong_brand` and needs no shape
+  of its own. The launch and the popular games keep `{brand}` as a path parameter, not the literal:
+  their prefixes do not hold the brand.
+- T041 (kyc): `WireTranslation` runs from the original's requests to the rebuild's and from the
+  rebuild's answers to the original's, never back, so the original's recorded answers (`docType`,
+  `kycStatus`) cannot be read as the rebuild's. `port/DescriptionSuite` therefore checks each
+  translated step's status only; the bodies are checked by `ParitySuite`, which replays the same
+  steps through the held kit, so the rebuild's own answers to the original's requests meet the
+  description. All five routes are recorded (the unrecorded list is empty).
+- T042 (rewards): a 409 is either a refusal `{error}` or the evaluator's decline as the original
+  answered it, `{status: "ineligible", reason}`, so the select and the code entry give their 409 a
+  shape of its own (`refuses[Conflict]`). As for kyc, the recordings are read through
+  `WireTranslation` for their statuses and the parity replay holds the bodies. An operator's
+  recorded offer or grant body holds `{captures}` where amounts go, which the translation cannot
+  parse outside a replay; such a step is translated by its path alone, since no player route's
+  translation reads an amount. `/free-rounds/eligible` is game-provider's and is not described.
+  rewards, engagement and support-agent run their kit suites only under `-Dit=true`.
+- T043 (engagement), V5: ankka writes `bearer` only for an ACL holding a `TokenAuthenticator`
+  (`OpenApi.access`). `Stream.acl`, and `Routes.player` in every service, wrap the authenticator in
+  a function, so no signed-in route of any kept description has a `security` entry; a public route
+  has `security: []`. The stream is tagged `signed-in` as V5 decided, and the generator's last rule
+  (no `security` is a signed-in player) covers the rest. The stream's refusals are ankka's problems,
+  so the endpoint sets no refusal shape. Its path is the original's (`/v1/stream`, host `push`), read
+  as recorded for status.
+- T044 (support-agent): the service does not start, so writes no document, without its issuers'
+  settings and a model-provider key; `describe.env` holds placeholders for them (addresses under
+  `auth.invalid`, a key that says it is none), nothing being fetched or called while the document
+  is written. A stream route's body taken as `String` is `text/plain` in the document, as an
+  answer's was; `sseEventsBody` takes the contract's `Json` the same way. The chat's last segment
+  stays a path parameter (`/run/{route}`), the one value served being `chat_with_player`.
+- T045 (players): the activity history is one route answering two content types (a CSV attachment,
+  or JSON with `format=json`), so it stays `Respond[Bytes]` and its `200` is
+  `application/octet-stream`, a string, in the document; the JSON shape is in its summary only. No
+  SDK row reads it. `POST /password-reset/confirm` only ever refuses (the realm's page confirms a
+  reset), and a strict document refuses an operation with no answer, so its `400` is described as
+  its answer. `PlayerCaller.matching`'s `401 missing_token` is the handler's own and is described on
+  every route with a player id. The original's answers hold fewer fields than the rebuild's, so
+  `port/DescriptionSuite` checks statuses and `ParitySuite` under the hold checks the bodies, as
+  kyc's and rewards'. 21 of the 40 routes are recorded; the 19 others are on the unrecorded list.
+- T046: the contract's tests start no service (a kit needs Postgres in Docker, and the root
+  build's `sbt test` runs without it), so the two scenarios that need a served route, "a test that
+  causes an answer the service description does not allow fails" and "describing a route changes
+  nothing the route answers", run in responsible-gambling's `it.HeldFixtureSuite` over a fixture
+  endpoint and are named in `DescriptionFeatures.ranElsewhere`. The incomplete route's document is
+  asked of an unstarted `HttpServer` through its public `document("openapi", …)` with
+  `strict=true`, which is what `ankka openapi --strict` asks; `OpenApi.build` is private to ankka.
+- T047: 79 player routes are described, 36 of them unrecorded (contracts/description-check.md has
+  the lists). The nine services' CI jobs now run on any change under `tests/port/`, since each
+  `DescriptionSuite` reads every recording and its own unrecorded list; before, a job ran only on
+  its own recordings directory.
+- T048–T052: the generated tables equal the four hand-written ones row for row (27 rows: 20, 4,
+  1, 2), compared by `tests/unit/generate.test.ts` against `tests/unit/fixtures/routes-027.ts`.
+  Decisions the contract left to the generator:
+  - an object is `z.looseObject`, so a field the description does not name passes to the mapping,
+    as `passthrough()` did in the hand-written game and grant;
+  - a row's shape is written out under the name its selection gives (`Unread` is players'
+    `Messages`); a schema a shape refers to is emitted once as `<Service><Name>`, unexported;
+  - a row that names no `answers` must be a stream, and a row that names `takes` must take a JSON
+    body: two rules beside the contract's six, each with its message;
+  - `anyOf` with a null member is read as nullable (the wallet's `primary`), which R10 did not list.
+- players' `Terminal` was described as an open object (T045), which would have generated a shape
+  with no field. It now names what a site reads of ingest's `available_terminals`
+  (`terminalEntityId`, `scheme`, `name`, `gateway`, `supportedCurrencies`); the route answers the
+  same bytes, and the kept description gained the fields.
+- T053 (the mapping): the generated shapes are the descriptions exactly, and four things followed.
+  - **The SDK's doubles answered less than the services do**, which the hand-written parsers
+    forgave. They now answer as the descriptions say (`src/testing/doubles.ts`, not a test): the
+    profile with `emailVerified`, `profileComplete` and `missingProfileFields`; the unread count in
+    the messages' page (`items`, `total`, `page`, `pageSize`); a game session with `launchedAt`; a
+    catalogued game with the fields every game has; the password reset's `{status: "ok"}`, the
+    sign-out's `{status: "logged_out"}` and the sign-in's `pendingBonusCode: ""`, each read from
+    the service's own route.
+  - **players' profile answers every profile field the player holds** (`ProfileRoutes.profileOf`,
+    the 16 of `player.Profile.all`), which T045's description left out; the deposit reads four of
+    them. `Described.Profile` now names them and the kept description gained them; the route
+    answers the same bytes.
+  - **Guards about meaning stay in the mapping**, since a description says "a string" and "an
+    integer": a cashier ticket, a launch address or a game session that is empty is
+    `malformed_answer`, as `min(1)` made it; a reality check interval of zero or less is none.
+  - `abandonCashier` and `requestPasswordReset` were parsed as anything and are now parsed as
+    what ingest and players describe (the payment, `{status}`).
+- T054: the chat's events moved to `support/events.ts` whole (`client.ts` re-exports `chatEvent`
+  and `ChatEvent`, so no importer changed). The push connection's events carry no data the SDK
+  reads; `engagement/events.ts` names the three (`ready`, `signal`, `closing`) and the inbox reads
+  them through it.
+- T055: no formatter runs over the SDK (eslint only, no prettier), so nothing needed excluding.
+- T056: "generating the module clients changes no behaviour" drives one deposit from the amount to
+  succeeded and holds its steps to `amount, starting, choosing_terminal, submitting,
+  waiting_at_provider, succeeded`; `deposit.feature`'s own scenarios, bound unchanged, hold each
+  step. One run of the whole SDK suite beside two sbt runs failed `session.feature`'s first
+  scenario (a real HTTP stack with its own bounds) and passed alone and on the next whole run.
+- T059: spec 001's files name no ankka version (its manifests do, moved in phase 2), so there was
+  nothing to amend there.
+
+## Client tests changed, and why
+
+Two unit tests relied on forgiveness the services never need (T053). No test under
+`sdk/player/tests/features`, `services/player-site` or `sdk/player/src/react` changed, other than
+the new `generated-clients.steps.ts` and its line in `elsewhere.ts` (FR-024).
+
+| Test | Was | Is | Why |
+|---|---|---|---|
+| `tests/unit/casinoClient.test.ts`, protection: "an interval missing, zero, negative, fractional or not a number is none" | six values, each read as none | "missing, zero or negative is none" (four values, by the mapping) and a new case, "fractional or not a number is a malformed answer" (`2.5`, `"30"`) | responsible gambling's description says a whole number or none; an answer outside it is malformed as any other is, and `.catch(null)` forgave it |
+| `tests/unit/deposit.test.ts`: "a cashier session with no terminal fails as no_terminals" | scripted `{cashierTicket, terminals: [], requestId}` | the same with `redirectUrl` and `paymentId` | players' description says the start answers both, and it does; the hand-written parser did not read them |
+
+## For ankka
+
+A draft of one issue, not filed: it is filed on the person's word.
+
+**`ankka openapi`: five things a repository of single-service builds met (0.18.0)**
+
+1. **A directory under `services/` is taken as a member of one root build.**
+   `OpenApiCommand.locate` runs `sbt <service>/run` at the repository root when the service's
+   parent directory is named `services`. Here each service is its own sbt build
+   (`services/<name>/build.sbt`, from `ankka init`) and the root build has no such project, so
+   `ankka openapi services/wallet` fails. We run the service's build ourselves with
+   `-Dankka.document=openapi`. Asked: look for a `build.sbt` in the directory first.
+2. **A stream's events have no shape.** A route answering `text/event-stream` gets a `200` with
+   that content type and no schema, and `described` has nowhere to say what events it sends. Our
+   push connection and chat are parsed by hand for that reason. Asked: `streams[E]` (or events by
+   name) written as the content's schema.
+3. **A header a route reads is not described.** A route that takes a cashier ticket or an
+   idempotency key in a header documents no header parameter, and `described` has `query` and no
+   `header`. Asked: `header[A](name)`.
+4. **A JSON answer built by hand is not `application/json`.** `Respond[Bytes]` documents
+   `application/octet-stream` and a `String` body `text/plain`, though the route sets the JSON
+   content type itself and `answers[A]` states the shape. We wrap such answers in a type of our
+   own (`contract.http.Json`, a `ToResponse` and a `FromBody`). Asked: `answers[A]` and `body[A]`
+   decide the content type documented, whatever the handler's own type.
+5. **`security` is written only for an ACL that is a `TokenAuthenticator` itself.** `OpenApi.access`
+   writes `bearer` for that case and `security: []` for an open route; an ACL that wraps an
+   authenticator in a function (ours adds the brand's check) gets no `security` at all, so a
+   signed-in route is told from an open one only by the absence of the field. Asked: a way for an
+   ACL to say it authenticates, or for `described` to say so.
+
+## Acceptance
+
+Run on 2026-11-19 on the local brand `guyanabet` (`ankka local up`, client 0.18.0, 13 services
+and their companions), every image built from this branch's head by `just local-images`.
+
+| Run | Clients | Result |
+|---|---|---|
+| T030 | hand-written, `sdk/player` as it stood at `8ffa0f76`, the move's last commit | 24 of 24 |
+| T060 | generated, this branch's head | 24 of 24 |
+| the timed browser run (`npm run e2e -w services/player-site`) | generated | 1 of 1 |
+
+The two runs pass the same 24 cases, compared by name: register, resendVerification, verifyEmail,
+requestPasswordReset, country; profile, changeProfile, balance, protection, unread, startDeposit,
+submitCashier, payment, abandonCashier; games, game, freeRounds, launch; gameSession,
+acknowledgeRealityCheck, endGameSession; push; turn, decide.
+
+What differs from the tasks as written, and what the machine demanded:
+
+- **One brand, not two.** T030 was to run on the move's own commit before the first pull request.
+  Both runs were made against services built from this branch's head, because building the 13
+  images a second time at `8ffa0f76` did not fit this machine's disk (5.8 GiB free) or time. The
+  services' wire at the head is the move's: describing a route changes no answer (held kits,
+  parity suites, `HeldFixtureSuite`), so 24 of 24 with the hand-written clients is the move's
+  result too. Both pull requests say so.
+- **The local volume was another checkout's.** `ankka local up` keeps a project's data in Docker
+  volumes named by the project (`ankka-guyanabet_pgdata`), and its secret keys in the checkout's
+  `.ankka/local/state.json`. The volume was the main checkout's, so three services refused their
+  stored secrets ("the secret key is not the one … was kept with"). The main checkout's local-only
+  keys, realm secrets and cashier key were copied into this worktree's `.ankka/local/`; the other
+  way was `ankka local down --volumes`, which would have removed that checkout's data.
+- **Startup under load.** With 13 JVMs starting at once, two services ended on a 10-second
+  start-up bound; a second `ankka local up` started them. Nothing in 0.18.0 demanded a change that
+  0.17.0 did not; every service showed ready, the five that were on 0.13 among them.
+- **A kind cluster on the machine starved the brand.** With `ankka-control-plane` (kind, not this
+  work's) using about seven cores, players' two-second ask of responsible gambling at sign-in
+  timed out and 12 cases were skipped behind it. The person had it stopped; the next run was 24 of
+  24. It is left stopped, as they chose.
+- **Every service's suites**, as CI runs them, on this machine: 21 of 21 pass. Three were rerun
+  alone after failing beside other builds (ingest's `KeysSuite` latency bound; attribution's
+  `CarriersSuite` and affiliate-programme's `CommunicationsSuite` and `MembershipSteps`, each "not
+  observed within 20 seconds" or a read made before a projection caught up), and players twice
+  (a latency bound, and classes rebuilt under it by the image build).
+- `git diff origin/main -- tests/port` shows the unrecorded lists and two READMEs added and no
+  recording changed (SC-002).
+
+## Quickstart run
+
+2026-11-19, on this branch's head.
+
+| Step | Result |
+|---|---|
+| 1. One ankka version | the root build's suites pass (contract 195, modules tool 296, provider-core 36); `modules/run validate --all` passes; the 21 services' suites pass as CI runs them ("Acceptance" has the reruns); a search of every `build.sbt`, `service.json`, module and shared manifest and `local/` finds 0 ankka versions other than 0.18.0 |
+| 2. The runtime check | `RuntimesSuite` passes among the modules tool's 296 |
+| 3. The local brand, before generation | 24 of 24 with the hand-written clients ("Acceptance": on one brand, built from the head) |
+| 4. Descriptions | `just describe-check` is current for each of the nine; each service's suites pass held to its description, `DescriptionSuite` among them. The checks were seen to bite while building: game-provider's hold caught a `404 wrong_brand` no route named (T040), and players' described profile and terminals were found short by the generated shapes (T053) |
+| 5. Generation | `generate:check` reports nothing out of date; `just player-sdk-test` (324), `player-sdk-features` (764 with the 7 new scenarios), `player-site-features` (5) pass; `git diff origin/main --stat -- sdk/player/tests/features services/player-site sdk/player/src/react` shows `elsewhere.ts` (one line) and the new steps file only |
+| 6. Acceptance | 24 of 24 with the generated clients; `just features`: 0 findings in 1476 scenarios and 27 specs |
+
+## Success criteria
+
+- [x] **SC-001**: 21 services and the contract on 0.18.0; the search finds no other (step 1).
+- [x] **SC-002**: every suite passes; no expectation changed by the move; `git diff origin/main -- tests/port` shows no recording changed.
+- [x] **SC-003**: 79 player routes in nine strict descriptions, 0 incomplete (a strict document refuses one; `DescriptionFeatures` holds the count to the routes tagged in each service's sources).
+- [x] **SC-004**: each `DescriptionSuite` finds no difference against the recordings, and its unrecorded list equals the kept one (36 of 79; `contracts/description-check.md`).
+- [x] **SC-005**: 24 of 24 on the local brand with the generated clients.
+- [x] **SC-006**: `routes.ts` and `shapes.ts` are generated in all four modules; eslint refuses `zod` and a `/v1/` literal elsewhere in a module; no behaviour's, component's or site's test changed. Two unit tests of the clients changed ("Client tests changed, and why").
+- [x] **SC-007**: a route that changes without its kept description fails its service's CI job (`describe-check`, naming the operations); a kept description that changes without the generated clients fails `generate:check`, first in the `player-sdk` job, whose path filter takes `services/*/openapi.player.json`.
+- [x] **SC-008**: a dry run in a scratch copy added `kycDocuments` to core by one selection row and one mapping function; generation wrote its row and shape, the copy typechecked, and no file under `services/` changed.
+- [x] **SC-009**: `just features` reports 0 findings.
+
+- T061: the brain's dated line is written in `brain/projects/ankka-modules.md` and left uncommitted:
+  this session's worktree guard refuses git in that repository, so the commit there is the person's.
+
+## Baseline
+
+T002 asked for every suite's pass count on `main`'s tree before the move. That run was started and
+its logs were not kept, so there are no before-numbers from this machine. SC-002 rests instead on:
+
+- `git diff origin/main 8ffa0f76 -- services/*/src/test contract/src/test` is empty: the move
+  changed no test and no expectation of any service or of the contract;
+- every one of those unchanged suites passes after it (the counts under "Acceptance" and
+  "Quickstart run");
+- `main`'s own CI runs the same commands, and the pull request's checks are those jobs.

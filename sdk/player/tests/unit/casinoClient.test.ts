@@ -75,11 +75,20 @@ describe("core's rows for play", () => {
       expect(await core.protection("EUR")).toEqual({ ok: true, value: { realityCheckIntervalMinutes: 30, isCoolingOff: true, coolingOffUntil: "2026-11-20T00:00:00Z" } });
       expect(d.askedOf("protection")[0]).toMatchObject({ path: { player: "p-ana" }, query: { currency: "EUR" } });
     });
-    it("an interval missing, zero, negative, fractional or not a number is none", async () => {
+    it("an interval missing, zero or negative is none", async () => {
       const { d, core } = await setup();
-      for (const v of [null, 0, -5, 2.5, "30", undefined]) {
+      for (const v of [null, 0, -5, undefined]) {
         d.script("protection", { status: 200, body: { realityCheckIntervalMinutes: v, isCoolingOff: false } }, 1);
         expect(await core.protection("EUR"), String(v)).toMatchObject({ ok: true, value: { realityCheckIntervalMinutes: null } });
+      }
+    });
+    // Spec 031: the shape is responsible gambling's description, which says a whole number or none.
+    // An answer outside it is malformed, as any answer outside its description is; it is not read as none.
+    it("an interval fractional or not a number is a malformed answer", async () => {
+      const { d, core } = await setup();
+      for (const v of [2.5, "30"]) {
+        d.script("protection", { status: 200, body: { realityCheckIntervalMinutes: v, isCoolingOff: false } }, 1);
+        expect(await core.protection("EUR"), String(v)).toMatchObject({ ok: false, refusal: { code: "malformed_answer", service: "responsible-gambling" } });
       }
     });
     it("acknowledges the reality check against the game session", async () => {

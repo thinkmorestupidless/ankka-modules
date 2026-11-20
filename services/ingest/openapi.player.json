@@ -1,0 +1,604 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ingest",
+    "version": "0.0.0"
+  },
+  "paths": {
+    "/v1/cashier/sessions/{ticket}/abandon": {
+      "post": {
+        "operationId": "post_v1_cashier_sessions_ticket_abandon",
+        "summary": "Abandon the cashier session's payment; answers the payment as it now stands",
+        "tags": [
+          "player",
+          "ticket"
+        ],
+        "parameters": [
+          {
+            "name": "ticket",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Payment"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "SESSION_NOT_FOUND, PAYMENT_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "TOO_MANY_REQUESTS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "TRY_AGAIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          
+        ]
+      }
+    },
+    "/v1/cashier/sessions/{ticket}/submit": {
+      "post": {
+        "operationId": "post_v1_cashier_sessions_ticket_submit",
+        "summary": "Submit the cashier session: start the payment at the terminal chosen",
+        "tags": [
+          "player",
+          "ticket"
+        ],
+        "parameters": [
+          {
+            "name": "ticket",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Submit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Submitted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "not_json, INVALID_REQUEST, terminal_not_found, missing_crypto_currency, PAYMENT_REJECTED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "SESSION_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "TOO_MANY_REQUESTS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "psp_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "TRY_AGAIN, OUTCOME_PENDING, psp_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          
+        ]
+      }
+    },
+    "/v1/payments/{paymentId}": {
+      "get": {
+        "operationId": "get_v1_payments_paymentId",
+        "summary": "A payment, by the cashier ticket of the session that made it",
+        "tags": [
+          "player",
+          "ticket"
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Payment"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED, INVALID_MERCHANT_KEY",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "PAYMENT_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "TOO_MANY_REQUESTS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "TRY_AGAIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refusal"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Payment": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "merchantId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "customerRef": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "amount": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "amountCents": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "currency": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "psp": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scheme": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "terminalId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pspTransactionId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "redirectUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "capturedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "failedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expiredAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "failureCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "failureReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "waitingReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "originalAmountCents": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "originalAmount": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "variance": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "receivedCryptoAmount": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "receivedConvertAmount": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "receivedConvertCurrency": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "paymentAddress": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cryptoAmount": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cryptoCurrency": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "validUntil": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "Refusal": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "field": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "transactionId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryAfterSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "Submit": {
+        "type": "object",
+        "properties": {
+          "selectedTerminalEntityId": {
+            "type": "string"
+          },
+          "cryptoCurrency": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "customerFirstName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "customerLastName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "customerPhone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "customerMobile": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "customerProvince": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "customerAddress": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "customerCity": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "customerPostCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "customerState": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "selectedTerminalEntityId"
+        ]
+      },
+      "Submitted": {
+        "type": "object",
+        "properties": {
+          "paymentId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "paymentAddress": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cryptoAmount": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cryptoCurrency": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "validUntil": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "paymentId",
+          "status"
+        ]
+      }
+    }
+  }
+}

@@ -12,7 +12,7 @@ import scala.concurrent.duration.*
  * send again before any model call; each turn's tokens added to the brand's day; and a day whose budget is spent
  * answered with the unavailable message as one `delta`, then `done`.
  */
-class LimitsRouteSuite extends munit.FunSuite:
+class LimitsRouteSuite extends munit.FunSuite with io.eitheror.casino.support.it.Held:
   override val munitTimeout = 120.seconds
   private lazy val kit = SharedKit.kit
 

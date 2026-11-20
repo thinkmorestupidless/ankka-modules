@@ -10,7 +10,7 @@ import scala.concurrent.duration.*
  * The operator's configuration routes (T049, T051; FR-029, FR-023, contracts/routes.md): read, change and version
  * the brand's configuration under its operators' roles, with each refusal the table names.
  */
-class ConfigSuite extends munit.FunSuite:
+class ConfigSuite extends munit.FunSuite with io.eitheror.casino.support.it.Held:
   override val munitTimeout = 120.seconds
   private lazy val kit = SharedKit.kit
 

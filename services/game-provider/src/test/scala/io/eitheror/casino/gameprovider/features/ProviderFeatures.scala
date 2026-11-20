@@ -29,7 +29,7 @@ object SharedKit:
  * provider's calls go through the signed routes, the player's and operator's through theirs, and every
  * id a scenario names is made its own, since the database outlives scenarios.
  */
-abstract class ProviderFeatures(file: String) extends GherkinSuite(s"../../features/game-provider/$file") with LogCapturing:
+abstract class ProviderFeatures(file: String) extends GherkinSuite(s"../../features/game-provider/$file") with LogCapturing with io.eitheror.casino.gameprovider.it.Held:
   override val munitTimeout: Duration = 300.seconds
 
   protected def kit: Kit = SharedKit.kit

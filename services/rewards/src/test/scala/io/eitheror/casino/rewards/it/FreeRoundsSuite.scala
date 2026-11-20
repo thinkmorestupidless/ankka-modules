@@ -18,7 +18,7 @@ import java.util.UUID
  * reward id with the expiry as its duration, a processing bonus polled until it is confirmed or the polls run out, and
  * every failure cancelling the reward `provider_failed` with no wallet command.
  */
-class FreeRoundsSuite extends munit.FunSuite:
+class FreeRoundsSuite extends munit.FunSuite with io.eitheror.casino.rewards.it.Held:
   private lazy val kit = SharedKit.kit
   override def munitTimeout = scala.concurrent.duration.Duration(180, "s")
   override def beforeEach(context: BeforeEach): Unit = kit.reset()
