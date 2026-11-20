@@ -86,8 +86,11 @@ class OperatorsFeatures extends EngagementFeatures("operators.feature"):
       assert(r.has(field), s"$field in $r")
     assertEquals(rows.map(_.path("event").asText).toSet, Set("deposit_confirmed", "first_deposit_confirmed"))
     assert(rows.forall(r => r.path("class").asText.nonEmpty && r.path("channel").asText.nonEmpty), rows.toString)
-    // ordered as the view stores time, to the microsecond: sends within one microsecond tie, in either order
-    val times = rows.map(r => Instant.parse(r.path("time").asText).truncatedTo(java.time.temporal.ChronoUnit.MICROS))
+    // Newest first as the view orders them: by updatedAt as a Postgres timestamptz, which keeps
+    // microseconds, so two sends nanoseconds apart are one instant there and the key decides
+    // (seen on CI: .496353962 listed before .496353967). Compared at the store's precision, rounded.
+    def stored(i: Instant) = Instant.ofEpochSecond(i.getEpochSecond, 0).plusNanos(math.round(i.getNano / 1000.0) * 1000L)
+    val times = rows.map(r => stored(Instant.parse(r.path("time").asText)))
     assertEquals(times, times.sortWith(_.isAfter(_)))
   }
 
