@@ -38,7 +38,8 @@ class RoleGivingSuite extends munit.FunSuite with LogCapturing:
       kit.eventually("the taker role", 20.seconds)(Option.when(listed("taker"))(()))
       PlayersRuntime.bags.refresh()
       val first = give(other, Seq(OperatorPermissions.Finance, "taker"), asAdmin)
-      assertEquals(first.status, 200, first.text)
+      assertEquals(first.status, 202, first.text)
+      assertEquals(first.str("state"), "pending", first.text)
       kit.wallet.clearReceived()
 
       val taker = kit.asOperator(s"$brand,${kit.in("taker")}", "op-taker")
@@ -50,11 +51,34 @@ class RoleGivingSuite extends munit.FunSuite with LogCapturing:
       val held = kit.components.forEventSourcedEntity(RoleAssignment.id(other)).call(RoleAssignment.get).invoke().roles
       assertEquals(held, Set(OperatorPermissions.Finance, "taker"))
 
-      assertEquals(give(other, Seq("taker"), asAdmin).status, 200)
+      assertEquals(give(other, Seq("taker"), asAdmin).status, 202)
       val taken = give(other, Seq.empty, taker)
-      assertEquals(taken.status, 200, taken.text)
+      assertEquals(taken.status, 202, taken.text)
+      // P13r: the giving, and merchant's account of how far it got
+      val read = kit.request("GET", kit.operatorPath(s"/role-assignments/$other"), None, asAdmin)
+      assertEquals((read.status, read.str("state")), (200, "in_force"), read.text)
+      assertEquals(read.json.path("roles").size, 0, read.text)
     finally
       assertEquals(kit.request("DELETE", kit.operatorPath("/roles/taker"), None, asAdmin).status, 200)
       // gone from the view before the next suite lists the roles, so none finds it listed and already deleted
       kit.eventually("the taker role gone", 20.seconds)(Option.when(!listed("taker"))(()))
+  }
+
+  test("spec 032 FR-012: a brand gives api_keys and markets as it gives its other roles, to a giver holding roles.give") {
+    val other = s"op-${java.util.UUID.randomUUID().toString.take(8)}"
+    val made  = kit.json("PUT", kit.operatorPath("/roles/keygiver"), Json.obj("description" -> "kit", "permissions" -> Json.arr("roles.read", "roles.give")), asAdmin)
+    assertEquals(made.status, 200, made.text)
+    try
+      kit.eventually("the keygiver role", 20.seconds)(Option.when(listed("keygiver"))(()))
+      PlayersRuntime.bags.refresh()
+      kit.wallet.clearReceived()
+      val r = give(other, Seq("api_keys", "markets"), kit.asOperator(s"$brand,${kit.in("keygiver")}", "op-keygiver"))
+      assertEquals(r.status, 202, r.text)
+      val sent = kit.wallet.brandRoles.map(c => Json.parse(c.body).get.strings("roles").toSet)
+      assertEquals(sent, Vector(Set("api_keys", "markets")))
+      // neither is a role the brand makes or changes
+      assertEquals(kit.json("PUT", kit.operatorPath("/roles/api_keys"), Json.obj("permissions" -> Json.arr()), asAdmin).status, 400)
+    finally
+      assertEquals(kit.request("DELETE", kit.operatorPath("/roles/keygiver"), None, asAdmin).status, 200)
+      kit.eventually("the keygiver role gone", 20.seconds)(Option.when(!listed("keygiver"))(()))
   }

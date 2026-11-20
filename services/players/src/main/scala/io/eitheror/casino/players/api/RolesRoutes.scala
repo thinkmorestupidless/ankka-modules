@@ -102,8 +102,9 @@ final class RolesRoutes(ctx: Ctx):
   /**
    * `{"roles": […]}`: every role the brand gives `operator`, replacing what it gave before. Refused, naming
    * the permission, when the giver's own permissions lack one carried by a role it gives or takes away (what
-   * the brand gave last, less what is asked); then merchant is asked to set them in the realm (amendment H6),
-   * and only once it has, the giving is recorded.
+   * the brand gave last, less what is asked); then merchant records the giving (amendment H6, spec 032: it
+   * answers `202` and puts it in force after), and once it has, the giving is recorded here and answered
+   * `202` with how far it got.
    */
   def give(p: Principal, operator: String, text: String): Reply =
     val roles = Json.parse(text).filter(_.isObject).map(_.strings("roles").toSet)
@@ -111,8 +112,8 @@ final class RolesRoutes(ctx: Ctx):
       case None => refusal(400, "invalid_body", "a giving is {\"roles\": […]}")
       case Some(asked) =>
         val bags = Roles.bags(views)
-        asked.toVector.sorted.find(r => RoleRules.nameRefusal(r).isDefined || !bags.contains(r)) match
-          case Some(r) if RoleRules.nameRefusal(r).isDefined =>
+        asked.toVector.sorted.find(r => RoleRules.givingRefusal(r).isDefined || !(bags.contains(r) || RoleRules.Given(r))) match
+          case Some(r) if RoleRules.givingRefusal(r).isDefined =>
             refusal(400, RoleRules.ReservedRole, s"$r is not a role the brand gives", "role" -> r)
           case Some(r) => refusal(404, RoleRules.NoSuchRole, s"the brand has no role $r", "role" -> r)
           case None =>
@@ -133,10 +134,26 @@ final class RolesRoutes(ctx: Ctx):
       case Right(r) if !r.ok =>
         val code = r.body.flatMap(_.text("error")).getOrElse("merchant_refused")
         refusal(if r.status == 404 then 404 else 502, code, s"the shared payments refused to set the roles (${r.status})")
-      case Right(_) =>
+      case Right(r) =>
         val s = components.forEventSourcedEntity(RoleAssignment.id(operator)).call(RoleAssignment.give)
           .invoke(Give(operator, roles, author(p), now()))
-        ok(Json.obj("operator" -> operator, "brand" -> ctx.slug, "roles" -> Json.arr(s.roles.toVector.sorted*)))
+        json(202, RolesRoutes.giving(Json.obj("operator" -> operator, "brand" -> ctx.slug, "roles" -> Json.arr(s.roles.toVector.sorted*)), r.body))
+
+  /**
+   * P13r (spec 032): what the brand last gave `operator`, and from merchant's H6r how far it got (`state`,
+   * `reason`, `version`, `at`) and the realm roles held for the brand now (`held`), a role no giving asked
+   * for among them. When merchant cannot be asked, the giving is answered without them.
+   */
+  def assignment(operator: String): Reply =
+    val s      = components.forEventSourcedEntity(RoleAssignment.id(operator)).call(RoleAssignment.get).invoke()
+    val answer = Json.obj("operator" -> operator, "brand" -> ctx.slug, "roles" -> Json.arr(s.roles.toVector.sorted*))
+    val target = Target(RolesRoutes.Merchant, "", Some(RolesRoutes.PaymentsProject))
+    val path   = s"/v1/operators/${Neighbour.segment(operator)}/brand-roles/${Neighbour.segment(ctx.slug)}"
+    Try(Await.result(Neighbour.call(ctx.clients.services, target, "GET", path, None), RolesRoutes.MerchantBound)).toEither match
+      case Right(r) if r.ok => ok(RolesRoutes.giving(answer, r.body))
+      case other =>
+        org.slf4j.LoggerFactory.getLogger("players.roles").warn("merchant's giving of {} for {} could not be read: {}", operator, ctx.slug, other.fold(_.getMessage, _.status.toString))
+        ok(answer)
 
   /**
    * The first of `added`, the permissions a change puts into a role, the changer does not hold: holding
@@ -171,6 +188,11 @@ final class RolesRoutes(ctx: Ctx):
 
 object RolesRoutes:
   val Merchant        = "merchant"
+
+  /** `answer` with merchant's account of the giving: `state`, `reason`, `version`, `at` and `held`, as it gave them. */
+  def giving(answer: ObjectNode, merchant: Option[com.fasterxml.jackson.databind.JsonNode]): ObjectNode =
+    merchant.filter(_.isObject).foreach(m => Vector("state", "reason", "version", "at", "held").foreach(f => Option(m.get(f)).foreach(answer.set(f, _): Unit)))
+    answer
   val PaymentsProject = Layout.SharedProjects.collectFirst { case (p, ss) if ss.contains(Merchant) => p }.getOrElse("payments")
   val MerchantBound: FiniteDuration = 10.seconds
 

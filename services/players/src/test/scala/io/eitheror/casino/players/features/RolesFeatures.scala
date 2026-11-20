@@ -211,7 +211,7 @@ class RolesFeatures extends PlayersFeatures("roles.feature"):
   }
 
   Then("they are admitted") { () =>
-    replies.foreach(r => assertEquals(r.status, 200, r.text))
+    replies.foreach(r => assert(r.status == 200 || r.status == 202, r.text))
   }
 
   Then("the role {string} cannot be changed by the brand") { (role: String) =>
@@ -247,7 +247,7 @@ class RolesFeatures extends PlayersFeatures("roles.feature"):
   }
 
   Then("the shared payments are asked to set that operator's roles for the brand") { () =>
-    assertEquals(reply.status, 200, reply.text)
+    assertEquals(reply.status, 202, reply.text)
     val calls = kit.wallet.brandRoles
     assertEquals(calls.map(_.path), Vector(s"/v1/operators/$other/brand-roles/${kit.slug}"))
     assertEquals(Json.parse(calls.head.body).get.strings("roles"), Vector(OperatorPermissions.Support))
