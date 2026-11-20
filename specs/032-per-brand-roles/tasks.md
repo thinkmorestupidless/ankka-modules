@@ -36,9 +36,9 @@ parallel; never touch `services/backoffice/src/web/areas/affiliates/account.tsx`
 
 **Independent test**: an operator of goldvibe and spinvibe given finance in goldvibe is refused every spinvibe route only finance would allow.
 
-- [ ] T011 [P] [US1] In `services/backoffice/src/server/roles.ts`, `permissionsOf(brand, roles, bags)` and a `heldIn` twin of the contract's; `services/backoffice/src/server/roles.test.ts` runs every row of `contract/src/test/resources/brand-roles.cases.json`
-- [ ] T012 [US1] Pass the brand at every `permissionsOf` call in `services/backoffice/src/server/main.ts` (lines 149, 194, 200, 269, 345)
-- [ ] T013 [US1] Bind the 3 US1 scenarios of `features/backoffice/access.feature` in `services/backoffice/tests/features/steps/access.steps.ts`, the doubles' tokens carrying named roles (`services/backoffice/tests/features/world.ts`); `just backoffice-features`
+- [X] T011 [P] [US1] In `services/backoffice/src/server/roles.ts`, `permissionsOf(brand, roles, bags)` and a `heldIn` twin of the contract's; `services/backoffice/src/server/roles.test.ts` runs every row of `contract/src/test/resources/brand-roles.cases.json`
+- [X] T012 [US1] Pass the brand at every `permissionsOf` call in `services/backoffice/src/server/main.ts` (lines 149, 194, 200, 269, 345)
+- [X] T013 [US1] Bind the 3 US1 scenarios of `features/backoffice/access.feature` in `services/backoffice/tests/features/steps/access.steps.ts`, the doubles' tokens carrying named roles (`services/backoffice/tests/features/world.ts`); `just backoffice-features`
 - [ ] T014 [P] [US1] Bind "the markets permission given in one brand opens no other brand's markets" in `services/markets/src/test/scala/io/eitheror/casino/markets/features/LifecycleFeatures.scala`; the kit's markets operator holds `markets@<brand>`; check `services/exchange` the same way (`just service exchange test`)
 - [ ] T015 [P] [US1] Public API: `KeysFeatures.scala:27`'s operator holds `api_keys@spinvibe` and `brand_goldvibe` (`services/public-api/src/test/scala/io/eitheror/casino/publicapi/features/KeysFeatures.scala`); `asKeyManager` holds `api_keys@<brand>` in `services/public-api/src/test/scala/io/eitheror/casino/publicapi/it/Kit.scala`
 - [ ] T016 [US1] Programme managers (research R8): `services/affiliate-programme/src/main/scala/io/eitheror/casino/programme/api/Managers.scala` gives, lists and revokes `affiliate_manager@<slug>`; `Access.ManagerAdminRoles` checks `brand_admin@<path brand>` in `api/Access.scala`
@@ -81,8 +81,8 @@ parallel; never touch `services/backoffice/src/web/areas/affiliates/account.tsx`
 
 **Independent test**: as an operator of two brands, sign in to one brand's backoffice; only its roles are shown.
 
-- [ ] T031 [US4] `/api/me` returns `heldIn(brand, roles)` plus `platform_admin` when held, in `services/backoffice/src/server/main.ts`; vitest for it
-- [ ] T032 [US4] Bind "an operator is shown only the roles they hold in the brand of the backoffice" in `services/backoffice/tests/features/steps/access.steps.ts`
+- [X] T031 [US4] `/api/me` returns `heldIn(brand, roles)` plus `platform_admin` when held, in `services/backoffice/src/server/main.ts`; vitest for it
+- [X] T032 [US4] Bind "an operator is shown only the roles they hold in the brand of the backoffice" in `services/backoffice/tests/features/steps/access.steps.ts`
 
 ## Phase 7: Polish
 

@@ -6,7 +6,7 @@ const jwt = (claims: object) => `h.${Buffer.from(JSON.stringify(claims)).toStrin
 
 function signedIn() {
   const h = harness();
-  h.state.sessions.set("s-p", { accessToken: jwt({ sub: "op-7" }), expiresAt: Date.now() + 300_000, roles: [`brand_${Brand}`, "brand_support"] });
+  h.state.sessions.set("s-p", { accessToken: jwt({ sub: "op-7" }), expiresAt: Date.now() + 300_000, roles: [`brand_${Brand}`, `brand_support@${Brand}`] });
   return h;
 }
 

@@ -38,7 +38,7 @@ const deps = (fetchFn: typeof fetch, rows: readonly Row[] = table, timeoutMs = 2
 });
 
 const admitted = (role: string, modules: string[] | null = ["core", "casino", "engagement"]) =>
-  kindsFor({ brand: { modules }, permissions: permissionsOf([`brand_${Brand}`, role], OperatorBags) });
+  kindsFor({ brand: { modules }, permissions: permissionsOf(Brand, [`brand_${Brand}`, `${role}@${Brand}`], OperatorBags) });
 const kind = (id: string) => Kinds.find((k) => k.id === id)!;
 const never: Answer = () => new Promise<Response>(() => {});
 /** What psp-gateway answers a brand operator who holds no payments role. */
@@ -193,7 +193,7 @@ describe("the worklist", () => {
 describe("GET /api/worklist", () => {
   test("answers the kinds a finance operator's roles admit, asked as them, and nothing for the others", async () => {
     const h = harness({ table });
-    h.state.sessions.set("s-fin", { accessToken: "fin-token", expiresAt: Date.now() + 60_000, roles: [`brand_${Brand}`, "brand_finance"] });
+    h.state.sessions.set("s-fin", { accessToken: "fin-token", expiresAt: Date.now() + 60_000, roles: [`brand_${Brand}`, `brand_finance@${Brand}`] });
     h.answer((call) =>
       call.url.includes("/withdrawal-requests") ? Response.json({ requests: [request("w-1", "2026-11-13T10:00:00Z")], total: 1 })
       : call.url.includes("/psp/outcomes/") ? Response.json({ error: "not_payments_operator" }, { status: 403 })
@@ -208,7 +208,7 @@ describe("GET /api/worklist", () => {
 
   test("one kind's page; a kind the roles do not admit is no such kind", async () => {
     const h = harness({ table });
-    h.state.sessions.set("s-fin", { accessToken: "fin-token", expiresAt: Date.now() + 60_000, roles: [`brand_${Brand}`, "brand_finance"] });
+    h.state.sessions.set("s-fin", { accessToken: "fin-token", expiresAt: Date.now() + 60_000, roles: [`brand_${Brand}`, `brand_finance@${Brand}`] });
     h.answer(() => Response.json({ requests: [], total: 0 }));
     const page = await h.ask("GET", "/api/worklist/withdrawals_pending?page=3", { session: "s-fin" });
     expect(await page.json()).toMatchObject({ kind: "withdrawals_pending", state: "ok", page: 3, pageSize: 50 });

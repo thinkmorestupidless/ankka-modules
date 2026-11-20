@@ -76,7 +76,7 @@ describe("SC-006: every action offered is admitted, every action not offered is 
           : await op.me();
       if (label === "made") expect(me.roles, "the made role is in the operator's token").toContain(made);
       const bags = (await op.read<{ roles: Record<string, string[]> }>("/api/permissions")).roles;
-      expect([...me.permissions].sort(), "the page offers by the roles' bags").toEqual([...permissionsOf(me.roles, bags)].sort());
+      expect([...me.permissions].sort(), "the page offers by the roles' bags").toEqual([...permissionsOf(inst.brand, me.roles.map((r) => (r === "platform_admin" ? r : `${r}@${inst.brand}`)), bags)].sort());
 
       const held = new Set(me.permissions);
       const offered = Object.entries(Actions).filter(([, a]) => held.has(a.permission)).map(([id]) => id);

@@ -26,7 +26,9 @@ describe("the page's role tables against the contract's", () => {
   });
 
   test("the programme's manager roles, and the roles that add and remove managers", () => {
-    expect([...ProgrammePermissions["programme.manage"]!].sort()).toEqual(names(block(routes, "AffiliateManagerRoles")));
+    // spec 032: the contract's are held named for a brand; platform_admin, held bare, is decided beside them
+    const branded = (roles: readonly string[]) => roles.filter((r) => r !== "platform_admin").sort();
+    expect(branded(ProgrammePermissions["programme.manage"]!)).toEqual(names(block(routes, "AffiliateManagerRoles")));
     const access = source("services/affiliate-programme/src/main/scala/io/eitheror/casino/programme/api/Access.scala");
     expect([...ProgrammePermissions["programme.managers"]!].sort()).toEqual(names(block(access, "ManagerAdminRoles")));
   });

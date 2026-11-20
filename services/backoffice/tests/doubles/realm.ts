@@ -66,6 +66,8 @@ export class Realm {
   private preferences = new Map<string, Preferences>();
   /** A subject's roles changed by a test, in force at its sessions' next token. */
   private roles = new Map<string, string[]>();
+  /** What each brand last gave a subject, by the brand's names (spec 032: `<role>@<slug>` in the token). */
+  private givings = new Map<string, Map<string, string[]>>();
   tokenLifeMs = 60_000;
   readonly ended: string[] = [];
   private readonly defaults: () => Preferences;
@@ -79,6 +81,7 @@ export class Realm {
     this.sessions.clear();
     this.preferences.clear();
     this.roles.clear();
+    this.givings.clear();
     this.ended.length = 0;
     this.tokenLifeMs = 60_000;
   }
@@ -89,6 +92,23 @@ export class Realm {
 
   setRoles(subject: string, roles: string[]): void {
     this.roles.set(subject, roles);
+  }
+
+  /** A brand's giving: the roles named for `brand` become `roles` and `brand_<brand>` is held; every other role stays. */
+  giveIn(subject: string, brand: string, roles: string[]): void {
+    const of = this.givings.get(subject) ?? new Map<string, string[]>();
+    of.set(brand, [...roles]);
+    this.givings.set(subject, of);
+  }
+
+  /** The roles a subject's next token carries: as signed in or set, then each brand's giving over them. */
+  rolesOf(subject: string, base: readonly string[]): string[] {
+    let roles = [...(this.roles.get(subject) ?? base)];
+    for (const [brand, given] of this.givings.get(subject) ?? []) {
+      roles = roles.filter((r) => !r.endsWith(`@${brand}`));
+      roles.push(`brand_${brand}`, ...given.map((r) => `${r}@${brand}`));
+    }
+    return [...new Set(roles)];
   }
 
   /** `GET /realms/eitheror/protocol/openid-connect/auth`: a redirect to the callback, or its error. */
@@ -134,7 +154,7 @@ export class Realm {
     if (method === "POST" && m) {
       const s = this.sessions.get(decodeURIComponent(m[1]!));
       if (!s) return json(404, { error: "session_ended" });
-      const roles = this.roles.get(s.who.sub) ?? s.who.roles;
+      const roles = this.rolesOf(s.who.sub, s.who.roles);
       const rolesChanged = s.lastRoles !== undefined && [...s.lastRoles].sort().join() !== [...roles].sort().join();
       s.lastRoles = roles;
       const expiresAt = Date.now() + this.tokenLifeMs;

@@ -1,5 +1,5 @@
 // features/backoffice/affiliates.feature (T115): managers run the affiliate programme from the brand's
-// backoffice. A manager holds `affiliate_manager` and the brand's role, and no role of the brand's bags:
+// backoffice. A manager holds `affiliate_manager@<slug>` (spec 032) and the brand's role, and no role of the brand's bags:
 // the programme admits them (its `Access.manager`), the brand's own services do not. The programme is a
 // shared project, `affiliate-programme.programme` at the calling address, asked for this brand only.
 import type { Locator } from "@playwright/test";
@@ -26,7 +26,7 @@ const of = (world: World): Scenario => {
 const main = (world: World): Locator => world.page.getByRole("main");
 /** The frame's rail of areas (the programme's own sections are another navigation, in the page). */
 const rail = (world: World): Locator => world.page.getByRole("navigation", { name: t("frame.areas") });
-const manager = (brand: string): Identity => ({ sub: "op-affiliate-manager", name: "Mara Gestora", roles: [`brand_${brand}`, "affiliate_manager"] });
+const manager = (brand: string): Identity => ({ sub: "op-affiliate-manager", name: "Mara Gestora", roles: [`brand_${brand}`, `affiliate_manager@${brand}`] });
 
 // --- a manager sees the programme only ------------------------------------------------------------
 

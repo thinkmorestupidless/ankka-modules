@@ -5,7 +5,7 @@
 import { describe, expect, test } from "vitest";
 import { batchId, keyOf, readBatch, rowIds, type Batch } from "../../src/server/composite/batch.ts";
 import { table } from "../../src/server/routes.ts";
-import { harness, write, type Call } from "./support.ts";
+import { Brand, harness, write, type Call } from "./support.ts";
 
 const A = "1de8118c-ca16-49f7-99b5-ae7322e0ed1f";
 const B = "7f0c2a55-3d1e-4b8a-9c41-0a6f5e2d9b13";
@@ -263,7 +263,7 @@ describe("POST /api/adjustment-batches", () => {
 
   test("an operator whose roles do not give adjustment.make starts nothing", async () => {
     const h = harness({ table });
-    h.state.sessions.set("s-2", { accessToken: "eyJ.other.sig", expiresAt: Date.now() + 60_000, roles: ["brand_goldvibe", "brand_support"] });
+    h.state.sessions.set("s-2", { accessToken: "eyJ.other.sig", expiresAt: Date.now() + 60_000, roles: ["brand_goldvibe", `brand_support@${Brand}`] });
     const r = await h.ask("POST", "/api/adjustment-batches", { session: "s-2", headers: write, body: body([row(A)]) });
     expect(r.status).toBe(403);
     expect(await r.json()).toMatchObject({ error: "forbidden" });

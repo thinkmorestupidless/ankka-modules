@@ -6,13 +6,14 @@ import { BackofficeUrl, DoublesUrl } from "./env.ts";
 import { IdentityCookie, identityValue, type Identity } from "./realm.ts";
 import type { Preferences } from "../../src/server/session.ts";
 
-export async function signIn(page: Page, doubles: DoublesClient, who: Identity, opts: { preferences?: Partial<Preferences>; to?: string } = {}): Promise<void> {
+export async function signIn(page: Page, doubles: DoublesClient, who: Identity, opts: { preferences?: Partial<Preferences>; to?: string; at?: string } = {}): Promise<void> {
+  const BackofficeUrl_ = opts.at ?? BackofficeUrl;
   if (opts.preferences) await doubles.preferences(who.sub, opts.preferences);
   await page.context().addCookies([{ name: IdentityCookie, value: identityValue(who), url: DoublesUrl }]);
   const to = opts.to ?? "/";
-  await page.goto(`${BackofficeUrl}/auth/sign-in?return=${encodeURIComponent(to)}`);
+  await page.goto(`${BackofficeUrl_}/auth/sign-in?return=${encodeURIComponent(to)}`);
   const landed = new URL(page.url());
-  if (landed.origin !== BackofficeUrl || landed.pathname + landed.search !== to)
+  if (landed.origin !== BackofficeUrl_ || landed.pathname + landed.search !== to)
     throw new Error(`signing in as ${who.sub} ended at ${page.url()}, not ${to}: ${(await page.textContent("body"))?.slice(0, 200)}`);
 }
 

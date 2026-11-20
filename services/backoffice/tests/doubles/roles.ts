@@ -15,6 +15,32 @@ interface Role {
 const Operator = /^\/v1\/casino\/backoffice\/([^/]+)\/(roles|role-assignments)(?:\/([^/]+))?(?:\/(reset))?$/;
 const Service = /^\/v1\/casino\/brands\/([^/]+)\/players\/roles$/;
 
+/** Each brand's roles (spec 032: a brand's bags are its own, and a giving changes only its roles). */
+export class Brands {
+  private brands = new Map<string, BrandRoles>();
+  private readonly give: (operator: string, brand: string, roles: string[]) => void;
+
+  constructor(give: (operator: string, brand: string, roles: string[]) => void) {
+    this.give = give;
+  }
+
+  reset(): void {
+    this.brands.clear();
+  }
+
+  of(brand: string): BrandRoles {
+    let b = this.brands.get(brand);
+    if (!b) this.brands.set(brand, (b = new BrandRoles((operator, roles) => this.give(operator, brand, roles))));
+    return b;
+  }
+
+  /** An answer when the path is one of players' role routes; undefined otherwise. */
+  handle(method: string, path: string, body: string, authorised: boolean): Answer | undefined {
+    const brand = Service.exec(path)?.[1] ?? Operator.exec(path)?.[1];
+    return brand === undefined ? undefined : this.of(decodeURIComponent(brand)).handle(method, path, body, authorised);
+  }
+}
+
 export class BrandRoles {
   private roles = new Map<string, Role>();
   private readonly give: (operator: string, roles: string[]) => void;
@@ -62,7 +88,7 @@ export class BrandRoles {
       const roles = [...((given().roles as string[]) ?? [])].sort();
       const unknown = roles.find((r) => !this.roles.has(r));
       if (unknown) return { status: 404, body: { error: "no_such_role", role: unknown } };
-      this.give(name, [`brand_${brand}`, ...roles]);
+      this.give(name, roles);
       return { body: { operator: name, brand, roles } };
     }
     return { status: 405, body: { error: "method_not_allowed" } };

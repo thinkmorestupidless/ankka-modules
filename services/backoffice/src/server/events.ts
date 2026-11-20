@@ -261,7 +261,7 @@ export async function standing(deps: Pick<EventsDeps, "brand" | "reads">, token:
   if (!inBrand(token.roles, deps.brand)) return "not-in-brand";
   const bags = await deps.reads.bags.get();
   if (bags === undefined) return undefined;
-  return permissionsOf(token.roles, bags).join(" ");
+  return permissionsOf(deps.brand, token.roles, bags).join(" ");
 }
 
 /**

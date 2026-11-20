@@ -6,7 +6,7 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, Given, Then, When, type World } from "../world.ts";
 import { bearerOf } from "../../doubles/client.ts";
-import { operator, type Who } from "../../doubles/env.ts";
+import { backofficeUrlOf, DoublesUrl, operator, type Who } from "../../doubles/env.ts";
 import type { Identity } from "../../doubles/realm.ts";
 import { rolesGiving } from "../../../src/shared/access.ts";
 import permissions from "../../../src/shared/generated/operator-permissions.v1.json" with { type: "json" };
@@ -51,11 +51,11 @@ Given("the backoffice of the brand {string}", ({ world }, brand: string) => {
 });
 
 Given("an operator whose roles name the brands {string} and {string}", ({ world }, a: string, b: string) => {
-  of(world).identity = { sub: "op-two-brands", name: "Tess Twobrands", roles: [`brand_${a}`, `brand_${b}`, "brand_support"] };
+  of(world).identity = { sub: "op-two-brands", name: "Tess Twobrands", roles: [`brand_${a}`, `brand_${b}`, `brand_support@${a}`] };
 });
 
 Given("an operator whose roles name only the brand {string}", ({ world }, brand: string) => {
-  of(world).identity = { sub: `op-${brand}-only`, name: "Sam Other", roles: [`brand_${brand}`, "brand_support"] };
+  of(world).identity = { sub: `op-${brand}-only`, name: "Sam Other", roles: [`brand_${brand}`, `brand_support@${brand}`] };
 });
 
 When("the operator signs in to the backoffice", async ({ world }) => {
@@ -75,7 +75,7 @@ Then("everything the operator sees and does is in {string}", async ({ world }, b
   const RoleNames = new Set(["brand_support", "brand_finance", "brand_compliance", "brand_admin"]);
   const elsewhere = calls.filter((c) => !shared(c) && !c.path.split("/").includes(brand)).map((c) => `${c.owner} ${c.method} ${c.path}`);
   expect(elsewhere, `every call the server made to the brand's own owners named ${brand}`).toEqual([]);
-  const others = (of(world).identity?.roles ?? []).flatMap((r) => (r.startsWith("brand_") && r !== `brand_${brand}` && !RoleNames.has(r) ? [r.slice("brand_".length)] : []));
+  const others = (of(world).identity?.roles ?? []).flatMap((r) => (r.startsWith("brand_") && !r.includes("@") && r !== `brand_${brand}` && !RoleNames.has(r) ? [r.slice("brand_".length)] : []));
   const leaked = calls.filter((c) => shared(c) && others.some((o) => c.path.split("/").includes(o))).map((c) => `${c.owner} ${c.method} ${c.path}`);
   expect(leaked, "no call to a shared project named another brand").toEqual([]);
 });
@@ -104,6 +104,12 @@ Then("nothing of the brand is shown", async ({ world }) => {
 // --- an action the roles do not admit (the withdrawal request page: a later task) -----------------
 
 Given("a compliance operator of a brand and a withdrawal request pending review", async ({ world }) => {
+  await pendingWithdrawal(world);
+  await world.signInAs("brand_compliance");
+});
+
+/** A withdrawal request pending review, as payouts answers it in any brand. */
+async function pendingWithdrawal(world: World): Promise<string> {
   const requestId = "w-2001";
   of(world).requestId = requestId;
   await world.doubles.fixtures("payouts", {
@@ -141,8 +147,8 @@ Given("a compliance operator of a brand and a withdrawal request pending review"
       },
     },
   });
-  await world.signInAs("brand_compliance");
-});
+  return requestId;
+}
 
 When("the operator opens the withdrawal request", async ({ world }) => {
   await world.open(`/withdrawals/${of(world).requestId}`);
@@ -435,3 +441,123 @@ async function seedPlayer(world: World) {
     "GET /v1/casino/backoffice/{brand}/game-provider/rounds": { body: { rounds: [], total: 0, page: 1, pageSize: 50 } },
   });
 }
+
+// --- roles held per brand (spec 032) -------------------------------------------------------------
+// Each brand's backoffice runs (the seeded brand's and the second's, `doubles/env.ts`); a brand's giving
+// is what players asks merchant to set, so here the players double is asked as the backoffice asks it.
+
+/** The default role a step names by its short name ("finance") or any role by its own. */
+const roleNamed = (word: string) => (["support", "finance", "compliance", "admin"].includes(word) ? `brand_${word}` : word);
+
+/** `brand`'s giving, as its backoffice asks players for it (P13). */
+async function give(world: World, brand: string, roles: string[]): Promise<void> {
+  const who = of(world).identity;
+  if (!who) throw new Error("no operator was given for this scenario");
+  const r = await fetch(`${DoublesUrl}/players/v1/casino/backoffice/${brand}/role-assignments/${who.sub}`, {
+    method: "PUT",
+    headers: { authorization: "Bearer giver", "content-type": "application/json" },
+    body: JSON.stringify({ roles }),
+  });
+  expect(r.status, await r.clone().text()).toBeLessThan(300);
+}
+
+/** What `/api/me` answers the signed-in operator at `brand`'s backoffice. */
+async function me(world: World, brand: string): Promise<{ roles: string[]; permissions: string[] }> {
+  const r = await page(world).request.get(`${backofficeUrlOf(brand)}/api/me`);
+  expect(r.status(), await r.text()).toBe(200);
+  return (await r.json()) as { roles: string[]; permissions: string[] };
+}
+
+Given("the operator holds the {word} role in {string}", ({ world }, word: string, brand: string) => {
+  const who = of(world).identity;
+  if (!who) throw new Error("no operator was given for this scenario");
+  who.roles = [...who.roles.filter((r) => !r.endsWith(`@${brand}`)), `${roleNamed(word)}@${brand}`];
+});
+
+When("{string} gives the operator its {word} role", async ({ world }, brand: string, word: string) => {
+  await give(world, brand, [roleNamed(word)]);
+});
+
+When("{string} gives the operator its role {string}", async ({ world }, brand: string, role: string) => {
+  await give(world, brand, [role]);
+});
+
+const approveIn = async (world: World, brand: string) => {
+  const requestId = of(world).requestId ?? (await pendingWithdrawal(world));
+  const who = of(world).identity;
+  if (!who) throw new Error("no operator was given for this scenario");
+  await world.signInAs(who, { brand });
+  await page(world).goto(`${backofficeUrlOf(brand)}/withdrawals/${requestId}`);
+  await signedInFrame(world);
+  return approve(world);
+};
+
+Then("in {string} approving a withdrawal request is refused, naming the permission it needs", async ({ world }, brand: string) => {
+  const button = await approveIn(world, brand);
+  await expect(button).toBeDisabled();
+  await expect(button).toHaveAccessibleDescription(needs(describe("withdrawal.approve").permission));
+});
+
+Then("in {string} approving a withdrawal request is admitted", async ({ world }, brand: string) => {
+  const button = await approveIn(world, brand);
+  await expect(button).toBeEnabled();
+});
+
+/** What each brand's "vip_host" carries in the two-brands scenario: different, and none a default support role holds. */
+const VipHost: Record<string, string[]> = { goldvibe: ["offer.manage"], spinvibe: ["tier.change"] };
+
+Given("the brands {string} and {string} each have a role {string} carrying different permissions", async ({ world }, a: string, b: string, role: string) => {
+  for (const brand of [a, b]) {
+    const r = await fetch(`${DoublesUrl}/players/v1/casino/backoffice/${brand}/roles/${role}`, {
+      method: "PUT",
+      headers: { authorization: "Bearer admin", "content-type": "application/json" },
+      body: JSON.stringify({ description: `${brand}'s ${role}`, permissions: VipHost[brand] }),
+    });
+    expect(r.status, await r.clone().text()).toBe(200);
+  }
+  expect(VipHost[a]).not.toEqual(VipHost[b]);
+  void world;
+});
+
+Then("in {string} the operator is offered nothing that the role {string} of {string} carries", async ({ world }, brand: string, _role: string, owner: string) => {
+  const who = of(world).identity!;
+  await world.signInAs(who, { brand });
+  const held = new Set((await me(world, brand)).permissions);
+  expect(VipHost[owner]!.filter((p) => held.has(p)), `${brand} opens none of its own role's permissions for a role another brand gave`).toEqual([]);
+  // the brand that gave it opens its own bag, once its server has read the role (at most 10 s, FR-008b)
+  await world.signInAs(who);
+  const giver = world.brand.slug;
+  await expect
+    .poll(async () => (await me(world, giver)).permissions.filter((p) => VipHost[giver]!.includes(p)), {
+      message: `${giver} opens its own role's permissions`,
+      timeout: 15_000,
+    })
+    .toEqual(VipHost[giver]);
+});
+
+Given("an operator who holds the finance role in {string} and whose roles do not name the brand {string}", ({ world }, brand: string, _same: string) => {
+  of(world).identity = { sub: "op-finance-unnamed", name: "Fin Unnamed", roles: ["brand_spinvibe", `brand_finance@${brand}`] };
+});
+
+When("the operator approves a withdrawal request in {string}", async ({ world }, brand: string) => {
+  const requestId = await pendingWithdrawal(world);
+  await world.signInAs(of(world).identity!, { brand });
+  await page(world).goto(`${backofficeUrlOf(brand)}/withdrawals/${requestId}`);
+});
+
+Given("an operator who holds the finance role in {string} and the support role in {string}", ({ world }, a: string, b: string) => {
+  of(world).identity = { sub: "op-finance-support", name: "Fran Twobrands", roles: [`brand_${a}`, `brand_${b}`, `brand_finance@${a}`, `brand_support@${b}`] };
+});
+
+Then("the operator is shown the finance role and offered what it carries", async ({ world }) => {
+  const answer = await me(world, world.brand.slug);
+  expect(answer.roles).toEqual(["brand_finance"]);
+  const finance = (permissions.defaults as Record<string, string[]>).brand_finance!;
+  expect([...answer.permissions].filter((p) => permissions.permissions.includes(p)).sort()).toEqual([...finance].sort());
+});
+
+Then("no role of {string} is shown", async ({ world }, other: string) => {
+  const answer = await me(world, world.brand.slug);
+  expect(answer.roles.filter((r) => r.includes(other) || r === "brand_support")).toEqual([]);
+  await expect(page(world).getByText(new RegExp(other, "i"))).toHaveCount(0);
+});

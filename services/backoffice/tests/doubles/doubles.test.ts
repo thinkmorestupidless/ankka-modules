@@ -59,7 +59,7 @@ describe("the doubles", () => {
     expect(me.status).toBe(200);
     const body = (await me.json()) as { subject: string; roles: string[]; permissions: string[]; brand: { modules: string[] }; preferences: { theme: string } };
     expect(body.subject).toBe("op-brand-finance");
-    expect(body.roles).toEqual(["brand_finance", "brand_goldvibe"]);
+    expect(body.roles).toEqual(["brand_finance"]);
     expect(body.permissions).toContain("adjustment.make");
     expect(body.brand.modules).toEqual(["casino", "core"]);
     expect(body.preferences.theme).toBe("dark");
@@ -82,7 +82,7 @@ describe("the doubles", () => {
     expect(await client.expectAuthorizedAs("players", "op-brand-admin", { path: /\/profile$/ })).toBe(1);
     const [call] = await client.calls("merchant.payments");
     expect(call!.path).toBe("/v1/payments/cashier");
-    expect(claimsOf(call!)?.realm_access?.roles).toContain("brand_admin");
+    expect(claimsOf(call!)?.realm_access?.roles).toContain("brand_admin@goldvibe");
   });
 
   it("refuse an operator route called with no token", async () => {
@@ -107,9 +107,9 @@ describe("the doubles", () => {
   it("change a subject's roles at its next token", async () => {
     await client.tokenLife(0);
     const cookie = await signIn(operator("brand_support"));
-    await client.roles("op-brand-support", ["brand_goldvibe", "brand_finance"]);
+    await client.roles("op-brand-support", ["brand_goldvibe", "brand_finance@goldvibe"]);
     const me = (await (await app.request(`${Address}/api/me`, { headers: { Cookie: cookie } })).json()) as { roles: string[] };
-    expect(me.roles).toEqual(["brand_finance", "brand_goldvibe"]);
+    expect(me.roles).toEqual(["brand_finance"]);
   });
 
   it("answer a shared project that is not there as the proxy would", async () => {
