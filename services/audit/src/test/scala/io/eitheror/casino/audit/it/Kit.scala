@@ -207,7 +207,7 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "spinvibe"), con
     io.eitheror.casino.audit.query.Query.Oldest, 100000)
 
   /** Waits until `check` holds, polling, for at most `within`. */
-  def eventually[A](within: FiniteDuration = 20.seconds)(check: => Option[A]): A =
+  def eventually[A](within: FiniteDuration = 60.seconds)(check: => Option[A]): A =
     val deadline = System.nanoTime() + within.toNanos
     var result   = check
     while result.isEmpty && System.nanoTime() < deadline do

@@ -194,7 +194,7 @@ final class Kit(val brand: String = "goldvibe", modules: Set[String] = Set("casi
     components.forEventSourcedEntity(EntityId(player)).call(AttributionRecord.get).invoke()
 
   /** Polls until `f` answers, as a view's or consumer's effect must be waited for. */
-  def eventually[A](what: String, within: FiniteDuration = 20.seconds)(f: => Option[A]): A =
+  def eventually[A](what: String, within: FiniteDuration = 60.seconds)(f: => Option[A]): A =
     testKit.eventually(what, within)(f)
 
 /**

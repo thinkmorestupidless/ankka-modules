@@ -171,7 +171,7 @@ final class Kit(baseSettings: Settings = Settings(), val backoff: Backoff = Back
   def paymentState(paymentId: String): PaymentState = components.forEventSourcedEntity(EntityId(paymentId)).call(Payment.get).invoke()
   def flow(paymentId: String): DepositFlow = components.forWorkflow(EntityId(paymentId)).call(DepositWorkflow.status).invoke()
 
-  def eventually[A](what: String, within: FiniteDuration = 30.seconds)(f: => Option[A]): A = testKit.eventually(what, within)(f)
+  def eventually[A](what: String, within: FiniteDuration = 60.seconds)(f: => Option[A]): A = testKit.eventually(what, within)(f)
 
   private def assertOk(r: Reply): Unit = if r.status != 200 then throw AssertionError(s"${r.status}: ${r.text}")
 

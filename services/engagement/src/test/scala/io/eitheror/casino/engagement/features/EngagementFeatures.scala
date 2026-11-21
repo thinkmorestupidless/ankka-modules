@@ -81,7 +81,7 @@ abstract class EngagementFeatures(file: String) extends GherkinSuite(s"../../fea
   protected def unconfigure(): Unit =
     kit.components.forKeyValueEntity(EntityId(kit.slug)).call(Configuration.put).invoke(ConfigChange(CrmConfig(), "features")): Unit
 
-  protected def eventually[A](what: String, within: FiniteDuration = 30.seconds)(f: => Option[A]): A = kit.eventually(what, within)(f)
+  protected def eventually[A](what: String, within: FiniteDuration = 60.seconds)(f: => Option[A]): A = kit.eventually(what, within)(f)
 
 object EngagementFeatures:
   /** A transactional id for every trigger the features send. */

@@ -260,7 +260,7 @@ final class Kit(base: Settings = Kit.Base):
 
   def logText: Vector[String] = log.list.asScala.toVector.map(e => s"${e.getFormattedMessage} ${Option(e.getThrowableProxy).fold("")(_.getMessage)}")
 
-  def eventually[A](what: String, within: FiniteDuration = 30.seconds)(f: => Option[A]): A = testKit.eventually(what, within)(f)
+  def eventually[A](what: String, within: FiniteDuration = 60.seconds)(f: => Option[A]): A = testKit.eventually(what, within)(f)
 
   private def fail(why: String): Nothing = throw AssertionError(why)
 

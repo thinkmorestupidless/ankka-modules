@@ -1,5 +1,6 @@
 package io.eitheror.casino.programme.port
 
+import scala.concurrent.duration.DurationInt
 import com.fasterxml.jackson.databind.JsonNode
 import com.github.plokhotnyuk.jsoniter_scala.core.readFromString
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
@@ -78,5 +79,5 @@ class ImportParitySuite extends munit.FunSuite with LogCapturing:
   private def figureOf(affiliate: String, period: String, total: Long): JsonNode =
     def read = kit.request("GET", s"/v1/affiliates/${bundle.brand}/accounts/$affiliate/revenue?period=$period",
       headers = kit.asManager(Seq(bundle.brand))).json.get("figures").elements().asScala.toVector.filter(_.path("currency").asText == currency)
-    val wanted = scala.util.Try(kit.eventually(s"$affiliate $period")(read.find(_.path("totalCommission").asLong == total)))
+    val wanted = scala.util.Try(kit.eventually(s"$affiliate $period", 20.seconds)(read.find(_.path("totalCommission").asLong == total)))
     wanted.getOrElse(read.headOption.getOrElse(FakeServer.mapper.createObjectNode()))

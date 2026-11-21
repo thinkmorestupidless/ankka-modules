@@ -1,5 +1,6 @@
 package io.eitheror.casino.kyc.features
 
+import scala.concurrent.duration.*
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.core.EntityId
 import io.eitheror.casino.contract.facts.*
@@ -97,7 +98,7 @@ class ReadsFeatures extends KycFeatures("reads.feature"):
     val q = eventually(s"$expected under '$filter'")(Some(queueRead(query)).filter(q => ids(q)(expected) && (ids(q) & others).isEmpty))
     // The view may still be projecting other scenarios' players between the count and the rows: read again until
     // they agree, and the last read is the one asserted.
-    val settled = scala.util.Try(eventually("the count and the rows agree")(Some(queueRead(query)).filter(agrees))).getOrElse(q)
+    val settled = scala.util.Try(eventually("the count and the rows agree", 30.seconds)(Some(queueRead(query)).filter(agrees))).getOrElse(q)
     assertEquals(settled.get("counts").get(count).asLong, rowsOf(settled).size.toLong, settled.get("counts").toString)
     assert(ids(settled)(expected) && (ids(settled) & others).isEmpty, settled.toString)
     rowsOf(settled).find(_.text("playerId").contains(expected)).get

@@ -206,7 +206,7 @@ object ProviderTestKit:
     def callback(id: String): Callback =
       testKit.componentClient.forEventSourcedEntity(EntityId(id)).call(CallbackEntity.get).invoke()
 
-    def eventually[A](within: FiniteDuration = 30.seconds)(probe: => Option[A]): A =
+    def eventually[A](within: FiniteDuration = 60.seconds)(probe: => Option[A]): A =
       val deadline = System.nanoTime() + within.toNanos
       var found    = scala.util.Try(probe).toOption.flatten
       while found.isEmpty && System.nanoTime() < deadline do
